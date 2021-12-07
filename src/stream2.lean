@@ -8,7 +8,9 @@ import logic.relation
 import base
 import data.stream.basic
 import combinatorics.simple_graph.subgraph
+
 set_option pp.proofs true
+set_option trace.simp_lemmas true
 -- set_option pp.notation false
 
 #check stream
@@ -18,9 +20,10 @@ set_option pp.proofs true
 universes u v
 variables {α β : Type*}
 
+def emit_type (I V : Type) := option (I × option V)
 structure iter (σ I V : Type) [linear_order I] :=
   (δ : σ → σ)
-  (emit : σ → option (I × option V))
+  (emit : σ → emit_type I V)
 
 section params
 -- we fix one iterator, and its associated types, for the section. the states s and t vary
@@ -50,7 +53,7 @@ theorem refl {x : σ} : reachable x x := refl
 def step {x : σ} : reachable x (δ x) := single rfl
 end transition
 
-theorem none_top {α : Type*} [linear_order α] : ∀ {i : with_top α}, ⊤ ≤ i → i = none := λ _ big, le_antisymm le_top big
+theorem none_top {α : Type*} [linear_order α] : ∀ {i : with_top α}, ⊤ ≤ i → i = none | _ h := le_antisymm le_top h
 
 def monotonic          := ∀ (s t : σ), reachable s t → ι s ≤ ι t
 #print monotonic
@@ -69,8 +72,7 @@ lemma index_of_path {s t} : reachable s t → ∃ (i: ℕ), t = (δ^i) • s := 
     rw [add_comm, pow_add, mul_smul, ← hh], exact step,
   }
 end
-#check Exists.some
-noncomputable def index_of_path' {s t} (r : reachable s t) : Σ' (i : ℕ), t = δ^i•s :=
+noncomputable def index_of_path_sigma {s t} (r : reachable s t) : Σ' (i : ℕ), t = δ^i•s :=
     ⟨(index_of_path r).some, (index_of_path r).some_spec⟩
 
 def path_of_index : ∀ (i:ℕ), reachable s ((δ^i)•s)
@@ -83,22 +85,21 @@ end
 lemma index_lt_of_ge (i j : ℕ) : monotonic → ι ((δ^i)•s) < ι ((δ^j)•s) → i < j := λ mono, begin
 have h := mt (le_of_index_lt s j i mono),
 simpa only [not_le,h] using h,
-end #print index_lt_of_ge
+end
 
-#check pow_add
 @[simp] lemma mono_iff_delta_mono : monotonic ↔ ∀ t, ι t ≤ ι (δ t) := begin
-split, intros m t,
-exact m _ _ (transition.step a),
-intro h, intros w x path, obtain ⟨len, h⟩ : _ := index_of_path path,
-rw h,
-induction len with pl h1 generalizing x w,
-simp only [pow_zero, one_smul, le_refl],
-exact calc
+split, {intros m t, exact m _ _ (transition.step a)},
+{ intro h, intros w x path, obtain ⟨len, h⟩ : _ := index_of_path path,
+  rw h,
+  induction len with pl h1 generalizing x w,
+  simp only [pow_zero, one_smul, le_refl],
+  exact calc
   ι w ≤ ι (δ ^ pl • w)      : by {exact h1 _ w (path_of_index _ _) rfl}
-  ... ≤ ι (δ • δ ^ pl • w)  : by {change ι (δ ^ pl • w) ≤ ι (δ (δ ^ pl • w)), apply h, }
-  ... ≤ ι (δ ^ pl.succ • w) : by {simp only [← mul_smul], simp,
+  ... ≤ ι (δ • δ ^ pl • w)  : by {apply h}
+  ... ≤ ι (δ ^ pl.succ • w) : by {simp only [← mul_smul],
                                   change ι ((δ^1 * δ ^ pl) w) ≤ ι ((δ ^ pl.succ) w),
-                                  simp only [← pow_add, add_comm, le_refl]},
+                                  simp only [← pow_add, add_comm, le_refl]}
+},
 end
 
 lemma finite1 {s T : σ} : monotonic → reachable s T → terminal T → ∃ (j : ℕ),
@@ -185,9 +186,7 @@ case succ : _ h {
     rw [← h],
 } end
 
-lemma mwe1 {k n : ℕ} (h : n < k) : (list.range k).nth_le n ((list.length_range k).symm ▸ h) = n := sorry
---lemma mwe1 {k n : ℕ} (h : n < k) : (list.range k).nth_le n (by simpa only [list.length_range] using h) = n := sorry
-#print mwe1
+example {k n : ℕ} (h : n < k) : (list.range k).nth_le n ((list.length_range k).symm ▸ h) = n := sorry
 
 theorem approx_range_map (j : ℕ) (s : stream α) : s.approx j = (list.range j).map s := begin
 --stream.approx j.succ s = stream.approx j s ++  [s j] := begin
@@ -238,8 +237,6 @@ rw [semantics_ind, terminal_zero _ h, zero_add],
 exact jh _ (terminal_succ_terminal _ m h)
 end
 
-theorem progress (s t : σ) :  terminal t → true := sorry
-
 end params
 
 local notation `⟦` a, s `⟧` := semantics' a s
@@ -263,61 +260,123 @@ section params_binary
 parameters {σ₁ σ₂ I V : Type} [linear_order I] [decidable_eq σ₁] [decidable_eq σ₂] [add_comm_monoid V]
 (a : iter σ₁ I V) (b : iter σ₂ I V)
 
-instance [linear_order I][add_comm_monoid V] : add_comm_monoid (option (I × option V)) := begin
-fsplit, exact λ a b,
-match a, b with
-| none, none := none
-| none,some v := some v | some v, none := some v
-| some (i₁, v₁), some (i₂, v₂) := if i₁ < i₂ then some (i₁, v₁) else if i₁ > i₂ then some (i₂, v₂) else
-  some (i₁, match v₁, v₂ with
-  | none, none := none
-  | some v, none := some v
-  | none, some v := some v
-  | some v₁, some v₂ := some (v₁ + v₂)
-  end)
-end,
-sorry -- todo, replace emit with semantics₁?
-end
-example (f : α → α) (sz : α → ℕ) (dec : ∀ x, sz (f x) < sz x) (x : α) : ∃ (i:ℕ), sz (f^i • x) = 0 := begin
+-- separate def needed to unfold?
+def merge_indexed_values : I×(option V) → I×(option V) → I×(option V) | (i₁, v₁) (i₂, v₂) :=
+if i₁ < i₂ then (i₁, v₁) else if i₁ > i₂ then (i₂, v₂) else
+        (i₁, option.lift_or_get (λ v₁ v₂, (v₁ + v₂)) v₁ v₂)
 
-end
+def add_emit : σ₁ × σ₂ → emit_type I V | ⟨s, t⟩ :=
+--def add_emit (s : σ₁) (t : σ₂) :=
+    if ι a s < ι b t then a.emit s else if ι a s > ι b t then b.emit t
+    else option.lift_or_get merge_indexed_values
+        (a.emit s) (b.emit t)
 
 def add_iter (a : iter σ₁ I V) (b : iter σ₂ I V) : iter (σ₁×σ₂) I V :=
 { δ := λ ⟨s,t⟩, if ι a s < ι b t then (δ a s,t) else if ι a s > ι b t then (s, δ b t) else (δ a s, δ b t)
-, emit := λ ⟨s,t⟩, if ι a s < ι b t then a.emit s else if ι a s > ι b t then b.emit t else a.emit s + b.emit t
+, emit := add_emit,
+--, emit := λ ⟨s,t⟩, if ι a s < ι b t then a.emit s else if ι a s > ι b t then b.emit t else a.emit s + b.emit t
 }
 local infix `+'`:50 := add_iter
+
+#check has_inf.inf
+#check option.lift_or_get
 #check min
-lemma add_ι_min {s} : ι (a+'b) s = min (ι a s.1) (ι b s.2) := begin
-cases s, simp [add_iter, ι, iter.emit],
+#check with_top
+#check @has_lt.lt ℕ _ 1 2
+#check option.has_mem
+#check semilattice_inf.inf
+-- why doesn't linarith work?
+lemma cases_min {x y : I} : ite (x < y) x (ite (x > y) y x) = min x y := begin
+simp only [gt_iff_lt, min_def],
+split_ifs, repeat {refl},
+exfalso, exact h_1 (le_of_lt h),
+exact le_antisymm (not_lt.1 h) h_2,
+exact le_antisymm (not_lt.1 h_1) (not_lt.1 h),
+end
+lemma map_ite (f : α → β) (c : Prop) [decidable c] (a b : α) : f (ite c a b) = ite c (f a) (f b) := begin
+split_ifs, repeat {refl},
 end
 
-#check tactic.simp_config_ext
-theorem terminal_1_delta_2 (s₁:σ₁)(s₂:σ₂) : terminal a s₁ → (δ (a +'b) (s₁,s₂)).2 = δ b s₂ := λ t, begin
+lemma add_ι_min {s} : ι (a+'b) s = min (ι a s.1) (ι b s.2) := begin
+cases s with s₁ s₂,
+rw [ι],
+simp only [add_iter, iter.emit],
+rw min_def,
+obtain (h|h|h) := lt_trichotomy (ι a s₁) (ι b s₂),
+{
+    repeat {simp only [h]},
+    simp only [add_emit];
+    split_ifs,
+    repeat {refl}, -- 2
+    repeat {exfalso, exact h_2 (le_of_lt h)}, --2
+},
+
+{
+    simp only [add_emit],
+    split_ifs,
+    repeat{refl}, --2
+    repeat {simpa [h]}, --2
+    { -- main case
+        cases h4 : a.emit s₁; cases h5 : b.emit s₂,
+        repeat {simp only [option.lift_or_get, ι, h4, h5]},
+        {simp only [ι, h4, h5] at h, exact h.symm},
+        cases val, cases val_1,
+        simp only [merge_indexed_values], split_ifs,
+        repeat {refl},
+        simp only [ι, h4, h5] at h, rw option.some.inj h, refl,
+    },
+{ exfalso, exact h_3 (le_of_eq h),}
+},
+{
+    simp only [add_emit];
+    split_ifs,
+    repeat {refl}, -- 2
+    repeat {exfalso, exact h_2 (le_of_lt h_1)}, --1
+    rw le_antisymm h_2 (le_of_lt h), refl,
+},
+end
+
+theorem terminal_1_delta_2 (s₁:σ₁)(s₂:σ₂) : terminal a s₁ → (δ (a +'b) (s₁,s₂)).2 = δ b s₂ | t := begin
 simp only [add_iter, terminal, δ] at *, rw t,
 simp only [not_top_lt], split_ifs, {exact false.rec _ h}, repeat {refl},
 end
-theorem terminal_2_delta_1 (s₁:σ₁)(s₂:σ₂) : terminal b s₂ → (δ (a +'b) (s₁,s₂)).1 = δ a s₁ := λ t, begin
+theorem terminal_2_delta_1 (s₁:σ₁)(s₂:σ₂) : terminal b s₂ → (δ (a +'b) (s₁,s₂)).1 = δ a s₁ | t := begin
 simp only [add_iter, terminal, δ] at *, rw t,
 simp only [gt_iff_lt, not_top_lt], split_ifs with _ h, refl, {exact false.rec _ h}, {refl},
 end
-example (s₁:σ₁)(s₂:σ₂) {t} (sz : ℕ) (h : δ (a+'b)^sz • (s₁,s₂) = t) : true := begin
-
+lemma step_dichotomy_1 (s₁:σ₁)(s₂:σ₂) : (δ (a +'b) (s₁,s₂)).1 = δ a s₁ ∨ (δ (a +'b) (s₁,s₂)).1 = s₁ := begin
+simp only [add_iter, δ], split_ifs, tidy, --exact or.inl rfl, exact or.inr rfl, exact or.inl rfl,
 end
+#print step_dichotomy_1
+lemma step_dichotomy_2 (s₁:σ₁)(s₂:σ₂) : (δ (a +'b) (s₁,s₂)).2 = δ b s₂ ∨ (δ (a +'b) (s₁,s₂)).2 = s₂ := begin
+simp only [add_iter, δ], split_ifs, tidy, -- exact or.inr rfl, exact or.inl rfl, exact or.inl rfl,
+end
+
+theorem add_iter_monotonic (s₁:σ₁) (s₂:σ₂) : monotonic a → monotonic b → monotonic (a +' b) := begin
+intros m1 m2, simp only [mono_iff_delta_mono],
+
+rintro ⟨t₁, t₂⟩, simp only [add_ι_min],
+apply min_le_min _ _,
+
+{ obtain (h|h) := step_dichotomy_1 t₁ t₂,
+  rw h, apply (mono_iff_delta_mono _).1 m1,
+  rw h, apply le_refl _,
+},
+
+{ obtain (h|h) := step_dichotomy_2 t₁ t₂,
+  rw h, apply (mono_iff_delta_mono _).1 m2,
+  rw h, apply le_refl _,
+}
+end
+
 theorem add_iter_finite    (s₁:σ₁) (s₂:σ₂) : finite a s₁ → finite b s₂ → finite (a +' b) (s₁,s₂) := begin
 rintros ⟨sa, ⟨patha, terma⟩⟩ ⟨sb, ⟨pathb, termb⟩⟩,
 have h1 := index_of_path a patha,
 have h2 := index_of_path b pathb,
-
-end
-#check index_of_path
-theorem add_iter_monotonic (s₁:σ₁) (s₂:σ₂) : monotonic a → monotonic b → monotonic (a +' b) := begin
-intros m1 m2,
-simp only [mono_iff_delta_mono],
-
-rintro ⟨t₁, t₂⟩, simp only [ι], cases ι a t₁ < ι b t₂,
+sorry,
 end
 theorem add_iter_strict    (s₁:σ₁) (s₂:σ₂) : strict a    → strict b    → strict (a +' b) := sorry
+-- todo: j needs to be sufficiently large
 theorem add_iter_sound     (s₁:σ₁) (s₂:σ₂) : ∃ j, ⟦a +' b, (s₁,s₂)⟧ j = ⟦a, s₁⟧ j + ⟦b, s₂⟧ j := sorry
 
 end params_binary
