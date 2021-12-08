@@ -7,15 +7,10 @@ import tactic
 import logic.relation
 import base
 import data.stream.basic
-import combinatorics.simple_graph.subgraph
 
 set_option pp.proofs true
-set_option trace.simp_lemmas true
+-- set_option trace.simp_lemmas true
 -- set_option pp.notation false
-
-#check stream
-#check simple_graph
-#check finset.range
 
 universes u v
 variables {α β : Type*}
@@ -26,9 +21,8 @@ structure iter (σ I V : Type) [linear_order I] :=
   (emit : σ → emit_type I V)
 
 section params
--- we fix one iterator, and its associated types, for the section. the states s and t vary
+-- Fix one iterator, and its associated types, for the section. The states s and t vary.
 open iter
--- parameters {σ : Type} [decidable_eq σ] [iter σ] [linear_order (I σ)]
 parameters {σ I V : Type} [linear_order I]
 [decidable_eq σ]
 (a : iter σ I V)
@@ -41,10 +35,6 @@ def δ := a.δ
 open relation
 open relation.refl_trans_gen
 
--- inductive reach (x : σ) : σ → Type
--- | refl : reach x
--- | tail {b c} : reach b → (δ b = c) → reach c
-
 -- @[reducible, inline]
 def reachable := relation.refl_trans_gen (λ a b, b = δ a)
 namespace transition -- can't use reachable??
@@ -56,14 +46,11 @@ end transition
 theorem none_top {α : Type*} [linear_order α] : ∀ {i : with_top α}, ⊤ ≤ i → i = none | _ h := le_antisymm le_top h
 
 def monotonic          := ∀ (s t : σ), reachable s t → ι s ≤ ι t
-#print monotonic
 def terminal   (s : σ) := ι s = ⊤
 def finite     (s : σ) := ∃ (t : σ), reachable s t ∧ terminal t
 def productive (s : σ) := ν s ≠ none
 def strict             := ∀ (s t : σ), productive s → productive t → ι s = ι t → s = t
 instance [decidable_eq I] : decidable (terminal s) := if h : ι s = none then is_true h else is_false h
--- instance [decidable_eq I] : decidable (terminal s) := if h : a.emit s = none then is_true h else is_false h
-#check classical.dec_eq
 
 lemma index_of_path {s t} : reachable s t → ∃ (i: ℕ), t = (δ^i) • s := begin
   intros p, induction p, refine ⟨0 , _⟩, refl,
@@ -261,15 +248,12 @@ parameters {σ₁ σ₂ I V : Type} [linear_order I] [decidable_eq σ₁] [decid
 (a : iter σ₁ I V) (b : iter σ₂ I V)
 
 -- separate def needed to unfold?
-def merge_indexed_values : I×(option V) → I×(option V) → I×(option V) | (i₁, v₁) (i₂, v₂) :=
-if i₁ < i₂ then (i₁, v₁) else if i₁ > i₂ then (i₂, v₂) else
-        (i₁, option.lift_or_get (λ v₁ v₂, (v₁ + v₂)) v₁ v₂)
+def merge_indexed_values : I×(option V) → I×(option V) → I×(option V) | (i₁, v₁) (_, v₂) :=
+    (i₁, option.lift_or_get (λ v₁ v₂, (v₁ + v₂)) v₁ v₂)
 
 def add_emit : σ₁ × σ₂ → emit_type I V | ⟨s, t⟩ :=
---def add_emit (s : σ₁) (t : σ₂) :=
     if ι a s < ι b t then a.emit s else if ι a s > ι b t then b.emit t
-    else option.lift_or_get merge_indexed_values
-        (a.emit s) (b.emit t)
+    else option.lift_or_get merge_indexed_values (a.emit s) (b.emit t)
 
 def add_iter (a : iter σ₁ I V) (b : iter σ₂ I V) : iter (σ₁×σ₂) I V :=
 { δ := λ ⟨s,t⟩, if ι a s < ι b t then (δ a s,t) else if ι a s > ι b t then (s, δ b t) else (δ a s, δ b t)
@@ -278,21 +262,8 @@ def add_iter (a : iter σ₁ I V) (b : iter σ₂ I V) : iter (σ₁×σ₂) I V
 }
 local infix `+'`:50 := add_iter
 
-#check has_inf.inf
-#check option.lift_or_get
-#check min
-#check with_top
-#check @has_lt.lt ℕ _ 1 2
 #check option.has_mem
-#check semilattice_inf.inf
--- why doesn't linarith work?
-lemma cases_min {x y : I} : ite (x < y) x (ite (x > y) y x) = min x y := begin
-simp only [gt_iff_lt, min_def],
-split_ifs, repeat {refl},
-exfalso, exact h_1 (le_of_lt h),
-exact le_antisymm (not_lt.1 h) h_2,
-exact le_antisymm (not_lt.1 h_1) (not_lt.1 h),
-end
+
 lemma map_ite (f : α → β) (c : Prop) [decidable c] (a b : α) : f (ite c a b) = ite c (f a) (f b) := begin
 split_ifs, repeat {refl},
 end
@@ -317,32 +288,32 @@ obtain (h|h|h) := lt_trichotomy (ι a s₁) (ι b s₂),
     repeat{refl}, --2
     repeat {simpa [h]}, --2
     { -- main case
-        cases h4 : a.emit s₁; cases h5 : b.emit s₂,
+        cases h4 : a.emit s₁ with v1; cases h5 : b.emit s₂ with v2,
         repeat {simp only [option.lift_or_get, ι, h4, h5]},
         {simp only [ι, h4, h5] at h, exact h.symm},
-        cases val, cases val_1,
-        simp only [merge_indexed_values], split_ifs,
-        repeat {refl},
-        simp only [ι, h4, h5] at h, rw option.some.inj h, refl,
+        cases v1, cases v2,
+        simp only [merge_indexed_values], --split_ifs,
+        refl,
+        --simp only [ι, h4, h5] at h, rw option.some.inj h, refl,
     },
-{ exfalso, exact h_3 (le_of_eq h),}
+    { exfalso, exact h_3 (le_of_eq h) }
 },
 {
     simp only [add_emit];
-    split_ifs,
+    split_ifs with h1 h2 h3,
     repeat {refl}, -- 2
-    repeat {exfalso, exact h_2 (le_of_lt h_1)}, --1
-    rw le_antisymm h_2 (le_of_lt h), refl,
+    repeat {exfalso, exact h2 (le_of_lt h1)}, --1
+    rw le_antisymm h3 (le_of_lt h), refl,
 },
 end
 
-theorem terminal_1_delta_2 (s₁:σ₁)(s₂:σ₂) : terminal a s₁ → (δ (a +'b) (s₁,s₂)).2 = δ b s₂ | t := begin
+theorem terminal_1_delta_2 (s₁:σ₁)(s₂:σ₂) : terminal a s₁ → (δ (a +'b) (s₁,s₂)).2 = δ b s₂ := λ t, begin
 simp only [add_iter, terminal, δ] at *, rw t,
-simp only [not_top_lt], split_ifs, {exact false.rec _ h}, repeat {refl},
+simp only [not_top_lt], split_ifs, repeat {refl}, {exact false.rec _ h},
 end
-theorem terminal_2_delta_1 (s₁:σ₁)(s₂:σ₂) : terminal b s₂ → (δ (a +'b) (s₁,s₂)).1 = δ a s₁ | t := begin
+theorem terminal_2_delta_1 (s₁:σ₁)(s₂:σ₂) : terminal b s₂ → (δ (a +'b) (s₁,s₂)).1 = δ a s₁ := λ t, begin
 simp only [add_iter, terminal, δ] at *, rw t,
-simp only [gt_iff_lt, not_top_lt], split_ifs with _ h, refl, {exact false.rec _ h}, {refl},
+simp only [gt_iff_lt, not_top_lt], split_ifs with _ h, repeat {refl}, {exact false.rec _ h},
 end
 lemma step_dichotomy_1 (s₁:σ₁)(s₂:σ₂) : (δ (a +'b) (s₁,s₂)).1 = δ a s₁ ∨ (δ (a +'b) (s₁,s₂)).1 = s₁ := begin
 simp only [add_iter, δ], split_ifs, tidy, --exact or.inl rfl, exact or.inr rfl, exact or.inl rfl,
@@ -358,14 +329,14 @@ intros m1 m2, simp only [mono_iff_delta_mono],
 rintro ⟨t₁, t₂⟩, simp only [add_ι_min],
 apply min_le_min _ _,
 
-{ obtain (h|h) := step_dichotomy_1 t₁ t₂,
-  rw h, apply (mono_iff_delta_mono _).1 m1,
-  rw h, apply le_refl _,
+{ obtain (h|h) := step_dichotomy_1 t₁ t₂; rw h,
+  apply (mono_iff_delta_mono _).1 m1,
+  apply le_refl _,
 },
 
-{ obtain (h|h) := step_dichotomy_2 t₁ t₂,
-  rw h, apply (mono_iff_delta_mono _).1 m2,
-  rw h, apply le_refl _,
+{ obtain (h|h) := step_dichotomy_2 t₁ t₂; rw h,
+  apply (mono_iff_delta_mono _).1 m2,
+  apply le_refl _,
 }
 end
 
@@ -376,7 +347,7 @@ have h2 := index_of_path b pathb,
 sorry,
 end
 theorem add_iter_strict    (s₁:σ₁) (s₂:σ₂) : strict a    → strict b    → strict (a +' b) := sorry
--- todo: j needs to be sufficiently large
+-- todo: j needs to be sufficiently large (and statement not true ∀j)
 theorem add_iter_sound     (s₁:σ₁) (s₂:σ₂) : ∃ j, ⟦a +' b, (s₁,s₂)⟧ j = ⟦a, s₁⟧ j + ⟦b, s₂⟧ j := sorry
 
 end params_binary

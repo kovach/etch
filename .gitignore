@@ -1,0 +1,5 @@
+*.olean
+*~
+src/junk.lean
+/_target
+/leanpkg.path
