@@ -3,13 +3,15 @@ import algebra.group
 import algebra.group.defs
 import tactic
 import logic.relation
-set_option pp.proofs true
+
+-- set_option pp.proofs true
+-- set_option trace.simp_lemmas true
+-- set_option pp.notation false
 
 universes u v
 variables (α β : Type*)
 
 -- todo, already exists as:
-#check function.End
 #check function.End.smul_def
 instance comp_monoid (ν : Type*) : monoid (ν → ν) :=
 { mul := λ a b, a ∘ b , mul_assoc := λ a b c, rfl
@@ -27,3 +29,92 @@ instance fish_monoid (m : _) (ν : Type) [monad m] [is_lawful_monad m] : monoid 
 , one_mul := fish_pipe
 , mul_one := fish_pure
 }
+
+def emit_type (I V : Type) := option (I × option V)
+structure iter (σ I V : Type) [linear_order I] :=
+  (δ : σ → σ)
+  (emit : σ → emit_type I V)
+
+namespace iter
+
+section params_unary
+variables {σ I V : Type} [linear_order I]
+[decidable_eq σ]
+(a : iter σ I V)
+variables (s t : σ)
+
+def ι : with_top I := match a.emit s with | none := none | some (i, _) := some i end
+def ν :   option V := match a.emit s with | none := none | some (_, v) := v end
+
+-- @[reducible, inline]
+def reachable := relation.refl_trans_gen (λ s t, t = a.δ s)
+
+namespace transition -- can't use reachable??
+open relation.refl_trans_gen
+theorem trans {x y z : σ} : reachable a x y → reachable a y z → reachable a x z := trans
+def step {x : σ} : reachable a x (a.δ x) := single rfl
+end transition
+
+theorem none_top {α : Type*} [linear_order α] : ∀ {i : with_top α}, ⊤ ≤ i → i = none | _ h := le_antisymm le_top h
+
+def monotonic          := ∀ (s t : σ), reachable a s t → ι a s ≤ ι a t
+def terminal   (s : σ) := ι a s = ⊤
+def finite     (s : σ) := ∃ (t : σ), reachable a s t ∧ terminal a t
+def productive (s : σ) := ν a s ≠ none
+def strict             := ∀ (s t : σ), productive a s → productive a t → ι a s = ι a t → s = t
+
+def future (s : σ) : set σ := { t | reachable a s t ∧ ¬ terminal a t}
+
+instance [decidable_eq I] : decidable (terminal a s) := if h : ι a s = none then is_true h else is_false h
+
+def nat_iter : iter ℕ ℕ ℕ :=
+{ δ := λ n, n+1
+, emit := λ n, some (n, some n)
+}
+
+def iota (k : ℕ): iter (fin k.succ) (fin k) (fin k) :=
+{ δ := λ n, if h : n.val < k then ⟨n.val+1,  nat.succ_lt_succ h⟩ else n
+, emit := λ n, if h : n.val < k then some (⟨n.val, h⟩, some ⟨n.val, h⟩) else none
+}
+
+def elementary [decidable_eq I] [add_monoid V] (i : I) (v : V) := λ j, if i = j then v else 0
+def semantics₁ [decidable_eq I] [add_monoid V] (s : σ) : I → V :=
+  match a.emit s with
+  | none := 0
+  | some (i, none) := 0
+  | some (i, some v) := elementary i v
+  end
+
+open relation.refl_trans_gen
+def path_of_index {a : iter σ I V} : ∀ (i:ℕ), a.reachable s ((a.δ^i)•s)
+| 0 := refl
+| (n+1) := tail (path_of_index n) rfl
+
+lemma le_of_index_lt {a : iter σ I V} (i j : ℕ) : a.monotonic → i ≤ j → a.ι ((a.δ^i)•s) ≤ a.ι ((a.δ^j) • s) := begin
+  intros mono lt, apply mono, induction lt, exact refl, exact tail ‹_› rfl,
+end
+lemma index_lt_of_ge {a : iter σ I V} (i j : ℕ) : a.monotonic → a.ι ((a.δ^i)•s) < a.ι ((a.δ^j)•s) → i < j := λ mono, begin
+have h := mt (le_of_index_lt s j i mono),
+simpa using h,
+end
+
+end params_unary
+
+section params_binary
+variables {σ₁ σ₂ I V : Type} [linear_order I] [decidable_eq σ₁] [decidable_eq σ₂] [add_comm_monoid V]
+(a : iter σ₁ I V) (b : iter σ₂ I V)
+
+def merge_indexed_values : I×(option V) → I×(option V) → I×(option V) | (i₁, v₁) (_, v₂) :=
+    (i₁, option.lift_or_get (λ v₁ v₂, (v₁ + v₂)) v₁ v₂)
+def add_emit : σ₁ × σ₂ → emit_type I V | ⟨s, t⟩ :=
+    if a.ι s < b.ι t then a.emit s else if a.ι s > b.ι t then b.emit t
+    else option.lift_or_get merge_indexed_values (a.emit s) (b.emit t)
+
+def add_iter (a : iter σ₁ I V) (b : iter σ₂ I V) : iter (σ₁×σ₂) I V :=
+{ δ := λ ⟨s,t⟩, if a.ι s < b.ι t then (a.δ s,t) else if a.ι s > b.ι t then (s, b.δ t) else (a.δ s, b.δ t)
+, emit := add_emit a b,
+}
+infix `+'`:50 := add_iter
+end params_binary
+
+end iter
