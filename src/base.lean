@@ -1,3 +1,4 @@
+-- main definition: iter
 import algebra
 import algebra.group
 import algebra.group.defs
@@ -22,6 +23,7 @@ instance endo_action : mul_action (α → α) α :=
 , one_smul := λ a, begin unfold has_one.one mul_one_class.one monoid.one, end
 , mul_smul := λ f g x , begin unfold has_mul.mul mul_one_class.mul monoid.mul function.comp, end }
 
+-- not used
 instance fish_monoid (m : _) (ν : Type) [monad m] [is_lawful_monad m] : monoid (ν → m ν) :=
 { mul := λ a b, (a >=> b)
 , mul_assoc := λ a b c, begin unfold has_mul.mul, rw fish_assoc, end --needed for rev version?
@@ -136,8 +138,9 @@ def semantics' : σ → ℕ → I → V
 | s (n+1) := a.semantics₁ s + semantics' (a.δ s) n
 notation `⟦` a, s `⟧` := a.semantics' s
 
-#reduce ⟦iter.iota 4, 0⟧ 5 2
-#reduce ⟦iter.nat_iter, 0⟧ 20 12
+-- e.g.
+#reduce (⟦iter.iota 4, 0⟧ 5) 2
+#reduce (⟦iter.nat_iter, 0⟧ 20) 12
 end semantics
 
 lemma ι_top_emit_none {a : iter σ I V} {s} : a.ι s = ⊤ ↔ a.emit s = none := begin

@@ -1,11 +1,11 @@
+-- main theorem: add_iter_finite
 import algebra
 import algebra.group
 import algebra.group.defs
 import tactic
 import logic.relation
 import base
-import monotonic
-import data.stream.basic
+import add_monotonic
 
 namespace iter
 
@@ -177,6 +177,21 @@ rw hj at finb,
 have reachable := path_of_index (s₁,s₂) (i+j),
 have terminal := add_iter_bound amono bmono (fina.2) (finb.2),
 exact ⟨_, ⟨reachable, terminal⟩⟩,
+end
+
+lemma add_bound₁ {a : iter σ₁ I V} {b : iter σ₂ I V} {s₁:σ₁} {s₂:σ₂} {n}
+: (a+'b).terminal_by (s₁, s₂) n → a.terminal_by s₁ n ∧ b.terminal_by s₂ n := sorry
+
+-- todo next
+theorem add_iter_sound
+{a : iter σ₁ I V} {b : iter σ₂ I V} {s₁:σ₁} {s₂:σ₂} {n}
+: (a+'b).terminal_by (s₁, s₂) n →
+   ⟦(a +' b), (s₁,s₂)⟧ n = ⟦a, s₁⟧ n + ⟦b, s₂⟧ n := λ fin, begin
+
+obtain ⟨fina, finb⟩ := add_bound₁ fin,
+induction n with n hn generalizing s₁ s₂, {simp only [semantics', add_zero]},
+simp only [iter.semantics'],
+sorry
 end
 
 end params_binary

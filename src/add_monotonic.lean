@@ -1,10 +1,10 @@
+-- main theorem: add_iter_monotonic
 import algebra
 import algebra.group
 import algebra.group.defs
 import tactic
 import logic.relation
 import base
-import data.stream.basic
 
 namespace iter
 
@@ -69,23 +69,24 @@ obtain (h|h|h) := lt_trichotomy (a.ι s₁) (b.ι s₂),
 },
 end
 
-lemma step_dichotomy_1 (s₁:σ₁)(s₂:σ₂) : ((a +'b).δ (s₁,s₂)).1 = a.δ s₁ ∨ ((a +'b).δ (s₁,s₂)).1 = s₁ := begin
-simp only [add_iter, iter.δ], split_ifs, tidy, --exact or.inl rfl, exact or.inr rfl, exact or.inl rfl,
+lemma step_dichotomy_left (s₁:σ₁)(s₂:σ₂) : ((a +'b).δ (s₁,s₂)).1 = a.δ s₁ ∨ ((a +'b).δ (s₁,s₂)).1 = s₁ := begin
+simp only [add_iter, iter.δ], split_ifs, tidy,
 end
-lemma step_dichotomy_2 (s₁:σ₁)(s₂:σ₂) : ((a +'b).δ (s₁,s₂)).2 = b.δ s₂ ∨ ((a +'b).δ (s₁,s₂)).2 = s₂ := begin
-simp only [add_iter, iter.δ], split_ifs, tidy, -- exact or.inr rfl, exact or.inl rfl, exact or.inl rfl,
+lemma step_dichotomy_right (s₁:σ₁)(s₂:σ₂) : ((a +'b).δ (s₁,s₂)).2 = b.δ s₂ ∨ ((a +'b).δ (s₁,s₂)).2 = s₂ := begin
+simp only [add_iter, iter.δ], split_ifs, tidy,
 end
+
 theorem add_iter_monotonic {a : iter σ₁ I V} {b : iter σ₂ I V} : a.monotonic → b.monotonic → (a +' b).monotonic := begin
 intros m1 m2, simp only [mono_iff_delta_mono],
 
 rintro ⟨t₁, t₂⟩, simp only [add_ι_min],
 apply min_le_min _ _,
 
-{ obtain (h|h) := step_dichotomy_1 a b t₁ t₂; rw h,
+{ obtain (h|h) := step_dichotomy_left a b t₁ t₂; rw h,
   apply mono_iff_delta_mono.1 m1,
   apply le_refl _ },
 
-{ obtain (h|h) := step_dichotomy_2 a b t₁ t₂; rw h,
+{ obtain (h|h) := step_dichotomy_right a b t₁ t₂; rw h,
   apply mono_iff_delta_mono.1 m2,
   apply le_refl _ }
 end
