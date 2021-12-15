@@ -4,7 +4,6 @@ import algebra.group.defs
 import tactic
 import logic.relation
 import base
-import stream
 import data.stream.basic
 
 namespace iter
@@ -20,7 +19,7 @@ split, {intros m t, exact m _ _ (iter.transition.step a)},
 { intro h, intros w x path, obtain ⟨len, h⟩ : _ := index_of_path path,
   rw h,
   induction len with pl h1 generalizing x w,
-  simp only [pow_zero, one_smul, le_refl],
+  { simp only [iter.step, pow_zero, one_smul, le_refl] },
   exact calc
   a.ι w ≤ a.ι (a.δ ^ pl • w)       : by {exact h1 _ w (path_of_index _ _) rfl}
     ... ≤ a.ι (a.δ • a.δ ^ pl • w) : by {apply h}
@@ -76,7 +75,7 @@ end
 lemma step_dichotomy_2 (s₁:σ₁)(s₂:σ₂) : ((a +'b).δ (s₁,s₂)).2 = b.δ s₂ ∨ ((a +'b).δ (s₁,s₂)).2 = s₂ := begin
 simp only [add_iter, iter.δ], split_ifs, tidy, -- exact or.inr rfl, exact or.inl rfl, exact or.inl rfl,
 end
-theorem add_iter_monotonic (s₁:σ₁) (s₂:σ₂) : a.monotonic → b.monotonic → (a +' b).monotonic := begin
+theorem add_iter_monotonic {a : iter σ₁ I V} {b : iter σ₂ I V} : a.monotonic → b.monotonic → (a +' b).monotonic := begin
 intros m1 m2, simp only [mono_iff_delta_mono],
 
 rintro ⟨t₁, t₂⟩, simp only [add_ι_min],
@@ -90,12 +89,6 @@ apply min_le_min _ _,
   apply mono_iff_delta_mono.1 m2,
   apply le_refl _ }
 end
-
--- todo
-
-theorem add_iter_strict    (s₁:σ₁) (s₂:σ₂) : a.strict → b.strict → (a +' b).strict := sorry
--- todo: j needs to be sufficiently large (and statement not true ∀j)
-theorem add_iter_sound     (s₁:σ₁) (s₂:σ₂) : ∃ j, ⟦a +' b, (s₁,s₂)⟧ j = ⟦a, s₁⟧ j + ⟦b, s₂⟧ j := sorry
 
 end params_binary
 
