@@ -55,7 +55,7 @@ variables {σ₁ σ₂ I V : Type} [linear_order I] [decidable_eq σ₁] [decida
 -- simp only [add_iter, iter.δ], split_ifs, tidy,
 -- end
 
-lemma step_sem_trichotomy (s₁:σ₁)(s₂:σ₂)
+lemma step_sem_trichotomy (a : iter σ₁ I V) (b : iter σ₂ I V) (s₁:σ₁) (s₂:σ₂)
 :  (((a +'b).δ (s₁,s₂)) = (a.δ s₁, s₂) ∧ ¬ a.terminal s₁ ∧ (a+'b).semantics₁ (s₁, s₂) = a.semantics₁ s₁)
 ∨ (((a +'b).δ (s₁,s₂)) = (a.δ s₁, b.δ s₂) ∧ (a.terminal s₁ ∧ b.terminal s₂ ∨ ¬a.terminal s₁ ∧ ¬b.terminal s₂) ∧ (a+'b).semantics₁ (s₁, s₂) = a.semantics₁ s₁ + b.semantics₁ s₂
 )
@@ -107,11 +107,11 @@ split_ifs with h1 h2 h3 h4,
   simp only [elementary], funext j, split_ifs with h; {simp [h, this]},
 },
 end
-lemma step_trichotomy (s₁:σ₁)(s₂:σ₂)
+lemma step_trichotomy (a : iter σ₁ I V) (b : iter σ₂ I V) (s₁:σ₁) (s₂:σ₂)
 :  (((a +'b).δ (s₁,s₂)) = (a.δ s₁, s₂) ∧ ¬ a.terminal s₁)
 ∨ (((a +'b).δ (s₁,s₂)) = (a.δ s₁, b.δ s₂) ∧ (a.terminal s₁ ∧ b.terminal s₂ ∨ ¬a.terminal s₁ ∧ ¬b.terminal s₂))
 ∨ (((a +'b).δ (s₁,s₂)) = (s₁, b.δ s₂) ∧ ¬ b.terminal s₂) := begin
-obtain (h|h|h) := step_sem_trichotomy s₁ s₂,
+obtain (h|h|h) := step_sem_trichotomy a b s₁ s₂,
 exact or.inl ⟨h.1, h.2.1⟩,
 exact or.inr (or.inl ⟨h.1, h.2.1⟩),
 exact or.inr (or.inr ⟨h.1, h.2.1⟩),
@@ -130,7 +130,7 @@ obtain ⟨i0, j0⟩ := sum_zero hnij, simp [i0, j0, minimal_terminal, step, one_
 intros h1 h2, simp [terminal_by, ι, emit, add_emit, h1, h2, le_top],
 apply add_iter_terminal h1 h2,
 intros h1 h2,
-obtain (h|⟨heq, hterm⟩|h) := step_trichotomy s₁ s₂,
+obtain (h|⟨heq, hterm⟩|h) := step_trichotomy a b s₁ s₂,
 { -- a.δ
   simp only [terminal_by],
   rw [← hnij, ← step_succ, h.1],

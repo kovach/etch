@@ -1,3 +1,4 @@
+-- main theorem: add_iter_sound
 import algebra
 import base
 import add_monotonic
@@ -54,7 +55,8 @@ variables {σ₁ σ₂ I V : Type} [linear_order I] [decidable_eq σ₁] [decida
 
 theorem add_iter_sound {i j}
 : a.monotonic → b.monotonic → a.terminal_by s₁ i → b.terminal_by s₂ j →
-  ⟦(a +' b), (s₁,s₂)⟧ (i+j) = ⟦a, s₁⟧ i + ⟦b, s₂⟧ j := λ amono bmono afin bfin, begin
+  ⟦(a +' b), (s₁,s₂)⟧ (i+j) = ⟦a, s₁⟧ i + ⟦b, s₂⟧ j :=
+λ amono bmono afin bfin, begin
 generalize hnij : i+j = n,
 induction n with n hn generalizing s₁ s₂ i j,
 { obtain ⟨i0, j0⟩ := sum_zero hnij.symm,
@@ -80,12 +82,12 @@ obtain (⟨hs,nta,h⟩|⟨hs,ntdi,h⟩|⟨hs,ntb,h⟩) := step_sem_trichotomy a 
     semantics_zero amono ta i,
     semantics_zero bmono tb j,
     semantics_zero (add_iter_monotonic amono bmono) (add_iter_terminal ta tb) n.succ,
-    zero_add],
+    zero_add
+  ],
 
   { obtain ⟨i', hisucc⟩ := not_terminal_succ nta afin,
     obtain ⟨j', hjsucc⟩ := not_terminal_succ ntb bfin,
-    simp only [hisucc, hjsucc] at hnij afin bfin |-,
-    --simp only [hisucc, hjsucc] at *,
+    simp only [hisucc, hjsucc] at *,
     simp only [semantics', hs, h],
     replace afin := step_progress afin,
     have asem_mono := semantics_mono amono afin (nat.le_succ _),
