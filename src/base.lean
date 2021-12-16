@@ -41,7 +41,6 @@ namespace iter
 
 section params_unary
 variables {σ I V : Type} [linear_order I]
-[decidable_eq σ]
 (a : iter σ I V)
 variables (s t : σ)
 
@@ -85,8 +84,8 @@ def iota (k : ℕ): iter (fin k.succ) (fin k) (fin k) :=
 , emit := λ n, if h : n.val < k then some (⟨n.val, h⟩, some ⟨n.val, h⟩) else none
 }
 
-def elementary [decidable_eq I] [add_monoid V] (i : I) (v : V) := λ j, if i = j then v else 0
-def semantics₁ [decidable_eq I] [add_monoid V] (s : σ) : I → V :=
+def elementary [add_monoid V] (i : I) (v : V) := λ j, if i = j then v else 0
+def semantics₁ [add_monoid V] (s : σ) : I → V :=
   match a.emit s with
   | none := 0
   | some (i, none) := 0
@@ -191,7 +190,6 @@ simp only [ι, add_iter, add_emit, h1, h2],
 simp only [ι_top_emit_none.1 h1, ι_top_emit_none.1 h2],
 split_ifs, repeat {refl},
 end
-
 
 end params_binary
 

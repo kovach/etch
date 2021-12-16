@@ -17,7 +17,7 @@ variables (s t : σ)
 lemma mono_iff_delta_mono  : a.monotonic ↔ ∀ s, a.ι s ≤ a.ι (a.δ s) := begin
 split,
 { intros m t,
-  exact m _ _ (iter.transition.step a)},
+  exact m _ _ (transition.step a)},
 { intros hstep s t path,
   obtain ⟨len, h⟩ := index_of_path path,
   rw h at *,
@@ -37,9 +37,7 @@ variables {σ₁ σ₂ I V : Type} [linear_order I] [decidable_eq σ₁] [decida
 
 lemma add_ι_min {s} : (a+'b).ι s = min (a.ι s.1) (b.ι s.2) := begin
 cases s with s₁ s₂,
-rw [iter.ι],
-simp only [add_iter, add_emit],
-rw min_def,
+simp only [ι, add_iter, add_emit, min_def],
 split_ifs with h1 h2 h3,
 repeat {refl}, -- 2
 repeat {simp only [gt_iff_lt, not_lt] at *},
