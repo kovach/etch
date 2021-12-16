@@ -14,18 +14,15 @@ variables {σ I V : Type} [linear_order I]
 (a : iter σ I V)
 variables (s t : σ)
 
-@[simp] lemma mono_iff_delta_mono {a : iter σ I V} : a.monotonic ↔ ∀ t, a.ι t ≤ a.ι (a.δ t) := begin
-split, {intros m t, exact m _ _ (iter.transition.step a)},
-{ intro h, intros w x path, obtain ⟨len, h⟩ : _ := index_of_path path,
-  rw h,
-  induction len with pl h1 generalizing x w,
-  { simp only [iter.step, pow_zero, one_smul, le_refl] },
-  exact calc
-  a.ι w ≤ a.ι (a.δ ^ pl • w)       : by {exact h1 _ w (path_of_index _ _) rfl}
-    ... ≤ a.ι (a.δ • a.δ ^ pl • w) : by {apply h}
-    ... ≤ a.ι (a.δ ^ pl.succ • w)  : by {simp only [← mul_smul],
-                                     change a.ι ((a.δ^1 * a.δ ^ pl) w) ≤ a.ι ((a.δ ^ pl.succ) w),
-                                     simp only [← pow_add, add_comm, le_refl]}
+lemma mono_iff_delta_mono {a : iter σ I V} : a.monotonic ↔ ∀ s, a.ι s ≤ a.ι (a.δ s) := begin
+split,
+{ intros m t, exact m _ _ (iter.transition.step a)},
+{ intro hstep, intros s t path,
+  obtain ⟨len, h⟩ : _ := index_of_path path,
+  rw h at *, clear h t path,
+  induction len with _ h generalizing s,
+    { exact le_refl _},
+    { rw ← step_succ, exact (hstep s).trans (h (a.δ s)) }
 },
 end
 
