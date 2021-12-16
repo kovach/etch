@@ -1,5 +1,5 @@
 *.olean
 *~
-src/junk.lean
+junk/
 /_target
 /leanpkg.path

@@ -1,6 +1,7 @@
 -- main theorem: add_iter_sound
 import algebra
 import base
+import tactics
 import add_monotonic
 import add_finite
 
@@ -52,7 +53,6 @@ variables {σ₁ σ₂ I V : Type} [linear_order I] [decidable_eq σ₁] [decida
 {a : iter σ₁ I V} {b : iter σ₂ I V}
 {s₁ : σ₁} {s₂ : σ₂}
 
-
 theorem add_iter_sound {i j}
 : a.monotonic → b.monotonic → a.terminal_by s₁ i → b.terminal_by s₂ j →
   ⟦(a +' b), (s₁,s₂)⟧ (i+j) = ⟦a, s₁⟧ i + ⟦b, s₂⟧ j :=
@@ -78,12 +78,11 @@ obtain (⟨hs,nta,h⟩|⟨hs,ntdi,h⟩|⟨hs,ntb,h⟩) := step_sem_trichotomy a 
 
 { obtain (⟨ta, tb⟩|⟨nta,ntb⟩) := ntdi,
 
-  simp only [
-    semantics_zero amono ta i,
-    semantics_zero bmono tb j,
-    semantics_zero (add_iter_monotonic amono bmono) (add_iter_terminal ta tb) n.succ,
-    zero_add
-  ],
+  { sim@ only [
+      add_zero, semantics_zero,
+      add_iter_monotonic, add_iter_terminal
+    ],
+  },
 
   { obtain ⟨i', hisucc⟩ := not_terminal_succ nta afin,
     obtain ⟨j', hjsucc⟩ := not_terminal_succ ntb bfin,
