@@ -15,7 +15,7 @@ variables {α β : Type*}
 section params_unary
 variables {σ I V : Type} [linear_order I]
 [decidable_eq σ]
-(a : iter σ I V)
+{a : iter σ I V}
 variables (s t : σ)
 
 section semantics
@@ -23,12 +23,12 @@ variable [add_comm_monoid V]
 
 end semantics
 
-lemma step_progress_min {a : iter σ I V} {s} {i : ℕ} : a.minimal_terminal s i.succ → a.minimal_terminal (a.δ s) i := begin
+lemma step_progress_min {s} {i : ℕ} : a.minimal_terminal s i.succ → a.minimal_terminal (a.δ s) i := begin
 simp only [minimal_terminal], rw step_succ, rintros ⟨t, h⟩, split, assumption,
 intros j t2, rw step_succ at t2, exact nat.le_of_succ_le_succ (h _ t2),
 end
 
-lemma step_progress {a : iter σ I V} {s} {i : ℕ}
+lemma step_progress {s} {i : ℕ}
 : a.terminal_by s i.succ → a.terminal_by (a.δ s) i := begin
 simp only [terminal_by],
 rw step_succ,
@@ -42,7 +42,7 @@ end
 -- exact id,
 -- end
 
-lemma terminal_mono {a : iter σ I V} {s} (i i' : ℕ) :
+lemma terminal_mono {s} (i i' : ℕ) :
 a.monotonic → a.terminal_by s i → i ≤ i' → a.terminal_by s i' := begin
 intros mono fin hle,
 obtain ⟨k,_⟩ := le_iff_exists_add.mp hle,
@@ -57,7 +57,7 @@ end params_unary
 section params_binary
 
 variables {σ₁ σ₂ I V : Type} [linear_order I] [decidable_eq σ₁] [decidable_eq σ₂] [add_comm_monoid V]
-(a : iter σ₁ I V) (b : iter σ₂ I V)
+{a : iter σ₁ I V} {b : iter σ₂ I V}
 
 -- lemma step_trichotomy (s₁:σ₁)(s₂:σ₂) : ((a +'b).δ (s₁,s₂)) = (a.δ s₁, s₂) ∨ ((a +'b).δ (s₁,s₂)) = (a.δ s₁, b.δ s₂) ∨ ((a +'b).δ (s₁,s₂)) = (s₁, b.δ s₂) := begin
 -- simp only [add_iter, iter.δ], split_ifs, tidy,
@@ -98,7 +98,7 @@ lemma sum_zero {i j : ℕ} : 0 = i + j → i = 0 ∧ j = 0 := begin
 induction i; induction j, tidy,
 end
 
-lemma add_iter_bound {a : iter σ₁ I V} {b : iter σ₂ I V} {s₁ : σ₁} {s₂ : σ₂} {i j : ℕ}
+lemma add_iter_bound {s₁ : σ₁} {s₂ : σ₂} {i j : ℕ}
   : a.monotonic → b.monotonic → a.terminal_by s₁ i → b.terminal_by s₂ j → (a+'b).terminal_by (s₁,s₂) (i+j) := λ amono bmono,
 begin
 obtain ⟨n, hnij⟩ : ∃ n, n = i + j := ⟨_, rfl⟩,
@@ -107,7 +107,7 @@ obtain ⟨i0, j0⟩ := sum_zero hnij, simp [i0, j0, minimal_terminal, step, one_
 intros h1 h2, simp [terminal_by, ι, emit, add_emit, h1, h2, le_top],
 apply add_iter_terminal h1 h2,
 intros h1 h2,
-obtain (h|⟨heq, hterm⟩|h) := step_trichotomy a b s₁ s₂,
+obtain (h|⟨heq, hterm⟩|h) := step_trichotomy s₁ s₂,
 { -- a.δ
   simp only [terminal_by],
   rw [← hnij, ← step_succ, h.1],
