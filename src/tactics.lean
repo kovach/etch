@@ -1,8 +1,3 @@
-import algebra
-import base
-import add_monotonic
-import add_finite
-
 import tactic.core
 
 namespace tactic

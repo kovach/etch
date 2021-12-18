@@ -16,13 +16,15 @@ variables (s t : σ)
 section semantics
 variable [add_comm_monoid V]
 
+@[simp]
 theorem terminal_zero {a : iter σ I V} (h : a.terminal t) : a.semantics₁ t = 0 := begin
-simp only [semantics₁], rw [emit_none_of_terminal h], refl, end
+simp *
+end
+
+@[simp]
 theorem semantics_zero {t} {a : iter σ I V} (m : a.monotonic) (h : a.terminal t) (j:ℕ) : a.semantics' t j = 0 := begin
 induction j with _ jh generalizing t,
-{ refl },
-{ rw [semantics', terminal_zero _ h, zero_add],
-  exact jh (terminal_succ_terminal _ m h) },
+all_goals {simp *}
 end
 
 lemma succ_of_ge_succ {i i' : ℕ} : i.succ ≤ i' → ∃ i'':ℕ, i' = i''.succ := λ h, begin
@@ -33,9 +35,10 @@ end
 
 theorem semantics_mono {i i'} {s} : a.monotonic → a.terminal_by s i → i ≤ i' → a.semantics' s i = a.semantics' s i' := λ mono fin hle, begin
 induction i with i hi generalizing i' s,
-{ have : a.semantics' s i' = 0 := semantics_zero mono fin i',
-  rw this, refl,
-},
+{ simp * at * },
+-- { have : a.semantics' s i' = 0 := semantics_zero mono fin i',
+--   rw this, refl,
+-- },
 obtain ⟨i'', h1⟩ := succ_of_ge_succ hle,
 rw h1 at *,
 simp only [semantics'],
@@ -78,13 +81,10 @@ obtain (⟨hs,nta,h⟩|⟨hs,ntdi,h⟩|⟨hs,ntb,h⟩) := step_sem_trichotomy a 
 
 { obtain (⟨ta, tb⟩|⟨nta,ntb⟩) := ntdi,
 
-  { sim@ only [
-      add_zero, semantics_zero,
-      add_iter_monotonic, add_iter_terminal
-    ],
-  },
+  { simp [*, semantics_zero, add_iter_monotonic, add_iter_terminal] },
 
-  { obtain ⟨i', hisucc⟩ := not_terminal_succ nta afin,
+  {
+    obtain ⟨i', hisucc⟩ := not_terminal_succ nta afin,
     obtain ⟨j', hjsucc⟩ := not_terminal_succ ntb bfin,
     simp only [hisucc, hjsucc] at *,
     simp only [semantics', hs, h],

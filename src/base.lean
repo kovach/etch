@@ -5,15 +5,10 @@ import algebra.group.defs
 import tactic
 import logic.relation
 
--- set_option pp.proofs true
--- set_option trace.simp_lemmas true
--- set_option pp.notation false
-
 universes u v
 variables (α β : Type*)
 
--- todo, already exists as:
-#check function.End.smul_def
+-- todo, already exists as function.End.smul_def
 instance comp_monoid (ν : Type*) : monoid (ν → ν) :=
 { mul := λ a b, a ∘ b , mul_assoc := λ a b c, rfl
 , one := λ a, a , one_mul := λ a, rfl , mul_one := λ a, rfl }
@@ -66,7 +61,7 @@ def productive (s : σ) := ν a s ≠ none
 def strict             := ∀ (s t : σ), productive a s → productive a t → ι a s = ι a t → s = t
 
 def future (s : σ) : set σ := { t | reachable a s t ∧ ¬ terminal a t}
-def terminal_by (s : σ) (i : ℕ) := a.terminal (a.step s i)
+@[simp] def terminal_by (s : σ) (i : ℕ) := a.terminal (a.step s i)
 def minimal_terminal (s : σ) (i : ℕ) := a.terminal (a.step s i) ∧ ∀ j, a.terminal (a.step s j) → i ≤ j
 
 instance [decidable_eq I] : decidable (terminal a s) := if h : ι a s = none then is_true h else is_false h
@@ -84,14 +79,6 @@ def iota (k : ℕ): iter (fin k.succ) (fin k) (fin k) :=
 , emit := λ n, if h : n.val < k then some (⟨n.val, h⟩, some ⟨n.val, h⟩) else none
 }
 
-def elementary [add_monoid V] (i : I) (v : V) := λ j, if i = j then v else 0
-def semantics₁ [add_monoid V] (s : σ) : I → V :=
-  match a.emit s with
-  | none := 0
-  | some (i, none) := 0
-  | some (i, some v) := elementary i v
-  end
-
 open relation.refl_trans_gen
 def path_of_index {a : iter σ I V} : ∀ (i:ℕ), a.reachable s (a.step s i)
 | 0 := refl
@@ -105,6 +92,7 @@ have h := mt (le_of_index_lt s j i mono),
 simpa using h,
 end
 
+@[simp] lemma step_zero : a.step s 0 = s := rfl
 @[simp] lemma step_succ (s : σ) (i : ℕ) : a.step (a.δ s) i = a.step s i.succ :=
 begin
 change a.δ ^ i • a.δ^1 • s = a.δ ^ i.succ • s,
@@ -132,6 +120,16 @@ end
 section semantics
 variable [add_comm_monoid V]
 
+def elementary (i : I) (v : V) := λ j, if i = j then v else 0
+@[simp]
+def semantics₁ (s : σ) : I → V :=
+  match a.emit s with
+  | none := 0
+  | some (i, none) := 0
+  | some (i, some v) := elementary i v
+  end
+
+@[simp]
 def semantics' : σ → ℕ → I → V
 | _ 0 := 0
 | s (n+1) := a.semantics₁ s + semantics' (a.δ s) n
@@ -157,8 +155,11 @@ split,
 },
 end
 
+@[simp]
 theorem terminal_succ_terminal {a : iter σ I V} (m : a.monotonic) (h : a.terminal t) : a.terminal (a.δ t) := begin
 simp only [terminal] at *, apply none_top, rw ←h, apply m, exact transition.step _, end
+
+@[simp]
 theorem emit_none_of_terminal {a : iter σ I V} {t} : a.terminal t → a.emit t = none := begin
 intro h, simp only [terminal] at h, exact ι_top_emit_none.1 h,
 end

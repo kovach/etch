@@ -1,6 +1,7 @@
 -- main theorem: add_iter_finite
 import algebra
 import base
+import tactics
 import add_monotonic
 
 namespace iter
@@ -19,6 +20,7 @@ simp only [minimal_terminal], rw step_succ, rintros ⟨t, h⟩, split, assumptio
 intros j t2, rw step_succ at t2, exact nat.le_of_succ_le_succ (h _ t2),
 end
 
+@[simp]
 lemma step_progress {s} {i : ℕ}
 : a.terminal_by s i.succ → a.terminal_by (a.δ s) i := begin
 simp only [terminal_by],
@@ -57,10 +59,9 @@ variables {σ₁ σ₂ I V : Type} [linear_order I] [decidable_eq σ₁] [decida
 
 lemma step_sem_trichotomy (a : iter σ₁ I V) (b : iter σ₂ I V) (s₁:σ₁) (s₂:σ₂)
 :  (((a +'b).δ (s₁,s₂)) = (a.δ s₁, s₂) ∧ ¬ a.terminal s₁ ∧ (a+'b).semantics₁ (s₁, s₂) = a.semantics₁ s₁)
-∨ (((a +'b).δ (s₁,s₂)) = (a.δ s₁, b.δ s₂) ∧ (a.terminal s₁ ∧ b.terminal s₂ ∨ ¬a.terminal s₁ ∧ ¬b.terminal s₂) ∧ (a+'b).semantics₁ (s₁, s₂) = a.semantics₁ s₁ + b.semantics₁ s₂
-)
-∨ (((a +'b).δ (s₁,s₂)) = (s₁, b.δ s₂) ∧ ¬ b.terminal s₂ ∧ (a+'b).semantics₁ (s₁, s₂) = b.semantics₁ s₂) := begin
-
+∨ (((a +'b).δ (s₁,s₂)) = (a.δ s₁, b.δ s₂) ∧ (a.terminal s₁ ∧ b.terminal s₂ ∨ ¬a.terminal s₁ ∧ ¬b.terminal s₂) ∧ (a+'b).semantics₁ (s₁, s₂) = a.semantics₁ s₁ + b.semantics₁ s₂)
+∨ (((a +'b).δ (s₁,s₂)) = (s₁, b.δ s₂) ∧ ¬ b.terminal s₂ ∧ (a+'b).semantics₁ (s₁, s₂) = b.semantics₁ s₂) :=
+begin
 simp only [semantics₁, add_emit, add_iter, iter.δ],
 split_ifs with h1 h2 h3 h4,
 {
@@ -68,8 +69,8 @@ split_ifs with h1 h2 h3 h4,
   simp only [and_true, true_and, eq_self_iff_true, option.mem_def] at *,
   apply or.inl,
   intro h1,
-  have := emit_none_of_terminal h1,
-  have := ι_top_emit_none.mpr this,
+  replace := emit_none_of_terminal h1,
+  replace := ι_top_emit_none.mpr this,
   rw hi1 at this,
   exact option.some_ne_none _ this,
 },
@@ -92,19 +93,19 @@ split_ifs with h1 h2 h3 h4,
   cases h2 : a.ι s₁; rw h2 at this,
   {apply or.inl, exact ⟨h2, this.symm⟩},
   {apply or.inr, exact ⟨some_not_terminal h2, some_not_terminal this.symm⟩},
-  cases h3 : a.emit s₁;
-  cases h4 : b.emit s₂,
-  simp only [semantics₁, add_zero], refl,
-  simp only [semantics₁, zero_add], refl,
-  simp only [semantics₁, add_zero], refl,
-  cases val with i1 v1; cases val_1 with i2 v2,
-  have : i1 = i2,
-  { simp only [ι, h3, h4] at this,
-    apply option.some.inj this },
+  cases h3 : a.emit s₁ with v1;
+  cases h4 : b.emit s₂ with v2,
+  case option.some option.some {
+    cases v1 with i1 v1; cases v2 with i2 v2,
+    have : i1 = i2,
+    { simp only [ι, h3, h4] at this,
+      apply option.some.inj this },
 
-  cases v1; cases v2;
-  simp only [option.lift_or_get, merge_indexed_values, semantics₁, add_zero, zero_add, this],
-  simp only [elementary], funext j, split_ifs with h; {simp [h, this]},
+    cases v1; cases v2;
+    simp only [option.lift_or_get, merge_indexed_values, semantics₁, add_zero, zero_add, this],
+    simp only [elementary], funext j, split_ifs with h; {simp [h, this]},
+  },
+  all_goals { simp  },
 },
 end
 lemma step_trichotomy (a : iter σ₁ I V) (b : iter σ₂ I V) (s₁:σ₁) (s₂:σ₂)
@@ -118,7 +119,7 @@ exact or.inr (or.inr ⟨h.1, h.2.1⟩),
 end
 
 lemma sum_zero {i j : ℕ} : 0 = i + j → i = 0 ∧ j = 0 := begin
-induction i; induction j, tidy,
+induction i; induction j; dec_trivial,
 end
 
 lemma add_iter_bound {s₁ : σ₁} {s₂ : σ₂} {i j : ℕ}
@@ -126,9 +127,9 @@ lemma add_iter_bound {s₁ : σ₁} {s₂ : σ₂} {i j : ℕ}
 begin
 obtain ⟨n, hnij⟩ : ∃ n, n = i + j := ⟨_, rfl⟩,
 induction n with n hn generalizing i j s₁ s₂,
-obtain ⟨i0, j0⟩ := sum_zero hnij, simp [i0, j0, minimal_terminal, step, one_smul],
-intros h1 h2, simp [terminal_by, ι, emit, add_emit, h1, h2, le_top],
-apply add_iter_terminal h1 h2,
+{ obtain ⟨i0, j0⟩ := sum_zero hnij,
+  intros h1 h2, --simp [terminal_by, ι, emit, add_emit, h1, h2, le_top],
+  simp [*, step, one_smul, add_iter_terminal] at * },
 intros h1 h2,
 obtain (h|⟨heq, hterm⟩|h) := step_trichotomy a b s₁ s₂,
 { -- a.δ
