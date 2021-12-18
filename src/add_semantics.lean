@@ -16,10 +16,7 @@ variables (s t : σ)
 section semantics
 variable [add_comm_monoid V]
 
-@[simp]
-theorem terminal_zero {a : iter σ I V} (h : a.terminal t) : a.semantics₁ t = 0 := begin
-simp *
-end
+@[simp] theorem terminal_zero {a : iter σ I V} (h : a.terminal t) : a.semantics₁ t = 0 := by simp *
 
 @[simp]
 theorem semantics_zero {t} {a : iter σ I V} (m : a.monotonic) (h : a.terminal t) (j:ℕ) : a.semantics' t j = 0 := begin
@@ -36,17 +33,13 @@ end
 theorem semantics_mono {i i'} {s} : a.monotonic → a.terminal_by s i → i ≤ i' → a.semantics' s i = a.semantics' s i' := λ mono fin hle, begin
 induction i with i hi generalizing i' s,
 { simp * at * },
--- { have : a.semantics' s i' = 0 := semantics_zero mono fin i',
---   rw this, refl,
--- },
 obtain ⟨i'', h1⟩ := succ_of_ge_succ hle,
 rw h1 at *,
 simp only [semantics'],
-replace hle : i ≤ i'' := nat.le_of_succ_le_succ hle,
-have := hi (step_progress fin) hle,
-rw this,
-
+replace : i ≤ i'' := nat.le_of_succ_le_succ hle,
+rw hi (step_progress fin) this,
 end
+
 end semantics
 end params_unary
 

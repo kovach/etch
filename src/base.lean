@@ -17,9 +17,7 @@ structure iter (σ I V : Type) [linear_order I] :=
 namespace iter
 
 section params_unary
-variables {σ I V : Type} [linear_order I]
-(a : iter σ I V)
-variables (s t : σ)
+variables {σ I V : Type} [linear_order I] (a : iter σ I V) (s t : σ)
 
 def ι : with_top I := match a.emit s with | none := none | some (i, _) := some i end
 def ν :   option V := match a.emit s with | none := none | some (_, v) := v end
@@ -44,7 +42,6 @@ def strict             := ∀ (s t : σ), productive a s → productive a t → 
 
 def future (s : σ) : set σ := { t | reachable a s t ∧ ¬ terminal a t}
 @[simp] def terminal_by (s : σ) (i : ℕ) := a.terminal (a.step s i)
-def minimal_terminal (s : σ) (i : ℕ) := a.terminal (a.step s i) ∧ ∀ j, a.terminal (a.step s j) → i ≤ j
 
 instance [decidable_eq I] : decidable (terminal a s) := if h : ι a s = none then is_true h else is_false h
 
@@ -75,14 +72,11 @@ simpa using h,
 end
 
 @[simp] lemma step_zero : a.step s 0 = s := rfl
-@[simp] lemma step_succ (s : σ) (i : ℕ) : a.step (a.δ s) i = a.step s i.succ :=
+@[simp] lemma step_succ (s : σ) (i : ℕ) : a.step s i.succ = a.step (a.δ s) i :=
 begin
-change a.δ ^ i • a.δ^1 • s = a.δ ^ i.succ • s,
-rw [← mul_smul, ← pow_add],
+change a.δ ^ (i+1) • s = a.δ ^ i • a.δ^1 • s ,
+rw [pow_add, mul_smul],
 end
-
-lemma minimal_terminal_unique {i i'} : a.minimal_terminal s i → a.minimal_terminal s i' → i = i' :=
-begin rintros ⟨t1, h1⟩ ⟨t2, h2⟩, exact le_antisymm (h1 _ t2) (h2 _ t1), end
 
 lemma not_terminal_succ {a : iter σ I V} {i : ℕ} {s} : ¬ a.terminal s → a.terminal_by s i → ∃ i':ℕ, i = i'.succ := begin
 intros hnt ht, induction i with i hi,

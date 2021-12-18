@@ -24,7 +24,7 @@ split,
   clear h t path,
   induction len with _ h generalizing s,
     { exact le_refl _ },
-    { rw ← step_succ,
+    { rw step_succ,
       exact (hstep s).trans (h (a.δ s)) }
 },
 end
