@@ -1,7 +1,6 @@
 -- main theorem: add_iter_finite
 import algebra
 import base
-import tactics
 import add_monotonic
 
 namespace iter
@@ -90,6 +89,7 @@ split_ifs with h1 h2 h3 h4,
   all_goals { simp  },
 },
 end
+
 lemma step_trichotomy (a : iter σ₁ I V) (b : iter σ₂ I V) (s₁:σ₁) (s₂:σ₂)
 :  (((a +'b).δ (s₁,s₂)) = (a.δ s₁, s₂) ∧ ¬ a.terminal s₁)
 ∨ (((a +'b).δ (s₁,s₂)) = (a.δ s₁, b.δ s₂) ∧ (a.terminal s₁ ∧ b.terminal s₂ ∨ ¬a.terminal s₁ ∧ ¬b.terminal s₂))
@@ -100,7 +100,7 @@ exact or.inr (or.inl ⟨h.1, h.2.1⟩),
 exact or.inr (or.inr ⟨h.1, h.2.1⟩),
 end
 
-lemma sum_zero {i j : ℕ} : 0 = i + j → i = 0 ∧ j = 0 := begin
+@[simp] lemma sum_zero {i j : ℕ} : 0 = i + j ↔ i = 0 ∧ j = 0 := begin
 induction i; induction j; dec_trivial,
 end
 
@@ -110,7 +110,7 @@ begin
 --obtain ⟨n, hnij⟩ : ∃ n, n = i + j := ⟨_, rfl⟩,
 generalize hnij : i+j = n,
 induction n with n hn generalizing i j s₁ s₂,
-{ obtain ⟨i0, j0⟩ := sum_zero hnij.symm,
+{ obtain ⟨i0, j0⟩ := sum_zero.1 hnij.symm,
   intros h1 h2, --simp [terminal_by, ι, emit, add_emit, h1, h2, le_top],
   simp [*, step, one_smul, add_iter_terminal] at * },
 intros h1 h2,
@@ -162,7 +162,6 @@ have reachable := path_of_index (s₁,s₂) (i+j),
 have terminal := add_iter_bound amono bmono (fina.2) (finb.2),
 exact ⟨_, ⟨reachable, terminal⟩⟩,
 end
-
 
 end params_binary
 

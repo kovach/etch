@@ -1,7 +1,6 @@
 -- main theorem: add_iter_sound
 import algebra
 import base
-import tactics
 import add_monotonic
 import add_finite
 
@@ -24,11 +23,8 @@ induction j with _ jh generalizing t,
 all_goals {simp *}
 end
 
-lemma succ_of_ge_succ {i i' : ℕ} : i.succ ≤ i' → ∃ i'':ℕ, i' = i''.succ := λ h, begin
-cases i',
-{ exact false.rec _ (nat.not_succ_le_zero _ h) },
-{ exact ⟨i', rfl⟩ },
-end
+lemma succ_of_ge_succ : ∀ {i i' : ℕ}, i.succ ≤ i' → ∃ i'':ℕ, i' = i''.succ
+| i (nat.succ i'') hle := ⟨_, rfl⟩
 
 theorem semantics_mono {i i'} {s} : a.monotonic → a.terminal_by s i → i ≤ i' → a.semantics' s i = a.semantics' s i' := λ mono fin hle, begin
 induction i with i hi generalizing i' s,
@@ -36,7 +32,7 @@ induction i with i hi generalizing i' s,
 obtain ⟨i'', h1⟩ := succ_of_ge_succ hle,
 rw h1 at *,
 simp only [semantics'],
-replace : i ≤ i'' := nat.le_of_succ_le_succ hle,
+have : i ≤ i'' := nat.le_of_succ_le_succ hle,
 rw hi (step_progress fin) this,
 end
 
@@ -55,8 +51,8 @@ theorem add_iter_sound {i j}
 λ amono bmono afin bfin, begin
 generalize hnij : i+j = n,
 induction n with n hn generalizing s₁ s₂ i j,
-{ obtain ⟨i0, j0⟩ := sum_zero hnij.symm,
-  simp only [semantics', add_zero, i0, j0],
+{ obtain ⟨i0, j0⟩ := sum_zero.1 hnij.symm,
+  simp only [*, semantics', sum_zero, add_zero],
 },
 
 obtain (⟨hs,nta,h⟩|⟨hs,ntdi,h⟩|⟨hs,ntb,h⟩) := step_sem_trichotomy a b s₁ s₂,
@@ -71,12 +67,12 @@ obtain (⟨hs,nta,h⟩|⟨hs,ntdi,h⟩|⟨hs,ntb,h⟩) := step_sem_trichotomy a 
   { simp [*, nat.succ_add] at * },
 },
 
-{ obtain (⟨ta, tb⟩|⟨nta,ntb⟩) := ntdi,
+{ -- a.δ, b.δ
+  obtain (⟨ta, tb⟩|⟨nta,ntb⟩) := ntdi,
 
   { simp only [*, terminal_zero, add_zero, add_iter_monotonic, add_iter_terminal] },
 
-  {
-    obtain ⟨i', hisucc⟩ := not_terminal_succ nta afin,
+  { obtain ⟨i', hisucc⟩ := not_terminal_succ nta afin,
     obtain ⟨j', hjsucc⟩ := not_terminal_succ ntb bfin,
     simp only [hisucc, hjsucc] at *,
     simp only [semantics', hs, h],

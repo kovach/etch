@@ -110,30 +110,24 @@ def semantics' : σ → ℕ → I → V
 | _ 0 := 0
 | s (n+1) := a.semantics₁ s + semantics' (a.δ s) n
 notation `⟦` a, s `⟧` := a.semantics' s
+notation `⟦` a, s, j `⟧` := a.semantics' s j
 
--- e.g.
-#reduce (⟦iter.iota 4, 0⟧ 5) 2
-#reduce (⟦iter.nat_iter, 0⟧ 20) 12
+example (j : ℕ) : ∀ i:I, ⟦a, s, j⟧ i = ⟦a, s⟧ j i := λ _, rfl
+
 end semantics
 
 lemma ι_top_emit_none {a : iter σ I V} {s} : a.ι s = ⊤ ↔ a.emit s = none := begin
-split,
-{
-  cases h : a.emit s, exact λ _, rfl,
-  intro h1,
+split; intro h1,
+{ cases h : a.emit s, exact rfl,
   cases val,
   simp only [ι, h] at h1,
-  exfalso, apply option.some_ne_none _ h1,
-},
-{
-    intro h1,
-    simp only [ι, h1], refl,
-},
+  exfalso, apply option.some_ne_none _ h1 },
+{ simp only [ι, h1], refl },
 end
 
 @[simp]
 theorem terminal_succ_terminal {a : iter σ I V} (m : a.monotonic) (h : a.terminal t) : a.terminal (a.δ t) := begin
-simp only [terminal] at *, apply none_top, rw ←h, apply m, exact transition.step _, end
+simp only [terminal] at *, apply none_top, rw ←h, exact m _ _ (transition.step _) end
 
 @[simp]
 theorem emit_none_of_terminal {a : iter σ I V} {t} : a.terminal t → a.emit t = none := begin
@@ -148,8 +142,8 @@ variables {σ₁ σ₂ I V : Type} [linear_order I] [decidable_eq σ₁] [decida
 (a : iter σ₁ I V) (b : iter σ₂ I V)
 (s₁ : σ₁) (s₂ : σ₂)
 
-def merge_indexed_values : I×(option V) → I×(option V) → I×(option V) | (i₁, v₁) (_, v₂) :=
-    (i₁, option.lift_or_get (λ v₁ v₂, (v₁ + v₂)) v₁ v₂)
+def merge_indexed_values : I×(option V) → I×(option V) → I×(option V)
+| (i₁, v₁) (_, v₂) := (i₁, option.lift_or_get (λ v₁ v₂, (v₁ + v₂)) v₁ v₂)
 def add_emit : σ₁ × σ₂ → emit_type I V | ⟨s, t⟩ :=
     if a.ι s < b.ι t then a.emit s else if a.ι s > b.ι t then b.emit t
     else option.lift_or_get merge_indexed_values (a.emit s) (b.emit t)
