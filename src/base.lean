@@ -2,7 +2,6 @@
 import algebra
 import algebra.group
 import algebra.group.defs
-import tactic
 import logic.relation
 
 universes u v
@@ -10,6 +9,7 @@ variables (α β : Type*)
 
 -- use function.End rather than (σ → σ) for the monoid definition and mul_action
 def emit_type (I V : Type) := option (I × option V)
+
 structure iter (σ I V : Type) [linear_order I] :=
   (δ : function.End σ)
   (emit : σ → emit_type I V)
@@ -48,16 +48,6 @@ instance [decidable_eq I] : decidable (terminal a s) := if h : ι a s = none the
 lemma some_not_terminal {a : iter σ I V} {s} {i : I} : a.ι s = some i → ¬ a.terminal s :=
 λ h1 h2, false.rec _ (option.some_ne_none i (h1 ▸ h2))
 
-def nat_iter : iter ℕ ℕ ℕ :=
-{ δ := λ n, n+1
-, emit := λ n, some (n, some n)
-}
-
-def iota (k : ℕ): iter (fin k.succ) (fin k) (fin k) :=
-{ δ := λ n, if h : n.val < k then ⟨n.val+1,  nat.succ_lt_succ h⟩ else n
-, emit := λ n, if h : n.val < k then some (⟨n.val, h⟩, some ⟨n.val, h⟩) else none
-}
-
 open relation.refl_trans_gen
 def path_of_index {a : iter σ I V} : ∀ (i:ℕ), a.reachable s (a.step s i)
 | 0 := refl
@@ -94,21 +84,20 @@ lemma index_of_path {a : iter σ I V} {s t} : a.reachable s t → ∃ (i: ℕ), 
 end
 
 section semantics
-variable [add_comm_monoid V]
+variables [add_monoid V]
 
 def elementary (i : I) (v : V) := λ j, if i = j then v else 0
-@[simp]
-def semantics₁ (s : σ) : I → V :=
+@[simp] def semantics₁ (s : σ) : I → V :=
   match a.emit s with
   | none := 0
   | some (i, none) := 0
   | some (i, some v) := elementary i v
   end
 
-@[simp]
-def semantics' : σ → ℕ → I → V
+@[simp] def semantics' : σ → ℕ → I → V
 | _ 0 := 0
 | s (n+1) := a.semantics₁ s + semantics' (a.δ s) n
+
 notation `⟦` a, s `⟧` := a.semantics' s
 notation `⟦` a, s, j `⟧` := a.semantics' s j
 
@@ -138,7 +127,7 @@ end params_unary
 
 section params_binary
 variables {σ₁ σ₂ I V : Type} [linear_order I] [decidable_eq σ₁] [decidable_eq σ₂]
-[add_comm_monoid V]
+[add_monoid V]
 (a : iter σ₁ I V) (b : iter σ₂ I V)
 (s₁ : σ₁) (s₂ : σ₂)
 
@@ -152,6 +141,7 @@ def add_iter (a : iter σ₁ I V) (b : iter σ₂ I V) : iter (σ₁×σ₂) I V
 { δ := λ ⟨s,t⟩, if a.ι s < b.ι t then (a.δ s,t) else if a.ι s > b.ι t then (s, b.δ t) else (a.δ s, b.δ t)
 , emit := add_emit a b,
 }
+
 infix `+'`:50 := add_iter
 
 lemma add_iter_terminal {a : iter σ₁ I V} {b : iter σ₂ I V} {s₁ s₂} : a.terminal s₁ → b.terminal s₂ → (a+' b).terminal (s₁, s₂) := λ h1 h2,

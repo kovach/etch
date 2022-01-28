@@ -13,7 +13,7 @@ variables {σ I V : Type} [linear_order I]
 variables (s t : σ)
 
 section semantics
-variable [add_comm_monoid V]
+variables [add_monoid V]
 
 @[simp] lemma terminal_semantics₁_zero {a : iter σ I V} (h : a.terminal t) : a.semantics₁ t = 0 := by simp *
 
@@ -47,7 +47,7 @@ variables {σ₁ σ₂ I V : Type} [linear_order I] [decidable_eq σ₁] [decida
 
 theorem add_iter_sound {i j}
 : a.monotonic → b.monotonic → a.terminal_by s₁ i → b.terminal_by s₂ j →
-  ⟦(a +' b), (s₁,s₂)⟧ (i+j) = ⟦a, s₁⟧ i + ⟦b, s₂⟧ j :=
+  ⟦(a +' b), (s₁,s₂), (i+j)⟧ = ⟦a, s₁, i⟧ + ⟦b, s₂, j⟧ :=
 λ amono bmono afin bfin, begin
 generalize hnij : i+j = n,
 induction n with n hn generalizing s₁ s₂ i j,
