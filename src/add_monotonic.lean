@@ -10,7 +10,6 @@ namespace iter
 
 section params_unary
 variables {σ I V : Type} [linear_order I]
-[decidable_eq σ]
 {a : iter σ I V}
 variables (s t : σ)
 

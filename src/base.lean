@@ -7,10 +7,9 @@ import logic.relation
 universes u v
 variables (α β : Type*)
 
--- use function.End rather than (σ → σ) for the monoid definition and mul_action
 def emit_type (I V : Type) := option (I × option V)
 
-structure iter (σ I V : Type) [linear_order I] :=
+structure iter (σ I V : Type) :=
   (δ : function.End σ)
   (emit : σ → emit_type I V)
 
@@ -126,7 +125,7 @@ end
 end params_unary
 
 section params_binary
-variables {σ₁ σ₂ I V : Type} [linear_order I] [decidable_eq σ₁] [decidable_eq σ₂]
+variables {σ₁ σ₂ I V : Type} [linear_order I]
 [add_monoid V]
 (a : iter σ₁ I V) (b : iter σ₂ I V)
 (s₁ : σ₁) (s₂ : σ₂)

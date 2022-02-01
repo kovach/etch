@@ -10,7 +10,7 @@ variables {α β : Type*}
 
 section params_unary
 variables {σ I V : Type} [linear_order I]
-[decidable_eq σ]
+[has_zero V] [has_add V]
 {a : iter σ I V}
 variables (s t : σ)
 

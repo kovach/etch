@@ -8,14 +8,12 @@ namespace iter
 
 section params_unary
 variables {σ I V : Type} [linear_order I]
-[decidable_eq σ]
-{a : iter σ I V}
-variables (s t : σ)
+variables (s t : σ) {a : iter σ I V}
 
 section semantics
 variables [add_monoid V]
 
-@[simp] lemma terminal_semantics₁_zero {a : iter σ I V} (h : a.terminal t) : a.semantics₁ t = 0 := by simp *
+@[simp] lemma terminal_semantics₁_zero (h : a.terminal t) : a.semantics₁ t = 0 := by simp *
 
 @[simp]
 theorem terminal_zero {t} {a : iter σ I V} (m : a.monotonic) (h : a.terminal t) (j:ℕ) : a.semantics' t j = 0 := begin
