@@ -4,7 +4,8 @@ import algebra.group
 import algebra.group.defs
 import tactic
 import logic.relation
-import base
+
+import combinators
 
 namespace iter
 
@@ -31,7 +32,7 @@ end
 end params_unary
 
 section params_binary
-variables {σ₁ σ₂ I V : Type} [linear_order I] [decidable_eq σ₁] [decidable_eq σ₂] [add_monoid V]
+variables {σ₁ σ₂ I V : Type} [linear_order I] [add_monoid V]
 {a : iter σ₁ I V} {b : iter σ₂ I V}
 
 lemma add_ι_min {s} : (a+'b).ι s = min (a.ι s.1) (b.ι s.2) := begin

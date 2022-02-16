@@ -1,6 +1,6 @@
 -- main theorem: add_iter_finite
 import algebra
-import base
+import combinators
 import add_monotonic
 
 namespace iter
@@ -30,7 +30,7 @@ end params_unary
 
 section params_binary
 
-variables {σ₁ σ₂ I V : Type} [linear_order I] [decidable_eq σ₁] [decidable_eq σ₂] [add_monoid V]
+variables {σ₁ σ₂ I V : Type} [linear_order I] [add_monoid V]
 {a : iter σ₁ I V} {b : iter σ₂ I V}
 {s₁ : σ₁} {s₂ : σ₂}
 
