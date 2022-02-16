@@ -142,7 +142,7 @@ structure stream (σ I V : Type) :=
 namespace stream
 variables {σ I V : Type} [linear_order I] (s : stream σ I V)
 
-def δ {σ I V} (s : stream σ I V) : stream σ I V :=
+@[simp] def δ {σ I V} (s : stream σ I V) : stream σ I V :=
 {iter := s.iter, q := s.iter.δ s.q}
 
 @[simp] def semantics [add_monoid V] : stream σ I V → ℕ → I → V
@@ -153,13 +153,8 @@ def δ {σ I V} (s : stream σ I V) : stream σ I V :=
 notation `⟦` s, i `⟧` := s.semantics i
 
 lemma stream_semantics {i} [add_monoid V] (s : stream σ I V) : s.semantics i = s.iter.semantics s.q i := begin
-induction i with n hn generalizing s,
-{ simp only [iter.semantics, stream.semantics] },
-{ simp only [iter.semantics, stream.semantics],
-  rw hn s.δ,
-  simp [stream.δ],
-},
-
+induction i with generalizing s; simp only [iter.semantics, semantics],
+simp only [*, stream.δ],
 end
 
 end stream
