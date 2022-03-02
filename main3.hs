@@ -1,10 +1,13 @@
 {-# LANGUAGE FlexibleInstances,MultiParamTypeClasses #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE OverloadedStrings #-}
 import Prelude hiding (min)
 import Control.Monad.Writer
+import Control.Monad.Reader
 import Control.Monad.State
 import Data.Monoid
 import Data.List
+import Data.String
 
 type IVar = String
 type Label = String
@@ -12,7 +15,7 @@ data T = Label Label | Put E E E | If E T T | Skip | Jump Label | (:>) T T | E E
   deriving Show
 data E = Lit Int | IVar IVar | Extern String | Out String | Index IVar | Value IVar | BinOp String E E | Next IVar | Offset E E
        | Call String E
-  deriving Show
+  deriving (Show, Eq)
 
 data GenI i = Gen
   { current :: (i -> T) -> T
@@ -129,7 +132,22 @@ flatten outer inner =
       Just io -> current inner $ \ii -> case ii of
         Nothing -> k $ (Just io, Nothing)
   in
-    Gen { next = n }
+    Gen { next = n, current = c }
+
+-- loop' :: Label -> Label -> E -> Gen (Maybe E, a)-> Gen a
+-- loop' loop done acc g =
+--   initialize g :>
+--   FloatInit acc :>
+--   Label loop :>
+--   (current g $ \mi -> case mi of
+--       (Nothing, _) -> Skip
+--       (Just i, x) -> value g $ \mv -> case mv of
+--         Nothing -> Skip
+--         Just v -> Put acc i v ) :>
+--   (next g $ \ms -> case ms of
+--       Nothing -> Jump done
+--       Just s -> s :> Jump loop)
+--   :> Label done
 
 loop :: Label -> Label -> E -> Gen -> T
 loop loop done acc g =
@@ -168,18 +186,33 @@ e2c e = case e of
 
 init_buffer var = "for(int i = 0; i < BUFFER_SIZE; i++) { "++var++"[i] = 0; }\n"
 
-t2c :: T -> String
+type M = WriterT String (Reader [E])
+
+emit :: String -> M ()
+emit s = tell s
+
+instance (IsString (M ())) where
+  fromString = emit
+
+wrapm s = emit "(" >> s >> emit ")"
+
+t2c :: T -> M ()
 t2c t = case t of
-  Label l -> l ++ ":\n"
-  --Put l r -> e2c l ++ " = " ++ e2c r ++ ";"
-  Put l i r -> "put" ++ (wrap $ intercalate "," (map e2c [l, i, r])) ++ ";"
-  If c t e -> "if (" ++ e2c c ++ ") {" ++ t2c t ++ "} else {" ++ t2c e ++ "}"
-  Jump l -> "goto " ++ l ++ ";"
+  Put l i r   -> do { emit "put"; (wrapm $ emit $ intercalate "," (map e2c [l, i, r])); ";" }
+  If c t e    -> do
+    pathCondition <- ask -- premature code simplification
+    if c `elem` pathCondition then t2c t else do
+      emit $ "if (" ++ e2c c ++ ") {" ; local (c:) (t2c t) ; emit "}";
+      case e of
+        Skip -> return ()
+        _ -> do emit $ " else {" ; t2c e ; "}"
+  Label l -> emit $ l ++ ":\n"
+  Jump  l -> emit $ "goto " ++ l ++ ";"
   Skip -> ""
-  a :> b -> t2c a ++ t2c b
-  E e -> e2c e ++ ";\n"
-  Init e -> "int " ++ e2c e ++ " = 0;\n"
-  FloatInit (Out v) -> "num* " ++ v ++ " = (num*)malloc(BUFFER_SIZE*sizeof(float));\n" ++ init_buffer v
+  a :> b -> t2c a >> t2c b
+  E e -> emit $ e2c e ++ ";\n"
+  Init e -> emit $ "int " ++ e2c e ++ " = 0;\n"
+  FloatInit (Out v) -> emit $ "num* " ++ v ++ " = (num*)malloc(BUFFER_SIZE*sizeof(float));\n" ++ init_buffer v
   FloatInit _ -> error "todo, FloatInit"
 
   -- "#include \"stdio.h\"\n#include \"stdlib.h\"\n#include \"stdbool.h\"\n\
@@ -189,7 +222,7 @@ addHeader s =
   ++ s
   ++ "#include \"suffix.c\"\n"
 compile :: T -> IO ()
-compile = writeFile "out.c" . addHeader . t2c
+compile = writeFile "out.c" . addHeader . flip runReader [] . execWriterT . t2c
 
 {-
 put sparse output
