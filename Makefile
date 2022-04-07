@@ -1,2 +1,2 @@
-test: out.c prefix.c suffix.c
-	clang++ -o test out.c
+test: out.cpp prefix.cpp suffix.cpp
+	clang++ -o test -g -Wno-parentheses-equality out.cpp

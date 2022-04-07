@@ -1,3 +1,7 @@
+{-
+initialize tries
+handle output
+-}
 {-# LANGUAGE FlexibleInstances,MultiParamTypeClasses #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -18,9 +22,10 @@ type Label = String
 type IVar = String
 type Var = String
 -- data Index = Unit | Pair E Index deriving Show
-data T = Label Label | Put E [E] E | If E T T | Skip | Jump Label | (:>) T T | E E | Init E | FloatInit E | Store Var E
+data T = Label Label | Put E [E] E | If E T T | Skip | Jump Label | (:>) T T | E E | Declare IVar | Init E | FloatInit E | Store Var E
        | Alarm String
        | Unreachable
+       | ExternT String
   deriving Show
 data E = Lit Integer | IVar IVar | Var Var | Extern String | Out String
        | Index IVar | Value IVar | Next IVar | Offset E E | BinOp String E E
@@ -80,19 +85,9 @@ range n var =
     value   k = If (le i n) (k $ Just $ Value var) (k Nothing)
     next    k = If (le i n) (k $ Just $ E $ Next var) (k Nothing)
   in
-  Gen { current, value, next, initialize = Init $ IVar var }
+  Gen { current, value, next, initialize = Init . IVar $ var }
 
 extern fn n = genFMap id (Call fn) . range n
-
-zip :: GenIV i a -> GenIV j b -> GenIV (i, j) (a, b)
-zip a b =
-  let
-    c k = current a $ \ia -> current b $ \ib -> k (ia, ib)
-    v k = value a $ \ia -> value b $ \ib -> k (ia, ib)
-    n k = next a $ \ia -> next b $ \ib -> k (liftM2 (:>) ia ib)
-    i = initialize a :> initialize b
-  in
-    Gen {current = c, value = v, next = n, initialize = i}
 
 add :: Gen -> Gen -> Gen
 add a b =
@@ -189,10 +184,9 @@ data Context = Context
   { trueConditions :: [E]
   , falseConditions :: [E] }
 
-pushTrue e c = c { trueConditions = e : trueConditions c}
-pushFalse e c = c { falseConditions = e : falseConditions c}
---pushTrue e c = c
---pushFalse e c = c
+disablePathCondition = False
+pushTrue e c  = if disablePathCondition then c else c { trueConditions = e : trueConditions c}
+pushFalse e c = if disablePathCondition then c else c { falseConditions = e : falseConditions c}
 trueElem e c = e `elem` trueConditions c
 falseElem e c = e `elem` falseConditions c
 emptyContext = Context [] []
@@ -247,22 +241,27 @@ t2c t = do
     Skip              -> ""
     a :> b            -> t2c a >> local (\_ -> emptyContext) (t2c b)
     E e               -> emit $ e2c e ++ ";\n"
-    Init e            -> emit $ "int " ++ e2c e ++ " = 0;\n"
+    Declare e         -> emit $ "int " ++ e ++ " = 0;\n"
+    Init e            -> emit $ e2c e ++ " = 0;\n"
+    --Init e            -> emit $ "int " ++ e2c e ++ " = 0;\n"
     Store v e         -> emit $ v ++ " = " ++ e2c e ++ ";"
     FloatInit (Out v) -> emit $ "num* " ++ v ++ " = (num*)malloc(BUFFER_SIZE*sizeof(float));\n" ++ init_buffer v
     FloatInit _       -> error "todo, FloatInit"
     Alarm s           -> emit $ "// " ++ s ++ "\n"
     Unreachable       -> emit $ "// unreachable\n"
+    ExternT s         -> emit s
+    t                 -> error (show t)
 
 compile :: T -> IO ()
 compile t = do
-  writeFile "out.c" . addHeader . runM . t2c $ t
-  callCommand "clang-format -i out.c"
+  let outName = "out.cpp"
+  writeFile outName . addHeader . runM . t2c $ t
+  callCommand $ "clang-format -i " ++ outName
   where
     addHeader s =
-      "#include \"prefix.c\"\n"
+      "#include \"prefix.cpp\"\n"
       ++ s
-      ++ "#include \"suffix.c\"\n"
+      ++ "#include \"suffix.cpp\"\n"
 
 maybeTuple :: (Maybe a1, Maybe a2) -> Maybe (a1, a2)
 maybeTuple = uncurry $ liftM2 (,)
@@ -282,7 +281,7 @@ flatten outer =
     n k =
       value outer $ \minner -> case minner of
         Nothing -> next outer $ k . fmap ( :> (value outer $ \minner -> case minner of
-                                       Nothing -> Alarm "also nothing"
+                                       Nothing -> Alarm "still nothing"
                                        Just inner -> initialize inner))
         -- Nothing -> next outer $ k . fmap (Unreachable :>)
         Just inner  -> next inner $ \mstep -> case mstep of
@@ -307,16 +306,18 @@ loop loop done acc g =
   initialize g :>
   FloatInit acc :>
   Label loop :>
+  ExternT "__i++;" :>
   (current g $ maybe Skip $ \i -> value g $ maybe Skip $ \v -> Put acc [i] v) :>
   (next g $ \ms -> case ms of
       Nothing -> Jump done
-      Just s -> s :> Jump loop)
-  :> Label done
+      Just s -> s :> Jump loop) :>
+  Label done
+  :> ExternT "printf(\"loops: %d\\n\", __i);\n"
 
 lp = loop "loop" "done"
 
 parseNode :: E -> (E, E, E)
-parseNode e = (RecordAccess e "len", RecordAccess e "indices", RecordAccess e "children")
+parseNode e = (RecordAccess e "length", RecordAccess e "indices", RecordAccess e "children")
 parseNodeIter :: Gen -> GenV (Maybe (E, E, E))
 parseNodeIter = fmap $ fmap $ parseNode
 
@@ -339,4 +340,6 @@ fl2 = fl . gmap fl
 
 chk = compile . loop "loop" "done" (Out "acc")
 
-main = chk . fl2 $ tIJK
+main1 = chk . fl2 $ tIJK
+main2 = chk $ fl  $ mul (t2 "A" "iA" "jA" ) (t2 "B" "iB" "jB" )
+main3 = chk $ fl2 $ mul (t3 "C" "iA" "jA" "kA") (t3 "D" "iB" "jB" "kB")
