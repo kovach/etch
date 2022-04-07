@@ -6,8 +6,10 @@ import Control.Monad.Writer
 import Control.Monad.Reader
 import Control.Monad.State
 import Data.Monoid
+import Data.Maybe
 import Data.List
 import Data.String
+import Data.Function
 import System.Process
 
 sorry = undefined
@@ -17,10 +19,20 @@ type IVar = String
 type Var = String
 -- data Index = Unit | Pair E Index deriving Show
 data T = Label Label | Put E [E] E | If E T T | Skip | Jump Label | (:>) T T | E E | Init E | FloatInit E | Store Var E
+       | Alarm String
+       | Unreachable
   deriving Show
-data E = Lit Int | IVar IVar | Var Var | Extern String | Out String | Index IVar | Value IVar | BinOp String E E | Next IVar | Offset E E
+data E = Lit Integer | IVar IVar | Var Var | Extern String | Out String
+       | Index IVar | Value IVar | Next IVar | Offset E E | BinOp String E E
+       | RecordAccess E String
        | Call String E
   deriving (Show, Eq)
+
+instance (IsString E)
+  where fromString = Extern
+
+instance Num E
+  where fromInteger = Lit
 
 data GenIV i v = Gen
   { current    :: (i -> T) -> T
@@ -45,31 +57,44 @@ genMap f g gen = Gen
   , initialize = initialize gen
   }
 
+instance Functor (GenIV i) where
+  fmap f = genMap id f
+
 imap f = genMap f id
-vmap f = genMap id f
 
 sparseVec index_array value_array = genFMap
-  (Offset (Extern index_array))
-  (Offset (Extern value_array))
+  (Offset index_array)
+  (Offset value_array)
 
 le    a b   = BinOp "<" a b
 min   a b k = If (le b a) (k b) (k a)
-eq    a b   = BinOp "=" a b
+eq    a b   = BinOp "==" a b
 times a b   = BinOp "*" a b
 plus  a b   = BinOp "+" a b
 
-range :: Int -> IVar -> Gen
+range :: E -> IVar -> Gen
 range n var =
   let i = Index var in
   let
-    current k = If (le i (Lit n)) (k $ Just $ Index var) (k Nothing)
-    value   k = If (le i (Lit n)) (k $ Just $ Value var) (k Nothing)
-    next    k = If (le i (Lit n)) (k $ Just $ E $ Next var) (k Nothing)
+    current k = If (le i n) (k $ Just $ Index var) (k Nothing)
+    value   k = If (le i n) (k $ Just $ Value var) (k Nothing)
+    next    k = If (le i n) (k $ Just $ E $ Next var) (k Nothing)
   in
   Gen { current, value, next, initialize = Init $ IVar var }
 
 extern fn n = genFMap id (Call fn) . range n
 
+zip :: GenIV i a -> GenIV j b -> GenIV (i, j) (a, b)
+zip a b =
+  let
+    c k = current a $ \ia -> current b $ \ib -> k (ia, ib)
+    v k = value a $ \ia -> value b $ \ib -> k (ia, ib)
+    n k = next a $ \ia -> next b $ \ib -> k (liftM2 (:>) ia ib)
+    i = initialize a :> initialize b
+  in
+    Gen {current = c, value = v, next = n, initialize = i}
+
+add :: Gen -> Gen -> Gen
 add a b =
   let
     c k = current a $ \ia -> case ia of
@@ -105,64 +130,76 @@ add a b =
   in
     Gen { current = c, value = v, next = n, initialize = initialize a :> initialize b }
 
-mul :: Gen -> Gen -> Gen
-mul a b =
+class Mul a where
+  mul :: a -> a -> a
+
+mulgen :: (Mul a) => GenV (Maybe a) -> GenV (Maybe a) -> GenV (Maybe a)
+mulgen a b =
   let
     c k = current a $ \ia -> case ia of
       Nothing -> k Nothing
       Just ia -> current b $ \ib -> case ib of
         Nothing -> k Nothing
-        Just ib -> min ia ib (k . Just)
+        Just ib -> If (eq ia ib) (k (Just ia)) (k Nothing)
     v k = current a $ \ia -> case ia of
       Nothing -> k Nothing
       Just ia -> current b $ \ib -> case ib of
         Nothing -> k Nothing
-        Just ib -> If (le ia ib) (k Nothing) $ If (le ib ia) (k Nothing) $
-          value a $ \va -> case va of
+        Just ib -> If (eq ia ib)
+          (value a $ \va -> case va of
             Nothing -> k Nothing
             Just va -> value b $ \vb -> case vb of
               Nothing -> k Nothing
-              Just vb -> k (Just (times va vb))
+              Just vb -> k (Just (mul va vb)))
+          (k Nothing)
     n k = current a $ \ia -> case ia of
-      Nothing -> next b k
+      Nothing -> k Nothing
       Just ia -> current b $ \ib -> case ib of
-        Nothing -> next a k
+        Nothing -> k Nothing
         Just ib -> If (le ia ib) (next a k) (next b k)
   in
     Gen { current = c, value = v, next = n, initialize = initialize a :> initialize b }
 
--- hmm
-memoIndex :: Var -> Gen -> Gen
-memoIndex loc g = g
-  { next = \k -> next g $ \mt -> case mt of
-      Just t -> (current g $ \i -> case i of
-        Just i -> k $ Just $ t :> Store loc i
-        Nothing -> Skip {- ? -} )
-      Nothing -> k Nothing
-  , current = ($ Just $ Var loc)
-  }
+instance Mul E where
+  mul = times
+
+instance Mul a => Mul (GenV (Maybe a)) where
+  mul = mulgen
 
 wrap s = "(" ++ s ++ ")"
-
 e2c :: E -> String
 e2c e = case e of
-  Lit i          -> show i
-  IVar i         -> i
-  Index i        -> i
-  Value i        -> i
-  Var i          -> i
-  Out i          -> i
-  Extern i       -> i
-  Next i         -> wrap $ i ++ "++"
-  BinOp op e1 e2 -> wrap $ e2c e1 ++ op ++ e2c e2
-  Offset b i     -> e2c b ++ "[" ++ e2c i ++ "]"
-  Call f e       -> f ++ (wrap $ e2c e)
+  Lit i            -> show i
+  IVar i           -> i
+  Index i          -> i
+  Value i          -> i
+  Var i            -> i
+  Out i            -> i
+  Extern i         -> i
+  Next i           -> wrap $ i ++ "++"
+  BinOp op e1 e2   -> wrap $ e2c e1 ++ op ++ e2c e2
+  Offset b i       -> e2c b ++ "[" ++ e2c i ++ "]"
+  Call f e         -> f ++ (wrap $ e2c e)
+  RecordAccess e f -> e2c e ++ "." ++ f
+  e                -> error (show e)
 
 init_buffer var = "for(int i = 0; i < BUFFER_SIZE; i++) { "++var++"[i] = 0; }"
 
-type M = WriterT String (Reader [E])
+data Context = Context
+  { trueConditions :: [E]
+  , falseConditions :: [E] }
+
+pushTrue e c = c { trueConditions = e : trueConditions c}
+pushFalse e c = c { falseConditions = e : falseConditions c}
+--pushTrue e c = c
+--pushFalse e c = c
+trueElem e c = e `elem` trueConditions c
+falseElem e c = e `elem` falseConditions c
+emptyContext = Context [] []
+
+type M = WriterT String (Reader Context)
 runM :: M () -> String
-runM = flip runReader [] . execWriterT
+runM = flip runReader emptyContext . execWriterT
 
 emit :: String -> M ()
 emit s = tell s
@@ -173,34 +210,49 @@ instance (IsString (M ())) where
 wrapm :: M () -> M ()
 wrapm s = emit "(" >> s >> ")"
 
+evalTrivial :: T -> M Bool
+evalTrivial Skip       = return True
+--evalTrivial (If c t e) = return False
+evalTrivial (If c t e) = do
+  pathCondition <- ask
+  if c `trueElem` pathCondition then evalTrivial t else
+    if c `falseElem` pathCondition then evalTrivial e else do
+      tt <- evalTrivial t
+      et <- evalTrivial e
+      return $ tt && et
+evalTrivial (a :> b)   = pure (&&) <*> (evalTrivial a) <*> (evalTrivial b)
+evalTrivial _          = return False
+
 trivial :: T -> Bool
-trivial Skip = True
+trivial Skip       = True
 trivial (If c t e) = trivial t && trivial e
-trivial (a :> b) = trivial a && trivial b
-trivial _ = False
+trivial (a :> b)   = trivial a && trivial b
+trivial _          = False
 
 t2c :: T -> M ()
-t2c t = case t of
-  _ | trivial t     -> ""
-  Put l [i] r       -> do { emit "put"; (wrapm $ emit $ intercalate "," (map e2c [l, i, r])); ";" }
-  Put l (i:_) r     -> do { emit "put"; (wrapm $ emit $ intercalate "," (map e2c [l, i, r])); ";" }
-  If c t e          -> do
-    pathCondition <- ask -- some premature code simplification
-    if c `elem` pathCondition then t2c t else do
-      emit $ "if (" ++ e2c c ++ ") {" ; local (c:) (t2c t) ; emit "}";
-      if trivial e then "" else do emit " else {" ; t2c e ; "}"
-      -- case e of
-      --   Skip        -> return ()
-      --   _           -> do emit " else {" ; t2c e ; "}"
-  Label l           -> emit $ "\n" ++ l ++ ":\n"
-  Jump  l           -> emit $ "goto " ++ l ++ ";"
-  Skip              -> ""
-  a :> b            -> t2c a >> t2c b
-  E e               -> emit $ e2c e ++ ";\n"
-  Init e            -> emit $ "int " ++ e2c e ++ " = 0;\n"
-  Store v e         -> emit $ v ++ " = " ++ e2c e ++ ";"
-  FloatInit (Out v) -> emit $ "num* " ++ v ++ " = (num*)malloc(BUFFER_SIZE*sizeof(float));\n" ++ init_buffer v
-  FloatInit _       -> error "todo, FloatInit"
+t2c t = do
+  triv <- evalTrivial t
+  if triv then "" else case t of
+    -- _ | trivial t     -> ""
+    Put l [i] r       -> do { emit "put"; (wrapm $ emit $ intercalate "," (map e2c [l, i, r])); ";" }
+    Put l (i:_) r     -> do { emit "put"; (wrapm $ emit $ intercalate "," (map e2c [l, i, r])); ";" }
+    If c t e          -> do
+      pathCondition <- ask -- some premature code simplification
+      if c `trueElem` pathCondition then t2c t else
+        if c `falseElem` pathCondition then t2c e else do
+          emit $ "if (" ++ e2c c ++ ") {" ; local (pushTrue c) (t2c t) ; emit "}";
+          if trivial e then "" else do emit " else {" ; local (pushFalse c) (t2c e) ; "}"
+    Label l           -> emit $ "\n" ++ l ++ ":\n"
+    Jump  l           -> emit $ "goto " ++ l ++ ";"
+    Skip              -> ""
+    a :> b            -> t2c a >> local (\_ -> emptyContext) (t2c b)
+    E e               -> emit $ e2c e ++ ";\n"
+    Init e            -> emit $ "int " ++ e2c e ++ " = 0;\n"
+    Store v e         -> emit $ v ++ " = " ++ e2c e ++ ";"
+    FloatInit (Out v) -> emit $ "num* " ++ v ++ " = (num*)malloc(BUFFER_SIZE*sizeof(float));\n" ++ init_buffer v
+    FloatInit _       -> error "todo, FloatInit"
+    Alarm s           -> emit $ "// " ++ s ++ "\n"
+    Unreachable       -> emit $ "// unreachable\n"
 
 compile :: T -> IO ()
 compile t = do
@@ -212,53 +264,79 @@ compile t = do
       ++ s
       ++ "#include \"suffix.c\"\n"
 
-flatten :: GenIV i1 (Maybe T) -> GenIV i2 b -> GenIV (i1, i2) b
-flatten outer inner =
-  let
-    n k =
-      next inner $ \mstep -> case mstep of
-        Just _ -> k mstep -- increment inner
-        Nothing -> next outer $ \mstep -> case mstep of
-          Just mstep -> k $ Just $ mstep :> (value outer $ \mv -> case mv of
-            Nothing -> Skip
-            Just step -> step) :> initialize inner
-          Nothing -> k Nothing -- finished
-    c k = current outer $ \i1 -> current inner $ \i2 -> k (i1, i2)
-    v = value inner
-  in
-    Gen { next = n, current = c, value = v, initialize = initialize outer :> initialize inner }
+maybeTuple :: (Maybe a1, Maybe a2) -> Maybe (a1, a2)
+maybeTuple = uncurry $ liftM2 (,)
 
 fff :: GenIV (Maybe i1, Maybe i2) v -> GenIV (Maybe (i1, i2)) v
-fff = imap maybeTuple where maybeTuple = uncurry $ liftM2 (,)
+fff = imap maybeTuple
+
+class HasTop a where
+  top :: a
+
+instance HasTop (Maybe E) where
+  top = Nothing
+
+flatten :: (HasTop i2) => GenIV i1 (Maybe (GenIV i2 (Maybe a))) -> GenIV (i1, i2) (Maybe a)
+flatten outer =
+  let
+    n k =
+      value outer $ \minner -> case minner of
+        Nothing -> next outer $ k . fmap ( :> (value outer $ \minner -> case minner of
+                                       Nothing -> Alarm "also nothing"
+                                       Just inner -> initialize inner))
+        -- Nothing -> next outer $ k . fmap (Unreachable :>)
+        Just inner  -> next inner $ \mstep -> case mstep of
+          Just _ -> k mstep
+          Nothing -> next outer $ k . fmap (:> initialize inner)
+    c k = current outer $ \i1 -> value outer $ \minner -> case minner of
+            Nothing -> k (i1, top)
+            Just inner -> current inner $ \i2 -> k (i1, i2)
+    v k = value outer $ \minner -> case minner of
+            Nothing -> (k Nothing)
+            Just inner -> value inner k
+    init = initialize outer :>
+           (value outer $ \minner -> case minner of
+                                      Nothing -> Alarm "skip!!"
+                                      Just inner -> initialize inner)
+  in
+    Gen { next = n, current = c, value = v, initialize = init }
+
 
 loop :: Label -> Label -> E -> Gen -> T
 loop loop done acc g =
   initialize g :>
   FloatInit acc :>
   Label loop :>
-  (current g $ \mi -> case mi of
-      Nothing -> Skip
-      Just i -> value g $ \mv -> case mv of
-        Nothing -> Skip
-        Just v -> Put acc [i] v ) :>
+  (current g $ maybe Skip $ \i -> value g $ maybe Skip $ \v -> Put acc [i] v) :>
   (next g $ \ms -> case ms of
       Nothing -> Jump done
       Just s -> s :> Jump loop)
   :> Label done
 
-m1 = (mul (range 10 "a") (range 3 "b"))
-t1 = loop "loop" "done" (Out "acc") (add (range 10 "a") (range 3 "b"))
-t2 = loop "loop" "done" (Out "acc") (mul (range 10 "a") (range 3 "b"))
-t3 = loop "loop" "done" (Out "acc") (add (sparseVec "is" "vs" $ range 10 "a") (range 3 "b"))
+lp = loop "loop" "done"
 
-tf1 = loop "loop" "done" (Out "acc") $ imap (\(_, i2) -> i2) $ flatten (vmap (const (Just Skip)) $ range 3 "r") (range 5 "c")
-tf2 = loop "loop" "done" (Out "acc") $ imap (\(_, i2) -> i2) $ flatten (vmap (const (Just Skip)) $ m1) (range 5 "c")
-tf3 = loop "loop" "done" (Out "acc") $ imap (fmap snd) $ fff $ flatten (vmap (const (Just $ Jump $ "foo")) $ m1) (range 5 "c")
-tf4 = loop "loop" "done" (Out "acc") $ imap (fmap snd) $ fff $ flatten
-  (denseRows 3 "r" "is" "vs")
-  (sparseVec "is" "vs" $ range 5 "c")
+parseNode :: E -> (E, E, E)
+parseNode e = (RecordAccess e "len", RecordAccess e "indices", RecordAccess e "children")
+parseNodeIter :: Gen -> GenV (Maybe (E, E, E))
+parseNodeIter = fmap $ fmap $ parseNode
 
+uncurry3 f (a,b,c) = f a b c
 
-denseRows n i indicesPtr valuesPtr = genFMap id f (range n i)
-  where
-    f _ = E (Next indicesPtr) :> E (Next valuesPtr)
+leafIter i (len, is, vs) = range len i & sparseVec is vs
+nodeIter i (len, is, vs) = range len i & sparseVec is vs & parseNodeIter
+
+gmap :: (v -> v') -> GenIV i (Maybe v) -> GenIV i (Maybe v')
+gmap = fmap . fmap
+
+tIJK = parseNode "tree" & nodeIter "i" & gmap (nodeIter "j") & gmap (gmap (leafIter "k"))
+t2 t i j   = parseNode t & nodeIter i & gmap (leafIter j)
+t3 t i j k = parseNode t & nodeIter i & gmap (nodeIter j) & gmap (gmap (leafIter k))
+
+fl :: GenIV (Maybe a) (Maybe (GenIV (Maybe E) (Maybe a1))) -> GenIV (Maybe E) (Maybe a1)
+fl = imap (fmap snd) . fff . flatten
+
+fl2 = fl . gmap fl
+
+chk = compile . loop "loop" "done" (Out "acc")
+
+main = chk . fl2 $ tIJK
