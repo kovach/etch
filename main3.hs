@@ -1,6 +1,8 @@
 {-
+contraction
 initialize tries
 handle output
+  need locate and iter/locate mul?
 -}
 {-# LANGUAGE FlexibleInstances,MultiParamTypeClasses #-}
 {-# LANGUAGE NamedFieldPuns #-}
@@ -28,7 +30,8 @@ data T = Label Label | Put E [E] E | If E T T | Skip | Jump Label | (:>) T T | E
        | ExternT String
   deriving Show
 data E = Lit Integer | IVar IVar | Var Var | Extern String | Out String
-       | Index IVar | Value IVar | Next IVar | Offset E E | BinOp String E E
+       | Index IVar | Value IVar | Next IVar | SkipTo IVar E
+       | Offset E E | BinOp String E E
        | RecordAccess E String
        | Call String E
   deriving (Show, Eq)
@@ -86,6 +89,8 @@ range n var =
     next    k = If (le i n) (k $ Just $ E $ Next var) (k Nothing)
   in
   Gen { current, value, next, initialize = Init . IVar $ var }
+
+replicate n v g = (\_ -> g) <$> range n v
 
 extern fn n = genFMap id (Call fn) . range n
 
@@ -295,7 +300,7 @@ flatten outer =
             Just inner -> value inner k
     init = initialize outer :>
            (value outer $ \minner -> case minner of
-                                      Nothing -> Alarm "skip!!"
+                                      Nothing -> Alarm "nothing yet"
                                       Just inner -> initialize inner)
   in
     Gen { next = n, current = c, value = v, initialize = init }
@@ -329,10 +334,12 @@ nodeIter i (len, is, vs) = range len i & sparseVec is vs & parseNodeIter
 gmap :: (v -> v') -> GenIV i (Maybe v) -> GenIV i (Maybe v')
 gmap = fmap . fmap
 
-tIJK = parseNode "tree" & nodeIter "i" & gmap (nodeIter "j") & gmap (gmap (leafIter "k"))
+(.>) = flip (.)
+tIJK = parseNode "tree" & nodeIter "i" & gmap (nodeIter "j" .> gmap (leafIter "k"))
 t2 t i j   = parseNode t & nodeIter i & gmap (leafIter j)
 t3 t i j k = parseNode t & nodeIter i & gmap (nodeIter j) & gmap (gmap (leafIter k))
 
+-- todo
 fl :: GenIV (Maybe a) (Maybe (GenIV (Maybe E) (Maybe a1))) -> GenIV (Maybe E) (Maybe a1)
 fl = imap (fmap snd) . fff . flatten
 

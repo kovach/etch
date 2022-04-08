@@ -30,7 +30,6 @@ void put_debug(num* x, int i, num value) {
   printf("put: %d, %f\n", i, (float)value);
 }
 
-// (sic)
 int main() {
   node<num> v;
   put_sparse(v, 1, -1.);
@@ -44,3 +43,4 @@ int main() {
   put_sparse(B, 1, v);
   put_sparse(B, 2, v);
   int __i = 0;
+// (sic)
