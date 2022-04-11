@@ -1,8 +1,10 @@
 {-
+aggregation
+  need to compute semantic bracket
+  handle output
+    need locate and iter/locate mul?
 contraction
 initialize tries
-handle output
-  need locate and iter/locate mul?
 -}
 {-# LANGUAGE FlexibleInstances,MultiParamTypeClasses #-}
 {-# LANGUAGE NamedFieldPuns #-}
@@ -23,7 +25,7 @@ sorry = undefined
 type Label = String
 type IVar = String
 type Var = String
--- data Index = Unit | Pair E Index deriving Show
+
 data T = Label Label | Put E [E] E | If E T T | Skip | Jump Label | (:>) T T | E E | Declare IVar | Init E | FloatInit E | Store Var E
        | Alarm String
        | Unreachable
@@ -196,9 +198,9 @@ trueElem e c = e `elem` trueConditions c
 falseElem e c = e `elem` falseConditions c
 emptyContext = Context [] []
 
-type M = WriterT String (Reader Context)
+type M = StateT Int (WriterT String (Reader Context))
 runM :: M () -> String
-runM = flip runReader emptyContext . execWriterT
+runM = flip runReader emptyContext . execWriterT . flip evalStateT 0
 
 emit :: String -> M ()
 emit s = tell s
@@ -222,17 +224,10 @@ evalTrivial (If c t e) = do
 evalTrivial (a :> b)   = pure (&&) <*> (evalTrivial a) <*> (evalTrivial b)
 evalTrivial _          = return False
 
-trivial :: T -> Bool
-trivial Skip       = True
-trivial (If c t e) = trivial t && trivial e
-trivial (a :> b)   = trivial a && trivial b
-trivial _          = False
-
 t2c :: T -> M ()
 t2c t = do
   triv <- evalTrivial t
   if triv then "" else case t of
-    -- _ | trivial t     -> ""
     Put l [i] r       -> do { emit "put"; (wrapm $ emit $ intercalate "," (map e2c [l, i, r])); ";" }
     Put l (i:_) r     -> do { emit "put"; (wrapm $ emit $ intercalate "," (map e2c [l, i, r])); ";" }
     If c t e          -> do
@@ -240,7 +235,8 @@ t2c t = do
       if c `trueElem` pathCondition then t2c t else
         if c `falseElem` pathCondition then t2c e else do
           emit $ "if (" ++ e2c c ++ ") {" ; local (pushTrue c) (t2c t) ; emit "}";
-          if trivial e then "" else do emit " else {" ; local (pushFalse c) (t2c e) ; "}"
+          eTriv <- evalTrivial e
+          if eTriv then "" else do emit " else {" ; local (pushFalse c) (t2c e) ; "}"
     Label l           -> emit $ "\n" ++ l ++ ":\n"
     Jump  l           -> emit $ "goto " ++ l ++ ";"
     Skip              -> ""
@@ -257,10 +253,10 @@ t2c t = do
     ExternT s         -> emit s
     t                 -> error (show t)
 
-compile :: T -> IO ()
+compile :: M T -> IO ()
 compile t = do
   let outName = "out.cpp"
-  writeFile outName . addHeader . runM . t2c $ t
+  writeFile outName . addHeader . runM $ t >>= t2c
   callCommand $ "clang-format -i " ++ outName
   where
     addHeader s =
@@ -288,7 +284,6 @@ flatten outer =
         Nothing -> next outer $ k . fmap ( :> (value outer $ \minner -> case minner of
                                        Nothing -> Alarm "still nothing"
                                        Just inner -> initialize inner))
-        -- Nothing -> next outer $ k . fmap (Unreachable :>)
         Just inner  -> next inner $ \mstep -> case mstep of
           Just _ -> k mstep
           Nothing -> next outer $ k . fmap (:> initialize inner)
@@ -306,20 +301,26 @@ flatten outer =
     Gen { next = n, current = c, value = v, initialize = init }
 
 
-loop :: Label -> Label -> E -> Gen -> T
-loop loop done acc g =
-  initialize g :>
-  FloatInit acc :>
-  Label loop :>
-  ExternT "__i++;" :>
-  (current g $ maybe Skip $ \i -> value g $ maybe Skip $ \v -> Put acc [i] v) :>
-  (next g $ \ms -> case ms of
-      Nothing -> Jump done
-      Just s -> s :> Jump loop) :>
-  Label done
-  :> ExternT "printf(\"loops: %d\\n\", __i);\n"
-
-lp = loop "loop" "done"
+fresh :: String -> M String
+fresh n = do
+  k <- get
+  put (k+1)
+  return $ n ++ show k
+loop :: E -> Gen -> M T
+loop acc g = do
+  loop <- fresh "loop"
+  done <- fresh "done"
+  return $
+    initialize g :>
+    FloatInit acc :>
+    Label loop :>
+    ExternT "__i++;" :>
+    (current g $ maybe Skip $ \i -> value g $ maybe Skip $ \v -> Put acc [i] v) :>
+    (next g $ \ms -> case ms of
+        Nothing -> Jump done
+        Just s -> s :> Jump loop) :>
+    Label done
+    :> ExternT "printf(\"loops: %d\\n\", __i);\n"
 
 parseNode :: E -> (E, E, E)
 parseNode e = (RecordAccess e "length", RecordAccess e "indices", RecordAccess e "children")
@@ -335,17 +336,16 @@ gmap :: (v -> v') -> GenIV i (Maybe v) -> GenIV i (Maybe v')
 gmap = fmap . fmap
 
 (.>) = flip (.)
-tIJK = parseNode "tree" & nodeIter "i" & gmap (nodeIter "j" .> gmap (leafIter "k"))
+tIJK       = parseNode "tree" & nodeIter "i" & gmap (nodeIter "j" .> gmap (leafIter "k"))
 t2 t i j   = parseNode t & nodeIter i & gmap (leafIter j)
 t3 t i j k = parseNode t & nodeIter i & gmap (nodeIter j) & gmap (gmap (leafIter k))
 
 -- todo
 fl :: GenIV (Maybe a) (Maybe (GenIV (Maybe E) (Maybe a1))) -> GenIV (Maybe E) (Maybe a1)
-fl = imap (fmap snd) . fff . flatten
-
+fl = imap (fmap snd . maybeTuple) . flatten
 fl2 = fl . gmap fl
 
-chk = compile . loop "loop" "done" (Out "acc")
+chk = compile . loop (Out "acc")
 
 main1 = chk . fl2 $ tIJK
 main2 = chk $ fl  $ mul (t2 "A" "iA" "jA" ) (t2 "B" "iB" "jB" )
