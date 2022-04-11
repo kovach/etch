@@ -1,6 +1,10 @@
 {-
+handle () at base of Gen
+avoid monad?
+out vs extern
 aggregation
   need to compute semantic bracket
+    semantics typeclass
   handle output
     need locate and iter/locate mul?
 contraction
@@ -15,7 +19,7 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Data.Monoid
 import Data.Maybe
-import Data.List
+import Data.List hiding (singleton)
 import Data.String
 import Data.Function
 import System.Process
@@ -82,6 +86,15 @@ eq    a b   = BinOp "==" a b
 times a b   = BinOp "*" a b
 plus  a b   = BinOp "+" a b
 
+singleton :: a -> GenIV () a
+singleton v = Gen
+    { next = ($ Nothing)
+    -- todo does this need a check?
+    , current = ($ ())
+    , value = ($ v)
+    , initialize = Skip
+    }
+
 range :: E -> IVar -> Gen
 range n var =
   let i = Index var in
@@ -96,8 +109,23 @@ replicate n v g = (\_ -> g) <$> range n v
 
 extern fn n = genFMap id (Call fn) . range n
 
-add :: Gen -> Gen -> Gen
-add a b =
+-- a; b
+sequenceGen :: GenIV i v -> GenIV i v -> GenIV i v
+sequenceGen a b = Gen
+  { next = \k -> next a $ \mstep -> case mstep of
+      Nothing -> next b k
+      Just mstep -> k (Just mstep)
+  , current = \k -> next a $ \mstep -> case mstep of
+      Nothing -> current a k
+      Just _ -> current b k
+  , value = \k -> next a $ \mstep -> case mstep of
+      Nothing -> value a k
+      Just _ -> value b k
+  , initialize = initialize a :> initialize b
+  }
+
+addGen :: Gen -> Gen -> Gen
+addGen a b =
   let
     c k = current a $ \ia -> case ia of
       Nothing -> current b k
@@ -253,22 +281,8 @@ t2c t = do
     ExternT s         -> emit s
     t                 -> error (show t)
 
-compile :: M T -> IO ()
-compile t = do
-  let outName = "out.cpp"
-  writeFile outName . addHeader . runM $ t >>= t2c
-  callCommand $ "clang-format -i " ++ outName
-  where
-    addHeader s =
-      "#include \"prefix.cpp\"\n"
-      ++ s
-      ++ "#include \"suffix.cpp\"\n"
-
 maybeTuple :: (Maybe a1, Maybe a2) -> Maybe (a1, a2)
 maybeTuple = uncurry $ liftM2 (,)
-
-fff :: GenIV (Maybe i1, Maybe i2) v -> GenIV (Maybe (i1, i2)) v
-fff = imap maybeTuple
 
 class HasTop a where
   top :: a
@@ -306,6 +320,8 @@ fresh n = do
   k <- get
   put (k+1)
   return $ n ++ show k
+
+-- todo recursive
 loop :: E -> Gen -> M T
 loop acc g = do
   loop <- fresh "loop"
@@ -313,6 +329,7 @@ loop acc g = do
   return $
     initialize g :>
     FloatInit acc :>
+    -- ExternT "__i = 0;" :>
     Label loop :>
     ExternT "__i++;" :>
     (current g $ maybe Skip $ \i -> value g $ maybe Skip $ \v -> Put acc [i] v) :>
@@ -321,6 +338,29 @@ loop acc g = do
         Just s -> s :> Jump loop) :>
     Label done
     :> ExternT "printf(\"loops: %d\\n\", __i);\n"
+
+loopGen :: Gen -> M (GenIV () (Maybe E))
+loopGen g = do
+  temp <- fresh "temp"
+  initialize <- loop (Out temp) g
+  return $ Gen
+    { next = ($ Nothing)
+    -- todo does this need a check?
+    , current = ($ ())
+    , value = ($ Just (Out temp))
+    , initialize
+    }
+
+compile :: M T -> IO ()
+compile t = do
+  let outName = "out.cpp"
+  writeFile outName . addHeader . runM $ t >>= t2c
+  callCommand $ "clang-format -i " ++ outName
+  where
+    addHeader s =
+      "#include \"prefix.cpp\"\n"
+      ++ s
+      ++ "#include \"suffix.cpp\"\n"
 
 parseNode :: E -> (E, E, E)
 parseNode e = (RecordAccess e "length", RecordAccess e "indices", RecordAccess e "children")
@@ -341,8 +381,9 @@ t2 t i j   = parseNode t & nodeIter i & gmap (leafIter j)
 t3 t i j k = parseNode t & nodeIter i & gmap (nodeIter j) & gmap (gmap (leafIter k))
 
 -- todo
-fl :: GenIV (Maybe a) (Maybe (GenIV (Maybe E) (Maybe a1))) -> GenIV (Maybe E) (Maybe a1)
-fl = imap (fmap snd . maybeTuple) . flatten
+fl :: GenIV (Maybe a) (Maybe (GenV (Maybe a1))) -> GenV (Maybe a1)
+fl = flatten .> imap (maybeTuple .> fmap snd)
+
 fl2 = fl . gmap fl
 
 chk = compile . loop (Out "acc")
@@ -350,3 +391,28 @@ chk = compile . loop (Out "acc")
 main1 = chk . fl2 $ tIJK
 main2 = chk $ fl  $ mul (t2 "A" "iA" "jA" ) (t2 "B" "iB" "jB" )
 main3 = chk $ fl2 $ mul (t3 "C" "iA" "jA" "kA") (t3 "D" "iB" "jB" "kB")
+
+agg :: Gen -> M (GenIV () (), E)
+agg = sorry
+
+memo :: Gen -> M (GenIV () (Maybe Gen))
+memo g = do
+  (ag, output) <- agg g
+  return $ sequenceGen
+    (ag & fmap (const Nothing))
+    (singleton $ Just $ parseNode output & leafIter "todo")
+
+-- hmmmmmmmmm
+--memo t = do
+--  accName <- fresh "temp"
+--  code <- loop (Out accName) t
+--  var <- fresh "i"
+--  return $
+--    code :>
+--    parseNode (Out accName) & leafIter var
+
+contraction1 :: GenIV (Maybe a) (Maybe Gen) -> M Gen
+contraction1 = fl .> memo .> fmap (imap (\s -> Just s) .> fl)
+
+-- agg
+--
