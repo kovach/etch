@@ -144,10 +144,8 @@ int main() {
   index iA, iB, jA, jB, kA, kB;
   // index i;
   // index* i = (index *) malloc(10 * sizeof(index));
-  index j;
-  index i1, j1, i2, j2;
   int __i = 0;
-  double acc0 = 0;
+  // double acc0 = 0;
 
   SparseStorageArray<double> out;
   SparseStorageArray<double> out1;

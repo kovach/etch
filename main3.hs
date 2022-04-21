@@ -1,6 +1,5 @@
 {-
-nested functor monad issue
-fix initialize functions (flatten?)
+remove initialize?
 
 fold maybe in Gen/LGen value type
 
@@ -25,6 +24,7 @@ import Data.String
 import Data.Function
 import System.Process
 
+
 type Label = String
 type IVar = String
 type Var = String
@@ -40,6 +40,8 @@ data T
   | AutoDecl IVar E
   | Comment String
   | Debug String
+  | Block T
+  | Labels [String]
   deriving Show
 unreachable s = Comment $ "unreachable: " ++ s
 
@@ -124,16 +126,15 @@ singleton v = Gen
     , initialize = Skip
     }
 
-range :: E -> IVar -> Gen
-range n var' =
-  let var = IVar var' in
+range :: E -> E -> Gen
+range n var =
   let i = var in
   let
     current k = If (le i n) (k $ Just $ var) (k Nothing)
     value   k = If (le i n) (k $ Just $ var) (k Nothing)
     next    k = If (le i n) (k $ Just $ E $ Incr var) (k Nothing)
   in
-  Gen { current, value, next, initialize = DeclareInt var', reset = Store var 0 }
+  Gen { current, value, next, initialize = Skip, reset = Store var 0 }
 
 replicate n v g = (\_ -> g) <$> range n v
 
@@ -251,10 +252,6 @@ instance Mul E where
 instance Mul a => Mul (GenV (Maybe a)) where
   mul = mulGen
 
---instance (Mul a, Num a) => Num (GenV (Maybe a)) where
---  (+) = addGen
---  (*) = mulGen
-
 wrap s = "(" ++ s ++ ")"
 e2c :: E -> String
 e2c e = case e of
@@ -274,8 +271,6 @@ e2c e = case e of
   Address e        -> "&" ++ e2c e
   e                -> error (show e)
 
-init_buffer var = "for(int i = 0; i < BUFFER_SIZE; i++) { "++var++"[i] = 0; }"
-
 data Context = Context
   { trueConditions :: [E]
   , falseConditions :: [E] }
@@ -288,9 +283,14 @@ falseElem e c = e `elem` falseConditions c
 emptyContext = Context [] []
 
 -- todo Text? or reverse output
-type M = StateT Int (WriterT String (Reader Context))
-runM :: M () -> String
-runM = flip runReader emptyContext . execWriterT . flip evalStateT 0
+data CType = CFloat | CInt
+type Map a b = [(a, b)]
+type SymbolTable = Map String CType
+type M = StateT (Int, SymbolTable) (WriterT String (Reader Context))
+mapFst f (a, b) = (f a, b)
+mapSnd f (a, b) = (a, f b)
+runM :: M () -> (SymbolTable, String)
+runM = mapFst snd . flip runReader emptyContext . runWriterT . flip execStateT (0, [])
 
 emit :: String -> M ()
 emit s = tell s
@@ -315,31 +315,35 @@ evalTrivial _          = return False
 
 t2c :: T -> M ()
 t2c t = do
-  triv <- evalTrivial t
-  if triv then "" else case t of
-    Put l [i] r       -> do { emit "put"; (wrapm $ emit $ intercalate "," (map e2c [l, i, r])); ";" }
-    Put l (i:_) r     -> do { emit "put"; (wrapm $ emit $ intercalate "," (map e2c [l, i, r])); ";" }
-    Accum l r         -> emit $ e2c l ++ " += " ++ e2c r ++";"
-    Label l           -> emit $ "\n" ++ l ++ ":\n"
-    Jump  l           -> emit $ "goto " ++ l ++ ";"
-    Skip              -> ""
-    a :> b            -> t2c a >> local (\_ -> emptyContext) (t2c b)
-    E e               -> emit $ e2c e ++ ";\n"
-    AutoDecl i e      -> emit $ "auto " ++ i ++ " = " ++ e2c e ++ ";\n"
-    DeclareInt e         -> emit $ "int " ++ e ++ " = 0;\n"
-    Store l r         -> emit $ e2c l ++ " = " ++ e2c r ++ ";"
-    FloatInit (Ident v) -> emit $ "num* " ++ v ++ " = (num*)malloc(BUFFER_SIZE*sizeof(float));\n" ++ init_buffer v
-    FloatInit _       -> error "todo, FloatInit"
-    Comment s           -> emit $ "// " ++ s ++ "\n"
-    Debug s         -> emit s
-    If c t e          -> do
+    triv <- evalTrivial t
+    if triv then "" else case t of
+      Put l [i] r         -> do { emit "put"; (wrapm $ emit $ intercalate "," (map e2c [l, i, r])); ";" }
+      Put l (i:_) r       -> do { emit "put"; (wrapm $ emit $ intercalate "," (map e2c [l, i, r])); ";" }
+      Accum l r           -> emit $ e2c l ++ " += " ++ e2c r ++";"
+      Label l             -> emit $ "\n" ++ l ++ ":\n"
+      Jump  l             -> emit $ "goto " ++ l ++ ";"
+      Skip                -> ""
+      a :> b              -> t2c a >> local (\_ -> emptyContext) (t2c b)
+      E e                 -> emit $ e2c e ++ ";\n"
+      AutoDecl i e        -> emit $ "auto " ++ i ++ " = " ++ e2c e ++ ";\n"
+      DeclareInt e        -> emit $ "int " ++ e ++ " = 0;\n"
+      Store l r           -> emit $ e2c l ++ " = " ++ e2c r ++ ";"
+      FloatInit (Ident v) -> emit $ "num " ++ v ++ " = 0.0;\n"
+      FloatInit _         -> error "todo, FloatInit"
+      Comment s           -> emit $ "// " ++ s ++ "\n"
+      Debug s             -> emit s
+      If c t e            -> compileIf c t e
+      Block t             -> emit "{" >> t2c t >> emit "}"
+      Labels ls           -> emit $ "__label__ " ++ intercalate "," ls ++ ";\n"
+      t                   -> error $ show t
+  where
+    compileIf c t e = do
       pathCondition <- ask -- some premature code simplification
       if c `trueElem` pathCondition then t2c t else
         if c `falseElem` pathCondition then t2c e else do
           emit $ "if (" ++ e2c c ++ ") {" ; local (pushTrue c) (t2c t) ; emit "}";
           eTriv <- evalTrivial e
           if eTriv then "" else do emit " else {" ; local (pushFalse c) (t2c e) ; "}"
-    t                 -> error (show t)
 
 maybeTuple :: (Maybe a1, Maybe a2) -> Maybe (a1, a2)
 maybeTuple = uncurry $ liftM2 (,)
@@ -350,52 +354,50 @@ class HasTop a where
 instance HasTop (Maybe E) where
   top = Nothing
 
+freshLabel :: String -> M String
+freshLabel n = do
+  (k, m) <- get
+  let name = n ++ show k
+  put (k+1, m)
+  return $ name
 
-fresh :: String -> M String
-fresh n = do
-  k <- get
-  put (k+1)
-  return $ n ++ show k
+fresh :: String -> CType -> M String
+fresh n t = do
+  (k, m) <- get
+  let name = n ++ show k
+  put (k+1, (name, t) : m)
+  return $ name
 
--- todo REMOVE
-loop :: E -> Gen -> M T
-loop acc g = do
-  loop <- fresh "loop"
-  done <- fresh "done"
-  return $
-    reset g :>
-    FloatInit acc :>
-    Label loop :>
-    Debug "__i++;" :>
-    (current g $ maybe Skip $ \i -> value g $ maybe Skip $ \v -> Put acc [i] v) :>
-    (next g $ \ms -> case ms of
-        Nothing -> Jump done
-        Just s -> s :> Jump loop) :>
-    Label done
-    :> Debug "printf(\"loops: %d\\n\", __i);\n"
-
-loopT :: GenIV () (Maybe T) -> M T
-loopT g = do
-  loop <- fresh "loop"
-  done <- fresh "done"
-  return $
-    initialize g :>
-    reset g :>
-    Debug "__i = 0;" :>
-    Label loop :>
-    Debug "__i++;" :>
-    (value g $ fromMaybe Skip) :>
-    (next g $ \ms -> case ms of
-        Nothing -> Jump done
-        Just s -> s :> Jump loop) :>
-    Label done
-    :> Debug "printf(\"loops: %d\\n\", __i);\n"
+loopT :: M (GenIV () (Maybe T) -> T)
+loopT = do
+  loop <- freshLabel "loop"
+  done <- freshLabel "done"
+  return $ \g ->
+    -- initialize g :>
+    Block $
+      Labels [loop, done] :>
+      reset g :>
+      Debug "__i = 0;" :>
+      Label loop :>
+      Debug "__i++;" :>
+      (value g $ fromMaybe Skip) :>
+      (next g $ \ms -> case ms of
+          Nothing -> Jump done
+          Just s -> s :> Jump loop) :>
+      Label done
+      :> Debug "printf(\"loops: %d\\n\", __i);\n"
 
 (.>) = flip (.)
 
---gmap :: (v -> v') -> GenIV i (Maybe v) -> GenIV i (Maybe v')
+-- gmap :: (v -> v') -> GenIV i (Maybe v) -> GenIV i (Maybe v')
 gmap :: (Functor f, Functor g) => (a -> b) -> f (g a) -> f (g b)
 gmap = fmap . fmap
+
+initHeader :: SymbolTable -> String
+initHeader = concatMap step
+  where
+    step (name, CFloat) = "num " ++ name ++ " = 0;\n"
+    step (name, CInt) = "index " ++ name ++ " = 0;\n"
 
 compile :: M T -> IO ()
 compile t = do
@@ -403,8 +405,9 @@ compile t = do
   writeFile outName . addHeader . runM $ t >>= t2c
   callCommand $ "clang-format -i " ++ outName
   where
-    addHeader s =
+    addHeader (st, s) =
       "#include \"prefix.cpp\"\n"
+      ++ initHeader st
       ++ s
       ++ "#include \"suffix.cpp\"\n"
 
@@ -417,38 +420,16 @@ parseNodeIter = fmap $ fmap $ parseNode
 uncurry3 f (a,b,c) = f a b c
 leafIter i (len, is, vs) = range len i & sparseVec is vs
 nodeIter i (len, is, vs) = range len i & sparseVec is vs & parseNodeIter
-main1 = chk . fl2 $ tIJK
-main2 = chk $ fl  $ mul (t2 "A" "iA" "jA" ) (t2 "B" "iB" "jB" )
-main3 = chk $
-  fl2 $ mul (t3 "C" "iA" "jA" "kA") (t3 "D" "iB" "jB" "kB")
+--chk = compile . loop (Ident "acc")
+--main1 = chk . fl2 $ tIJK
+--main2 = chk $ fl  $ mul (t2 "A" "iA" "jA" ) (t2 "B" "iB" "jB" )
+--main3 = chk $ fl2 $ mul (t3 "C" "iA" "jA" "kA") (t3 "D" "iB" "jB" "kB")
 tIJK       = parseNode "tree" & nodeIter "i" & gmap (nodeIter "j" .> gmap (leafIter "k"))
 t2 t i j   = parseNode t & nodeIter i & gmap (leafIter j)
 t3 t i j k = parseNode t & nodeIter i & gmap ((nodeIter j) .> gmap (leafIter k))
 -- remove examples ^
 
-chk = compile . loop (Ident "acc")
-chk' = compile . loopT
-
-class Storable l r out where
-  store :: l -> r -> out
-instance Storable E E T where
-  store loc val = Accum loc val
-  --store loc val = Store (Deref loc) (plus (Deref loc) val)
-instance (Storable l r out) =>
-  Storable (LGenIV i (Maybe l))
-           (GenIV  i (Maybe r))
-           (GenIV () (Maybe out)) where
-  store l r = Gen
-    { next = \k -> next r $ fmap (\step -> value r $ \mv -> step :> case mv of
-                                         Nothing -> Skip
-                                         Just _ -> (current r $ locate l)) .> k
-    , current = ($ Just ())
-    , value = \k -> value (gen l) $ \mloc -> case mloc of
-        Nothing -> Comment "unreachable"
-        Just loc -> value r $ fmap (\val -> store loc val) .> k
-    , reset = reset (gen l) :> reset r :> (current r $ locate l)
-    , initialize = initialize (gen l) :> initialize r
-    }
+chk' = compile . (loopT <**> )
 
 flatten :: GenIV i1 (Maybe (GenIV i2 (Maybe a))) -> GenIV (i1, Maybe i2) (Maybe a)
 flatten outer =
@@ -470,20 +451,17 @@ flatten outer =
             Nothing -> (k Nothing)
             Just inner -> value inner k
     r = reset outer :>
-           (value outer $ \minner -> case minner of
-                                      Nothing -> Comment "nothing yet"
-                                      Just inner -> reset inner)
+        (value outer $ \minner -> case minner of
+            Nothing -> Comment "nothing yet"
+            Just inner -> initialize inner :> reset inner)
+    i = initialize outer :> Comment "wrong?"
   in
-    Gen { next = n, current = c, value = v, reset = r, initialize = initialize outer :> Comment "WRONG!"  }
+    Gen { next = n, current = c, value = v, reset = r, initialize = i }
 
 fl :: GenIV i1 (Maybe (GenIV i2 (Maybe a))) -> GenIV i2 (Maybe a)
 fl = flatten .> imap snd .> genMap' join id -- flatten Maybe nesting in coordinate
 fl' :: GenIV () (Maybe (GenIV i2 (Maybe a))) -> GenIV i2 (Maybe a)
 fl' = fl
-
-updaterGen :: IVar -> E -> Gen -> Gen
-updaterGen var expr g =
-  g { reset = Store (Ident var) expr :> reset g, initialize = AutoDecl var undefined }
 
 externGen :: E -> Gen
 externGen x =
@@ -495,7 +473,7 @@ externGen x =
   , current = check' "current"
   , value = check' "value"
   , reset = (E $ call "reset")
-  , initialize = undefined
+  , initialize = Skip
   }
 
 externLGen :: E -> LGen
@@ -509,70 +487,77 @@ externLGen x =
       Nothing -> E $ call "finish"
       Just i -> E $ Call (RecordAccess x "skip") [i]
   }
---externLGen x =
---  let call op = Call (RecordAccess x op) [] in
---  let check op k = If (call "done") (k Nothing) (k (Just $ E $ call op)) in
---  let check' op k = If (call "done") (k Nothing) (k (Just $ call op)) in
---  LGen
---  { gen = Gen
---    { next = check "next"
---    , current = check' "current"
---    , value = check' "value_ref"
---    , reset = Skip :> Comment "todo"
---    }
---  , locate = \i -> case i of
---      Nothing -> E $ call "finish"
---      Just i -> E $ Call (RecordAccess x "skip") [i]
---  }
-
 
 accumulator :: E -> LGenIV () (Maybe E)
-accumulator acc = LGen {gen = singleton $ Just acc, locate = const Skip}
+accumulator acc = LGen {gen = singleton (Just acc), locate = const Skip}
 
 accumulateLoop :: IVar -> UnitGen -> GenIV () (Maybe T)
 accumulateLoop acc gen =
   let g = gmap (\e -> Accum (Ident acc) e) gen
-  in g { initialize = AutoDecl acc 0 :> initialize g
-       -- TODO , reset      = Init acc :> reset g
-       }
+  in g { reset      = Store (Ident acc) 0 :> reset g }
 
-prefixGen t gen = gen { reset = t :> initialize gen }
+prefixGen t gen = gen { reset = t :> reset gen }
 
-contraction1 :: GenV (Maybe UnitGen) -> M UnitGen
-contraction1 v = do
-  (acc, storingGen) <- contract1 v
-  loop <- loopT storingGen
-  return $ prefixGen loop $
-    (singleton $ Just $ acc)
-  where
-    contract1 :: GenV (Maybe (GenIV () (Maybe E))) -> M (E, GenIV () (Maybe T))
-    contract1 v = do
-      acc <- Ident <$> fresh "acc"
-      return (acc, store (accumulator acc) (fl v))
+class Storable l r out where
+  store :: l -> r -> out
+instance Storable E E T where
+  store loc val = Accum loc val
+instance (Storable l r out) =>
+  Storable (LGenIV i (Maybe l))
+           (GenIV  i (Maybe r))
+           (GenIV () (Maybe out)) where
+  store l r = Gen
+    { next = \k -> next r $ fmap (\step -> value r $ \mv -> step :> case mv of
+                                         Nothing -> Skip
+                                         Just _ -> (current r $ locate l)) .> k
+    , current = ($ Just ())
+    , value = \k -> value (gen l) $ \mloc -> case mloc of
+        Nothing -> Comment "unreachable"
+        Just loc -> value r $ fmap (\val -> store loc val) .> k
+    , reset = reset (gen l) :> reset r :> (current r $ locate l)
+    , initialize = initialize (gen l) :> initialize r
+    }
+
+contraction1 :: M (GenV (Maybe UnitGen) -> UnitGen)
+contraction1 = do
+  acc <- Ident <$> fresh "acc" CFloat
+  loop <- loopT
+  return $ \v ->
+    prefixGen
+      (Store acc 0 :> loop (store (accumulator acc) (fl v)))
+      (singleton $ Just $ acc)
+
+f <**> a = f <*> (pure a)
 
 eg1 = chk' $ store (externLGen "out") (range 10 "i")
 eg2 = chk' $ store (externLGen "out1") (externGen "t2")
 eg3 = compile $ do
-  b1 <- (loopT (store (externLGen "out1") (range 10 "i")))
-  b2 <- (loopT (store (externLGen "out1_") (range 10 "i")))
-  b3 <- (loopT (store (externLGen "out") (addGen (externGen "t2") (externGen "t1"))))
+  b1 <- (loopT <**> (store (externLGen "out1") (range 10 "i")))
+  b2 <- (loopT <**> (store (externLGen "out1_") (range 10 "i")))
+  b3 <- (loopT <**> (store (externLGen "out") (addGen (externGen "t2") (externGen "t1"))))
   return $ b1 :> b2 :> Debug "t1 = *toVal(out1); t2 = *toVal(out1_);" :> b3
 eg4 = compile $ do
   let p = (fl' $ (store (externLGen "out2" & gmap (externLGen)) (range 10 "i" & gmap (const $ range 20 "j")))) :: GenIV () (Maybe T)
-  b1 <- (loopT $ p)
+  b1 <- (loopT <**> p)
   return b1
 eg5 = compile $ do
-  let expr = range 10 "i" & gmap (singleton . Just)
-  out1 <- contraction1 expr
+  i <- Ident <$> fresh "i" CInt
+  j <- Ident <$> fresh "j" CInt
+  let expr = range 10 i & gmap (singleton . Just)
+  out1 <- contraction1 <*> pure expr
   --out2 <- contraction1 out1
-  acc <- fresh "out_acc"
-  b1 <- loopT $ accumulateLoop acc out1
-  return $ b1 :> Debug "printf(\"result: %d\", out_acc3);\n"
-  --let p = (fl' $ (store (externLGen "out2" & gmap (externLGen)) ))
-  --b1 <- (loopT $ p)
-  --return b1
+  acc <- fresh "out_acc" CFloat
+  b1 <- loopT <**> accumulateLoop acc out1
+  return $ b1 :> Debug ("printf(\"result: %.1f\", " ++ acc ++ ");\n")
 
-
---eg4 = compile $ do
---  b1 <- (loopT (contraction1 $ range 10 "i" & fmap (Just . singleton)))
---  return b1
+eg6 rows = compile $ do
+  i <- Ident <$> fresh "i" CInt
+  j <- Ident <$> fresh "j" CInt
+  let expr = range rows i & gmap (const (range 4 j) .> gmap (singleton . Just))
+  c1 <- contraction1
+  c2 <- contraction1
+  let out1 = gmap c1 expr
+  let out2 = c2 out1
+  acc <- fresh "out_acc" CFloat
+  b1 <- loopT <**> accumulateLoop acc out2
+  return $ b1 :> Debug ("printf(\"result: %.1f\", " ++ acc ++ ");\n")
