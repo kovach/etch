@@ -12,9 +12,10 @@ class Iter {
   public:
   virtual bool done() = 0;
   virtual void next() = 0;
-  virtual void finish() = 0;
   virtual index current() = 0;
   virtual T value() = 0;
+  virtual void reset() = 0;
+  virtual void finish() = 0;
 };
 
 template <typename T>
@@ -33,11 +34,12 @@ class Array : public Skippable<T> {
   bool done() override {
     return i >= length;
   }
-  void next() override {i++;}
-  index current() override {return i;}
-  T value() override {return values[i];}
-  void skip(index j) override {i = j;}
-  void finish() override {i = length;}
+  void next() override { i++; }
+  index current() override { return i; }
+  T value() override { return values[i]; }
+  void reset() override { i = 0; }
+  void finish() override { i = length; }
+  void skip(index j) override { i = j; }
 };
 
 template <typename T>
@@ -71,7 +73,8 @@ class SparseStorageArray : public SparseArray<T> {
     assert(this->length == 0 || j >= this->current());
     if (this->length == 0 || j != this->current()) {
       this->indices.push_back(j);
-      this->values.push_back(NULL);
+      //this->values.push_back(T());
+      this->values.emplace_back();
       this->i = this->length;
       this->length++;
     }
@@ -139,15 +142,17 @@ void printArray_(SparseStorageArray<num> x) {
 
 int main() {
   index iA, iB, jA, jB, kA, kB;
-  index i = 0;
+  // index i;
   // index* i = (index *) malloc(10 * sizeof(index));
   index j;
   index i1, j1, i2, j2;
   int __i = 0;
+  double acc0 = 0;
 
   SparseStorageArray<double> out;
   SparseStorageArray<double> out1;
-  SparseStorageArray<double> out2;
+  SparseStorageArray<double> out1_;
+  SparseStorageArray<SparseStorageArray<double>> out2;
   SparseArray<double> t1;
   SparseArray<double> t2;
 // (sic)
