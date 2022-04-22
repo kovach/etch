@@ -81,46 +81,16 @@ class SparseStorageArray : public SparseArray<T> {
   }
 };
 
+// want parent methods
 template <typename T>
-SparseArray<T>* toVal(SparseStorageArray<T>& v) {
-  auto result = new SparseArray<T>();
-  result->length = v.length;
-  result->indices = v.indices;
-  result->values = v.values;
+SparseArray<T> toVal(SparseStorageArray<T>& v) {
+  auto result = SparseArray<T>();
+  result.length = v.length;
+  result.indices = v.indices;
+  result.values = v.values;
   return result;
 }
 
-
-// template <class T>
-// class Acc {
-//   void put(T);
-// };
-// class Node {
-//   Node* empty();
-// };
-// template <class T>
-// class LeafNode : Node {
-//   LeafNode<T>* empty() {
-//     return new LeafNode();
-//   }
-//   std::vector<index> indices;
-//   std::vector<num> children;
-// };
-
-// template <class T>
-// class InnerNode : Node {
-//   int length = 0;
-//   std::vector<index> indices;
-//   std::vector<> children;
-
-//   InnerNode* empty() {
-//     return new InnerNode();
-//   }
-//   put(index i) {
-//     if (length == 0 || indices[length-1] != i) {
-//       indices.push_back(i);
-//       children.push_back(
-// };
 
 void put_debug(num* x, int i, num value) {
   printf("put: %d, %f\n", i, (float)value);
@@ -141,16 +111,9 @@ void printArray_(SparseStorageArray<num> x) {
 }
 
 int main() {
-  index iA, iB, jA, jB, kA, kB;
-  // index i;
-  // index* i = (index *) malloc(10 * sizeof(index));
   int __i = 0;
-  // double acc0 = 0;
 
-  SparseStorageArray<double> out;
-  SparseStorageArray<double> out1;
-  SparseStorageArray<double> out1_;
-  SparseStorageArray<SparseStorageArray<double>> out2;
-  SparseArray<double> t1;
-  SparseArray<double> t2;
+  //SparseStorageArray<double> out;
+  //SparseStorageArray<SparseStorageArray<double>> out2;
+  //SparseArray<double> t1;
 // (sic)

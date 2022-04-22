@@ -1,4 +1,12 @@
 {-
+
+fix mul!
+front end
+  basic syntax
+  read monadic actions from input
+  helpers
+  fix UnitGen handling
+
 remove initialize?
 
 fold maybe in Gen/LGen value type
@@ -12,14 +20,14 @@ maybe implement semantics bracket too?
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PartialTypeSignatures #-}
-import Prelude hiding (min)
+import Prelude hiding (min, replicate)
 import Control.Monad (join)
 import Control.Monad.Writer
 import Control.Monad.Reader
 import Control.Monad.State
 import Data.Monoid
 import Data.Maybe
-import Data.List hiding (singleton)
+import Data.List hiding (singleton, replicate)
 import Data.String
 import Data.Function
 import System.Process
@@ -116,12 +124,12 @@ eq    a b   = BinOp "==" a b
 times a b   = BinOp "*" a b
 plus  a b   = BinOp "+" a b
 
-singleton :: a -> GenIV () a
+singleton :: a -> GenIV () (Maybe a)
 singleton v = Gen
     { next = ($ Nothing)
     -- todo does this need a check?
     , current = ($ (Just ()))
-    , value = ($ v)
+    , value = ($ Just v)
     , reset = Skip
     , initialize = Skip
     }
@@ -136,7 +144,7 @@ range n var =
   in
   Gen { current, value, next, initialize = Skip, reset = Store var 0 }
 
-replicate n v g = (\_ -> g) <$> range n v
+replicate n v g = (\_ -> Just g) <$> range n v
 
 -- extern fn n = genMap id (Call fn) . range n
 
@@ -283,7 +291,7 @@ falseElem e c = e `elem` falseConditions c
 emptyContext = Context [] []
 
 -- todo Text? or reverse output
-data CType = CFloat | CInt
+data CType = CFloat | CInt | Storage CType | Sparse CType
 type Map a b = [(a, b)]
 type SymbolTable = Map String CType
 type M = StateT (Int, SymbolTable) (WriterT String (Reader Context))
@@ -396,8 +404,13 @@ gmap = fmap . fmap
 initHeader :: SymbolTable -> String
 initHeader = concatMap step
   where
+    typeString CFloat = "num"
+    typeString CInt = "index"
+    typeString (Storage t) = "SparseStorageArray<" ++ typeString t ++ ">"
+    typeString (Sparse t) = "SparseArray<" ++ typeString t ++ ">"
     step (name, CFloat) = "num " ++ name ++ " = 0;\n"
     step (name, CInt) = "index " ++ name ++ " = 0;\n"
+    step (name, t) = typeString t ++ " " ++ name ++ ";\n"
 
 compile :: M T -> IO ()
 compile t = do
@@ -489,12 +502,12 @@ externLGen x =
   }
 
 accumulator :: E -> LGenIV () (Maybe E)
-accumulator acc = LGen {gen = singleton (Just acc), locate = const Skip}
+accumulator acc = LGen {gen = singleton (acc), locate = const Skip}
 
-accumulateLoop :: IVar -> UnitGen -> GenIV () (Maybe T)
+accumulateLoop :: E -> UnitGen -> GenIV () (Maybe T)
 accumulateLoop acc gen =
-  let g = gmap (\e -> Accum (Ident acc) e) gen
-  in g { reset      = Store (Ident acc) 0 :> reset g }
+  let g = gmap (\e -> Accum acc e) gen
+  in g { reset      = Store acc 0 :> reset g }
 
 prefixGen t gen = gen { reset = t :> reset gen }
 
@@ -502,6 +515,8 @@ class Storable l r out where
   store :: l -> r -> out
 instance Storable E E T where
   store loc val = Accum loc val
+instance Storable E UnitGen (GenIV () (Maybe T)) where
+  store = accumulateLoop
 instance (Storable l r out) =>
   Storable (LGenIV i (Maybe l))
            (GenIV  i (Maybe r))
@@ -525,39 +540,84 @@ contraction1 = do
   return $ \v ->
     prefixGen
       (Store acc 0 :> loop (store (accumulator acc) (fl v)))
-      (singleton $ Just $ acc)
+      (singleton $ acc)
 
 f <**> a = f <*> (pure a)
 
+--putT = do
+--  out <- matrix
+--  i <- index "i"
+--  j <- index "i"
+--  b1 <- loopT <**> (store (externLGen out & gmap externLGen) (range 10 i & gmap (const (range 4 j))))
+--  return (out, b1)
 eg1 = chk' $ store (externLGen "out") (range 10 "i")
 eg2 = chk' $ store (externLGen "out1") (externGen "t2")
 eg3 = compile $ do
-  b1 <- (loopT <**> (store (externLGen "out1") (range 10 "i")))
-  b2 <- (loopT <**> (store (externLGen "out1_") (range 10 "i")))
-  b3 <- (loopT <**> (store (externLGen "out") (addGen (externGen "t2") (externGen "t1"))))
-  return $ b1 :> b2 :> Debug "t1 = *toVal(out1); t2 = *toVal(out1_);" :> b3
+  let tv x = Call "toVal" [x]
+  out1 <- storeVec
+  out2 <- storeVec
+  out <- storeVec
+  v1 <- vector
+  v2 <- vector
+  i <- index
+  b1 <- (loopT <**> (store (externLGen out1) (range 3 i)))
+  b2 <- (loopT <**> (store (externLGen out2) (range 3 i)))
+  b3 <- (loopT <**> (store (externLGen out) (mulGen (externGen v1) (externGen v2))))
+  return $ b1 :> b2 :> Store v1 (tv out1) :> Store v2 (tv out2) :> b3 :> E (Call "printArray_" [out])
 eg4 = compile $ do
   let p = (fl' $ (store (externLGen "out2" & gmap (externLGen)) (range 10 "i" & gmap (const $ range 20 "j")))) :: GenIV () (Maybe T)
   b1 <- (loopT <**> p)
   return b1
 eg5 = compile $ do
-  i <- Ident <$> fresh "i" CInt
-  j <- Ident <$> fresh "j" CInt
-  let expr = range 10 i & gmap (singleton . Just)
+  i <- index
+  j <- index
+  let expr = range 10 i & gmap (singleton)
   out1 <- contraction1 <*> pure expr
   --out2 <- contraction1 out1
-  acc <- fresh "out_acc" CFloat
+  acc <- accum "out_acc"
   b1 <- loopT <**> accumulateLoop acc out1
-  return $ b1 :> Debug ("printf(\"result: %.1f\", " ++ acc ++ ");\n")
+  return $ b1 :> Debug ("printf(\"result: %.1f\", " ++ e2c acc ++ ");\n")
 
+-- double contraction
 eg6 rows = compile $ do
   i <- Ident <$> fresh "i" CInt
   j <- Ident <$> fresh "j" CInt
-  let expr = range rows i & gmap (const (range 4 j) .> gmap (singleton . Just))
+  let expr = range rows i & gmap (const (range 4 j) .> gmap (singleton ))
   c1 <- contraction1
   c2 <- contraction1
   let out1 = gmap c1 expr
   let out2 = c2 out1
-  acc <- fresh "out_acc" CFloat
+  acc <- Ident <$> fresh "out_acc" CFloat
   b1 <- loopT <**> accumulateLoop acc out2
-  return $ b1 :> Debug ("printf(\"result: %.1f\", " ++ acc ++ ");\n")
+  return $ b1 :> Debug ("printf(\"result: %.1f\", " ++ e2c acc ++ ");\n")
+
+index' i = Ident <$> fresh i CInt
+index = index' "i"
+accum a = Ident <$> fresh a CFloat
+matrix = Ident <$> fresh "t" (Sparse (Sparse CFloat))
+vector = Ident <$> fresh "v" (Sparse (CFloat))
+storeVec = Ident <$> fresh "v" (Storage (CFloat))
+storeMat = Ident <$> fresh "v" (Storage (Storage CFloat))
+
+a1' = gmap externGen $ externGen "t"
+a2' = (replicate 5 "i" $ (externGen "v"))
+a1 = gmap (gmap singleton) $ gmap externGen $ externGen "t"
+a2 = gmap (gmap singleton) $ (replicate 5 "i" $ (externGen "v"))
+eg7 = compile $ do
+  t1 <- matrix
+  t2 <- matrix
+  v1 <- vector
+  i <- index
+  j <- index
+  c1 <- contraction1
+  -- let t1' = replicate 5 i t1
+  let a1 = gmap externGen $  externGen t1
+  let a2 = replicate 5 i $ externGen v1
+  let result = gmap c1 $ gmap (gmap singleton) $ mulGen a1 a2
+  out <- Ident <$> fresh "t" (Storage CFloat)
+  loopT <**> (fl' $ store (externLGen out) result)
+
+-- eg8 = compile $ do
+--   (t1, b1) <- putT
+--   (t2, b2) <- putT
+--   return $ b1 :> b2 :> undefined
