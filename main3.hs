@@ -1,19 +1,22 @@
 {-
 
+fix UnitGen handling
+  fix add
+  insert by default
+
+index types
+  correct broadcasting
+
 front end
   basic syntax
   read monadic actions from input
   helpers
 
-fix UnitGen handling
-  fix add/mul
-  insert by default
 
 remove initialize?
 cleanup file
 
 non-scalar contraction
-
 
 cleanup T, E
 maybe implement semantics bracket?
@@ -71,6 +74,9 @@ instance Num E where
   fromInteger = Lit
   (+) = BinOp "+"
   (*) = BinOp "*"
+  abs = sorry
+  signum = sorry
+  negate = sorry
 
 le    a b   = BinOp "<" a b
 min   a b k = If (le b a) (k b) (k a)
@@ -86,7 +92,8 @@ data GenIV' i v = Gen
 type GenIV i v = GenIV' (Maybe i) v
 type GenV v = GenIV E v
 type Gen = GenIV E E
-type UnitGen = GenIV () E
+type UnitGenV v = GenIV () v
+type UnitGen = UnitGenV E
 
 data LGenIV' i v = LGen
   { gen :: GenIV' i v
@@ -118,10 +125,6 @@ instance Functor (LGenIV' i) where
   fmap f lg = lg { gen = fmap f (gen lg) }
 
 imap f = genMap' (fmap f) id
-
-sparseVec index_array value_array = genMap
-  (Offset index_array)
-  (Offset value_array)
 
 emptyGen :: GenIV i v
 emptyGen = Gen { next = ($ Nothing) , current = ($ Nothing) , value = ($ Nothing) , reset = Skip , initialize = Skip }
@@ -197,6 +200,9 @@ addGen a b =
   in
     Gen { current = c, value = v, next = n, initialize = initialize a :> initialize b, reset = reset a :> reset b }
 
+addUnitGen :: (Add a) => UnitGenV a -> UnitGenV a -> UnitGenV a
+addUnitGen = sequenceGen
+
 instance Add E where
   add = (+)
   zero = Lit 0
@@ -207,6 +213,23 @@ instance Add a => Add (GenV a) where
 
 class Mul a where
   mul :: a -> a -> a
+
+mulUnitGen :: (Mul a) => UnitGenV a -> UnitGenV a -> UnitGenV a
+mulUnitGen a b =
+  let
+    c = ($ (Just ()))
+    v k = value a $ \va -> case va of
+            Nothing -> k Nothing
+            Just va -> value b $ \vb -> case vb of
+              Nothing -> k Nothing
+              Just vb -> k (Just (mul va vb))
+    n k = next a $ \ia -> case ia of
+      Nothing -> next b $ \ib -> case ib of
+        Nothing -> k Nothing
+        Just _ -> error "multiplied unit generators must be static singletons"
+      Just _ -> error "multiplied unit generators must be static singletons"
+  in
+    Gen { current = c, value = v, next = n, initialize = initialize a :> initialize b, reset = reset a :> reset b }
 
 mulGen :: (Mul a) => GenV a -> GenV a -> GenV a
 mulGen a b =
@@ -263,6 +286,8 @@ instance Mul E where
 
 instance Mul a => Mul (GenV a) where
   mul = mulGen
+instance Mul a => Mul (UnitGenV a) where
+  mul = mulUnitGen
 
 wrap s = "(" ++ s ++ ")"
 e2c :: E -> String
@@ -385,7 +410,6 @@ loopT = do
   loop <- freshLabel "loop"
   done <- freshLabel "done"
   return $ \g ->
-    -- initialize g :>
     Block $
       Labels [loop, done] :>
       reset g :>
@@ -425,6 +449,9 @@ compile t = do
       ++ "#include \"suffix.cpp\"\n"
 
 -- remove examples:
+sparseVec index_array value_array = genMap
+  (Offset index_array)
+  (Offset value_array)
 fl2 = fl . fmap fl
 parseNode :: E -> (E, E, E)
 parseNode e = (RecordAccess e "length", RecordAccess e "indices", RecordAccess e "children")
@@ -433,6 +460,7 @@ parseNodeIter = fmap $ parseNode
 uncurry3 f (a,b,c) = f a b c
 leafIter i (len, is, vs) = range len i & sparseVec is vs
 nodeIter i (len, is, vs) = range len i & sparseVec is vs & parseNodeIter
+
 --chk = compile . loop (Ident "acc")
 --main1 = chk . fl2 $ tIJK
 --main2 = chk $ fl  $ mul (t2 "A" "iA" "jA" ) (t2 "B" "iB" "jB" )
@@ -611,6 +639,10 @@ eg6 rows = compile $ do
   b1 <- loopT <**> accumulateLoop acc out2
   return $ b1 :> Debug ("printf(\"result: %.1f\\n\", " ++ e2c acc ++ ");\n")
 
+fmap2 :: (Functor f, Functor g) => (a -> b) -> f (g a) -> f (g b)
+fmap2 = fmap . fmap
+
+-- mv-shaped
 eg7 = compile $ do
   t1 <- matrix
   t2 <- matrix
@@ -621,6 +653,21 @@ eg7 = compile $ do
   -- let t1' = replicate 5 i t1
   let a1 = fmap externGen $  externGen t1
   let a2 = replicate 5 i $ externGen v1
-  let result = fmap c1 $ fmap (fmap singleton) $ mulGen a1 a2
+  let result = fmap c1 $ fmap2 singleton $ mulGen a1 a2
+  out <- Ident <$> fresh "t" (Storage CFloat)
+  loopT <**> (fl' $ store (externStorageGen out) result)
+
+-- mv-shaped
+eg7' = compile $ do
+  t1 <- matrix
+  t2 <- matrix
+  v1 <- vector
+  i <- index
+  j <- index
+  c1 <- contraction1
+  -- let t1' = replicate 5 i t1
+  let a1 = fmap externGen $  externGen t1
+  let a2 = replicate 5 i $ externGen v1
+  let result = fmap c1 $ mulGen (fmap2 singleton a1) (fmap2 singleton a2)
   out <- Ident <$> fresh "t" (Storage CFloat)
   loopT <**> (fl' $ store (externStorageGen out) result)
