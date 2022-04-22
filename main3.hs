@@ -9,8 +9,6 @@ front end
 
 remove initialize?
 
-fold maybe in Gen/LGen value type
-
 non-scalar contraction
 
 cleanup T, E
@@ -73,23 +71,23 @@ instance Num E
 
 data GenIV' i v = Gen
   { current    :: (i -> T) -> T
-  , value      :: (v -> T) -> T
+  , value      :: (Maybe v -> T) -> T
   , next       :: (Maybe T -> T) -> T
   , reset :: T
   , initialize :: T
   }
-type GenIV i = GenIV' (Maybe i)
-type GenV = GenIV E
-type Gen = GenIV E (Maybe E)
-type UnitGen = GenIV () (Maybe E)
+type GenIV i v = GenIV' (Maybe i) v
+type GenV v = GenIV E v
+type Gen = GenIV E E
+type UnitGen = GenIV () E
 
 data LGenIV' i v = LGen
   { gen :: GenIV' i v
   , locate :: i -> T
   }
-type LGenIV i = LGenIV' (Maybe i)
-type LGenV = LGenIV E
-type LGen  = LGenIV E (Maybe E)
+type LGenIV i v = LGenIV' (Maybe i) v
+type LGenV v = LGenIV E v
+type LGen  = LGenIV E E
 
 genMap' f g gen = Gen
   { current = current gen . (. f)
@@ -108,7 +106,7 @@ genMap f g gen = Gen
   }
 
 instance Functor (GenIV' i) where
-  fmap f = genMap' id f
+  fmap f = genMap' id (fmap f)
 instance Functor (LGenIV' i) where
   fmap f lg = lg { gen = fmap f (gen lg) }
 
@@ -124,7 +122,7 @@ eq    a b   = BinOp "==" a b
 times a b   = BinOp "*" a b
 plus  a b   = BinOp "+" a b
 
-singleton :: a -> GenIV () (Maybe a)
+singleton :: a -> GenIV () a
 singleton v = Gen
     { next = ($ Nothing)
     -- todo does this need a check?
@@ -144,12 +142,12 @@ range n var =
   in
   Gen { current, value, next, initialize = Skip, reset = Store var 0 }
 
-replicate n v g = (\_ -> Just g) <$> range n v
+replicate n v g = (\_ -> g) <$> range n v
 
 -- extern fn n = genMap id (Call fn) . range n
 
 -- a; b
-sequenceGen :: GenIV i v -> GenIV i v -> GenIV i v
+sequenceGen :: GenIV' i v -> GenIV' i v -> GenIV' i v
 sequenceGen a b = Gen
   { next = \k -> next a $ \mstep -> case mstep of
       Nothing -> next b k
@@ -204,7 +202,7 @@ addGen a b =
 class Mul a where
   mul :: a -> a -> a
 
-mulGen :: (Mul a) => GenV (Maybe a) -> GenV (Maybe a) -> GenV (Maybe a)
+mulGen :: (Mul a) => GenV a -> GenV a -> GenV a
 mulGen a b =
   let
     c k = current a $ \ia -> case ia of
@@ -231,7 +229,7 @@ mulGen a b =
   in
     Gen { current = c, value = v, next = n, initialize = initialize a :> initialize b, reset = reset a :> reset b }
 
-mulGL :: (Mul a) => GenV (Maybe a) -> LGenV (Maybe a) -> GenV (Maybe a)
+mulGL :: (Mul a) => GenV a -> LGenV a -> GenV a
 mulGL a b =
   let
     c k = current a $ \ia -> case ia of
@@ -257,7 +255,7 @@ mulGL a b =
 instance Mul E where
   mul = times
 
-instance Mul a => Mul (GenV (Maybe a)) where
+instance Mul a => Mul (GenV a) where
   mul = mulGen
 
 wrap s = "(" ++ s ++ ")"
@@ -376,7 +374,7 @@ fresh n t = do
   put (k+1, (name, t) : m)
   return $ name
 
-loopT :: M (GenIV () (Maybe T) -> T)
+loopT :: M (GenIV () T -> T)
 loopT = do
   loop <- freshLabel "loop"
   done <- freshLabel "done"
@@ -396,10 +394,6 @@ loopT = do
       :> Debug "printf(\"loops: %d\\n\", __i);\n"
 
 (.>) = flip (.)
-
--- gmap :: (v -> v') -> GenIV i (Maybe v) -> GenIV i (Maybe v')
-gmap :: (Functor f, Functor g) => (a -> b) -> f (g a) -> f (g b)
-gmap = fmap . fmap
 
 initHeader :: SymbolTable -> String
 initHeader = concatMap step
@@ -425,11 +419,11 @@ compile t = do
       ++ "#include \"suffix.cpp\"\n"
 
 -- remove examples:
-fl2 = fl . gmap fl
+fl2 = fl . fmap fl
 parseNode :: E -> (E, E, E)
 parseNode e = (RecordAccess e "length", RecordAccess e "indices", RecordAccess e "children")
-parseNodeIter :: Gen -> GenV (Maybe (E, E, E))
-parseNodeIter = fmap $ fmap $ parseNode
+parseNodeIter :: Gen -> GenV (E, E, E)
+parseNodeIter = fmap $ parseNode
 uncurry3 f (a,b,c) = f a b c
 leafIter i (len, is, vs) = range len i & sparseVec is vs
 nodeIter i (len, is, vs) = range len i & sparseVec is vs & parseNodeIter
@@ -437,14 +431,14 @@ nodeIter i (len, is, vs) = range len i & sparseVec is vs & parseNodeIter
 --main1 = chk . fl2 $ tIJK
 --main2 = chk $ fl  $ mul (t2 "A" "iA" "jA" ) (t2 "B" "iB" "jB" )
 --main3 = chk $ fl2 $ mul (t3 "C" "iA" "jA" "kA") (t3 "D" "iB" "jB" "kB")
-tIJK       = parseNode "tree" & nodeIter "i" & gmap (nodeIter "j" .> gmap (leafIter "k"))
-t2 t i j   = parseNode t & nodeIter i & gmap (leafIter j)
-t3 t i j k = parseNode t & nodeIter i & gmap ((nodeIter j) .> gmap (leafIter k))
+tIJK       = parseNode "tree" & nodeIter "i" & fmap (nodeIter "j" .> fmap (leafIter "k"))
+t2 t i j   = parseNode t & nodeIter i & fmap (leafIter j)
+t3 t i j k = parseNode t & nodeIter i & fmap ((nodeIter j) .> fmap (leafIter k))
 -- remove examples ^
 
 chk' = compile . (loopT <**> )
 
-flatten :: GenIV i1 (Maybe (GenIV i2 (Maybe a))) -> GenIV (i1, Maybe i2) (Maybe a)
+flatten :: GenIV i1 (GenIV i2 a) -> GenIV (i1, Maybe i2) a
 flatten outer =
   let
     n k =
@@ -471,9 +465,9 @@ flatten outer =
   in
     Gen { next = n, current = c, value = v, reset = r, initialize = i }
 
-fl :: GenIV i1 (Maybe (GenIV i2 (Maybe a))) -> GenIV i2 (Maybe a)
+fl :: GenIV i1 (GenIV i2 a) -> GenIV i2 a
 fl = flatten .> imap snd .> genMap' join id -- flatten Maybe nesting in coordinate
-fl' :: GenIV () (Maybe (GenIV i2 (Maybe a))) -> GenIV i2 (Maybe a)
+fl' :: GenIV () (GenIV i2 a) -> GenIV i2 a
 fl' = fl
 
 externGen :: E -> Gen
@@ -501,12 +495,12 @@ externLGen x =
       Just i -> E $ Call (RecordAccess x "skip") [i]
   }
 
-accumulator :: E -> LGenIV () (Maybe E)
+accumulator :: E -> LGenIV () E
 accumulator acc = LGen {gen = singleton (acc), locate = const Skip}
 
-accumulateLoop :: E -> UnitGen -> GenIV () (Maybe T)
+accumulateLoop :: E -> UnitGen -> GenIV () T
 accumulateLoop acc gen =
-  let g = gmap (\e -> Accum acc e) gen
+  let g = fmap (\e -> Accum acc e) gen
   in g { reset      = Store acc 0 :> reset g }
 
 prefixGen t gen = gen { reset = t :> reset gen }
@@ -515,12 +509,12 @@ class Storable l r out where
   store :: l -> r -> out
 instance Storable E E T where
   store loc val = Accum loc val
-instance Storable E UnitGen (GenIV () (Maybe T)) where
+instance Storable E UnitGen (GenIV () T) where
   store = accumulateLoop
 instance (Storable l r out) =>
-  Storable (LGenIV i (Maybe l))
-           (GenIV  i (Maybe r))
-           (GenIV () (Maybe out)) where
+  Storable (LGenIV i l)
+           (GenIV  i r)
+           (GenIV () out) where
   store l r = Gen
     { next = \k -> next r $ fmap (\step -> value r $ \mv -> step :> case mv of
                                          Nothing -> Skip
@@ -533,7 +527,7 @@ instance (Storable l r out) =>
     , initialize = initialize (gen l) :> initialize r
     }
 
-contraction1 :: M (GenV (Maybe UnitGen) -> UnitGen)
+contraction1 :: M (GenV UnitGen -> UnitGen)
 contraction1 = do
   acc <- Ident <$> fresh "acc" CFloat
   loop <- loopT
@@ -543,6 +537,14 @@ contraction1 = do
       (singleton $ acc)
 
 f <**> a = f <*> (pure a)
+
+index' i = Ident <$> fresh i CInt
+index = index' "i"
+accum a = Ident <$> fresh a CFloat
+matrix = Ident <$> fresh "t" (Sparse (Sparse CFloat))
+vector = Ident <$> fresh "v" (Sparse (CFloat))
+storeVec = Ident <$> fresh "v" (Storage (CFloat))
+storeMat = Ident <$> fresh "v" (Storage (Storage CFloat))
 
 --putT = do
 --  out <- matrix
@@ -565,13 +567,13 @@ eg3 = compile $ do
   b3 <- (loopT <**> (store (externLGen out) (mulGen (externGen v1) (externGen v2))))
   return $ b1 :> b2 :> Store v1 (tv out1) :> Store v2 (tv out2) :> b3 :> E (Call "printArray_" [out])
 eg4 = compile $ do
-  let p = (fl' $ (store (externLGen "out2" & gmap (externLGen)) (range 10 "i" & gmap (const $ range 20 "j")))) :: GenIV () (Maybe T)
+  let p = (fl' $ (store (externLGen "out2" & fmap (externLGen)) (range 10 "i" & fmap (const $ range 20 "j")))) :: GenIV () T
   b1 <- (loopT <**> p)
   return b1
 eg5 = compile $ do
   i <- index
   j <- index
-  let expr = range 10 i & gmap (singleton)
+  let expr = range 10 i & fmap (singleton)
   out1 <- contraction1 <*> pure expr
   --out2 <- contraction1 out1
   acc <- accum "out_acc"
@@ -582,27 +584,15 @@ eg5 = compile $ do
 eg6 rows = compile $ do
   i <- Ident <$> fresh "i" CInt
   j <- Ident <$> fresh "j" CInt
-  let expr = range rows i & gmap (const (range 4 j) .> gmap (singleton ))
+  let expr = range rows i & fmap (const (range 4 j) .> fmap (singleton ))
   c1 <- contraction1
   c2 <- contraction1
-  let out1 = gmap c1 expr
+  let out1 = fmap c1 expr
   let out2 = c2 out1
   acc <- Ident <$> fresh "out_acc" CFloat
   b1 <- loopT <**> accumulateLoop acc out2
   return $ b1 :> Debug ("printf(\"result: %.1f\", " ++ e2c acc ++ ");\n")
 
-index' i = Ident <$> fresh i CInt
-index = index' "i"
-accum a = Ident <$> fresh a CFloat
-matrix = Ident <$> fresh "t" (Sparse (Sparse CFloat))
-vector = Ident <$> fresh "v" (Sparse (CFloat))
-storeVec = Ident <$> fresh "v" (Storage (CFloat))
-storeMat = Ident <$> fresh "v" (Storage (Storage CFloat))
-
-a1' = gmap externGen $ externGen "t"
-a2' = (replicate 5 "i" $ (externGen "v"))
-a1 = gmap (gmap singleton) $ gmap externGen $ externGen "t"
-a2 = gmap (gmap singleton) $ (replicate 5 "i" $ (externGen "v"))
 eg7 = compile $ do
   t1 <- matrix
   t2 <- matrix
@@ -611,13 +601,8 @@ eg7 = compile $ do
   j <- index
   c1 <- contraction1
   -- let t1' = replicate 5 i t1
-  let a1 = gmap externGen $  externGen t1
+  let a1 = fmap externGen $  externGen t1
   let a2 = replicate 5 i $ externGen v1
-  let result = gmap c1 $ gmap (gmap singleton) $ mulGen a1 a2
+  let result = fmap c1 $ fmap (fmap singleton) $ mulGen a1 a2
   out <- Ident <$> fresh "t" (Storage CFloat)
   loopT <**> (fl' $ store (externLGen out) result)
-
--- eg8 = compile $ do
---   (t1, b1) <- putT
---   (t2, b2) <- putT
---   return $ b1 :> b2 :> undefined
