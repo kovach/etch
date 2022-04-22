@@ -1,18 +1,22 @@
 {-
 
-fix mul!
 front end
   basic syntax
   read monadic actions from input
   helpers
-  fix UnitGen handling
+
+fix UnitGen handling
+  fix add/mul
+  insert by default
 
 remove initialize?
+cleanup file
 
 non-scalar contraction
 
+
 cleanup T, E
-maybe implement semantics bracket too?
+maybe implement semantics bracket?
 -}
 {-# LANGUAGE FlexibleInstances,MultiParamTypeClasses #-}
 {-# LANGUAGE NamedFieldPuns #-}
@@ -30,14 +34,11 @@ import Data.String
 import Data.Function
 import System.Process
 
+sorry = undefined
 
 type Label = String
 type IVar = String
-type Var = String
 
-data ExternIteratorType
-  = ExternCounter | ExternInnerNode | ExternLeafNode
-  deriving (Show, Eq)
 data T
   = E E
   | Put E [E] E | Accum E E | Store E E
@@ -66,8 +67,14 @@ data E
 instance (IsString E)
   where fromString = Ident
 
-instance Num E
-  where fromInteger = Lit
+instance Num E where
+  fromInteger = Lit
+  (+) = BinOp "+"
+  (*) = BinOp "*"
+
+le    a b   = BinOp "<" a b
+min   a b k = If (le b a) (k b) (k a)
+eq    a b   = BinOp "==" a b
 
 data GenIV' i v = Gen
   { current    :: (i -> T) -> T
@@ -116,21 +123,11 @@ sparseVec index_array value_array = genMap
   (Offset index_array)
   (Offset value_array)
 
-le    a b   = BinOp "<" a b
-min   a b k = If (le b a) (k b) (k a)
-eq    a b   = BinOp "==" a b
-times a b   = BinOp "*" a b
-plus  a b   = BinOp "+" a b
+emptyGen :: GenIV i v
+emptyGen = Gen { next = ($ Nothing) , current = ($ Nothing) , value = ($ Nothing) , reset = Skip , initialize = Skip }
 
 singleton :: a -> GenIV () a
-singleton v = Gen
-    { next = ($ Nothing)
-    -- todo does this need a check?
-    , current = ($ (Just ()))
-    , value = ($ Just v)
-    , reset = Skip
-    , initialize = Skip
-    }
+singleton v = Gen { next = ($ Nothing) , current = ($ (Just ())) , value = ($ Just v) , reset = Skip , initialize = Skip }
 
 range :: E -> E -> Gen
 range n var =
@@ -143,8 +140,6 @@ range n var =
   Gen { current, value, next, initialize = Skip, reset = Store var 0 }
 
 replicate n v g = (\_ -> g) <$> range n v
-
--- extern fn n = genMap id (Call fn) . range n
 
 -- a; b
 sequenceGen :: GenIV' i v -> GenIV' i v -> GenIV' i v
@@ -162,8 +157,11 @@ sequenceGen a b = Gen
   , initialize = initialize a :> initialize b
   }
 
+class Add a where
+  add :: a -> a -> a
+  zero :: a
 
-addGen :: Gen -> Gen -> Gen
+addGen :: Add a => GenV a -> GenV a -> GenV a
 addGen a b =
   let
     c k = current a $ \ia -> case ia of
@@ -182,10 +180,10 @@ addGen a b =
                                       Nothing -> Skip
                                       Just _ -> k vb))
                       (value a (\va -> value b (\vb -> case (va, vb) of
-                                                    (Just va, Just vb) -> k $ Just (plus va vb)
+                                                    (Just va, Just vb) -> k $ Just (add va vb)
                                                     (Nothing, Just _) -> k vb
                                                     (Just _, Nothing) -> k va
-                                                    (Nothing, Nothing) -> k $ Just (Lit 0)))))
+                                                    (Nothing, Nothing) -> k $ Just zero))))
     n k = current a $ \ia -> case ia of
       Nothing -> next b k
       Just ia -> current b $ \ib -> case ib of
@@ -198,6 +196,14 @@ addGen a b =
             (Nothing, Nothing) -> k $ Nothing
   in
     Gen { current = c, value = v, next = n, initialize = initialize a :> initialize b, reset = reset a :> reset b }
+
+instance Add E where
+  add = (+)
+  zero = Lit 0
+
+instance Add a => Add (GenV a) where
+  add = addGen
+  zero = emptyGen
 
 class Mul a where
   mul :: a -> a -> a
@@ -253,7 +259,7 @@ mulGL a b =
     Gen { current = c, value = v, next = n, initialize = initialize a :> initialize (gen b), reset = reset a :> reset (gen b) }
 
 instance Mul E where
-  mul = times
+  mul = (*)
 
 instance Mul a => Mul (GenV a) where
   mul = mulGen
@@ -590,7 +596,7 @@ eg5 = compile $ do
   --out2 <- contraction1 out1
   acc <- accum "out_acc"
   b1 <- loopT <**> accumulateLoop acc out1
-  return $ b1 :> Debug ("printf(\"result: %.1f\", " ++ e2c acc ++ ");\n")
+  return $ b1 :> Debug ("printf(\"result: %.1f\\n\", " ++ e2c acc ++ ");\n")
 
 -- double contraction
 eg6 rows = compile $ do
@@ -603,7 +609,7 @@ eg6 rows = compile $ do
   let out2 = c2 out1
   acc <- Ident <$> fresh "out_acc" CFloat
   b1 <- loopT <**> accumulateLoop acc out2
-  return $ b1 :> Debug ("printf(\"result: %.1f\", " ++ e2c acc ++ ");\n")
+  return $ b1 :> Debug ("printf(\"result: %.1f\\n\", " ++ e2c acc ++ ");\n")
 
 eg7 = compile $ do
   t1 <- matrix
