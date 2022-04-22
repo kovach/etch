@@ -483,13 +483,16 @@ externGen x =
   , initialize = Skip
   }
 
-externLGen :: E -> LGen
-externLGen x =
+externStorageGen :: E -> LGen
+externStorageGen x =
   let g = externGen x in
   let call op = Call (RecordAccess x op) [] in
   let check' op k = If (call "done") (k Nothing) (k (Just $ call op)) in
   LGen
-  { gen = g { value = \k -> If (call "done") (k Nothing) (k (Just $ Deref $ call "value_ref")) }
+  {
+    -- no bounds check done; assume that it can always give a storage location
+    gen = g { value = \k -> (k (Just $ Deref $ call "value_ref"))
+  }
   , locate = \i -> case i of
       Nothing -> E $ call "finish"
       Just i -> E $ Call (RecordAccess x "skip") [i]
@@ -516,12 +519,12 @@ instance (Storable l r out) =>
            (GenIV  i r)
            (GenIV () out) where
   store l r = Gen
-    { next = \k -> next r $ fmap (\step -> value r $ \mv -> step :> case mv of
+    { next = \k -> next r $ fmap (\step -> step :> (value r $ \mv -> case mv of
                                          Nothing -> Skip
-                                         Just _ -> (current r $ locate l)) .> k
+                                         Just _ -> (current r $ locate l))) .> k
     , current = ($ Just ())
     , value = \k -> value (gen l) $ \mloc -> case mloc of
-        Nothing -> Comment "unreachable"
+        Nothing -> error "unreachable"
         Just loc -> value r $ fmap (\val -> store loc val) .> k
     , reset = reset (gen l) :> reset r :> (current r $ locate l)
     , initialize = initialize (gen l) :> initialize r
@@ -550,10 +553,10 @@ storeMat = Ident <$> fresh "v" (Storage (Storage CFloat))
 --  out <- matrix
 --  i <- index "i"
 --  j <- index "i"
---  b1 <- loopT <**> (store (externLGen out & gmap externLGen) (range 10 i & gmap (const (range 4 j))))
+--  b1 <- loopT <**> (store (externStorageGen out & gmap externStorageGen) (range 10 i & gmap (const (range 4 j))))
 --  return (out, b1)
-eg1 = chk' $ store (externLGen "out") (range 10 "i")
-eg2 = chk' $ store (externLGen "out1") (externGen "t2")
+eg1 = chk' $ store (externStorageGen "out") (range 10 "i")
+eg2 = chk' $ store (externStorageGen "out1") (externGen "t2")
 eg3 = compile $ do
   let tv x = Call "toVal" [x]
   out1 <- storeVec
@@ -562,12 +565,21 @@ eg3 = compile $ do
   v1 <- vector
   v2 <- vector
   i <- index
-  b1 <- (loopT <**> (store (externLGen out1) (range 3 i)))
-  b2 <- (loopT <**> (store (externLGen out2) (range 3 i)))
-  b3 <- (loopT <**> (store (externLGen out) (mulGen (externGen v1) (externGen v2))))
+  let n = 5
+  b1 <- (loopT <**> (store (externStorageGen out1) (range n i)))
+  b2 <- (loopT <**> (store (externStorageGen out2) (range n i)))
+  b3 <- (loopT <**> (store (externStorageGen out) (mulGen (externGen v1) (externGen v2))))
   return $ b1 :> b2 :> Store v1 (tv out1) :> Store v2 (tv out2) :> b3 :> E (Call "printArray_" [out])
+eg3' = compile $ do
+  let tv x = Call "toVal" [x]
+  out <- storeVec
+  v1 <- vector
+  v2 <- vector
+  i <- index
+  b3 <- (loopT <**> (store (externStorageGen out) (mulGen (externGen v1) (externGen v2))))
+  return $  b3 :> E (Call "printArray_" [out])
 eg4 = compile $ do
-  let p = (fl' $ (store (externLGen "out2" & fmap (externLGen)) (range 10 "i" & fmap (const $ range 20 "j")))) :: GenIV () T
+  let p = (fl' $ (store (externStorageGen "out2" & fmap externStorageGen) (range 10 "i" & fmap (const $ range 20 "j")))) :: GenIV () T
   b1 <- (loopT <**> p)
   return b1
 eg5 = compile $ do
@@ -605,4 +617,4 @@ eg7 = compile $ do
   let a2 = replicate 5 i $ externGen v1
   let result = fmap c1 $ fmap (fmap singleton) $ mulGen a1 a2
   out <- Ident <$> fresh "t" (Storage CFloat)
-  loopT <**> (fl' $ store (externLGen out) result)
+  loopT <**> (fl' $ store (externStorageGen out) result)
