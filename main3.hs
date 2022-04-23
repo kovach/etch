@@ -1,8 +1,11 @@
 {-
 
 fix UnitGen handling
-  fix add
   insert by default
+
+easier temporaries?
+
+load input?
 
 index types
   correct broadcasting
@@ -12,20 +15,23 @@ front end
   read monadic actions from input
   helpers
 
-
 remove initialize?
-cleanup file
+
+insert structural comments into output
+
+merge branch
+  cleanup T, E
+  cleanup file
 
 non-scalar contraction
 
-cleanup T, E
 maybe implement semantics bracket?
 -}
 {-# LANGUAGE FlexibleInstances,MultiParamTypeClasses #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PartialTypeSignatures #-}
-import Prelude hiding (min, replicate)
+import Prelude hiding (min, max, replicate)
 import Control.Monad (join)
 import Control.Monad.Writer
 import Control.Monad.Reader
@@ -80,6 +86,7 @@ instance Num E where
 
 le    a b   = BinOp "<" a b
 min   a b k = If (le b a) (k b) (k a)
+max   a b k = If (le b a) (k a) (k b)
 eq    a b   = BinOp "==" a b
 
 data GenIV' i v = Gen
@@ -147,7 +154,7 @@ replicate n v g = (\_ -> g) <$> range n v
 -- a; b
 sequenceGen :: GenIV' i v -> GenIV' i v -> GenIV' i v
 sequenceGen a b = Gen
-  { next = \k -> next a $ \mstep -> case mstep of
+  { next = \k -> next a $ \mstep -> case mstep of -- repeated check after a done
       Nothing -> next b k
       Just mstep -> k (Just mstep)
   , current = \k -> next a $ \mstep -> case mstep of
@@ -223,11 +230,13 @@ mulUnitGen a b =
             Just va -> value b $ \vb -> case vb of
               Nothing -> k Nothing
               Just vb -> k (Just (mul va vb))
-    n k = next a $ \ia -> case ia of
+    n k =
+      let warning = "multiplied unit generators must be static singletons. did you forget to aggregate?" in
+      next a $ \ia -> case ia of
       Nothing -> next b $ \ib -> case ib of
         Nothing -> k Nothing
-        Just _ -> error "multiplied unit generators must be static singletons"
-      Just _ -> error "multiplied unit generators must be static singletons"
+        Just _ -> error warning
+      Just _ -> error warning
   in
     Gen { current = c, value = v, next = n, initialize = initialize a :> initialize b, reset = reset a :> reset b }
 
@@ -238,7 +247,7 @@ mulGen a b =
       Nothing -> k Nothing
       Just ia -> current b $ \ib -> case ib of
         Nothing -> k Nothing
-        Just ib -> If (eq ia ib) (k (Just ia)) (k Nothing)
+        Just ib -> max ia ib (k . Just)
     v k = current a $ \ia -> case ia of
       Nothing -> k Nothing
       Just ia -> current b $ \ib -> case ib of
@@ -283,7 +292,6 @@ mulGL a b =
 
 instance Mul E where
   mul = (*)
-
 instance Mul a => Mul (GenV a) where
   mul = mulGen
 instance Mul a => Mul (UnitGenV a) where
@@ -554,7 +562,7 @@ instance (Storable l r out) =>
            (GenIV () out) where
   store l r = Gen
     { next = \k -> next r $ fmap (\step -> step :> (value r $ \mv -> case mv of
-                                         Nothing -> Skip
+                                         Nothing -> Comment "don't update storage"
                                          Just _ -> (current r $ locate l))) .> k
     , current = ($ Just ())
     , value = \k -> value (gen l) $ \mloc -> case mloc of
@@ -602,7 +610,7 @@ eg3 = compile $ do
   let n = 5
   b1 <- (loopT <**> (store (externStorageGen out1) (range n i)))
   b2 <- (loopT <**> (store (externStorageGen out2) (range n i)))
-  b3 <- (loopT <**> (store (externStorageGen out) (mulGen (externGen v1) (externGen v2))))
+  b3 <- (loopT <**> (store (externStorageGen out) (mul (externGen v1) (externGen v2))))
   return $ b1 :> b2 :> Store v1 (tv out1) :> Store v2 (tv out2) :> b3 :> E (Call "printArray_" [out])
 eg3' = compile $ do
   let tv x = Call "toVal" [x]
@@ -610,7 +618,7 @@ eg3' = compile $ do
   v1 <- vector
   v2 <- vector
   i <- index
-  b3 <- (loopT <**> (store (externStorageGen out) (mulGen (externGen v1) (externGen v2))))
+  b3 <- (loopT <**> (store (externStorageGen out) (mul (externGen v1) (externGen v2))))
   return $  b3 :> E (Call "printArray_" [out])
 eg4 = compile $ do
   let p = (fl' $ (store (externStorageGen "out2" & fmap externStorageGen) (range 10 "i" & fmap (const $ range 20 "j")))) :: GenIV () T
@@ -645,29 +653,32 @@ fmap2 = fmap . fmap
 -- mv-shaped
 eg7 = compile $ do
   t1 <- matrix
-  t2 <- matrix
   v1 <- vector
   i <- index
   j <- index
   c1 <- contraction1
-  -- let t1' = replicate 5 i t1
   let a1 = fmap externGen $  externGen t1
   let a2 = replicate 5 i $ externGen v1
-  let result = fmap c1 $ fmap2 singleton $ mulGen a1 a2
+  let result = fmap c1 $ fmap2 singleton $ mul a1 a2
   out <- Ident <$> fresh "t" (Storage CFloat)
   loopT <**> (fl' $ store (externStorageGen out) result)
 
--- mv-shaped
+-- should be identical output to eg7
 eg7' = compile $ do
   t1 <- matrix
-  t2 <- matrix
   v1 <- vector
   i <- index
   j <- index
   c1 <- contraction1
-  -- let t1' = replicate 5 i t1
-  let a1 = fmap externGen $  externGen t1
+  let a1 = fmap externGen $ externGen t1
   let a2 = replicate 5 i $ externGen v1
-  let result = fmap c1 $ mulGen (fmap2 singleton a1) (fmap2 singleton a2)
+  let result = fmap c1 $ mul (fmap2 singleton a1) (fmap2 singleton a2)
   out <- Ident <$> fresh "t" (Storage CFloat)
   loopT <**> (fl' $ store (externStorageGen out) result)
+
+eg8 = compile $ do
+  out <- storeVec
+  t <- vector
+  u <- vector
+  v <- vector
+  loopT <**> (store (externStorageGen out) (mul (externGen t) $ mul (externGen u) (externGen v)))
