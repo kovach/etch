@@ -1,19 +1,12 @@
 {-
 
-fix UnitGen handling
-  insert by default
+automatic broadcasting
+  index types
 
-easier temporaries?
+generate random sparse matrix
+serialize to something for taco
 
-load input?
-
-index types
-  correct broadcasting
-
-front end
-  basic syntax
-  read monadic actions from input
-  helpers
+modularity over semiring
 
 remove initialize?
 
@@ -330,10 +323,26 @@ trueElem e c = e `elem` trueConditions c
 falseElem e c = e `elem` falseConditions c
 emptyContext = Context [] []
 
-data CType = CFloat | CInt | Storage CType | Sparse CType
+data SemiringType = SInt | SFloat
+data TensorType
+  = TTAtom SemiringType
+  | TTStorage TensorType
+  | TTSparse TensorType
+toCType :: TensorType -> CType
+toCType (TTAtom SInt) = CInt
+toCType (TTAtom SFloat) = CDouble
+toCType (TTStorage t) = CStorage (toCType t)
+toCType (TTSparse t) = CSparse (toCType t)
+
+data CType = CDouble | CInt | CStorage CType | CSparse CType
 type Map a b = [(a, b)]
-type SymbolTable = Map Text CType
+type SymbolTable = Map Text TensorType
 type M = StateT (Int, SymbolTable) (WriterT Text (Reader Context))
+symbolType :: String -> M TensorType
+symbolType s = do
+  (_, m) <- get
+  return $ fromJust $ lookup s m
+
 mapFst f (a, b) = (f a, b)
 mapSnd f (a, b) = (a, f b)
 runM :: M () -> (SymbolTable, Text)
@@ -408,7 +417,7 @@ freshLabel n = do
   put (k+1, m)
   return $ name
 
-fresh :: String -> CType -> M String
+fresh :: String -> TensorType -> M String
 fresh n t = do
   (k, m) <- get
   let name = n <> showT k
@@ -436,13 +445,13 @@ loopT = do
 (.>) = flip (.)
 
 initHeader :: SymbolTable -> String
-initHeader = concat . map step
+initHeader = concat . map (step . mapSnd toCType)
   where
-    typeString CFloat = "num"
+    typeString CDouble = "num"
     typeString CInt = "index"
-    typeString (Storage t) = "SparseStorageArray<" <> typeString t <> ">"
-    typeString (Sparse t) = "SparseArray<" <> typeString t <> ">"
-    step (name, CFloat) = "num " <> name <> " = 0;\n"
+    typeString (CStorage t) = "SparseStorageArray<" <> typeString t <> ">"
+    typeString (CSparse t) = "SparseArray<" <> typeString t <> ">"
+    step (name, CDouble) = "num " <> name <> " = 0;\n"
     step (name, CInt) = "index " <> name <> " = 0;\n"
     step (name, t) = typeString t <> " " <> name <> ";\n"
 
@@ -574,9 +583,15 @@ instance (Storable l r out) =>
     , initialize = initialize (gen l) :> initialize r
     }
 
+cdouble = TTAtom SFloat
+cint = TTAtom SInt
+cstorage x = TTStorage x
+csparse x = TTSparse x
+
+
 contraction1 :: M (GenV UnitGen -> UnitGen)
 contraction1 = do
-  acc <- Ident <$> fresh "acc" CFloat
+  acc <- Ident <$> fresh "acc" cdouble
   loop <- loopT
   return $ \v ->
     prefixGen
@@ -585,20 +600,36 @@ contraction1 = do
 
 f <**> a = f <*> (pure a)
 
-index' i = Ident <$> fresh i CInt
+index' i = Ident <$> fresh i cint
 index = index' "i"
-accum a = Ident <$> fresh a CFloat
-matrix = Ident <$> fresh "t" (Sparse (Sparse CFloat))
-vector = Ident <$> fresh "v" (Sparse (CFloat))
-storeVec = Ident <$> fresh "v" (Storage (CFloat))
-storeMat = Ident <$> fresh "v" (Storage (Storage CFloat))
+accum a = Ident <$> fresh a cdouble
+matrix = Ident <$> fresh "t" (csparse (csparse cdouble))
+vector = Ident <$> fresh "v" (csparse (cdouble))
+storeVec = Ident <$> fresh "v" (cstorage (cdouble))
+storeMat = Ident <$> fresh "v" (cstorage (cstorage cdouble))
 
---putT = do
---  out <- matrix
---  i <- index "i"
---  j <- index "i"
---  b1 <- loopT <**> (store (externStorageGen out & gmap externStorageGen) (range 10 i & gmap (const (range 4 j))))
---  return (out, b1)
+-- Short operators for constructing expressions
+type VectorGen = GenIV' (Maybe E) (GenIV () E)
+type MatrixGen = GenIV' (Maybe E) (GenIV' (Maybe E) (GenIV () E))
+m :: String -> M MatrixGen
+m v = do
+  var <- Ident <$> fresh v (csparse (csparse cdouble))
+  return $ fmap (fmap singleton) $ fmap externGen (externGen $ var)
+v :: String -> M VectorGen
+v v = do
+  var <- Ident <$> fresh v (csparse (cdouble))
+  return $ fmap singleton $ externGen $ var
+mvar  = do
+  var <- Ident <$> fresh "t" (csparse (csparse cdouble))
+  return $ fmap externStorageGen (externStorageGen var)
+float = do
+  var <- Ident <$> fresh "v" cdouble
+  return $ var
+sum1 x = do
+  contraction1 <*> x
+sum2 x = do
+  liftM fmap contraction1 <*> x
+
 eg1 = chk' $ store (externStorageGen "out") (range 10 "i")
 eg2 = chk' $ store (externStorageGen "out1") (externGen "t2")
 eg3 = compile $ do
@@ -638,14 +669,14 @@ eg5 = compile $ do
 
 -- double contraction
 eg6 rows = compile $ do
-  i <- Ident <$> fresh "i" CInt
-  j <- Ident <$> fresh "j" CInt
+  i <- Ident <$> fresh "i" cint
+  j <- Ident <$> fresh "j" cint
   let expr = range rows i & fmap (const (range 4 j) .> fmap (singleton ))
   c1 <- contraction1
   c2 <- contraction1
   let out1 = fmap c1 expr
   let out2 = c2 out1
-  acc <- Ident <$> fresh "out_acc" CFloat
+  acc <- Ident <$> fresh "out_acc" cdouble
   b1 <- loopT <**> accumulateLoop acc out2
   return $ b1 :> Debug ("printf(\"result: %.1f\\n\", " <> e2c acc <> ");\n")
 
@@ -662,7 +693,7 @@ eg7 = compile $ do
   let a1 = fmap externGen $  externGen t1
   let a2 = replicate 5 i $ externGen v1
   let result = fmap c1 $ fmap2 singleton $ mul a1 a2
-  out <- Ident <$> fresh "t" (Storage CFloat)
+  out <- Ident <$> fresh "t" (cstorage cdouble)
   loopT <**> (fl' $ store (externStorageGen out) result)
 
 -- should be identical output to eg7
@@ -675,7 +706,7 @@ eg7' = compile $ do
   let a1 = fmap externGen $ externGen t1
   let a2 = replicate 5 i $ externGen v1
   let result = fmap c1 $ mul (fmap2 singleton a1) (fmap2 singleton a2)
-  out <- Ident <$> fresh "t" (Storage CFloat)
+  out <- Ident <$> fresh "t" (cstorage cdouble)
   loopT <**> (fl' $ store (externStorageGen out) result)
 
 eg8 = compile $ do
@@ -684,3 +715,18 @@ eg8 = compile $ do
   u <- vector
   v <- vector
   loopT <**> (store (externStorageGen out) (mul (externGen t) $ mul (externGen u) (externGen v)))
+
+infixl 6 <+>
+(<+>) :: Add a => M a -> M a -> M a
+(<+>) = liftM2 add
+infixl 7 <.>
+(<.>) :: Mul a => M a -> M a -> M a
+(<.>) = liftM2 mul
+infix 2 <--
+(<--) :: Storable a b c => M a -> M b -> M c
+(<--) = liftM2 store
+
+eg9 = compile $ do
+  loopT <*> (fl' <$> fl' <$> (liftM2 store mvar $ m "A" <.> m "B"))
+eg9' = compile $ do
+  loopT <*> (float <-- sum1 (sum2 (m "A" <.> m "B")))
