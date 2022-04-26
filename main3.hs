@@ -1,10 +1,14 @@
 {-
 
+fix broadcasting syntax
+
 automatic broadcasting
   index types
 
 generate random sparse matrix
 serialize to something for taco
+
+automatic flatten stores?
 
 modularity over semiring
 
@@ -522,6 +526,9 @@ fl :: GenIV i1 (GenIV i2 a) -> GenIV i2 a
 fl = flatten .> imap snd .> genMap' join id -- flatten Maybe nesting in coordinate
 fl' :: GenIV () (GenIV i2 a) -> GenIV i2 a
 fl' = fl
+down = fl'
+down2 = fl' . fl'
+down3 = fl' . fl' . fl'
 
 externGen :: E -> Gen
 externGen x =
@@ -619,17 +626,14 @@ v :: String -> M VectorGen
 v v = do
   var <- Ident <$> fresh v (csparse (cdouble))
   return $ fmap singleton $ externGen $ var
+vvar  = do
+  var <- Ident <$> fresh "t" (csparse (csparse cdouble))
+  return $ externStorageGen var
 mvar  = do
   var <- Ident <$> fresh "t" (csparse (csparse cdouble))
   return $ fmap externStorageGen (externStorageGen var)
-float = do
-  var <- Ident <$> fresh "v" cdouble
-  return $ var
-sum1 x = do
-  contraction1 <*> x
-sum2 x = do
-  liftM fmap contraction1 <*> x
-
+float = Ident <$> fresh "v" cdouble
+int = Ident <$> fresh "v" cint
 eg1 = chk' $ store (externStorageGen "out") (range 10 "i")
 eg2 = chk' $ store (externStorageGen "out1") (externGen "t2")
 eg3 = compile $ do
@@ -725,8 +729,30 @@ infixl 7 <.>
 infix 2 <--
 (<--) :: Storable a b c => M a -> M b -> M c
 (<--) = liftM2 store
+sum1 x = do
+  contraction1 <*> x
+sum2 x = do
+  liftM fmap contraction1 <*> x
+sum3 x = do
+  c <- contraction1
+  (fmap (fmap c)) <$> x
+-- todo fix
+repl1 x = do
+  i <- int
+  replicate 5 i <$> x
+repl2 x = do
+  i <- int
+  fmap (replicate 5 i) <$> x
 
 eg9 = compile $ do
-  loopT <*> (fl' <$> fl' <$> (liftM2 store mvar $ m "A" <.> m "B"))
+  loopT <*> (down2 <$> (mvar <-- m "A" <.> m "B"))
 eg9' = compile $ do
   loopT <*> (float <-- sum1 (sum2 (m "A" <.> m "B")))
+
+-- dot, matrix-vector product, matrix-matrix product
+egVV = compile $
+  loopT <*> (float <-- sum1 (v "u" <.> v "v"))
+egMV = compile $
+  loopT <*> (down <$> (vvar <-- sum2 (m "A" <.> (repl1 (v "x")))))
+egMM = compile $
+  loopT <*> (down2 <$> (mvar <-- sum3 ((repl2 $ m "A") <.> (repl1 $ m "B"))))
