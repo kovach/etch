@@ -31,22 +31,29 @@ maybe implement semantics bracket?
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PartialTypeSignatures #-}
-import Prelude hiding (min, max, replicate)
+import Prelude hiding (min, max, replicate, String, concat)
 import Control.Monad (join)
 import Control.Monad.Writer
 import Control.Monad.Reader
 import Control.Monad.State
 import Data.Monoid
 import Data.Maybe
-import Data.List hiding (singleton, replicate)
-import Data.String
+import Data.List hiding (singleton, replicate, intercalate, concat)
+import Data.String (IsString, fromString)
+import Data.Text (Text, intercalate, unpack, pack, concat)
+import qualified Data.Text.IO as T
 import Data.Function
 import System.Process
 
+type String = Text
+
+showT :: Show a => a -> String
+showT = fromString . show
+
 sorry = undefined
 
-type Label = String
-type IVar = String
+type Label = Text
+type IVar = Text
 
 data T
   = E E
@@ -54,27 +61,27 @@ data T
   | Label Label | If E T T | Jump Label | (:>) T T | Skip
   | DeclareInt IVar | FloatInit E
   | AutoDecl IVar E
-  | Comment String
-  | Debug String
+  | Comment Text
+  | Debug Text
   | Block T
-  | Labels [String]
+  | Labels [Text]
   deriving Show
-unreachable s = Comment $ "unreachable: " ++ s
+unreachable s = Comment $ "unreachable: " <> s
 
 data E
-  = Lit Integer | IVar IVar | Ident String
+  = Lit Integer | IVar IVar | Ident Text
   | Incr E
   --- | Index E | Value E | Next E | SkipTo E E
-  | Offset E E | BinOp String E E
-  | RecordAccess E String
+  | Offset E E | BinOp Text E E
+  | RecordAccess E Text
   | Call E [E]
   | Deref E
   | Address E
-  | Extern String
+  | Extern Text
   deriving (Show, Eq)
 
 instance (IsString E)
-  where fromString = Ident
+  where fromString = Ident . fromString
 
 instance Num E where
   fromInteger = Lit
@@ -149,7 +156,7 @@ range n var =
   in
   Gen { current, value, next, initialize = Skip, reset = Store var 0 }
 
-replicate n v g = (\_ -> g) <$> range n v
+replicate n v g = const g <$> range n v
 
 -- a; b
 sequenceGen :: GenIV' i v -> GenIV' i v -> GenIV' i v
@@ -297,23 +304,19 @@ instance Mul a => Mul (GenV a) where
 instance Mul a => Mul (UnitGenV a) where
   mul = mulUnitGen
 
-wrap s = "(" ++ s ++ ")"
-e2c :: E -> String
+wrap s = "(" <> s <> ")"
+e2c :: E -> Text
 e2c e = case e of
-  Lit i            -> show i
+  Lit i            -> showT i
   IVar i           -> i
-  --Index i        -> externIndex t i
-  --Value i        -> externValue t i
-  --Next i         -> externNext t i -- wrap $ i ++ "++"
-  --SkipTo i e     -> externSkip t i -- ++ ".skip" ++ wrap (e2c e)
-  Incr i           -> wrap $ e2c i ++ "++"
+  Incr i           -> wrap $ e2c i <> "++"
   Ident i          -> i
-  BinOp op e1 e2   -> wrap $ e2c e1 ++ op ++ e2c e2
-  Offset b i       -> e2c b ++ "[" ++ e2c i ++ "]"
-  Call f es        -> e2c f ++ (wrap $ intercalate "," $ map e2c es)
-  RecordAccess e f -> e2c e ++ "." ++ f
-  Deref e          -> wrap $ "*" ++ e2c e
-  Address e        -> "&" ++ e2c e
+  BinOp op e1 e2   -> wrap $ e2c e1 <> op <> e2c e2
+  Offset b i       -> e2c b <> "[" <> e2c i <> "]"
+  Call f es        -> e2c f <> (wrap $ intercalate "," $ map e2c es)
+  RecordAccess e f -> e2c e <> "." <> f
+  Deref e          -> wrap $ "*" <> e2c e
+  Address e        -> "&" <> e2c e
   e                -> error (show e)
 
 data Context = Context
@@ -327,21 +330,20 @@ trueElem e c = e `elem` trueConditions c
 falseElem e c = e `elem` falseConditions c
 emptyContext = Context [] []
 
--- todo Text? or reverse output
 data CType = CFloat | CInt | Storage CType | Sparse CType
 type Map a b = [(a, b)]
-type SymbolTable = Map String CType
-type M = StateT (Int, SymbolTable) (WriterT String (Reader Context))
+type SymbolTable = Map Text CType
+type M = StateT (Int, SymbolTable) (WriterT Text (Reader Context))
 mapFst f (a, b) = (f a, b)
 mapSnd f (a, b) = (a, f b)
-runM :: M () -> (SymbolTable, String)
+runM :: M () -> (SymbolTable, Text)
 runM = mapFst snd . flip runReader emptyContext . runWriterT . flip execStateT (0, [])
 
-emit :: String -> M ()
+emit :: Text -> M ()
 emit s = tell s
 
 instance (IsString (M ())) where
-  fromString = emit
+  fromString = emit . pack
 
 wrapm :: M () -> M ()
 wrapm s = emit "(" >> s >> ")"
@@ -364,29 +366,29 @@ t2c t = do
     if triv then "" else case t of
       Put l [i] r         -> do { emit "put"; (wrapm $ emit $ intercalate "," (map e2c [l, i, r])); ";" }
       Put l (i:_) r       -> do { emit "put"; (wrapm $ emit $ intercalate "," (map e2c [l, i, r])); ";" }
-      Accum l r           -> emit $ e2c l ++ " += " ++ e2c r ++";"
-      Label l             -> emit $ "\n" ++ l ++ ":\n"
-      Jump  l             -> emit $ "goto " ++ l ++ ";"
+      Accum l r           -> emit $ e2c l <> " += " <> e2c r <>";"
+      Label l             -> emit $ "\n" <> l <> ":\n"
+      Jump  l             -> emit $ "goto " <> l <> ";"
       Skip                -> ""
       a :> b              -> t2c a >> local (\_ -> emptyContext) (t2c b)
-      E e                 -> emit $ e2c e ++ ";\n"
-      AutoDecl i e        -> emit $ "auto " ++ i ++ " = " ++ e2c e ++ ";\n"
-      DeclareInt e        -> emit $ "int " ++ e ++ " = 0;\n"
-      Store l r           -> emit $ e2c l ++ " = " ++ e2c r ++ ";"
-      FloatInit (Ident v) -> emit $ "num " ++ v ++ " = 0.0;\n"
+      E e                 -> emit $ e2c e <> ";\n"
+      AutoDecl i e        -> emit $ "auto " <> i <> " = " <> e2c e <> ";\n"
+      DeclareInt e        -> emit $ "int " <> e <> " = 0;\n"
+      Store l r           -> emit $ e2c l <> " = " <> e2c r <> ";"
+      FloatInit (Ident v) -> emit $ "num " <> v <> " = 0.0;\n"
       FloatInit _         -> error "todo, FloatInit"
-      Comment s           -> emit $ "// " ++ s ++ "\n"
+      Comment s           -> emit $ "// " <> s <> "\n"
       Debug s             -> emit s
       If c t e            -> compileIf c t e
       Block t             -> emit "{" >> t2c t >> emit "}"
-      Labels ls           -> emit $ "__label__ " ++ intercalate "," ls ++ ";\n"
+      Labels ls           -> emit $ "__label__ " <> intercalate "," ls <> ";\n"
       t                   -> error $ show t
   where
     compileIf c t e = do
       pathCondition <- ask -- some premature code simplification
       if c `trueElem` pathCondition then t2c t else
         if c `falseElem` pathCondition then t2c e else do
-          emit $ "if (" ++ e2c c ++ ") {" ; local (pushTrue c) (t2c t) ; emit "}";
+          emit $ "if (" <> e2c c <> ") {" ; local (pushTrue c) (t2c t) ; emit "}";
           eTriv <- evalTrivial e
           if eTriv then "" else do emit " else {" ; local (pushFalse c) (t2c e) ; "}"
 
@@ -402,14 +404,14 @@ instance HasTop (Maybe E) where
 freshLabel :: String -> M String
 freshLabel n = do
   (k, m) <- get
-  let name = n ++ show k
+  let name = n <> showT k
   put (k+1, m)
   return $ name
 
 fresh :: String -> CType -> M String
 fresh n t = do
   (k, m) <- get
-  let name = n ++ show k
+  let name = n <> showT k
   put (k+1, (name, t) : m)
   return $ name
 
@@ -434,27 +436,27 @@ loopT = do
 (.>) = flip (.)
 
 initHeader :: SymbolTable -> String
-initHeader = concatMap step
+initHeader = concat . map step
   where
     typeString CFloat = "num"
     typeString CInt = "index"
-    typeString (Storage t) = "SparseStorageArray<" ++ typeString t ++ ">"
-    typeString (Sparse t) = "SparseArray<" ++ typeString t ++ ">"
-    step (name, CFloat) = "num " ++ name ++ " = 0;\n"
-    step (name, CInt) = "index " ++ name ++ " = 0;\n"
-    step (name, t) = typeString t ++ " " ++ name ++ ";\n"
+    typeString (Storage t) = "SparseStorageArray<" <> typeString t <> ">"
+    typeString (Sparse t) = "SparseArray<" <> typeString t <> ">"
+    step (name, CFloat) = "num " <> name <> " = 0;\n"
+    step (name, CInt) = "index " <> name <> " = 0;\n"
+    step (name, t) = typeString t <> " " <> name <> ";\n"
 
 compile :: M T -> IO ()
 compile t = do
   let outName = "out.cpp"
-  writeFile outName . addHeader . runM $ t >>= t2c
-  callCommand $ "clang-format -i " ++ outName
+  T.writeFile outName . addHeader . runM $ t >>= t2c
+  callCommand $ "clang-format -i " <> outName
   where
     addHeader (st, s) =
       "#include \"prefix.cpp\"\n"
-      ++ initHeader st
-      ++ s
-      ++ "#include \"suffix.cpp\"\n"
+      <> initHeader st
+      <> s
+      <> "#include \"suffix.cpp\"\n"
 
 -- remove examples:
 sparseVec index_array value_array = genMap
@@ -632,7 +634,7 @@ eg5 = compile $ do
   --out2 <- contraction1 out1
   acc <- accum "out_acc"
   b1 <- loopT <**> accumulateLoop acc out1
-  return $ b1 :> Debug ("printf(\"result: %.1f\\n\", " ++ e2c acc ++ ");\n")
+  return $ b1 :> Debug ("printf(\"result: %.1f\\n\", " <> e2c acc <> ");\n")
 
 -- double contraction
 eg6 rows = compile $ do
@@ -645,7 +647,7 @@ eg6 rows = compile $ do
   let out2 = c2 out1
   acc <- Ident <$> fresh "out_acc" CFloat
   b1 <- loopT <**> accumulateLoop acc out2
-  return $ b1 :> Debug ("printf(\"result: %.1f\\n\", " ++ e2c acc ++ ");\n")
+  return $ b1 :> Debug ("printf(\"result: %.1f\\n\", " <> e2c acc <> ");\n")
 
 fmap2 :: (Functor f, Functor g) => (a -> b) -> f (g a) -> f (g b)
 fmap2 = fmap . fmap
