@@ -615,25 +615,6 @@ vector = Ident <$> fresh "v" (csparse (cdouble))
 storeVec = Ident <$> fresh "v" (cstorage (cdouble))
 storeMat = Ident <$> fresh "v" (cstorage (cstorage cdouble))
 
--- Short operators for constructing expressions
-type VectorGen = GenIV' (Maybe E) (GenIV () E)
-type MatrixGen = GenIV' (Maybe E) (GenIV' (Maybe E) (GenIV () E))
-m :: String -> M MatrixGen
-m v = do
-  var <- Ident <$> fresh v (csparse (csparse cdouble))
-  return $ fmap (fmap singleton) $ fmap externGen (externGen $ var)
-v :: String -> M VectorGen
-v v = do
-  var <- Ident <$> fresh v (csparse (cdouble))
-  return $ fmap singleton $ externGen $ var
-vvar  = do
-  var <- Ident <$> fresh "t" (csparse (csparse cdouble))
-  return $ externStorageGen var
-mvar  = do
-  var <- Ident <$> fresh "t" (csparse (csparse cdouble))
-  return $ fmap externStorageGen (externStorageGen var)
-float = Ident <$> fresh "v" cdouble
-int = Ident <$> fresh "v" cint
 eg1 = chk' $ store (externStorageGen "out") (range 10 "i")
 eg2 = chk' $ store (externStorageGen "out1") (externGen "t2")
 eg3 = compile $ do
@@ -720,6 +701,26 @@ eg8 = compile $ do
   v <- vector
   loopT <**> (store (externStorageGen out) (mul (externGen t) $ mul (externGen u) (externGen v)))
 
+-- Short operators for constructing expressions
+type VectorGen = GenIV' (Maybe E) (GenIV () E)
+type MatrixGen = GenIV' (Maybe E) (GenIV' (Maybe E) (GenIV () E))
+m :: String -> M MatrixGen
+m v = do
+  var <- Ident <$> fresh v (csparse (csparse cdouble))
+  return $ fmap (fmap singleton) $ fmap externGen (externGen $ var)
+v :: String -> M VectorGen
+v v = do
+  var <- Ident <$> fresh v (csparse (cdouble))
+  return $ fmap singleton $ externGen $ var
+vvar  = do
+  var <- Ident <$> fresh "t" (cstorage cdouble)
+  return $ externStorageGen var
+mvar  = do
+  var <- Ident <$> fresh "t" (cstorage (cstorage cdouble))
+  return $ fmap externStorageGen (externStorageGen var)
+float = Ident <$> fresh "v" cdouble
+int = Ident <$> fresh "v" cint
+
 infixl 6 <+>
 (<+>) :: Add a => M a -> M a -> M a
 (<+>) = liftM2 add
@@ -753,6 +754,6 @@ eg9' = compile $ do
 egVV = compile $
   loopT <*> (float <-- sum1 (v "u" <.> v "v"))
 egMV = compile $
-  loopT <*> (down <$> (vvar <-- sum2 (m "A" <.> (repl1 (v "x")))))
+  loopT <*> (down <$> (vvar <-- sum2 (m "A" <.> repl1 (v "x"))))
 egMM = compile $
-  loopT <*> (down2 <$> (mvar <-- sum3 ((repl2 $ m "A") <.> (repl1 $ m "B"))))
+  loopT <*> (down2 <$> (mvar <-- sum3 (repl2 (m "A") <.> repl1 (m "B"))))
