@@ -1,5 +1,8 @@
 {-
 
+run, fix code size?
+compare taco
+
 fix broadcasting syntax
 
 automatic broadcasting
@@ -471,30 +474,6 @@ compile t = do
       <> s
       <> "#include \"suffix.cpp\"\n"
 
--- remove examples:
-sparseVec index_array value_array = genMap
-  (Offset index_array)
-  (Offset value_array)
-fl2 = fl . fmap fl
-parseNode :: E -> (E, E, E)
-parseNode e = (RecordAccess e "length", RecordAccess e "indices", RecordAccess e "children")
-parseNodeIter :: Gen -> GenV (E, E, E)
-parseNodeIter = fmap $ parseNode
-uncurry3 f (a,b,c) = f a b c
-leafIter i (len, is, vs) = range len i & sparseVec is vs
-nodeIter i (len, is, vs) = range len i & sparseVec is vs & parseNodeIter
-
---chk = compile . loop (Ident "acc")
---main1 = chk . fl2 $ tIJK
---main2 = chk $ fl  $ mul (t2 "A" "iA" "jA" ) (t2 "B" "iB" "jB" )
---main3 = chk $ fl2 $ mul (t3 "C" "iA" "jA" "kA") (t3 "D" "iB" "jB" "kB")
-tIJK       = parseNode "tree" & nodeIter "i" & fmap (nodeIter "j" .> fmap (leafIter "k"))
-t2 t i j   = parseNode t & nodeIter i & fmap (leafIter j)
-t3 t i j k = parseNode t & nodeIter i & fmap ((nodeIter j) .> fmap (leafIter k))
--- remove examples ^
-
-chk' = compile . (loopT <**> )
-
 flatten :: GenIV i1 (GenIV i2 a) -> GenIV (i1, Maybe i2) a
 flatten outer =
   let
@@ -524,6 +503,7 @@ flatten outer =
 
 fl :: GenIV i1 (GenIV i2 a) -> GenIV i2 a
 fl = flatten .> imap snd .> genMap' join id -- flatten Maybe nesting in coordinate
+-- needed for type inference in some cases
 fl' :: GenIV () (GenIV i2 a) -> GenIV i2 a
 fl' = fl
 down = fl'
@@ -615,8 +595,10 @@ vector = Ident <$> fresh "v" (csparse (cdouble))
 storeVec = Ident <$> fresh "v" (cstorage (cdouble))
 storeMat = Ident <$> fresh "v" (cstorage (cstorage cdouble))
 
-eg1 = chk' $ store (externStorageGen "out") (range 10 "i")
-eg2 = chk' $ store (externStorageGen "out1") (externGen "t2")
+run = compile . (loopT <*> )
+
+eg1 = run $ pure $ store (externStorageGen "out") (range 10 "i")
+eg2 = run $ pure $ store (externStorageGen "out1") (externGen "t2")
 eg3 = compile $ do
   let tv x = Call "toVal" [x]
   out1 <- storeVec
@@ -647,7 +629,6 @@ eg5 = compile $ do
   j <- index
   let expr = range 10 i & fmap (singleton)
   out1 <- contraction1 <*> pure expr
-  --out2 <- contraction1 out1
   acc <- accum "out_acc"
   b1 <- loopT <**> accumulateLoop acc out1
   return $ b1 :> Debug ("printf(\"result: %.1f\\n\", " <> e2c acc <> ");\n")
@@ -665,41 +646,12 @@ eg6 rows = compile $ do
   b1 <- loopT <**> accumulateLoop acc out2
   return $ b1 :> Debug ("printf(\"result: %.1f\\n\", " <> e2c acc <> ");\n")
 
-fmap2 :: (Functor f, Functor g) => (a -> b) -> f (g a) -> f (g b)
-fmap2 = fmap . fmap
-
--- mv-shaped
-eg7 = compile $ do
-  t1 <- matrix
-  v1 <- vector
-  i <- index
-  j <- index
-  c1 <- contraction1
-  let a1 = fmap externGen $  externGen t1
-  let a2 = replicate 5 i $ externGen v1
-  let result = fmap c1 $ fmap2 singleton $ mul a1 a2
-  out <- Ident <$> fresh "t" (cstorage cdouble)
-  loopT <**> (fl' $ store (externStorageGen out) result)
-
--- should be identical output to eg7
-eg7' = compile $ do
-  t1 <- matrix
-  v1 <- vector
-  i <- index
-  j <- index
-  c1 <- contraction1
-  let a1 = fmap externGen $ externGen t1
-  let a2 = replicate 5 i $ externGen v1
-  let result = fmap c1 $ mul (fmap2 singleton a1) (fmap2 singleton a2)
-  out <- Ident <$> fresh "t" (cstorage cdouble)
-  loopT <**> (fl' $ store (externStorageGen out) result)
-
-eg8 = compile $ do
+eg8 = run $ do
   out <- storeVec
   t <- vector
   u <- vector
   v <- vector
-  loopT <**> (store (externStorageGen out) (mul (externGen t) $ mul (externGen u) (externGen v)))
+  return (store (externStorageGen out) (mul (externGen t) $ mul (externGen u) (externGen v)))
 
 -- Short operators for constructing expressions
 type VectorGen = GenIV' (Maybe E) (GenIV () E)
@@ -730,30 +682,22 @@ infixl 7 <.>
 infix 2 <--
 (<--) :: Storable a b c => M a -> M b -> M c
 (<--) = liftM2 store
-sum1 x = do
-  contraction1 <*> x
-sum2 x = do
-  liftM fmap contraction1 <*> x
+sum1 x = contraction1 <*> x
+sum2 x = liftM fmap contraction1 <*> x
 sum3 x = do
   c <- contraction1
   (fmap (fmap c)) <$> x
 -- todo fix
-repl1 x = do
-  i <- int
-  replicate 5 i <$> x
+repl1 x = replicate 5 <$> int <*> x
 repl2 x = do
   i <- int
   fmap (replicate 5 i) <$> x
 
-eg9 = compile $ do
-  loopT <*> (down2 <$> (mvar <-- m "A" <.> m "B"))
-eg9' = compile $ do
-  loopT <*> (float <-- sum1 (sum2 (m "A" <.> m "B")))
-
+eg9  = run $ down2 <$> (mvar <-- m "A" <.> m "B")
+eg9' = run $ float <-- sum1 (sum2 (m "A" <.> m "B"))
 -- dot, matrix-vector product, matrix-matrix product
-egVV = compile $
-  loopT <*> (float <-- sum1 (v "u" <.> v "v"))
-egMV = compile $
-  loopT <*> (down <$> (vvar <-- sum2 (m "A" <.> repl1 (v "x"))))
-egMM = compile $
-  loopT <*> (down2 <$> (mvar <-- sum3 (repl2 (m "A") <.> repl1 (m "B"))))
+egVV = run $ float <-- sum1 (v "u" <.> v "v")
+egMV = run $ down <$> (vvar <-- sum2 (m "A" <.> repl1 (v "x")))
+egMM = run $ down2 <$> (mvar <-- sum3 (repl2 (m "A") <.> repl1 (m "B")))
+egVVV = run $ down <$> (vvar <-- (v "u" <.> v "v" <.> v "w"))
+eg6' rows = run $ (float <-- sum1 (sum2 (m "A")))
