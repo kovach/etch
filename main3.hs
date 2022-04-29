@@ -1,6 +1,7 @@
 {-
 
-run, fix code size?
+print output
+fix code size?
 compare taco
 
 fix broadcasting syntax
@@ -156,7 +157,11 @@ range n var =
   in
   Gen { current, value, next, initialize = Skip, reset = Store var 0 }
 
-replicate n v g = const g <$> range n v
+--replicate n v g = const g <$> range n v
+replicateGen n v g =
+  let gen = (const g <$> range n v) in
+    gen { initialize = initialize g :> initialize gen
+        , next = \k -> next gen $ fmap (:> reset g) .> k }
 
 -- a; b
 sequenceGen :: GenIV' i v -> GenIV' i v -> GenIV' i v
@@ -447,7 +452,8 @@ loopT = do
           Nothing -> Jump done
           Just s -> s :> Jump loop) :>
       Label done
-      :> Debug "printf(\"loops: %d\\n\", __i);\n"
+      :> Debug ";"
+      -- :> Debug "printf(\"loops: %d\\n\", __i);\n"
 
 (.>) = flip (.)
 
@@ -484,7 +490,11 @@ flatten outer =
                                        Just inner -> reset inner))
         Just inner  -> next inner $ \mstep -> case mstep of
           Just _ -> k mstep
-          Nothing -> next outer $ k . fmap (:> reset inner)
+          Nothing -> next outer $ \mstep -> case mstep of
+            Nothing -> k Nothing
+            Just step -> k $ Just $ step :> (value outer $ \minner -> case minner of
+              Nothing -> (Comment "nothing")
+              Just inner -> reset inner)
     c k = current outer $ \i1 -> case i1 of
             Nothing -> k Nothing
             Just i1 -> value outer $ \minner -> case minner of
@@ -496,7 +506,8 @@ flatten outer =
     r = reset outer :>
         (value outer $ \minner -> case minner of
             Nothing -> Comment "nothing yet"
-            Just inner -> initialize inner :> reset inner)
+            Just inner -> reset inner)
+            --Just inner -> initialize inner :> reset inner)
     i = initialize outer :> Comment "wrong?"
   in
     Gen { next = n, current = c, value = v, reset = r, initialize = i }
@@ -513,13 +524,13 @@ down3 = fl' . fl' . fl'
 externGen :: E -> Gen
 externGen x =
   let call op = Call (RecordAccess x op) [] in
-  let check op k = If (call "done") (k Nothing) (k (Just $ E $ call op)) in
+  let check  op k = If (call "done") (k Nothing) (k (Just $ E $ call op)) in
   let check' op k = If (call "done") (k Nothing) (k (Just $ call op)) in
   Gen
   { next = check "next"
   , current = check' "current"
   , value = check' "value"
-  , reset = (E $ call "reset")
+  , reset = If (call "done") Skip (E $ call "reset")
   , initialize = Skip
   }
 
@@ -575,7 +586,6 @@ cint = TTAtom SInt
 cstorage x = TTStorage x
 csparse x = TTSparse x
 
-
 contraction1 :: M (GenV UnitGen -> UnitGen)
 contraction1 = do
   acc <- Ident <$> fresh "acc" cdouble
@@ -595,7 +605,10 @@ vector = Ident <$> fresh "v" (csparse (cdouble))
 storeVec = Ident <$> fresh "v" (cstorage (cdouble))
 storeMat = Ident <$> fresh "v" (cstorage (cstorage cdouble))
 
-run = compile . (loopT <*> )
+run mgen = compile $ do
+  gen <- mgen
+  l <- loopT
+  return $ initialize gen :> (l gen)
 
 eg1 = run $ pure $ store (externStorageGen "out") (range 10 "i")
 eg2 = run $ pure $ store (externStorageGen "out1") (externGen "t2")
@@ -659,11 +672,14 @@ type MatrixGen = GenIV' (Maybe E) (GenIV' (Maybe E) (GenIV () E))
 m :: String -> M MatrixGen
 m v = do
   var <- Ident <$> fresh v (csparse (csparse cdouble))
-  return $ fmap (fmap singleton) $ fmap externGen (externGen $ var)
+  let gen = fmap (fmap singleton) $ fmap externGen (externGen $ var)
+  --return $ gen {initialize = Store var (Call "loadmtx" ["\"test.mtx\""]) :> reset gen}
+  return $ gen {initialize = Store var (Call "loadmtx" ["\"cavity11/cavity11.mtx\""])}
 v :: String -> M VectorGen
 v v = do
   var <- Ident <$> fresh v (csparse (cdouble))
-  return $ fmap singleton $ externGen $ var
+  let gen = fmap singleton $ externGen $ var
+  return $ gen { initialize = Store var (Call "loadvec" ["\"cavity11/cavity11_x.mtx\""]) }
 vvar  = do
   var <- Ident <$> fresh "t" (cstorage cdouble)
   return $ externStorageGen var
@@ -688,10 +704,10 @@ sum3 x = do
   c <- contraction1
   (fmap (fmap c)) <$> x
 -- todo fix
-repl1 x = replicate 5 <$> int <*> x
+repl1 x = replicateGen 2597  <$> int <*> x
 repl2 x = do
   i <- int
-  fmap (replicate 5 i) <$> x
+  fmap (replicateGen 5 i) <$> x
 
 eg9  = run $ down2 <$> (mvar <-- m "A" <.> m "B")
 eg9' = run $ float <-- sum1 (sum2 (m "A" <.> m "B"))
@@ -700,4 +716,4 @@ egVV = run $ float <-- sum1 (v "u" <.> v "v")
 egMV = run $ down <$> (vvar <-- sum2 (m "A" <.> repl1 (v "x")))
 egMM = run $ down2 <$> (mvar <-- sum3 (repl2 (m "A") <.> repl1 (m "B")))
 egVVV = run $ down <$> (vvar <-- (v "u" <.> v "v" <.> v "w"))
-eg6' rows = run $ (float <-- sum1 (sum2 (m "A")))
+eg6' = run $ (float <-- sum1 (sum2 (m "A")))
