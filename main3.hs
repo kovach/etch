@@ -1,22 +1,16 @@
 {-
 
-print output
+tests
 fix code size?
 compare taco
 
 fix broadcasting syntax
-
 automatic broadcasting
   index types
-
-generate random sparse matrix
-serialize to something for taco
 
 automatic flatten stores?
 
 modularity over semiring
-
-remove initialize?
 
 insert structural comments into output
 
@@ -45,6 +39,9 @@ import Data.Text (Text, intercalate, unpack, pack, concat)
 import qualified Data.Text.IO as T
 import Data.Function
 import System.Process
+
+
+debug = False
 
 type String = Text
 
@@ -160,7 +157,7 @@ range n var =
 --replicate n v g = const g <$> range n v
 replicateGen n v g =
   let gen = (const g <$> range n v) in
-    gen { initialize = initialize g :> initialize gen
+    gen { initialize = initialize gen :> initialize g
         , next = \k -> next gen $ fmap (:> reset g) .> k }
 
 -- a; b
@@ -453,7 +450,7 @@ loopT = do
           Just s -> s :> Jump loop) :>
       Label done
       :> Debug ";"
-      -- :> Debug "printf(\"loops: %d\\n\", __i);\n"
+      :> if debug then Debug "printf(\"loops: %d\\n\", __i);\n" else Skip
 
 (.>) = flip (.)
 
@@ -468,6 +465,15 @@ initHeader = concat . map (step . mapSnd toCType)
     step (name, CInt) = "index " <> name <> " = 0;\n"
     step (name, t) = typeString t <> " " <> name <> ";\n"
 
+printingSuffix :: SymbolTable -> String
+printingSuffix = concat . mapMaybe (step . mapSnd toCType)
+  where
+    step (name, (CStorage (CStorage CDouble))) =
+      Just $ "printMat_(" <> name <> ");\n"
+    step (name, (CStorage CDouble)) =
+      Just $ "printArray_(" <> name <> ");\n"
+    step _ = Nothing
+
 compile :: M T -> IO ()
 compile t = do
   let outName = "out.cpp"
@@ -478,6 +484,7 @@ compile t = do
       "#include \"prefix.cpp\"\n"
       <> initHeader st
       <> s
+      <> printingSuffix st
       <> "#include \"suffix.cpp\"\n"
 
 flatten :: GenIV i1 (GenIV i2 a) -> GenIV (i1, Maybe i2) a
@@ -530,7 +537,7 @@ externGen x =
   { next = check "next"
   , current = check' "current"
   , value = check' "value"
-  , reset = If (call "done") Skip (E $ call "reset")
+  , reset = E $ call "reset"
   , initialize = Skip
   }
 
@@ -549,12 +556,9 @@ externStorageGen x =
       Just i -> E $ Call (RecordAccess x "skip") [i]
   }
 
-accumulator :: E -> LGenIV () E
-accumulator acc = LGen {gen = singleton (acc), locate = const Skip}
-
 accumulateLoop :: E -> UnitGen -> GenIV () T
 accumulateLoop acc gen =
-  let g = fmap (\e -> Accum acc e) gen
+  let g = fmap (\e -> Accum acc e :> if debug then E (Call "printf" ["\"acc: %f\"", e]) else Skip) gen
   in g { reset      = Store acc 0 :> reset g }
 
 prefixGen t gen = gen { reset = t :> reset gen }
@@ -592,7 +596,7 @@ contraction1 = do
   loop <- loopT
   return $ \v ->
     prefixGen
-      (Store acc 0 :> loop (store (accumulator acc) (fl v)))
+      (Store acc 0 :> loop (store (acc) (fl v)))
       (singleton $ acc)
 
 f <**> a = f <*> (pure a)
@@ -671,15 +675,19 @@ type VectorGen = GenIV' (Maybe E) (GenIV () E)
 type MatrixGen = GenIV' (Maybe E) (GenIV' (Maybe E) (GenIV () E))
 m :: String -> M MatrixGen
 m v = do
+  --let file = "cavity11/cavity11.mtx"
+  let file = "smallM.mtx"
   var <- Ident <$> fresh v (csparse (csparse cdouble))
   let gen = fmap (fmap singleton) $ fmap externGen (externGen $ var)
-  --return $ gen {initialize = Store var (Call "loadmtx" ["\"test.mtx\""]) :> reset gen}
-  return $ gen {initialize = Store var (Call "loadmtx" ["\"cavity11/cavity11.mtx\""])}
+  return $ gen {initialize = Store var (Call "loadmtx" [Ident $ "\"" <> file <> "\""])}
 v :: String -> M VectorGen
 v v = do
+  --let file = "cavity11/cavity_ones.mtx"
+  --let file = "cavity11/cavity11_x.mtx"
+  let file = "smallV.mtx"
   var <- Ident <$> fresh v (csparse (cdouble))
   let gen = fmap singleton $ externGen $ var
-  return $ gen { initialize = Store var (Call "loadvec" ["\"cavity11/cavity11_x.mtx\""]) }
+  return $ gen { initialize = Store var (Call "loadvec" [Ident $ "\"" <> file <> "\""])}
 vvar  = do
   var <- Ident <$> fresh "t" (cstorage cdouble)
   return $ externStorageGen var
@@ -704,7 +712,7 @@ sum3 x = do
   c <- contraction1
   (fmap (fmap c)) <$> x
 -- todo fix
-repl1 x = replicateGen 2597  <$> int <*> x
+repl1 x = replicateGen 3000  <$> int <*> x
 repl2 x = do
   i <- int
   fmap (replicateGen 5 i) <$> x
@@ -714,6 +722,7 @@ eg9' = run $ float <-- sum1 (sum2 (m "A" <.> m "B"))
 -- dot, matrix-vector product, matrix-matrix product
 egVV = run $ float <-- sum1 (v "u" <.> v "v")
 egMV = run $ down <$> (vvar <-- sum2 (m "A" <.> repl1 (v "x")))
+egMV' = run $ down2 <$> (mvar <-- (m "A" <.> repl1 (v "x")))
 egMM = run $ down2 <$> (mvar <-- sum3 (repl2 (m "A") <.> repl1 (m "B")))
 egVVV = run $ down <$> (vvar <-- (v "u" <.> v "v" <.> v "w"))
 eg6' = run $ (float <-- sum1 (sum2 (m "A")))

@@ -48,7 +48,10 @@ class Array : public Skippable<T> {
     i++;
   }
   index current() override { return i; }
-  T& value() override { return values[i]; }
+  T& value() override {
+    //printf("value. i: %i\n", this->i);
+    return values[i];
+  }
   void reset() override {
     //printf("reset. i: %i\n", this->i);
     this->i = 0;
@@ -125,6 +128,7 @@ void put_debug(num* x, int i, num value) {
 }
 
 void printArray(SparseArray<num> x) {
+  cout << "printing array. len: " << x.length << endl;;
   for (int i = 0; i < x.length; i++) {
     printf("(i: %d, v: %f)", x.indices[i], x.values[i]);
   }
@@ -138,9 +142,16 @@ void printMat(SparseArray<SparseArray<num>> x) {
 }
 
 void printArray_(SparseStorageArray<num> x) {
+  cout << "printing array_. len: " << x.length << endl;;
   for (int i = 0; i < x.length; i++) {
     if (abs(x.values[i]) > 0.0000001)
       printf("(i: %d, v: %f)", x.indices[i], x.values[i]);
+  }
+  printf("\n");
+}
+void printMat_(SparseStorageArray<SparseStorageArray<num>> x) {
+  for (int i = 0; i < x.length; i++) {
+    printArray_(x.values[i]);
   }
   printf("\n");
 }
@@ -160,10 +171,13 @@ std::vector<std::string> split(const std::string &s, char delim) {
 // dense
 SparseArray<num> loadvec(string name) {
   ifstream file(name);
+  if (file.fail()) {
+    throw runtime_error("file doesn't exist");
+  }
   string line;
   SparseArray<num> result;
   int skip = 1;
-  index i = 0;
+  index i = 1;
   while(getline(file, line)) {
     auto elems = split(line, ' ');
     if (elems.size() > 0) {
@@ -184,6 +198,9 @@ SparseArray<num> loadvec(string name) {
 
 SparseArray<SparseArray<num>> loadmtx(string name) {
   ifstream file(name);
+  if (file.fail()) {
+    throw runtime_error("file doesn't exist");
+  }
   string line;
   SparseArray<SparseArray<num>> result;
   int skip = 1;
