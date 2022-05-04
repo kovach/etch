@@ -40,7 +40,6 @@ import qualified Data.Text.IO as T
 import Data.Function
 import System.Process
 
-
 debug = False
 
 type String = Text
@@ -435,8 +434,10 @@ fresh n t = do
 
 loopT :: M (GenIV () T -> T)
 loopT = do
-  loop <- freshLabel "loop"
-  done <- freshLabel "done"
+  let loop = "loop"
+  let done = "done"
+  --loop <- freshLabel "loop"
+  --done <- freshLabel "done"
   return $ \g ->
     Block $
       Labels [loop, done] :>
@@ -472,6 +473,8 @@ printingSuffix = concat . mapMaybe (step . mapSnd toCType)
       Just $ "printMat_(" <> name <> ");\n"
     step (name, (CStorage CDouble)) =
       Just $ "printArray_(" <> name <> ");\n"
+    step (name, CDouble) =
+      Just $ "printf(\"" <> name <> ": %f\\n\"," <> name <> ");\n"
     step _ = Nothing
 
 compile :: M T -> IO ()
@@ -595,9 +598,9 @@ contraction1 = do
   acc <- Ident <$> fresh "acc" cdouble
   loop <- loopT
   return $ \v ->
-    prefixGen
+    (prefixGen
       (Store acc 0 :> loop (store (acc) (fl v)))
-      (singleton $ acc)
+      ((singleton $ acc) { initialize = initialize v, reset = reset v }))
 
 f <**> a = f <*> (pure a)
 
