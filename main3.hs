@@ -1,24 +1,24 @@
 {-
 
-tests
+merge branch
+  cleanup T, E
+  cleanup file
+
 fix code size?
+  ! add complete boolean conditions to path
 compare taco
+
+non-scalar contraction
 
 fix broadcasting syntax
 automatic broadcasting
   index types
 
-automatic flatten stores?
-
 modularity over semiring
 
+automatic flatten stores?
+  typeclass for output/flatten
 insert structural comments into output
-
-merge branch
-  cleanup T, E
-  cleanup file
-
-non-scalar contraction
 
 maybe implement semantics bracket?
 -}
@@ -26,6 +26,7 @@ maybe implement semantics bracket?
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PartialTypeSignatures #-}
+module Codegen where
 import Prelude hiding (min, max, replicate, String, concat)
 import Control.Monad (join)
 import Control.Monad.Writer
@@ -55,9 +56,7 @@ type IVar = Text
 data T
   = E E
   | Put E [E] E | Accum E E | Store E E
-  | Label Label | If E T T | Jump Label | (:>) T T | Skip
-  | DeclareInt IVar | FloatInit E
-  | AutoDecl IVar E
+  | Label Label | If E T T | If1 E T | Jump Label | (:>) T T | Skip
   | Comment Text
   | Debug Text
   | Block T
@@ -68,7 +67,6 @@ unreachable s = Comment $ "unreachable: " <> s
 data E
   = Lit Integer | IVar IVar | Ident Text
   | Incr E
-  --- | Index E | Value E | Next E | SkipTo E E
   | Offset E E | BinOp Text E E
   | RecordAccess E Text
   | Call E [E]
@@ -141,7 +139,8 @@ emptyGen :: GenIV i v
 emptyGen = Gen { next = ($ Nothing) , current = ($ Nothing) , value = ($ Nothing) , reset = Skip , initialize = Skip }
 
 singleton :: a -> GenIV () a
-singleton v = Gen { next = ($ Nothing) , current = ($ (Just ())) , value = ($ Just v) , reset = Skip , initialize = Skip }
+singleton v = Gen
+  { next = ($ Nothing) , current = ($ (Just ())) , value = ($ Just v) , reset = Skip , initialize = Skip }
 
 range :: E -> E -> Gen
 range n var =
@@ -255,7 +254,7 @@ mulGen a b =
       Nothing -> k Nothing
       Just ia -> current b $ \ib -> case ib of
         Nothing -> k Nothing
-        Just ib -> max ia ib (k . Just)
+        Just ib -> min ia ib (k . Just)
     v k = current a $ \ia -> case ia of
       Nothing -> k Nothing
       Just ia -> current b $ \ib -> case ib of
@@ -272,6 +271,21 @@ mulGen a b =
       Just ia -> current b $ \ib -> case ib of
         Nothing -> k Nothing
         Just ib -> If (le ia ib) (next a k) (next b k)
+
+    -- potential optimization: include definedness in the next condition; take the max of the children as the next possible non-zero
+    c' k = current a $ \ia -> case ia of
+      Nothing -> k Nothing
+      Just ia -> current b $ \ib -> case ib of
+        Nothing -> k Nothing
+        Just ib -> max ia ib (k . Just)
+    n' k = current a $ \ia -> case ia of
+      Nothing -> k Nothing
+      Just ia -> current b $ \ib -> case ib of
+        Nothing -> k Nothing
+        Just ib -> If (le ia ib) (next a k) $ If (le ib ia) (next b k) $
+          value a $ \va -> case va of
+            Nothing -> next a k
+            Just _ -> next b k
   in
     Gen { current = c, value = v, next = n, initialize = initialize a :> initialize b, reset = reset a :> reset b }
 
@@ -325,7 +339,19 @@ data Context = Context
   , falseConditions :: [E] }
 
 disablePathCondition = False
-pushTrue e c  = if disablePathCondition then c else c { trueConditions = e : trueConditions c}
+negateOp "==" = "!="
+negateOp "!=" = "=="
+negateOp "<" = ">="
+negateOp ">=" = "<"
+negateOp ">" = "<="
+negateOp "<=" = ">"
+--completeNegationCondition _ = []
+completeNegationCondition e@(BinOp "==" a b) = [BinOp "!=" a b, BinOp "<" a b, BinOp "<" b a]
+completeNegationCondition e@(BinOp "<" a b) = [BinOp "==" a b, BinOp ">" a b]
+completeNegationCondition _ = []
+pushTrue e c  = if disablePathCondition then c else c {
+  trueConditions = e : trueConditions c,
+  falseConditions = completeNegationCondition e ++ falseConditions c }
 pushFalse e c = if disablePathCondition then c else c { falseConditions = e : falseConditions c}
 trueElem e c = e `elem` trueConditions c
 falseElem e c = e `elem` falseConditions c
@@ -365,49 +391,72 @@ instance (IsString (M ())) where
 wrapm :: M () -> M ()
 wrapm s = emit "(" >> s >> ")"
 
-evalTrivial :: T -> M Bool
-evalTrivial Skip       = return True
+-- returns Nothing if t can be shown to have no effect
+-- returns a recursively simplified version of t otherwise
+evalTrivial :: T -> M (Maybe T)
+evalTrivial Skip       = return Nothing
+evalTrivial (Comment _) = return Nothing
 evalTrivial (If c t e) = do
   pathCondition <- ask
   if c `trueElem` pathCondition then evalTrivial t else
     if c `falseElem` pathCondition then evalTrivial e else do
-      tt <- evalTrivial t
-      et <- evalTrivial e
-      return $ tt && et
-evalTrivial (a :> b)   = pure (&&) <*> (evalTrivial a) <*> (evalTrivial b)
-evalTrivial _          = return False
+      tt <- local (pushTrue c) $ evalTrivial t
+      et <- local (pushFalse c) $ evalTrivial e
+      return $
+        case (tt, et) of
+          (Nothing, Nothing) -> Nothing
+          (Just t, Nothing) -> Just $ If1 c t
+          _ -> Just $ If c (fromMaybe t tt) (fromMaybe e et)
+
+evalTrivial e@(a :> b) = do
+  ma <- evalTrivial a
+  mb <- local (\_ -> emptyContext) $ evalTrivial b
+  return $ case ma of
+    Nothing -> mb
+    Just a ->
+      case mb of
+        Nothing -> ma
+        Just b -> Just $ a :> b
+evalTrivial e          = return $ Just e
 
 t2c :: T -> M ()
 t2c t = do
     triv <- evalTrivial t
-    if triv then "" else case t of
-      Put l [i] r         -> do { emit "put"; (wrapm $ emit $ intercalate "," (map e2c [l, i, r])); ";" }
-      Put l (i:_) r       -> do { emit "put"; (wrapm $ emit $ intercalate "," (map e2c [l, i, r])); ";" }
-      Accum l r           -> emit $ e2c l <> " += " <> e2c r <>";"
-      Label l             -> emit $ "\n" <> l <> ":\n"
-      Jump  l             -> emit $ "goto " <> l <> ";"
-      Skip                -> ""
-      a :> b              -> t2c a >> local (\_ -> emptyContext) (t2c b)
-      E e                 -> emit $ e2c e <> ";\n"
-      AutoDecl i e        -> emit $ "auto " <> i <> " = " <> e2c e <> ";\n"
-      DeclareInt e        -> emit $ "int " <> e <> " = 0;\n"
-      Store l r           -> emit $ e2c l <> " = " <> e2c r <> ";"
-      FloatInit (Ident v) -> emit $ "num " <> v <> " = 0.0;\n"
-      FloatInit _         -> error "todo, FloatInit"
-      Comment s           -> emit $ "// " <> s <> "\n"
-      Debug s             -> emit s
-      If c t e            -> compileIf c t e
-      Block t             -> emit "{" >> t2c t >> emit "}"
-      Labels ls           -> emit $ "__label__ " <> intercalate "," ls <> ";\n"
-      t                   -> error $ show t
-  where
-    compileIf c t e = do
-      pathCondition <- ask -- some premature code simplification
-      if c `trueElem` pathCondition then t2c t else
-        if c `falseElem` pathCondition then t2c e else do
+    case triv of
+      Nothing -> ""
+      Just t -> case t of
+        Put l [i] r         -> do { emit "put"; (wrapm $ emit $ intercalate "," (map e2c [l, i, r])); ";" }
+        Put l (i:_) r       -> do { emit "put"; (wrapm $ emit $ intercalate "," (map e2c [l, i, r])); ";" }
+        Accum l r           -> emit $ e2c l <> " += " <> e2c r <>";"
+        Label l             -> emit $ "\n" <> l <> ":\n"
+        Jump  l             -> emit $ "goto " <> l <> ";"
+        Skip                -> ""
+        Skip :> Skip              -> "// oops\n"
+        a :> b              -> t2c a >> local (\_ -> emptyContext) (t2c b)
+        E e                 -> emit $ e2c e <> ";\n"
+        Store l r           -> emit $ e2c l <> " = " <> e2c r <> ";"
+        Comment s           -> emit $ "// " <> s <> "\n"
+        Debug s             -> emit s
+        If c t e            -> do
           emit $ "if (" <> e2c c <> ") {" ; local (pushTrue c) (t2c t) ; emit "}";
-          eTriv <- evalTrivial e
-          if eTriv then "" else do emit " else {" ; local (pushFalse c) (t2c e) ; "}"
+          emit " else {" ; local (pushFalse c) (t2c e) ; "}"
+        If1 c t             -> do
+          emit $ "if (" <> e2c c <> ") {" ; local (pushTrue c) (t2c t) ; emit "}";
+        Block t             -> emit "{// block\n" >> t2c t >> emit "}"
+        Labels ls           -> emit $ "__label__ " <> intercalate "," ls <> ";\n"
+        t                   -> error $ show t
+  where
+    --compileIf c t e = do
+    --  pathCondition <- ask -- some premature code simplification
+    --  if c `trueElem` pathCondition then t2c t else
+    --    if c `falseElem` pathCondition then t2c e else do
+    --      emit $ "if (" <> e2c c <> ") {" ; local (pushTrue c) (t2c t) ; emit "}";
+    --      eTriv <- evalTrivial e
+    --      if eTriv then "" else do emit " else {" ; local (pushFalse c) (t2c e) ; "}"
+    --compileIf c t e = do
+    --      emit $ "if (" <> e2c c <> ") {" ; local (pushTrue c) (t2c t) ; emit "}";
+    --      eTriv <- evalTrivial e
+    --      if eTriv then "" else do emit " else {" ; local (pushFalse c) (t2c e) ; "}"
 
 maybeTuple :: (Maybe a1, Maybe a2) -> Maybe (a1, a2)
 maybeTuple = uncurry $ liftM2 (,)
@@ -423,6 +472,13 @@ freshLabel n = do
   (k, m) <- get
   let name = n <> showT k
   put (k+1, m)
+  return $ name
+
+freshBad :: String -> TensorType -> M String
+freshBad n t = do
+  (k, m) <- get
+  let name = n
+  put (k+1, (name, t) : m)
   return $ name
 
 fresh :: String -> TensorType -> M String
@@ -477,6 +533,8 @@ printingSuffix = concat . mapMaybe (step . mapSnd toCType)
       Just $ "printf(\"" <> name <> ": %f\\n\"," <> name <> ");\n"
     step _ = Nothing
 
+disablePrinting = False
+
 compile :: M T -> IO ()
 compile t = do
   let outName = "out.cpp"
@@ -487,7 +545,7 @@ compile t = do
       "#include \"prefix.cpp\"\n"
       <> initHeader st
       <> s
-      <> printingSuffix st
+      <> (if disablePrinting then "" else printingSuffix st)
       <> "#include \"suffix.cpp\"\n"
 
 flatten :: GenIV i1 (GenIV i2 a) -> GenIV (i1, Maybe i2) a
@@ -568,8 +626,6 @@ prefixGen t gen = gen { reset = t :> reset gen }
 
 class Storable l r out where
   store :: l -> r -> out
-instance Storable E E T where
-  store loc val = Accum loc val
 instance Storable E UnitGen (GenIV () T) where
   store = accumulateLoop
 instance (Storable l r out) =>
@@ -595,6 +651,7 @@ csparse x = TTSparse x
 
 contraction1 :: M (GenV UnitGen -> UnitGen)
 contraction1 = do
+  --let acc = "acc"
   acc <- Ident <$> fresh "acc" cdouble
   loop <- loopT
   return $ \v ->
@@ -617,69 +674,13 @@ run mgen = compile $ do
   l <- loopT
   return $ initialize gen :> (l gen)
 
-eg1 = run $ pure $ store (externStorageGen "out") (range 10 "i")
-eg2 = run $ pure $ store (externStorageGen "out1") (externGen "t2")
-eg3 = compile $ do
-  let tv x = Call "toVal" [x]
-  out1 <- storeVec
-  out2 <- storeVec
-  out <- storeVec
-  v1 <- vector
-  v2 <- vector
-  i <- index
-  let n = 5
-  b1 <- (loopT <**> (store (externStorageGen out1) (range n i)))
-  b2 <- (loopT <**> (store (externStorageGen out2) (range n i)))
-  b3 <- (loopT <**> (store (externStorageGen out) (mul (externGen v1) (externGen v2))))
-  return $ b1 :> b2 :> Store v1 (tv out1) :> Store v2 (tv out2) :> b3 :> E (Call "printArray_" [out])
-eg3' = compile $ do
-  let tv x = Call "toVal" [x]
-  out <- storeVec
-  v1 <- vector
-  v2 <- vector
-  i <- index
-  b3 <- (loopT <**> (store (externStorageGen out) (mul (externGen v1) (externGen v2))))
-  return $  b3 :> E (Call "printArray_" [out])
-eg4 = compile $ do
-  let p = (fl' $ (store (externStorageGen "out2" & fmap externStorageGen) (range 10 "i" & fmap (const $ range 20 "j")))) :: GenIV () T
-  b1 <- (loopT <**> p)
-  return b1
-eg5 = compile $ do
-  i <- index
-  j <- index
-  let expr = range 10 i & fmap (singleton)
-  out1 <- contraction1 <*> pure expr
-  acc <- accum "out_acc"
-  b1 <- loopT <**> accumulateLoop acc out1
-  return $ b1 :> Debug ("printf(\"result: %.1f\\n\", " <> e2c acc <> ");\n")
-
--- double contraction
-eg6 rows = compile $ do
-  i <- Ident <$> fresh "i" cint
-  j <- Ident <$> fresh "j" cint
-  let expr = range rows i & fmap (const (range 4 j) .> fmap (singleton ))
-  c1 <- contraction1
-  c2 <- contraction1
-  let out1 = fmap c1 expr
-  let out2 = c2 out1
-  acc <- Ident <$> fresh "out_acc" cdouble
-  b1 <- loopT <**> accumulateLoop acc out2
-  return $ b1 :> Debug ("printf(\"result: %.1f\\n\", " <> e2c acc <> ");\n")
-
-eg8 = run $ do
-  out <- storeVec
-  t <- vector
-  u <- vector
-  v <- vector
-  return (store (externStorageGen out) (mul (externGen t) $ mul (externGen u) (externGen v)))
-
 -- Short operators for constructing expressions
 type VectorGen = GenIV' (Maybe E) (GenIV () E)
 type MatrixGen = GenIV' (Maybe E) (GenIV' (Maybe E) (GenIV () E))
 m :: String -> M MatrixGen
 m v = do
-  --let file = "cavity11/cavity11.mtx"
-  let file = "smallM.mtx"
+  let file = "cavity11/cavity11.mtx"
+  --let file = "smallM.mtx"
   var <- Ident <$> fresh v (csparse (csparse cdouble))
   let gen = fmap (fmap singleton) $ fmap externGen (externGen $ var)
   return $ gen {initialize = Store var (Call "loadmtx" [Ident $ "\"" <> file <> "\""])}
@@ -720,12 +721,13 @@ repl2 x = do
   i <- int
   fmap (replicateGen 5 i) <$> x
 
-eg9  = run $ down2 <$> (mvar <-- m "A" <.> m "B")
-eg9' = run $ float <-- sum1 (sum2 (m "A" <.> m "B"))
+egMdotM  = run $ down2 <$> (mvar <-- m "A" <.> m "B")
+egMMM  = run $ down2 <$> (mvar <-- m "A" <.> m "B" <.> m "C")
+egMdotMSum = run $ float <-- sum1 (sum2 (m "A" <.> m "B"))
 -- dot, matrix-vector product, matrix-matrix product
 egVV = run $ float <-- sum1 (v "u" <.> v "v")
 egMV = run $ down <$> (vvar <-- sum2 (m "A" <.> repl1 (v "x")))
 egMV' = run $ down2 <$> (mvar <-- (m "A" <.> repl1 (v "x")))
 egMM = run $ down2 <$> (mvar <-- sum3 (repl2 (m "A") <.> repl1 (m "B")))
 egVVV = run $ down <$> (vvar <-- (v "u" <.> v "v" <.> v "w"))
-eg6' = run $ (float <-- sum1 (sum2 (m "A")))
+egMSum = run $ (float <-- sum1 (sum2 (m "A")))

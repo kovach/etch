@@ -86,8 +86,6 @@ class SparseArray : public Array<T> {
   }
 };
 
-class SparseVec : public SparseArray<num> {};
-
 template <typename T>
 class SparseStorageArray : public SparseArray<T> {
   public:
@@ -96,9 +94,6 @@ class SparseStorageArray : public SparseArray<T> {
   std::vector<T> values;
   public:
   bool done() override { return false; }
-  T* value_ref() {
-    return &this->values.at(this->i);
-  }
   void skip(index j) override {
     //cout << "skipping: " << j << endl;
     assert(this->length == 0 || j >= this->current());
@@ -109,6 +104,9 @@ class SparseStorageArray : public SparseArray<T> {
       this->i = this->length;
       this->length++;
     }
+  }
+  T* value_ref() {
+    return &this->values.at(this->i);
   }
 };
 
