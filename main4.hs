@@ -108,6 +108,23 @@ instance HasTop () where
 
 ------- Begin Gen combinators -------
 
+loopT :: GenIV () T -> T
+loopT g =
+  let loop = "loop" in
+  let done = "done" in
+  Block $
+    Labels [loop, done] :>
+    reset g :>
+    Debug "__i = 0;" :>
+    Label loop :>
+    Debug "__i++;" :>
+    If (ready g) (value g) Skip :>
+    (next g $ \ms -> case ms of
+        Nothing -> Jump done
+        Just s -> s :> Jump loop) :>
+    Label done
+    :> if debug then Debug "printf(\"loops: %d\\n\", __i);\n" else Skip
+
 emptyGen :: GenIV () v
 emptyGen = Gen
   { current = top , value = sorry
@@ -211,13 +228,13 @@ flatten outer =
   , initialize = initialize outer :> initialize inner -- ?
   }
 
-contraction :: E -> GenV UnitGen -> UnitGen
-contraction acc v =
-    (prefixGen
-      (Store acc 0 :> loopT (store acc (fl v)))
-      ((singleton $ acc) { initialize = initialize v, reset = reset v }))
-  where
-    prefixGen t gen = gen { reset = t :> reset gen }
+fl :: GenIV i1 (GenIV i2 a) -> GenIV i2 a
+fl = flatten .> imap snd
+-- needed for type inference
+fl' :: GenIV () (GenIV () a) -> GenIV () a
+fl' = fl
+down = fl'
+down2 = fl' . fl'
 
 class Storable l r out where
   store :: l -> r -> out
@@ -237,6 +254,14 @@ instance (Storable l r out) =>
     , reset = reset (gen l) :> reset r :> locate l (current r)
     , initialize = initialize (gen l) :> initialize r
     }
+
+contraction :: E -> GenV UnitGen -> UnitGen
+contraction acc v =
+  prefixGen
+    (Store acc 0 :> loopT (store acc (fl v)))
+    ((singleton acc) { initialize = initialize v, reset = reset v })
+  where
+    prefixGen t gen = gen { reset = t :> reset gen }
 
 ------- End Gen combinators -------
 
@@ -351,7 +376,7 @@ t2c t = do
       Put l (i:_) r       -> do { emit "put"; (wrapm $ emit $ intercalate "," (map e2c [l, i, r])); ";" }
       Accum l r           -> emit $ e2c l <> " += " <> e2c r <>";"
       Next i              -> emit $ e2c i <> "++" <> ";"
-      Label l             -> emit $ "\n" <> l <> ":\n"
+      Label l             -> emit $ "\n" <> l <> ":;\n"
       Jump  l             -> emit $ "goto " <> l <> ";"
       Skip                -> ""
       Skip :> Skip              -> "// oops\n"
@@ -370,31 +395,6 @@ t2c t = do
       t                   -> error $ show t
 
 debug = False
-loopT :: GenIV () T -> T
-loopT g =
-  let loop = "loop" in
-  let done = "done" in
-  Block $
-    Labels [loop, done] :>
-    reset g :>
-    Debug "__i = 0;" :>
-    Label loop :>
-    Debug "__i++;" :>
-    If (ready g) (value g) Skip :>
-    (next g $ \ms -> case ms of
-        Nothing -> Jump done
-        Just s -> s :> Jump loop) :>
-    Label done
-    :> Debug ";"
-    :> if debug then Debug "printf(\"loops: %d\\n\", __i);\n" else Skip
-
-fl :: GenIV i1 (GenIV i2 a) -> GenIV i2 a
-fl = flatten .> imap snd
--- needed for type inference
-fl' :: GenIV () (GenIV () a) -> GenIV () a
-fl' = fl
-down = fl'
-down2 = fl' . fl'
 
 compile :: M T -> IO ()
 compile t = do
