@@ -157,6 +157,7 @@ void printArray_(SparseStorageArray<num> x) {
 }
 void printMat_(SparseStorageArray<SparseStorageArray<num>> x) {
   for (int i = 0; i < x.length; i++) {
+    printf("i: %d | ", x.indices[i]);
     printArray_(x.values[i]);
   }
   printf("\n");
