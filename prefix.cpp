@@ -15,6 +15,12 @@
 
 using namespace std;
 
+index min(index a, index b) {
+  return (a < b) ? a : b;
+}
+
+index foo;
+
 template <typename T>
 class Iter {
   public:
@@ -38,7 +44,7 @@ class Array : public Skippable<T> {
   index i = 0;
   int length = 0;
   std::vector<T> values;
-  public:
+
   bool done() override {
     //printf("done. i: %i, length: %i\n", this->i, this->length);
     return i >= length;
@@ -47,7 +53,7 @@ class Array : public Skippable<T> {
     //printf("next. i: %i\n", this->i);
     i++;
   }
-  index current() override { return i; }
+  index current() override { return this->i; }
   T& value() override {
     //printf("value. i: %i\n", this->i);
     return values[i];
@@ -65,9 +71,8 @@ class SparseArray : public Array<T> {
   public:
   std::vector<index> indices;
 
-  public:
   index current() override {
-    return indices[this->i];
+    return this->indices[this->i];
   }
   void skip(index j) override {
     while (this->i < this->length && indices[this->i] < j) this->i++;
@@ -81,6 +86,10 @@ class SparseArray : public Array<T> {
       this->i = this->length++;
     }
   }
+  void terminate(index max) {
+    this->indices.push_back(max);
+    this->values.emplace_back();
+  }
   T* value_ref() {
     return &this->values.at(this->i);
   }
@@ -89,20 +98,19 @@ class SparseArray : public Array<T> {
 template <typename T>
 class SparseStorageArray : public SparseArray<T> {
   public:
-  index i = 0;
-  int length = 0;
-  std::vector<T> values;
-  public:
+
   bool done() override { return false; }
   void skip(index j) override {
     //cout << "skipping: " << j << endl;
-    assert(this->length == 0 || j >= this->current());
+    if (!(this->length == 0 || j >= this->current())) {
+      cout << "l: " << this->length << " j: " << j << " cur: " << this->current() << endl;
+      assert(false);
+    }
     if (this->length == 0 || j != this->current()) {
       this->indices.push_back(j);
-      //this->values.push_back(T());
       this->values.emplace_back();
-      this->i = this->length;
-      this->length++;
+      this->i = this->indices.size() - 1;
+      this->length = this->indices.size();
     }
   }
   T* value_ref() {
@@ -142,8 +150,8 @@ void printMat(SparseArray<SparseArray<num>> x) {
 void printArray_(SparseStorageArray<num> x) {
   cout << "printing array_. len: " << x.length << endl;;
   for (int i = 0; i < x.length; i++) {
-    if (abs(x.values[i]) > 0.0000001)
-      printf("(i: %d, v: %f)", x.indices[i], x.values[i]);
+    //if (abs(x.values[i]) > 0.0000001)
+    printf("(i: %d, v: %f)", x.indices[i], x.values[i]);
   }
   printf("\n");
 }
@@ -188,9 +196,11 @@ SparseArray<num> loadvec(string name) {
       }
     }
   }
+  result.terminate(i);
+
   result.reset();
   printf("loadvec:\n");
-  //printArray(result);
+  printArray(result);
   return result;
 }
 
@@ -202,16 +212,22 @@ SparseArray<SparseArray<num>> loadmtx(string name) {
   string line;
   SparseArray<SparseArray<num>> result;
   int skip = 1;
+  int i_max, j_max;
   while(getline(file, line)) {
     auto elems = split(line, ' ');
     if (elems.size() > 0) {
       if (elems[0][0] == '%') continue;
-      if (skip-- > 0) {continue;}
+      if (skip-- > 0) {
+	i_max = atoi(elems[1].c_str())+1;
+	j_max = atoi(elems[0].c_str())+1;
+	continue;
+      }
       {
 	index i = atoi(elems[1].c_str());
 	index j = atoi(elems[0].c_str());
 	num val = atof(elems[2].c_str());
 	if (result.length > 0 && i != result.current()) {
+	  result.value().terminate(j_max);
 	  result.value().reset();
 	}
 	result.push(i);
@@ -220,7 +236,10 @@ SparseArray<SparseArray<num>> loadmtx(string name) {
       }
     }
   }
+  result.value().terminate(j_max);
   result.value().reset();
+  result.terminate(i_max);
+  //result.value().terminate(j_max);
   result.reset();
   printf("loadmtx:\n");
   //printMat(result);
