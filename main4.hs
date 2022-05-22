@@ -1,5 +1,5 @@
 {-
-simplify booleans?
+add addGen
 -}
 {-# LANGUAGE FlexibleInstances,MultiParamTypeClasses #-}
 {-# LANGUAGE NamedFieldPuns #-}
@@ -77,7 +77,6 @@ data T
   | Skip
   deriving (Show, Eq)
 
-
 data GenIV i v = Gen
   { current    :: i , value      :: v
   , ready      :: E , empty      :: E
@@ -132,7 +131,7 @@ repeat :: E -> GenIV i a -> GenV (GenIV i a)
 repeat var v = Gen
   { current = var , value = v
   , ready = 1 , empty = 0
-  , next = \k -> k . Just $ Next var
+  , next = \k -> k . Just $ Next var :> reset v
   , reset = Store var 0 , initialize = initialize v
   }
 
@@ -192,7 +191,7 @@ externStorageGen x =
   let g = externGen x in
   let call op = Call (RecordAccess x op) in
   LGen
-  { gen = g { value = Deref $ call "value_ref" [] }
+  { gen = g { value = call "value" [] }
   , locate = \i -> E $ call "skip" [i]
   }
 
@@ -209,8 +208,16 @@ flatten outer =
         Nothing -> k Nothing
         Just s -> k . Just $ s :> If1 (ready outer) (reset inner)
   , reset = reset outer :> reset inner
-  , initialize = initialize outer -- ?
+  , initialize = initialize outer :> initialize inner -- ?
   }
+
+contraction :: E -> GenV UnitGen -> UnitGen
+contraction acc v =
+    (prefixGen
+      (Store acc 0 :> loopT (store acc (fl v)))
+      ((singleton $ acc) { initialize = initialize v, reset = reset v }))
+  where
+    prefixGen t gen = gen { reset = t :> reset gen }
 
 class Storable l r out where
   store :: l -> r -> out
@@ -389,17 +396,6 @@ fl' = fl
 down = fl'
 down2 = fl' . fl'
 
-contraction1 :: M (GenV UnitGen -> UnitGen)
-contraction1 = do
-  acc <- Ident <$> fresh "acc" cdouble
-  return $ \v ->
-    (prefixGen
-      (Store acc 0 :> loopT (store acc (fl v)))
-      ((singleton $ acc) { initialize = initialize v, reset = reset v }))
-  where
-    prefixGen t gen = gen { reset = t :> reset gen }
-
-
 compile :: M T -> IO ()
 compile t = do
   let outName = "out4.cpp"
@@ -492,10 +488,15 @@ infixl 7 <.>
 infix 2 <--
 (<--) :: Storable a b c => M a -> M b -> M c
 (<--) = liftM2 store
-sum1 x = contraction1 <*> x
-sum2 x = liftM fmap contraction1 <*> x
+
+contractionM :: M (GenV UnitGen -> UnitGen)
+contractionM = do
+  acc <- Ident <$> fresh "acc" cdouble
+  return $ contraction acc
+sum1 x = contractionM <*> x
+sum2 x = liftM fmap contractionM <*> x
 sum3 x = do
-  c <- contraction1
+  c <- contractionM
   (fmap (fmap c)) <$> x
 repl1 x = repeat <$> int <*> x
 repl2 x = do
