@@ -1,9 +1,9 @@
--- main definition: iter
 import algebra
 import algebra.group
 import algebra.group.defs
 import logic.relation
 import order.lexicographic
+import declare
 
 instance i1 (k : ℕ) : has_top (fin k.succ) := ⟨k⟩
 -- todo instance i2 : linear_order unit := sorry
@@ -13,19 +13,49 @@ instance i1 (k : ℕ) : has_top (fin k.succ) := ⟨k⟩
 universes u v
 variables (α β : Type*)
 
-def emit_type (I V : Type) := option (I × option V)
+def emit_type (I V : Type*) := option (I × option V)
 
-structure iter (σ I V : Type) :=
+structure iter (σ I V : Type*) :=
   (δ : function.End σ)
   (emit : σ → emit_type I V)
+
+def_declare one := "variables {σ I V : Type} [linear_order I] (a : iter σ I V)"
+def_declare two := "variables {σ₁ σ₂ I I₁ I₂ V V₁ V₂ V₃ : Type} [linear_order I] [linear_order I₁] [linear_order I₂] (a : iter σ₁ I V₁) (b : iter σ₂ I V₂)"
+def_declare add := "variables (add : V₁ → V₂ → V₃) [has_zero V₁] [has_zero V₂] [has_zero V₃]"
+def_declare mul := "variables (mul : V₁ → V₂ → V₃)"
 
 namespace iter
 
 section params_unary
-variables {σ I V : Type} [linear_order I] (a : iter σ I V) (s t : σ)
+variables {σ I V : Type} (a : iter σ I V) (s t : σ)
 
 def ι : with_top I := match a.emit s with | none := none | some (i, _) := some i end
 def ν :   option V := match a.emit s with | none := none | some (_, v) := v end
+--def ν :   option V := option.bind (a.emit s) prod.snd
+
+section semantics
+variables [add_monoid V] [decidable_eq I]
+
+def elementary (i : I) (v : V) := λ j, if i = j then v else 0
+
+@[simp] def semantics₁ (s : σ) : I → V :=
+  match a.emit s with
+  | none := 0
+  | some (i, none) := 0
+  | some (i, some v) := elementary i v
+  end
+
+@[simp] def semantics : σ → ℕ → I → V
+| _ 0 := 0
+| s (n+1) := a.semantics₁ s + semantics (a.δ s) n
+
+--notation `⟦` a, s `⟧` := a.semantics s
+notation `⟦` a, s, j `⟧` := a.semantics s j
+--example (j : ℕ) : ∀ i:I, ⟦a, s, j⟧ i = ⟦a, s⟧ j i := λ _, rfl
+
+end semantics
+
+variables [linear_order I]
 
 def reachable := relation.refl_trans_gen (λ s t, t = a.δ s)
 
@@ -42,7 +72,8 @@ def monotonic          := ∀ (s t : σ), a.reachable s t → a.ι s ≤ a.ι t
 def terminal   (s : σ) := a.ι s = ⊤
 def finite     (s : σ) := ∃ (t : σ), reachable a s t ∧ terminal a t
 def productive (s : σ) := ν a s ≠ none
-def strict             := ∀ (s t : σ), productive a s → productive a t → ι a s = ι a t → s = t
+def reduced    (s : σ) := ∀ (t t' : σ), a.reachable s t → a.reachable s t' →
+  productive a t → productive a t' → ι a t = ι a t' → t = t'
 
 def future (s : σ) : set σ := { t | reachable a s t ∧ ¬ terminal a t}
 @[simp] def terminal_by (s : σ) (i : ℕ) := a.terminal (a.step s i)
@@ -87,28 +118,6 @@ lemma index_of_path {a : iter σ I V} {s t} : a.reachable s t → ∃ (i: ℕ), 
   }
 end
 
-section semantics
-variables [add_monoid V]
-
-def elementary (i : I) (v : V) := λ j, if i = j then v else 0
-
-@[simp] def semantics₁ (s : σ) : I → V :=
-  match a.emit s with
-  | none := 0
-  | some (i, none) := 0
-  | some (i, some v) := elementary i v
-  end
-
-@[simp] def semantics : σ → ℕ → I → V
-| _ 0 := 0
-| s (n+1) := a.semantics₁ s + semantics (a.δ s) n
-
---notation `⟦` a, s `⟧` := a.semantics s
-notation `⟦` a, s, j `⟧` := a.semantics s j
---example (j : ℕ) : ∀ i:I, ⟦a, s, j⟧ i = ⟦a, s⟧ j i := λ _, rfl
-
-end semantics
-
 section lemmas
 
 lemma ι_top_emit_none {a : iter σ I V} {s} : a.ι s = ⊤ ↔ a.emit s = none := begin
@@ -121,8 +130,10 @@ split; intro h1,
 end
 
 @[simp]
-theorem terminal_succ_terminal {a : iter σ I V} (m : a.monotonic) (h : a.terminal t) : a.terminal (a.δ t) := begin
-simp only [terminal] at *, apply none_top, rw ←h, exact m _ _ (transition.step _) end
+theorem terminal_succ_terminal {a : iter σ I V} (m : a.monotonic) (h : a.terminal t) : a.terminal (a.δ t) :=
+begin
+simp only [terminal] at *, apply none_top, rw ←h, exact m _ _ (transition.step _)
+end
 
 @[simp]
 theorem emit_none_of_terminal {a : iter σ I V} {t} : a.terminal t → a.emit t = none := begin
@@ -130,31 +141,37 @@ intro h, simp only [terminal] at h, exact ι_top_emit_none.1 h,
 end
 
 end lemmas
-
 end params_unary
-
 end iter
 
-structure stream (σ I V : Type) :=
+structure stream (σ I V : Type*) :=
   (q : σ)
   (iter : iter σ I V)
 
 namespace stream
-variables {σ I V : Type} [linear_order I] (s : stream σ I V)
+variables {σ I V : Type} (s : stream σ I V)
+
+@[simp] def ι := s.iter.ι s.q
+@[simp] def ν := s.iter.ν s.q
 
 @[simp] def δ {σ I V} (s : stream σ I V) : stream σ I V :=
-{iter := s.iter, q := s.iter.δ s.q}
+{ q := s.iter.δ s.q .. s}
 
-@[simp] def semantics [add_monoid V] : stream σ I V → ℕ → I → V
-| _ 0 := 0
-| s (n+1) := s.iter.semantics₁ s.q + (s.δ).semantics n
+@[simp] def emit : emit_type I V := s.iter.emit s.q
 
-@[simp] def terminal_by (i : ℕ) := s.iter.terminal (s.iter.step s.q i)
+variables [decidable_eq I]
+
+@[simp] def semantics₁ [add_monoid V] (s : stream σ I V) : I → V
+:= s.iter.semantics₁ s.q
+-- simp?
+@[simp] def semantics [add_monoid V] (s : stream σ I V) : ℕ → I → V
+:= s.iter.semantics s.q
 notation `⟦` s, i `⟧` := s.semantics i
 
-lemma stream_semantics {i} [add_monoid V] (s : stream σ I V) : s.semantics i = s.iter.semantics s.q i := begin
-induction i with generalizing s; simp only [iter.semantics, semantics],
-simp only [*, stream.δ],
-end
+variables [linear_order I]
+
+@[simp] def terminal_by (i : ℕ) := s.iter.terminal_by s.q i
+
+@[simp] def monotonic := s.iter.monotonic
 
 end stream
