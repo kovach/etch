@@ -14,7 +14,6 @@ def vectorFile := "smallV.mtx"
 
 @[reducible] def Ident := string
 @[reducible] def Label := string
---def IVar := string
 
 @[derive [decidable_eq, fintype]]
 inductive BinOp
@@ -70,8 +69,6 @@ instance : has_coe_to_fun BinOp BinOp.mk_type := ⟨BinOp.mk⟩
 
 infixl ` && `:70 := BinOp.and
 infixl ` || `:65 := BinOp.or
-
---#reduce (1024 : E)
 
 /-- Statements for a simple imperative language, including sequencing. -/
 inductive Prog
@@ -341,7 +338,6 @@ structure MState :=
 (symbolTable : SymbolTable)
 (buffer : buffer char)
 
-#check has_emptyc
 instance : has_emptyc MState := ⟨⟨0, ∅, buffer.nil⟩⟩
 
 @[reducible] def M := state_t MState (writer_t mstring (reader Context))
@@ -509,6 +505,7 @@ def compile (prog : M Prog) : io unit :=
   io.cmd {cmd := "clang-format", args := ["-i", outName]},
   return ()
 
+-- writes a file
 --#eval compile (return $ Prog.expr $ E.lit 222)
 
 end codegen
@@ -558,24 +555,13 @@ def floatVar := E.ident <$> fresh "v" cdouble
 def intVar := E.ident <$> fresh "v" cint
 end input_combinators
 
-#print notation
-#check has_mul.mul
-#check monad_lift
-#check Accumulable.accum
 variables {ι ι' α : Type}
 
 def liftM2 {α β γ} {m} [monad m] : (α → β → γ) → m α → m β → m γ
-| f a b := do
-  a ← a,
-  b ← b,
-  return (f a b)
+| f a b := do a ← a, b ← b, return (f a b)
 
 infixl ` <.> `:70 := liftM2 has_mul.mul
---infixl ` <.> `:70 := λ {α} [has_mul α] (a b : M α), ((*) <$> a) <*> b
---def storeM {α β γ} [Accumulable α β γ] : M α → M β → M γ := do
-
 infixl ` <~ `:20 := liftM2 Accumulable.accum
---infixl ` <~ `:20 := λ {α} [Accumulable α] (a b : M α), (Accumulable.accum <$> a) <*> b
 
 def contractionM : M (Gen E (Gen unit E) → Gen unit E) := do
   acc <- E.ident <$> fresh "acc" cdouble,
@@ -592,16 +578,13 @@ def sum3 (x : M CubeGen) : M MatrixGen := do
 
 def repl1  (x : M (Gen ι α)) : M (Gen E (Gen ι α)) := repeat <$> intVar <*> x
 def repl2  (x : M (Gen ι (Gen ι' α))) : M (Gen ι (Gen E (Gen ι' α))) := do
-i ← intVar,
-(functor.map (repeat i)) <$> x
+i ← intVar, (functor.map (repeat i)) <$> x
 
 def down : Gen unit (Gen unit α) → Gen unit α := flatten_snd
 def down2 : Gen unit (Gen unit (Gen unit α)) → Gen unit α := down ∘ down
 
 def toProg (g : M (Gen unit Prog)) : Prog :=
-  let g := runM' g,
-      prog := g.initialize <;> loopT g
-  in prog
+  let g := runM' g in g.initialize <;> loopT g
 
 def toStr (g : M (Gen unit Prog)) : string :=
   let g := runM $ do
@@ -617,4 +600,5 @@ def egVV : M (Gen unit Prog) := down <$> (vvar <~ v "u")
 
 -- timeout
 --#eval toStr egVV
+-- sanity check ok
 #eval toStr $ return $ singletonGen Prog.skip
