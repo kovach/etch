@@ -3,3 +3,6 @@
 junk/
 /_target
 /leanpkg.path
+out*.cpp
+*.asm
+TAGS
