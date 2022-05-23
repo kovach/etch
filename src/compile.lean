@@ -7,6 +7,10 @@ def debug : bool := ff
 def disablePathCondition : bool := ff
 def disablePrinting := ff
 def disableMatrixPrinting := ff
+def matrixFile := "smallM.mtx"
+--def matrixFile := "cavity11/cavity11.mtx"
+def vectorFile := "smallV.mtx"
+--def vectorFile := "cavity11/cavity_ones.mtx"
 
 @[reducible] def Ident := string
 @[reducible] def Label := string
@@ -288,33 +292,27 @@ end combinators
 
 section codegen
 
-structure Context :=
-(true_conditions : list E)
-(false_conditions : list E)
+inductive ValueType | int | float
 
-inductive SemiringType | SInt | SFloat
-
-open SemiringType
+open ValueType
 
 inductive TensorType
-| TTAtom (ty : SemiringType)
-| TTStorage (ty : TensorType)
-| TTSparse (ty : TensorType)
+| atom (ty : ValueType)
+| storage (ty : TensorType)
+| sparse (ty : TensorType)
 
 open TensorType
 
 inductive CType
-| CDouble | CInt | CStorage (ty : CType) | CSparse (ty : CType)
-
-open CType
+| double | int | storage (ty : CType) | sparse (ty : CType)
 
 namespace TensorType
 
 def toCType : TensorType → CType
-| (TTAtom SInt) := CInt
-| (TTAtom SFloat) := CDouble
-| (TTStorage t) := CStorage (toCType t)
-| (TTSparse t) := CSparse (toCType t)
+| (atom ValueType.int) := CType.int
+| (atom ValueType.float) := CType.double
+| (storage t) := CType.storage (toCType t)
+| (sparse t) := CType.sparse (toCType t)
 
 end TensorType
 
@@ -325,24 +323,32 @@ def to_list : SymbolTable → list (string × TensorType)
 | st := st.entries.map (λ p, (p.1, p.2))
 end SymbolTable
 
-def mstring := string
-instance : has_one mstring := ⟨""⟩
-instance : has_mul mstring := ⟨string.append⟩
+def mstring := buffer char
+--instance : has_one mstring := ⟨""⟩
+--instance : has_mul mstring := ⟨string.append⟩
+instance : has_one mstring := ⟨buffer.nil⟩
+instance : has_mul mstring := ⟨buffer.append⟩
 
-@[reducible] def M := state_t (ℕ × SymbolTable) (writer_t mstring (reader Context))
+structure Context :=
+(true_conditions : list E)
+(false_conditions : list E)
 
 def emptyContext := Context.mk [] []
+
+--instance {α} : has_mul (buffer α) := ⟨buffer.append⟩
+@[reducible] def M := state_t (ℕ × SymbolTable) (writer_t mstring (reader Context))
 
 def symbolType (s : string) : M TensorType :=
 do
   (_, m) ← get,
   match m.lookup s with
   | some r := return r
-  | none := return (TTAtom SInt) -- todo
+  | none := return (atom ValueType.int) -- todo
   end
 
+def runM' {α} (m : M α) : α := ((m.run (0, ∅)).run.run emptyContext).fst.fst
 def runM (m : M unit) : SymbolTable × string :=
-((prod.snd <$> m.run (0, ∅)).run.run emptyContext).map prod.snd id
+((prod.snd <$> m.run (0, ∅)).run.run emptyContext).map prod.snd buffer.to_string
 
 /-! evalTrivial: janky path condition simulator -/
 
@@ -418,8 +424,8 @@ def E.to_c : E → string
 | (E.record_access e f)      := e.to_c ++ "." ++ f
 | (E.ternary c t e)          := wrap $ wrap c.to_c ++ "?" ++ t.to_c ++ ":" ++ e.to_c
 
-def emit (s : string) : M unit := tell s
-def emitLine (s : string) : M unit := do tell s, tell ";"
+def emit (s : string) : M unit := tell s.to_char_buffer
+def emitLine (s : string) : M unit := do emit $ s ++ ";"
 
 namespace Prog
 
@@ -448,15 +454,15 @@ def to_c : Prog → M unit
 end Prog
 
 def CType.to_c : CType → string
-| CDouble := "num"
-| CInt := "index"
-| (CStorage t) := "SparseStorageArray<" ++ t.to_c ++ ">"
-| (CSparse t) := "SparseArray<" ++ t.to_c ++ ">"
+| CType.double := "num"
+| CType.int := "index"
+| (CType.storage t) := "SparseStorageArray<" ++ t.to_c ++ ">"
+| (CType.sparse t) := "SparseArray<" ++ t.to_c ++ ">"
 
 def toDecl : string × CType → string | (name, ctype) :=
   match ctype with
-  | CDouble := "num " ++ name ++ " := 0;\n"
-  | CInt := "index " ++ name ++ " = 0;\n"
+  | CType.double := "num " ++ name ++ " := 0;\n"
+  | CType.int := "index " ++ name ++ " = 0;\n"
   | t := t.to_c ++ " " ++ name ++ ";\n"
   end
 
@@ -465,11 +471,11 @@ string.join ∘ list.map (toDecl ∘ prod.map id TensorType.toCType) ∘ SymbolT
 
 def toPrintStatement : string × CType → option string | (name, ctype) :=
 match ctype with
-| CStorage (CStorage CDouble) :=
+| CType.storage (CType.storage CDouble) :=
 if disableMatrixPrinting then none else some $ "printMat_(" ++ name ++ ");\n"
-| CStorage CDouble :=
+| CType.storage CDouble :=
 if disableMatrixPrinting then none else some $ "printArray_(" ++ name ++ ");\n"
-| CDouble := some $ "printf(\"" ++ name ++ ": %f\\n\"," ++ name ++ ");\n"
+| CType.double := some $ "printf(\"" ++ name ++ ": %f\\n\"," ++ name ++ ");\n"
 | _ := none
 end
 
@@ -496,3 +502,107 @@ def compile (prog : M Prog) : io unit :=
 --#eval compile (return $ Prog.expr $ E.lit 222)
 
 end codegen
+
+section input_combinators
+
+def fresh : string -> TensorType -> M string
+| n t := do
+  (k, m) <- get,
+  let name := n ++ k.repr,
+  put (k+1, m.insert name t),
+  return $ name
+
+open TensorType
+def cdouble := TensorType.atom ValueType.float
+def cint := TensorType.atom ValueType.int
+def cstorage (x : TensorType) := TensorType.storage x
+def csparse (x : TensorType) := TensorType.sparse x
+
+@[reducible] def VectorGen := Gen E (Gen unit E)
+@[reducible] def MatrixGen := Gen E (Gen E (Gen unit E))
+@[reducible] def CubeGen   := Gen E (Gen E (Gen E (Gen unit E)))
+
+def m (var : string) : M MatrixGen := do
+  let file := matrixFile,
+  var ← E.ident <$> fresh var (csparse (csparse cdouble)),
+  let gen := functor.map (functor.map singletonGen) $ functor.map externGen (externGen $ var),
+  return $ {gen with initialize := Prog.store var (E.call1 (E.ident "loadmtx")
+    (E.ident $ "\"" ++ file ++ "\""))}
+
+def v (var : string) : M VectorGen := do
+  let file := vectorFile,
+  var ← E.ident <$> fresh var (csparse cdouble),
+  let gen := singletonGen <$> externGen var,
+  return $ { gen with initialize := Prog.store var
+    $ E.call1 (E.ident "loadmtx") (E.ident $ "\"" ++ file ++ "\"") }
+
+def vvar  := do
+  var <- E.ident <$> fresh "t" (cstorage cdouble),
+  return $ externStorageGen var
+def mvar  := do
+  var <- E.ident <$> fresh "t" (cstorage (cstorage cdouble)),
+  return $ externStorageGen <$> (externStorageGen var)
+def floatVar := E.ident <$> fresh "v" cdouble
+def intVar := E.ident <$> fresh "v" cint
+end input_combinators
+
+#print notation
+#check has_mul.mul
+#check monad_lift
+#check Accumulable.accum
+variables {ι ι' α : Type}
+
+def liftM2 {α β γ} {m} [monad m] : (α → β → γ) → m α → m β → m γ
+| f a b := do
+  a ← a,
+  b ← b,
+  return (f a b)
+
+infixl ` <.> `:70 := liftM2 has_mul.mul
+--infixl ` <.> `:70 := λ {α} [has_mul α] (a b : M α), ((*) <$> a) <*> b
+--def storeM {α β γ} [Accumulable α β γ] : M α → M β → M γ := do
+
+infixl ` <~ `:20 := liftM2 Accumulable.accum
+--infixl ` <~ `:20 := λ {α} [Accumulable α] (a b : M α), (Accumulable.accum <$> a) <*> b
+
+def contractionM : M (Gen E (Gen unit E) → Gen unit E) := do
+  acc <- E.ident <$> fresh "acc" cdouble,
+  return $ contraction acc
+def sum1 (x : M VectorGen) := contractionM <*> x
+def sum2 (x : M MatrixGen) : M VectorGen := do
+  g ← x,
+  c ← contractionM,
+  return (c <$> g)
+def sum3 (x : M CubeGen) : M MatrixGen := do
+  c ← contractionM,
+  g ← x,
+  return $ functor.map (functor.map c) g
+
+def repl1  (x : M (Gen ι α)) : M (Gen E (Gen ι α)) := repeat <$> intVar <*> x
+def repl2  (x : M (Gen ι (Gen ι' α))) : M (Gen ι (Gen E (Gen ι' α))) := do
+i ← intVar,
+(functor.map (repeat i)) <$> x
+
+def down : Gen unit (Gen unit α) → Gen unit α := flatten_snd
+def down2 : Gen unit (Gen unit (Gen unit α)) → Gen unit α := down ∘ down
+
+def toProg (g : M (Gen unit Prog)) : Prog :=
+  let g := runM' g,
+      prog := g.initialize <;> loopT g
+  in prog
+
+def toStr (g : M (Gen unit Prog)) : string :=
+  let g := runM $ do
+    g ← g,
+    (g.initialize <;> loopT g).to_c
+  in g.snd
+
+def go (mgen : M (Gen unit Prog)) : io unit := compile $ do
+  gen <- mgen,
+  return $ gen.initialize <;> (loopT gen)
+
+def egVV : M (Gen unit Prog) := down <$> (vvar <~ v "u")
+
+-- timeout
+--#eval toStr egVV
+#eval toStr $ return $ singletonGen Prog.skip
