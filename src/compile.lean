@@ -5,9 +5,11 @@ import control.monad.writer
 
 def debug : bool := ff
 def disablePathCondition : bool := ff
+def disablePrinting := ff
+def disableMatrixPrinting := ff
 
-def Ident := string
-def Label := string
+@[reducible] def Ident := string
+@[reducible] def Label := string
 --def IVar := string
 
 @[derive [decidable_eq, fintype]]
@@ -318,6 +320,11 @@ end TensorType
 
 @[reducible] def SymbolTable := alist (λ (s : string), TensorType)
 
+namespace SymbolTable
+def to_list : SymbolTable → list (string × TensorType)
+| st := st.entries.map (λ p, (p.1, p.2))
+end SymbolTable
+
 def mstring := string
 instance : has_one mstring := ⟨""⟩
 instance : has_mul mstring := ⟨string.append⟩
@@ -336,13 +343,6 @@ do
 
 def runM (m : M unit) : SymbolTable × string :=
 ((prod.snd <$> m.run (0, ∅)).run.run emptyContext).map prod.snd id
-
-def emit (s : string) : M unit := tell s
-
-def wrapm {α : Type*} (s : M α) : M α :=
-emit "(" *> s <* emit ")"
-
-def wrap (s : string) : string := "(" ++ s ++ ")"
 
 /-! evalTrivial: janky path condition simulator -/
 
@@ -369,29 +369,29 @@ if disablePathCondition then c else
 def E.trueElem (e : E) (c : Context) : bool := e ∈ c.true_conditions
 def E.falseElem (e : E) (c : Context) : bool := e ∈ c.false_conditions
 
-def evalTrivial : Prog → M (option Prog)
+def Prog.evalTrivial : Prog → M (option Prog)
 | Prog.skip := return none
 | (Prog.if c t e) := do
   pathCondition ← read,
   if c.trueElem pathCondition
-  then evalTrivial t
+  then t.evalTrivial
   else if c.falseElem pathCondition
-  then evalTrivial e
+  then e.evalTrivial
   else do
-    ttriv ← adapt_reader c.pushTrue (evalTrivial t),
-    etriv ← adapt_reader c.pushFalse (evalTrivial e),
+    ttriv ← adapt_reader c.pushTrue  t.evalTrivial,
+    etriv ← adapt_reader c.pushFalse e.evalTrivial,
     return $ match ttriv, etriv with
     | none, none := none
     | _, _ := some $ Prog.if c (ttriv.get_or_else Prog.skip) (etriv.get_or_else Prog.skip)
     end
 | (Prog.comment _) := return none
 | (Prog.seq a b) := do
-  ma ← evalTrivial a,
-  mb ← adapt_reader (λ _, emptyContext) (evalTrivial b),
+  ma ← a.evalTrivial,
+  mb ← adapt_reader (λ _, emptyContext) b.evalTrivial,
   return $ match ma, mb with
   | none, none := none
-  | some a', none := some a'
-  | none, some b' := some b'
+  | some a', none := a'
+  | none, some b' := b'
   | some a', some b' := a' <;> b'
   end
 | e := return (some e)
@@ -405,6 +405,8 @@ def BinOp.to_c : BinOp → string
 | BinOp.or := "||"
 | BinOp.min := "min"
 
+def wrap (s : string) : string := "(" ++ s ++ ")"
+
 def E.to_c : E → string
 | (E.lit i)                  := repr i
 | (E.ident i)                := i
@@ -412,8 +414,85 @@ def E.to_c : E → string
 | (E.bin_op op e1 e2)        := wrap $ e1.to_c ++ op.to_c ++ e2.to_c
 | (E.call0 f)                := f.to_c ++ wrap ""
 | (E.call1 f a1)             := f.to_c ++ (wrap a1.to_c)
-| (E.call2 f a1 a2)          := f.to_c ++ (wrap $ (a1.to_c ++ "," ++ a2.to_c))
+| (E.call2 f a1 a2)          := f.to_c ++ (wrap $ a1.to_c ++ "," ++ a2.to_c)
 | (E.record_access e f)      := e.to_c ++ "." ++ f
 | (E.ternary c t e)          := wrap $ wrap c.to_c ++ "?" ++ t.to_c ++ ":" ++ e.to_c
+
+def emit (s : string) : M unit := tell s
+def emitLine (s : string) : M unit := do tell s, tell ";"
+
+namespace Prog
+
+def to_c : Prog → M unit
+| (expr e       ) := emitLine $ e.to_c
+| (accum dst val) := emitLine $ dst.to_c ++ " += " ++ val.to_c
+| (store dst val) := emitLine $ dst.to_c ++ " = " ++ val.to_c
+| (next stream  ) := emitLine $ stream.to_c ++ "++"
+| (seq a b      ) := a.to_c >> b.to_c
+| (block t      ) := emit "{" >> t.to_c >> emit "}"
+| (label l      ) := emit $ "\n" ++ l ++ ":;\n"
+| (labels ls    ) := emitLine $ "__label__ " ++ string.intercalate "," ls
+| (jump  l      ) := emit $ "goto " ++ l ++ ";"
+| (inline_code s) := emit s
+| (debug_code s ) := emit s
+| (skip         ) := emit ""
+| (comment s    ) := emit $ "// " ++ s ++ "\n"
+| (error s      ) := emit "invalid program"
+| («if» c t e   ) := do
+    emit $ "if (" ++ c.to_c ++ ") {",
+      t.to_c,
+    emit "}", emit " else {",
+      e.to_c,
+    emit "}"
+
+end Prog
+
+def CType.to_c : CType → string
+| CDouble := "num"
+| CInt := "index"
+| (CStorage t) := "SparseStorageArray<" ++ t.to_c ++ ">"
+| (CSparse t) := "SparseArray<" ++ t.to_c ++ ">"
+
+def toDecl : string × CType → string | (name, ctype) :=
+  match ctype with
+  | CDouble := "num " ++ name ++ " := 0;\n"
+  | CInt := "index " ++ name ++ " = 0;\n"
+  | t := t.to_c ++ " " ++ name ++ ";\n"
+  end
+
+def insertDecls : SymbolTable -> string :=
+string.join ∘ list.map (toDecl ∘ prod.map id TensorType.toCType) ∘ SymbolTable.to_list
+
+def toPrintStatement : string × CType → option string | (name, ctype) :=
+match ctype with
+| CStorage (CStorage CDouble) :=
+if disableMatrixPrinting then none else some $ "printMat_(" ++ name ++ ");\n"
+| CStorage CDouble :=
+if disableMatrixPrinting then none else some $ "printArray_(" ++ name ++ ");\n"
+| CDouble := some $ "printf(\"" ++ name ++ ": %f\\n\"," ++ name ++ ");\n"
+| _ := none
+end
+
+def insertPrintf : SymbolTable -> string :=
+string.join ∘ list.filter_map (toPrintStatement ∘ prod.map id TensorType.toCType) ∘ SymbolTable.to_list
+
+def addHeaderFooter : SymbolTable × string → string
+| (st, s)
+  := "#include \"prefix.cpp\"\n"
+  ++ insertDecls st
+  ++ s
+  ++ (if disablePrinting then "" else "printf(\"results:\\n\");" ++ insertPrintf st)
+  ++ "#include \"suffix.cpp\"\n"
+
+-- todo: use evalTrival
+def compile (prog : M Prog) : io unit :=
+  let outName := "out_lean.cpp" in do
+  handle ← io.mk_file_handle outName io.mode.write,
+  io.fs.write handle (addHeaderFooter (runM (prog >>= Prog.to_c))).to_char_buffer,
+  io.fs.close handle,
+  io.cmd {cmd := "clang-format", args := ["-i", outName]},
+  return ()
+
+--#eval compile (return $ Prog.expr $ E.lit 222)
 
 end codegen
