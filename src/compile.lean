@@ -336,19 +336,27 @@ structure Context :=
 def emptyContext := Context.mk [] []
 
 --instance {α} : has_mul (buffer α) := ⟨buffer.append⟩
-@[reducible] def M := state_t (ℕ × SymbolTable) (writer_t mstring (reader Context))
+structure MState :=
+(counter : ℕ)
+(symbolTable : SymbolTable)
+(buffer : buffer char)
 
-def symbolType (s : string) : M TensorType :=
+#check has_emptyc
+instance : has_emptyc MState := ⟨⟨0, ∅, buffer.nil⟩⟩
+
+@[reducible] def M := state_t MState (writer_t mstring (reader Context))
+
+def symbolType (var : string) : M TensorType :=
 do
-  (_, m) ← get,
-  match m.lookup s with
+  s ← get,
+  match s.symbolTable.lookup var with
   | some r := return r
   | none := return (atom ValueType.int) -- todo
   end
 
-def runM' {α} (m : M α) : α := ((m.run (0, ∅)).run.run emptyContext).fst.fst
+def runM' {α} (m : M α) : α := ((m.run ∅).run.run emptyContext).fst.fst
 def runM (m : M unit) : SymbolTable × string :=
-((prod.snd <$> m.run (0, ∅)).run.run emptyContext).map prod.snd buffer.to_string
+(λ s : MState, (s.symbolTable, s.buffer.to_string)) ((m.run ∅).run.run emptyContext).fst.snd
 
 /-! evalTrivial: janky path condition simulator -/
 
@@ -424,7 +432,9 @@ def E.to_c : E → string
 | (E.record_access e f)      := e.to_c ++ "." ++ f
 | (E.ternary c t e)          := wrap $ wrap c.to_c ++ "?" ++ t.to_c ++ ":" ++ e.to_c
 
-def emit (s : string) : M unit := tell s.to_char_buffer
+def emit (str : string) : M unit := modify $ λ s : MState, { s with
+  buffer := s.buffer.append_string str }
+--def emit (s : string) : M unit := tell s.to_char_buffer
 def emitLine (s : string) : M unit := do emit $ s ++ ";"
 
 namespace Prog
@@ -445,7 +455,7 @@ def to_c : Prog → M unit
 | (comment s    ) := emit $ "// " ++ s ++ "\n"
 | (error s      ) := emit "invalid program"
 | («if» c t e   ) := do
-    emit $ "if (" ++ c.to_c ++ ") {",
+    emit "if (" >> emit c.to_c >> emit ") {",
       t.to_c,
     emit "}", emit " else {",
       e.to_c,
@@ -507,10 +517,12 @@ section input_combinators
 
 def fresh : string -> TensorType -> M string
 | n t := do
-  (k, m) <- get,
-  let name := n ++ k.repr,
-  put (k+1, m.insert name t),
-  return $ name
+s ← get,
+let k := s.counter,
+let m := s.symbolTable,
+let name := n ++ k.repr,
+modify $ λ (s : MState), {s with counter := k+1, symbolTable := m.insert name t},
+return $ name
 
 open TensorType
 def cdouble := TensorType.atom ValueType.float
