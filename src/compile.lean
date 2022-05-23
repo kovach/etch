@@ -237,16 +237,18 @@ let g := externGen x in
   locate := λ i, Prog.expr $ E.call1 (E.record_access x "skip") i }
 
 def flatten (outer : Gen ι (Gen ι' α)) : Gen (ι × ι') α :=
-let inner := outer.value in
+let inner := outer.value,
+    reset_inner := Prog.if1 outer.ready inner.reset in
 { current := (outer.current, inner.current),
   value := inner.value,
   ready := outer.ready && inner.ready,
   empty := outer.empty,
   next := λ kn ks,
-    inner.next
-      (λ _, outer.next kn (λ s, ks $ s <;> Prog.if1 outer.ready inner.reset))
-      ks,
-  reset := outer.reset <;> Prog.if1 outer.ready inner.reset,
+    let next_outer := outer.next kn (λ s, ks (s <;> reset_inner)) in
+    Prog.if outer.ready
+      (inner.next (λ _, next_outer) ks)
+      next_outer,
+  reset := outer.reset <;> reset_inner,
   initialize := outer.initialize <;> inner.initialize }
 
 def flatten_snd : Gen ι (Gen ι' α) → Gen ι' α :=
@@ -330,7 +332,7 @@ do
   (_, m) ← get,
   match m.lookup s with
   | some r := return r
-  | none := return (TTAtom SInt)
+  | none := return (TTAtom SInt) -- todo
   end
 
 def runM (m : M unit) : SymbolTable × string :=
