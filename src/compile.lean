@@ -32,7 +32,6 @@ inductive E
 | call0 : E → E
 | call1 : E → E → E
 | call2 : E → E → E → E
-| deref : E → E
 | ternary : E → E → E → E
 
 instance : has_zero E := ⟨E.lit 0⟩
@@ -244,7 +243,7 @@ let inner := outer.value,
   ready := outer.ready && inner.ready,
   empty := outer.empty,
   next := λ kn ks,
-    let next_outer := outer.next kn (λ s, ks (s <;> reset_inner)) in
+    let next_outer := outer.next kn (ks ∘ (<;> reset_inner)) in
     Prog.if outer.ready
       (inner.next (λ _, next_outer) ks)
       next_outer,
@@ -397,15 +396,24 @@ def evalTrivial : Prog → M (option Prog)
   end
 | e := return (some e)
 
---def e2c : E → string
---| (E.lit i) := showT i
---| (E.ident i) := i
---| (E.bin_op op e1 e2) := wrap $ e2c e1 <> op <> e2c e2
---| (E.call f es        -> e2c f <> (wrap $ intercalate "," $ map e2c es)
---  RecordAccess e f -> e2c e <> "." <> f
---  Deref e          -> wrap $ "*" <> e2c e
---  Ternary c t e    -> wrap $ wrap (e2c c) <> "?" <> e2c t <> ":" <> e2c e
---  And a b          -> wrap $ e2c a <> "&&" <> e2c b
---  Or a b           -> wrap $ e2c a <> "||" <> e2c b
+def BinOp.to_c : BinOp → string
+| BinOp.add := "+"
+| BinOp.mul := "*"
+| BinOp.lt := "<"
+| BinOp.eq := "=="
+| BinOp.and := "&&"
+| BinOp.or := "||"
+| BinOp.min := "min"
+
+def E.to_c : E → string
+| (E.lit i)                  := repr i
+| (E.ident i)                := i
+| (E.bin_op BinOp.min e1 e2) := BinOp.min.to_c ++ (wrap $ e1.to_c ++ "," ++ e2.to_c)
+| (E.bin_op op e1 e2)        := wrap $ e1.to_c ++ op.to_c ++ e2.to_c
+| (E.call0 f)                := f.to_c ++ wrap ""
+| (E.call1 f a1)             := f.to_c ++ (wrap a1.to_c)
+| (E.call2 f a1 a2)          := f.to_c ++ (wrap $ (a1.to_c ++ "," ++ a2.to_c))
+| (E.record_access e f)      := e.to_c ++ "." ++ f
+| (E.ternary c t e)          := wrap $ wrap c.to_c ++ "?" ++ t.to_c ++ ":" ++ e.to_c
 
 end codegen
