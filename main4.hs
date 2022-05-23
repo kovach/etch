@@ -209,22 +209,31 @@ externStorageGen x =
   let call op = Call (RecordAccess x op) in
   LGen
   { gen = g { value = call "value" [] }
+  -- { gen = g { value = Deref $ call "value_ref" [] }
   , locate = \i -> E $ call "skip" [i]
   }
 
 flatten :: GenIV i1 (GenIV i2 a) -> GenIV (i1, i2) a
 flatten outer =
-  let inner = value outer in Gen
+  let inner = value outer in
+  let resetInner = If1 (ready outer) (reset inner) in
+    Gen
   { current = (current outer, current inner)
   , value = value (value outer)
   , ready = ready outer `and` ready inner
   , empty = empty outer
-  , next = \k -> next (value outer) $ \ms -> case ms of
-      Just _ -> k ms
-      Nothing -> next outer $ \ms -> case ms of
-        Nothing -> k Nothing
-        Just s -> k . Just $ s :> If1 (ready outer) (reset inner)
-  , reset = reset outer :> reset inner
+  , next = \k ->
+      let nextOuter =
+            (next outer $ \ms -> case ms of
+              Nothing -> k Nothing
+              Just s -> k . Just $ s :> resetInner)
+      in
+      If (ready outer)
+        (next inner $ \ms -> case ms of
+          Just _ -> k ms
+          Nothing -> nextOuter)
+        nextOuter
+  , reset = reset outer :> resetInner
   , initialize = initialize outer :> initialize inner -- ?
   }
 
@@ -239,7 +248,7 @@ down2 = fl' . fl'
 class Storable l r out where
   store :: l -> r -> out
 instance Storable E UnitGen (GenIV () T) where
-  store acc = fmap (Accum acc) -- e -> Accum acc e
+  store = fmap . Accum -- e -> Accum acc e
 -- basic idea: when we step r, locate a new spot in l to store the result
 instance (Storable l r out) =>
   Storable (LGenIV i l)
@@ -248,18 +257,19 @@ instance (Storable l r out) =>
   store l r = Gen
     { current = ()
     , value = store (l & gen & value) (value r)
-    , ready = ready (gen l) `and` ready r
+    , ready = ready r
     , empty = empty r
     , next = \k -> next r $ fmap (\step -> step :> If1 (ready r) (locate l (current r))) .> k
-    , reset = reset (gen l) :> reset r :> locate l (current r)
+    , reset = reset (gen l) :> reset r :> If1 (ready r) (locate l (current r))
     , initialize = initialize (gen l) :> initialize r
     }
 
 contraction :: E -> GenV UnitGen -> UnitGen
 contraction acc v =
-  prefixGen
-    (Store acc 0 :> loopT (store acc (fl v)))
-    ((singleton acc) { initialize = initialize v, reset = reset v })
+  (singleton acc) {
+    initialize = initialize v,
+    reset = reset v :> Store acc 0 :> loopT (store acc (fl v))
+  }
   where
     prefixGen t gen = gen { reset = t :> reset gen }
 
@@ -277,13 +287,13 @@ data TensorType
   = TTAtom SemiringType
   | TTStorage TensorType
   | TTSparse TensorType
+data CType = CDouble | CInt | CStorage CType | CSparse CType
 toCType :: TensorType -> CType
 toCType (TTAtom SInt) = CInt
 toCType (TTAtom SFloat) = CDouble
 toCType (TTStorage t) = CStorage (toCType t)
 toCType (TTSparse t) = CSparse (toCType t)
 
-data CType = CDouble | CInt | CStorage CType | CSparse CType
 type Map a b = [(a, b)]
 type SymbolTable = Map Text TensorType
 type M = StateT (Int, SymbolTable) (WriterT Text (Reader Context))
@@ -311,12 +321,13 @@ completePositiveConditions e@(Or a b) = e : completePositiveConditions a ++ comp
 completePositiveConditions e = [e]
 -- \forall c \in cNC e, (e -> !c)
 completeNegativeCondition e@(BinOp "==" a b) = [BinOp "!=" a b, BinOp "<" a b, BinOp "<" b a]
-completeNegativeCondition e@(BinOp "<" a b) = [BinOp "==" a b, BinOp ">" a b]
-completeNegativeCondition (Or a b) =
-  completeNegativeCondition a ++ completeNegativeCondition b
+completeNegativeCondition e@(BinOp "<" a b) = [BinOp "==" a b, BinOp "==" b a, BinOp "<" b a]
+--completeNegativeCondition (Or a b) = completeNegativeCondition a ++ completeNegativeCondition b
 completeNegativeCondition e = [e]
+trueCondsOfTrue e@(And a b) = e : trueCondsOfTrue a ++ trueCondsOfTrue b
+trueCondsOfTrue e = [e]
 pushTrue e c  = if disablePathCondition then c else c {
-  trueConditions = e : trueConditions c,
+  trueConditions = trueCondsOfTrue e ++ trueConditions c,
   falseConditions = completeNegativeCondition e ++ falseConditions c }
 pushFalse e c = if disablePathCondition then c else c {
   falseConditions = completePositiveConditions e ++ falseConditions c }
@@ -328,7 +339,7 @@ emptyContext = Context [] []
 -- returns a recursively simplified version of t otherwise
 evalTrivial :: T -> M (Maybe T)
 evalTrivial Skip       = return Nothing
-evalTrivial (Comment _) = return Nothing
+evalTrivial t@(Comment _) = return $ Just t -- return Nothing
 evalTrivial (If1 c t) = evalTrivial (If c t Skip)
 evalTrivial (If c t e) = do
   pathCondition <- ask
@@ -339,8 +350,7 @@ evalTrivial (If c t e) = do
       return $
         case (tt, et) of
           (Nothing, Nothing) -> Nothing
-          (Just t, Nothing) -> Just $ If1 c t
-          _ -> Just $ If c (fromMaybe t tt) (fromMaybe e et)
+          _ -> Just $ If c (fromMaybe Skip tt) (fromMaybe Skip et)
 evalTrivial e@(a :> b) = do
   ma <- evalTrivial a
   mb <- local (\_ -> emptyContext) $ evalTrivial b
