@@ -517,6 +517,7 @@ run mgen = compile $ do
   gen <- mgen
   return $ initialize gen :> (loopT gen)
 
+egV = run $ down <$> (vvar <-- v "u")
 egVV = run $ down <$> (vvar <-- v "u" <.> v"v")
 egVVV = run $ down <$> (vvar <-- v "u" <.> v"v" <.> v"w")
 egMM = run $ down2 <$> (mvar <-- m "A" <.> m"B")

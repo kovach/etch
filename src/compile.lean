@@ -7,6 +7,7 @@ def debug : bool := ff
 def disablePathCondition : bool := ff
 def disablePrinting := ff
 def disableMatrixPrinting := ff
+def disableClangFormat := ff
 def matrixFile := "smallM.mtx"
 --def matrixFile := "cavity11/cavity11.mtx"
 def vectorFile := "smallV.mtx"
@@ -284,7 +285,6 @@ def contraction (acc : E) (v : Gen E (Gen unit E)) : Gen unit E :=
 
 end combinators
 
-
 /-! ### Code output -/
 
 section codegen
@@ -320,19 +320,12 @@ def to_list : SymbolTable → list (string × TensorType)
 | st := st.entries.map (λ p, (p.1, p.2))
 end SymbolTable
 
-def mstring := buffer char
---instance : has_one mstring := ⟨""⟩
---instance : has_mul mstring := ⟨string.append⟩
-instance : has_one mstring := ⟨buffer.nil⟩
-instance : has_mul mstring := ⟨buffer.append⟩
-
 structure Context :=
 (true_conditions : list E)
 (false_conditions : list E)
 
-def emptyContext := Context.mk [] []
+def emptyContext := Context.mk [1] [1]
 
---instance {α} : has_mul (buffer α) := ⟨buffer.append⟩
 structure MState :=
 (counter : ℕ)
 (symbolTable : SymbolTable)
@@ -340,7 +333,8 @@ structure MState :=
 
 instance : has_emptyc MState := ⟨⟨0, ∅, buffer.nil⟩⟩
 
-@[reducible] def M := state_t MState (writer_t mstring (reader Context))
+-- note: inserting a writer_t for collecting output code kills performance
+@[reducible] def M := state_t MState (reader Context)
 
 def symbolType (var : string) : M TensorType :=
 do
@@ -350,9 +344,9 @@ do
   | none := return (atom ValueType.int) -- todo
   end
 
-def runM' {α} (m : M α) : α := ((m.run ∅).run.run emptyContext).fst.fst
-def runM (m : M unit) : SymbolTable × string :=
-(λ s : MState, (s.symbolTable, s.buffer.to_string)) ((m.run ∅).run.run emptyContext).fst.snd
+def runM {α} (m : M α) : α := ((m.run ∅).run emptyContext).fst
+def runInfo (m : M unit) : SymbolTable × buffer char :=
+(λ s : MState, (s.symbolTable, s.buffer)) ((m.run ∅).run emptyContext).snd
 
 /-! evalTrivial: janky path condition simulator -/
 
@@ -404,6 +398,7 @@ def Prog.evalTrivial : Prog → M (option Prog)
   | none, some b' := b'
   | some a', some b' := a' <;> b'
   end
+| (Prog.block a) := do a ← a.evalTrivial, return (Prog.block <$> a)
 | e := return (some e)
 
 def BinOp.to_c : BinOp → string
@@ -428,34 +423,37 @@ def E.to_c : E → string
 | (E.record_access e f)      := e.to_c ++ "." ++ f
 | (E.ternary c t e)          := wrap $ wrap c.to_c ++ "?" ++ t.to_c ++ ":" ++ e.to_c
 
-def emit (str : string) : M unit := modify $ λ s : MState, { s with
-  buffer := s.buffer.append_string str }
---def emit (s : string) : M unit := tell s.to_char_buffer
+def emit (str : string) : M unit := modify $ λ s : MState,
+{ s with buffer := s.buffer.append_string str }
 def emitLine (s : string) : M unit := do emit $ s ++ ";"
 
 namespace Prog
 
 def to_c : Prog → M unit
-| (expr e       ) := emitLine $ e.to_c
+| (expr e)        := emitLine $ e.to_c
 | (accum dst val) := emitLine $ dst.to_c ++ " += " ++ val.to_c
 | (store dst val) := emitLine $ dst.to_c ++ " = " ++ val.to_c
-| (next stream  ) := emitLine $ stream.to_c ++ "++"
-| (seq a b      ) := a.to_c >> b.to_c
-| (block t      ) := emit "{" >> t.to_c >> emit "}"
-| (label l      ) := emit $ "\n" ++ l ++ ":;\n"
-| (labels ls    ) := emitLine $ "__label__ " ++ string.intercalate "," ls
-| (jump  l      ) := emit $ "goto " ++ l ++ ";"
+| (next stream)   := emitLine $ stream.to_c ++ "++"
+| (seq a b)       := a.to_c >> b.to_c
+| (block t)       := emit "{" >> t.to_c >> emit "}"
+| (label l)       := emit $ "\n" ++ l ++ ":;\n"
+| (labels ls)     := emitLine $ "__label__ " ++ string.intercalate "," ls
+| (jump  l)       := emit $ "goto " ++ l ++ ";"
 | (inline_code s) := emit s
-| (debug_code s ) := emit s
-| (skip         ) := emit ""
-| (comment s    ) := emit $ "// " ++ s ++ "\n"
-| (error s      ) := emit "invalid program"
-| («if» c t e   ) := do
+| (debug_code s)  := emit s
+| (skip)          := emit ""
+| (comment s)     := emit $ "// " ++ s ++ "\n"
+| (error s)       := emit "invalid program"
+| («if» c t e)    := do
     emit "if (" >> emit c.to_c >> emit ") {",
       t.to_c,
     emit "}", emit " else {",
       e.to_c,
     emit "}"
+
+def to_c_opt (p : Prog) : M unit := do
+  mp ← evalTrivial p,
+  (mp.get_or_else Prog.skip).to_c
 
 end Prog
 
@@ -467,7 +465,7 @@ def CType.to_c : CType → string
 
 def toDecl : string × CType → string | (name, ctype) :=
   match ctype with
-  | CType.double := "num " ++ name ++ " := 0;\n"
+  | CType.double := "num " ++ name ++ " = 0;\n"
   | CType.int := "index " ++ name ++ " = 0;\n"
   | t := t.to_c ++ " " ++ name ++ ";\n"
   end
@@ -496,30 +494,26 @@ def addHeaderFooter : SymbolTable × string → string
   ++ (if disablePrinting then "" else "printf(\"results:\\n\");" ++ insertPrintf st)
   ++ "#include \"suffix.cpp\"\n"
 
--- todo: use evalTrival
+-- compiles, writes, and formats program
 def compile (prog : M Prog) : io unit :=
   let outName := "out_lean.cpp" in do
   handle ← io.mk_file_handle outName io.mode.write,
-  io.fs.write handle (addHeaderFooter (runM (prog >>= Prog.to_c))).to_char_buffer,
+  let result : string := addHeaderFooter $ (runInfo (prog >>= Prog.to_c_opt)).map id buffer.to_string,
+  io.fs.write handle result.to_char_buffer,
   io.fs.close handle,
-  io.cmd {cmd := "clang-format", args := ["-i", outName]},
-  return ()
+  if disableClangFormat then return () else io.cmd {cmd := "clang-format", args := ["-i", outName]} >> return ()
 
--- writes a file
 --#eval compile (return $ Prog.expr $ E.lit 222)
 
 end codegen
 
 section input_combinators
 
-def fresh : string -> TensorType -> M string
-| n t := do
-s ← get,
-let k := s.counter,
-let m := s.symbolTable,
-let name := n ++ k.repr,
-modify $ λ (s : MState), {s with counter := k+1, symbolTable := m.insert name t},
-return $ name
+def fresh : string -> TensorType -> M string | n t := do
+  s ← get,
+  let name := n ++ s.counter.repr,
+  modify $ λ (s : MState), {s with counter := s.counter+1, symbolTable := s.symbolTable.insert name t},
+  return $ name
 
 open TensorType
 def cdouble := TensorType.atom ValueType.float
@@ -543,7 +537,7 @@ def v (var : string) : M VectorGen := do
   var ← E.ident <$> fresh var (csparse cdouble),
   let gen := singletonGen <$> externGen var,
   return $ { gen with initialize := Prog.store var
-    $ E.call1 (E.ident "loadmtx") (E.ident $ "\"" ++ file ++ "\"") }
+    $ E.call1 (E.ident "loadvec") (E.ident $ "\"" ++ file ++ "\"") }
 
 def vvar  := do
   var <- E.ident <$> fresh "t" (cstorage cdouble),
@@ -557,6 +551,7 @@ end input_combinators
 
 variables {ι ι' α : Type}
 
+-- is this defined?
 def liftM2 {α β γ} {m} [monad m] : (α → β → γ) → m α → m β → m γ
 | f a b := do a ← a, b ← b, return (f a b)
 
@@ -583,22 +578,29 @@ i ← intVar, (functor.map (repeat i)) <$> x
 def down : Gen unit (Gen unit α) → Gen unit α := flatten_snd
 def down2 : Gen unit (Gen unit (Gen unit α)) → Gen unit α := down ∘ down
 
-def toProg (g : M (Gen unit Prog)) : Prog :=
-  let g := runM' g in g.initialize <;> loopT g
-
+def toProg (g : M (Gen unit Prog)) : Prog := let g := runM g in g.initialize <;> loopT g
 def toStr (g : M (Gen unit Prog)) : string :=
-  let g := runM $ do
-    g ← g,
-    (g.initialize <;> loopT g).to_c
-  in g.snd
+  let g := runInfo $ do g ← g, (g.initialize <;> loopT g).to_c in g.snd.to_string
+def toStr' (g : M (Gen unit Prog)) : string :=
+  let g := runInfo $ do g ← g, (g.initialize <;> loopT g).to_c_opt in g.snd.to_string
 
+-- write output and clang_format it
 def go (mgen : M (Gen unit Prog)) : io unit := compile $ do
   gen <- mgen,
   return $ gen.initialize <;> (loopT gen)
 
-def egVV : M (Gen unit Prog) := down <$> (vvar <~ v "u")
+section examples
 
--- timeout
+def egV : M (Gen unit Prog) := down <$> (vvar <~ v "u")
+def egVV : M (Gen unit Prog) := down <$> (vvar <~ v "u" <.> v "v")
+def egVVV : M (Gen unit Prog) := down <$> (vvar <~ v "u" <.> v "v" <.> v "w")
+def egmul2 : M _ := down2 <$> (mvar <~ sum3 (repl2 (m "A") <.> repl1 (m "B"))) -- AB^t
+
+--#eval toProg egV
 --#eval toStr egVV
--- sanity check ok
-#eval toStr $ return $ singletonGen Prog.skip
+--#eval toStr' egVV
+--#eval toStr $ return $ singletonGen Prog.skip
+
+--#eval go egmul2
+
+end examples
