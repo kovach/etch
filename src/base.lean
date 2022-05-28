@@ -5,7 +5,7 @@ import logic.relation
 import order.lexicographic
 import declare
 
-instance i1 (k : ℕ) : has_top (fin k.succ) := ⟨k⟩
+instance fin.has_top (k : ℕ) : has_top (fin k.succ) := ⟨k⟩
 -- todo instance i2 : linear_order unit := sorry
 -- instance i2 (k : ℕ) : linear_order (fin k) := infer_instance
 -- instance i3 {α β: Type*} [linear_order α] [linear_order β] : linear_order (lex α β) := infer_instance
@@ -154,7 +154,7 @@ variables {σ I V : Type} (s : stream σ I V)
 @[simp] def ι := s.iter.ι s.q
 @[simp] def ν := s.iter.ν s.q
 
-@[simp] def δ {σ I V} (s : stream σ I V) : stream σ I V :=
+@[simp] def δ (s : stream σ I V) : stream σ I V :=
 { q := s.iter.δ s.q .. s}
 
 @[simp] def emit : emit_type I V := s.iter.emit s.q

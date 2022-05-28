@@ -1,30 +1,22 @@
 import tactic
 import data.list.alist
 import control.monad.basic
-import control.monad.writer
 
 def debug : bool := ff
 def disablePathCondition : bool := ff
 def disablePrinting := ff
 def disableMatrixPrinting := ff
 def disableClangFormat := ff
-def matrixFile := "smallM.mtx"
---def matrixFile := "cavity11/cavity11.mtx"
-def vectorFile := "smallV.mtx"
---def vectorFile := "cavity11/cavity_ones.mtx"
+def matrixFile := "data/smallM.mtx"
+--def matrixFile := "data/cavity11.mtx"
+def vectorFile := "data/smallV.mtx"
+--def vectorFile := "data/cavity_ones.mtx"
 
 @[reducible] def Ident := string
 @[reducible] def Label := string
 
 @[derive [decidable_eq, fintype]]
-inductive BinOp
-| add
-| mul
-| lt
-| eq
-| and
-| or
-| min
+inductive BinOp | add | mul | lt | eq | and | or | min
 
 --#eval fintype.elems BinOp
 
@@ -35,6 +27,8 @@ inductive E
 | ident : Ident → E
 | bin_op : BinOp → E → E → E
 | record_access : E → Ident → E
+| value : E → E
+| current : E → E
 | call0 : E → E
 | call1 : E → E → E
 | call2 : E → E → E → E
@@ -62,6 +56,8 @@ def BinOp.mk : Π (b : BinOp), BinOp.mk_type b
   match x, y with
   | E.false, y := y
   | x, E.false := x
+  | E.true, _ := E.true
+  | _, E.true := E.true
   | x, y := E.bin_op BinOp.or x y
   end
 | b := E.bin_op b
@@ -74,19 +70,21 @@ infixl ` || `:65 := BinOp.or
 /-- Statements for a simple imperative language, including sequencing. -/
 inductive Prog
 | expr (e : E)
---| put : E → list E → E → Prog
 | accum (dst : E) (val : E)
 | store (dst : E) (val : E)
 | next (stream : E)
+| incr (a : E)
 | «if» (b : E) (cons : Prog) (alt : Prog)
 | seq (a b : Prog)
-| block : Prog → Prog -- scope
+
+| block (body : Prog) : Prog -- only used to produce scoped labels
 | label (l : Label)
 | labels (labels : list Label)
 | jump (l : Label)
+| skip
+
 | inline_code (code : string)
 | debug_code (code : string)
-| skip
 | comment (c : string)
 | error (msg : string)
 
@@ -140,17 +138,17 @@ instance (ι : Type) : functor (LGen ι) :=
 def imap {ι ι' α : Type} (f : ι → ι') (g : Gen ι α) : Gen ι' α :=
 { g with current := f g.current }
 
-def loopT (g : Gen unit Prog) : Prog :=
-let loop := "loop", done := "done" in
+def loop (g : Gen unit Prog) : Prog :=
+let loopLabel := "loop", doneLabel := "done" in
 Prog.block $
-  Prog.labels [loop, done] <;>
+  Prog.labels [loopLabel, doneLabel] <;>
   g.reset <;>
   Prog.debug_code "__i = 0;" <;>
-  Prog.label loop <;>
+  Prog.label loopLabel <;>
   Prog.debug_code "__i++;" <;>
   Prog.if g.ready g.value Prog.skip <;>
-  (g.next (λ _, Prog.jump done) (<;> Prog.jump loop)) <;>
-  Prog.label done <;>
+  (g.next (λ _, Prog.jump doneLabel) (<;> Prog.jump loopLabel)) <;>
+  Prog.label doneLabel <;>
   if debug then Prog.debug_code "printf(\"loops: %d\\n\", __i);\n" else Prog.skip
 
 /-! ### Gen combinators -/
@@ -176,12 +174,13 @@ def singletonGen (a : α) : Gen unit α :=
   reset := Prog.skip,
   initialize := Prog.skip }
 
+-- "iota"
 def range (n var : E) : Gen E E :=
 { current := var,
   value := var,
   ready := BinOp.lt var n,
   empty := BinOp.eq var n,
-  next := λ kn ks, Prog.if (BinOp.lt var n) (ks $ Prog.next var) (kn ()),
+  next := λ kn ks, Prog.if (BinOp.lt var n) (ks $ Prog.incr var) (kn ()),
   reset := Prog.store var 0,
   initialize := Prog.skip }
 
@@ -190,7 +189,7 @@ def repeat (var : E) (val : Gen ι α) : Gen E (Gen ι α) :=
   value := val,
   ready := E.true,
   empty := E.false,
-  next := λ kn ks, ks (Prog.next var <;> val.reset),
+  next := λ kn ks, ks (Prog.incr var <;> val.reset),
   reset := Prog.store var 0,
   initialize := val.initialize }
 
@@ -200,7 +199,7 @@ def mulGen [has_mul α] (a b : Gen E α) : Gen E α :=
   ready := BinOp.eq a.current b.current && a.ready && b.ready,
   empty := a.empty || b.empty,
   next := λ kn ks, Prog.if (a.empty || b.empty) (kn ()) $
-      Prog.if (BinOp.lt a.current b.current) (a.next kn ks) (b.next kn ks),
+    Prog.if (BinOp.lt a.current b.current) (a.next kn ks) (b.next kn ks),
   reset := a.reset <;> b.reset,
   initialize := a.initialize <;> b.initialize }
 
@@ -224,13 +223,13 @@ instance mulUnitGen.has_mul [has_mul α] : has_mul (Gen unit α) := ⟨mulUnitGe
 
 def externGen (x : E) : Gen E E :=
 let call op := E.call0 (E.record_access x op),
-    check op (kn : unit → Prog) (ks : Prog → Prog) :=
-      Prog.if (call "done") (kn ()) (ks $ Prog.expr $ call op) in
-{ current := call "current",
-  value := call "value",
+    next (kn : unit → Prog) (ks : Prog → Prog) :=
+      Prog.if (call "done") (kn ()) (ks $ Prog.next x) in
+{ current := x.current,
+  value := x.value,
   ready := E.true,
   empty := call "done",
-  next := check "next",
+  next  := next,
   reset := Prog.expr $ call "reset",
   initialize := Prog.skip }
 
@@ -281,7 +280,7 @@ instance Storable.map {l r out : Type} [Accumulable l r out] :
 def contraction (acc : E) (v : Gen E (Gen unit E)) : Gen unit E :=
 { singletonGen acc with
   initialize := v.initialize,
-  reset := v.reset <;> Prog.store acc 0 <;> loopT (accum acc (flatten_snd v)) }
+  reset := v.reset <;> Prog.store acc 0 <;> loop (accum acc (flatten_snd v)) }
 
 end combinators
 
@@ -315,16 +314,14 @@ end TensorType
 
 @[reducible] def SymbolTable := alist (λ (s : string), TensorType)
 
-namespace SymbolTable
-def to_list : SymbolTable → list (string × TensorType)
+def SymbolTable.to_list : SymbolTable → list (string × TensorType)
 | st := st.entries.map (λ p, (p.1, p.2))
-end SymbolTable
 
 structure Context :=
 (true_conditions : list E)
 (false_conditions : list E)
 
-def emptyContext := Context.mk [1] [1]
+def emptyContext := Context.mk [1] [0]
 
 structure MState :=
 (counter : ℕ)
@@ -415,6 +412,8 @@ def wrap (s : string) : string := "(" ++ s ++ ")"
 def E.to_c : E → string
 | (E.lit i)                  := repr i
 | (E.ident i)                := i
+| (E.value i)                := i.to_c ++ ".value()"
+| (E.current i)                := i.to_c ++ ".current()"
 | (E.bin_op BinOp.min e1 e2) := BinOp.min.to_c ++ (wrap $ e1.to_c ++ "," ++ e2.to_c)
 | (E.bin_op op e1 e2)        := wrap $ e1.to_c ++ op.to_c ++ e2.to_c
 | (E.call0 f)                := f.to_c ++ wrap ""
@@ -433,7 +432,8 @@ def to_c : Prog → M unit
 | (expr e)        := emitLine $ e.to_c
 | (accum dst val) := emitLine $ dst.to_c ++ " += " ++ val.to_c
 | (store dst val) := emitLine $ dst.to_c ++ " = " ++ val.to_c
-| (next stream)   := emitLine $ stream.to_c ++ "++"
+| (incr stream)   := emitLine $ stream.to_c ++ "++"
+| (next stream)   := emitLine $ stream.to_c ++ ".next()"
 | (seq a b)       := a.to_c >> b.to_c
 | (block t)       := emit "{" >> t.to_c >> emit "}"
 | (label l)       := emit $ "\n" ++ l ++ ":;\n"
@@ -498,7 +498,7 @@ def addHeaderFooter : SymbolTable × string → string
 def compile (prog : M Prog) : io unit :=
   let outName := "out_lean.cpp" in do
   handle ← io.mk_file_handle outName io.mode.write,
-  let result : string := addHeaderFooter $ (runInfo (prog >>= Prog.to_c_opt)).map id buffer.to_string,
+  let result : string := addHeaderFooter $ (runInfo (prog >>= Prog.to_c)).map id buffer.to_string,
   io.fs.write handle result.to_char_buffer,
   io.fs.close handle,
   if disableClangFormat then return () else io.cmd {cmd := "clang-format", args := ["-i", outName]} >> return ()
@@ -551,12 +551,11 @@ end input_combinators
 
 variables {ι ι' α : Type}
 
--- is this defined?
-def liftM2 {α β γ} {m} [monad m] : (α → β → γ) → m α → m β → m γ
-| f a b := do a ← a, b ← b, return (f a b)
+-- is this already defined?
+def applicative.map2 {α β γ} {m} [applicative m] (f : α → β → γ) : m α → m β → m γ
+| a b := f <$> a <*> b
 
-infixl ` <.> `:70 := liftM2 has_mul.mul
-infixl ` <~ `:20 := liftM2 Accumulable.accum
+infixl ` <.> `:70 := applicative.map2 (*)
 
 def contractionM : M (Gen E (Gen unit E) → Gen unit E) := do
   acc <- E.ident <$> fresh "acc" cdouble,
@@ -571,36 +570,43 @@ def sum3 (x : M CubeGen) : M MatrixGen := do
   g ← x,
   return $ functor.map (functor.map c) g
 
-def repl1  (x : M (Gen ι α)) : M (Gen E (Gen ι α)) := repeat <$> intVar <*> x
-def repl2  (x : M (Gen ι (Gen ι' α))) : M (Gen ι (Gen E (Gen ι' α))) := do
+def M.repl1  (x : M (Gen ι α)) : M (Gen E (Gen ι α)) := repeat <$> intVar <*> x
+def M.repl2  (x : M (Gen ι (Gen ι' α))) : M (Gen ι (Gen E (Gen ι' α))) := do
 i ← intVar, (functor.map (repeat i)) <$> x
 
 def down : Gen unit (Gen unit α) → Gen unit α := flatten_snd
 def down2 : Gen unit (Gen unit (Gen unit α)) → Gen unit α := down ∘ down
-
-def toProg (g : M (Gen unit Prog)) : Prog := let g := runM g in g.initialize <;> loopT g
-def toStr (g : M (Gen unit Prog)) : string :=
-  let g := runInfo $ do g ← g, (g.initialize <;> loopT g).to_c in g.snd.to_string
-def toStr' (g : M (Gen unit Prog)) : string :=
-  let g := runInfo $ do g ← g, (g.initialize <;> loopT g).to_c_opt in g.snd.to_string
+prefix ` ↓ `: 19 := functor.map down
+prefix ` ↓ `: 19 := functor.map down2
+infixl ` <~ `:20 := applicative.map2 Accumulable.accum
 
 -- write output and clang_format it
 def go (mgen : M (Gen unit Prog)) : io unit := compile $ do
   gen <- mgen,
-  return $ gen.initialize <;> (loopT gen)
+  return $ gen.initialize <;> (loop gen)
 
 section examples
 
-def egV : M (Gen unit Prog) := down <$> (vvar <~ v "u")
-def egVV : M (Gen unit Prog) := down <$> (vvar <~ v "u" <.> v "v")
-def egVVV : M (Gen unit Prog) := down <$> (vvar <~ v "u" <.> v "v" <.> v "w")
-def egmul2 : M _ := down2 <$> (mvar <~ sum3 (repl2 (m "A") <.> repl1 (m "B"))) -- AB^t
+instance flatten_snd.has_lift {α} : has_coe (Gen unit (Gen unit α)) (Gen unit α) := ⟨flatten_snd⟩
+instance M.has_lift {α β} [has_coe α β] : has_coe (M α) (M β) := ⟨functor.map coe⟩
 
---#eval toProg egV
---#eval toStr egVV
---#eval toStr' egVV
---#eval toStr $ return $ singletonGen Prog.skip
+@[reducible] def mgup := M (Gen unit Prog)
+def M.toProg (g : M (Gen unit Prog)) : Prog := let g := runM g in g.initialize <;> loop g
+def M.toStr' (g : M (Gen unit Prog)) : string :=
+  let g := runInfo $ do g ← g, (g.initialize <;> loop g).to_c in g.snd.to_string
+def M.toStr (g : M (Gen unit Prog)) : string :=
+  let g := runInfo $ do g ← g, (g.initialize <;> loop g).to_c_opt in g.snd.to_string
 
+def egV    : mgup := ↓ vvar <~ v "u"
+def egVV   : mgup := ↓ vvar <~ v "u" <.> v "v"
+def egMM   : mgup := ↓ mvar <~ m "u" <.> m "v"
+def egVVV  : mgup := ↓ vvar <~ v "u" <.> v "v" <.> v "w"
+-- AB^t
+def egmul2 : mgup := ↑ (mvar <~ sum3 ((m "A").repl2 <.> (m "B").repl1))
+
+#eval egVV.toStr
 --#eval go egmul2
 
 end examples
+
+-- todo: addGen
