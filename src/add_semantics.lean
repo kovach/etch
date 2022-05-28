@@ -96,12 +96,8 @@ end
 
 variables (u : stream σ₁ I V) (v : stream σ₂ I V)
 
-theorem add_stream_sound  {i j} : u.iter.monotonic → v.iter.monotonic → u.terminal_by i → v.terminal_by j →
-⟦mk_add u v, (i+j)⟧ = ⟦u, i⟧ + ⟦v, j⟧ :=
-begin
-simp only [stream.stream_semantics],
-apply add_iter_sound,
-end
+theorem add_stream_sound  {i j} : u.monotonic → v.monotonic → u.terminal_by i → v.terminal_by j →
+⟦mk_add u v, i+j⟧ = ⟦u, i⟧ + ⟦v, j⟧ := add_iter_sound
 
 end params_binary
 end iter
