@@ -1,14 +1,15 @@
 import tactic
 import data.list.alist
 import control.monad.basic
+import category_theory.category.basic
+import category_theory.category.Kleisli
 
 def debug : bool := ff
 def disablePathCondition : bool := ff
 def disablePrinting := ff
-def disableMatrixPrinting := ff
 def disableClangFormat := ff
-def matrixFile := "data/smallM.mtx"
---def matrixFile := "data/cavity11.mtx"
+def matrixFile := "data/smallM.mtx" def disableMatrixPrinting := ff
+--def matrixFile := "data/cavity11.mtx" def disableMatrixPrinting := tt
 def vectorFile := "data/smallV.mtx"
 --def vectorFile := "data/cavity_ones.mtx"
 
@@ -17,8 +18,6 @@ def vectorFile := "data/smallV.mtx"
 
 @[derive [decidable_eq, fintype]]
 inductive BinOp | add | mul | lt | eq | and | or | min
-
---#eval fintype.elems BinOp
 
 /-- Expressions for a simple imperative language. -/
 @[derive decidable_eq]
@@ -29,6 +28,7 @@ inductive E
 | record_access : E → Ident → E
 | value : E → E
 | current : E → E
+
 | call0 : E → E
 | call1 : E → E → E
 | call2 : E → E → E → E
@@ -41,31 +41,6 @@ instance : has_mul E := ⟨E.bin_op BinOp.mul⟩
 
 @[pattern] def E.false : E := E.lit 0
 @[pattern] def E.true : E := E.lit 1
-
-def BinOp.mk_type : BinOp → Type
-| _ := E → E → E
-
-def BinOp.mk : Π (b : BinOp), BinOp.mk_type b
-| BinOp.and := λ x y,
-  match x, y with
-  | E.true, y := y
-  | x, E.true := x
-  | x, y := E.bin_op BinOp.and x y
-  end
-| BinOp.or := λ x y,
-  match x, y with
-  | E.false, y := y
-  | x, E.false := x
-  | E.true, _ := E.true
-  | _, E.true := E.true
-  | x, y := E.bin_op BinOp.or x y
-  end
-| b := E.bin_op b
-
-instance : has_coe_to_fun BinOp BinOp.mk_type := ⟨BinOp.mk⟩
-
-infixl ` && `:70 := BinOp.and
-infixl ` || `:65 := BinOp.or
 
 /-- Statements for a simple imperative language, including sequencing. -/
 inductive Prog
@@ -93,34 +68,39 @@ def Prog.if1 (b : E) (cons : Prog) : Prog := Prog.if b cons Prog.skip
 
 infixr ` <;> `:1 := Prog.seq
 
-/-
-inductive Typ | O | C
-open Typ
+def BinOp.mk_type : BinOp → Type
+| _ := E → E → E
 
-inductive BBlock : Typ → Typ → Type
-| seq {a c : Typ} (b1 : BBlock a O) (b2 : BBlock O c) : BBlock a c
-| jmp (l : Label) : BBlock O C
-| label (s : string) : BBlock C O
+def BinOp.mk : Π (b : BinOp), BinOp.mk_type b
+| BinOp.and := λ x y,
+  match x, y with
+  | E.true, y := y
+  | x, E.true := x
+  | x, y := E.bin_op BinOp.and x y
+  end
+| BinOp.or := λ x y,
+  match x, y with
+  | E.false, y := y
+  | x, E.false := x
+  | E.true, _ := E.true
+  | _, E.true := E.true
+  | x, y := E.bin_op BinOp.or x y
+  end
+| b := E.bin_op b
 
-def prog := list (BBlock C C)
+instance : has_coe_to_fun BinOp BinOp.mk_type := ⟨BinOp.mk⟩
 
-def BBlock.get_label : Π {t : Typ}, BBlock C t → string
-| _ b@(BBlock.seq b1 b2) :=
-  have BBlock.sizeof C (psigma.fst ⟨O, b1⟩) b1 <
-    1 + 1 + _x.sizeof + BBlock.sizeof C O b1 +
-    BBlock.sizeof O (psigma.fst ⟨_x, b1.seq b2⟩) b2,
-    from by linarith,
-  b1.get_label
-| _ (BBlock.label s) := s
-using_well_founded
-{ rel_tac := λ _ _, `[exact ⟨_, measure_wf (λ p, sizeof p.2)⟩] }
--/
+infixl ` && `:70 := BinOp.and
+infixl ` || `:65 := BinOp.or
 
+/-! ### Gen combinators -/
+
+namespace combinators_v1
 structure Gen (ι α : Type) :=
 (current : ι)
 (value : α)
 (ready : E)
-(empty : E)
+(empty : E) -- not actually used
 (next (ifEmpty : unit → Prog) (ifNonempty : Prog → Prog) : Prog)
 (reset : Prog)
 (initialize : Prog)
@@ -151,10 +131,15 @@ Prog.block $
   Prog.label doneLabel <;>
   if debug then Prog.debug_code "printf(\"loops: %d\\n\", __i);\n" else Prog.skip
 
-/-! ### Gen combinators -/
-
-section combinators
 variables {ι ι' α β : Type}
+
+def filter (pred : E → E) (g : Gen E E) : Gen E E :=
+{ g with
+  ready := g.ready && pred g.current }
+
+-- def bin_filter (pred : E → E → E) (g g' : Gen E E) : Gen E E :=
+-- { g with
+--   ready := g.ready && pred g.current }
 
 def emptyGen [has_top ι] [inhabited α] : Gen ι α :=
 { current := ⊤,
@@ -193,6 +178,15 @@ def repeat (var : E) (val : Gen ι α) : Gen E (Gen ι α) :=
   reset := Prog.store var 0,
   initialize := val.initialize }
 
+def repeatScalar (var : E) (val : α) : Gen E α :=
+{ current := var,
+  value := val,
+  ready := E.true,
+  empty := E.false,
+  next := λ kn ks, ks (Prog.incr var),
+  reset := Prog.store var 0,
+  initialize := Prog.skip }
+
 def mulGen [has_mul α] (a b : Gen E α) : Gen E α :=
 { current := BinOp.min a.current b.current,
   value := a.value * b.value,
@@ -225,12 +219,12 @@ def externGen (x : E) : Gen E E :=
 let call op := E.call0 (E.record_access x op),
     next (kn : unit → Prog) (ks : Prog → Prog) :=
       Prog.if (call "done") (kn ()) (ks $ Prog.next x) in
-{ current := x.current,
-  value := x.value,
-  ready := E.true,
-  empty := call "done",
-  next  := next,
-  reset := Prog.expr $ call "reset",
+{ current    := x.current,
+  value      := x.value,
+  ready      := E.true,
+  empty      := call "done",
+  next       := next,
+  reset      := Prog.expr $ call "reset",
   initialize := Prog.skip }
 
 def externStorageGen (x : E) : LGen E E :=
@@ -282,7 +276,187 @@ def contraction (acc : E) (v : Gen E (Gen unit E)) : Gen unit E :=
   initialize := v.initialize,
   reset := v.reset <;> Prog.store acc 0 <;> loop (accum acc (flatten_snd v)) }
 
-end combinators
+end combinators_v1
+
+namespace combinators_v2
+variables {ι ι' α β : Type}
+
+structure Gen (ι α : Type) :=
+(current : ι)
+(value : α)
+(ready : E)
+(next : Prog)
+(empty : E)
+(reset : Prog)
+(initialize : Prog)
+
+structure LGen (ι α : Type) :=
+(gen : Gen ι α)
+(locate : ι → Prog)
+
+instance (ι : Type) : functor (Gen ι) :=
+{ map := λ _ _ f g, { g with value := f g.value } }
+
+instance (ι : Type) : functor (LGen ι) :=
+{ map := λ _ _ f lg, { lg with gen := f <$> lg.gen } }
+
+def imap {ι ι' α : Type} (f : ι → ι') (g : Gen ι α) : Gen ι' α :=
+{ g with current := f g.current }
+
+def loop (g : Gen unit Prog) : Prog :=
+let loopLabel := "loop", doneLabel := "done" in
+Prog.block $
+  Prog.labels [loopLabel, doneLabel] <;>
+  g.reset <;>
+  Prog.debug_code "__i = 0;" <;>
+  Prog.label loopLabel <;>
+  Prog.debug_code "__i++;" <;>
+  Prog.if g.ready g.value Prog.skip <;>
+  Prog.if g.empty (Prog.jump doneLabel) (g.next <;> Prog.jump loopLabel) <;>
+  Prog.label doneLabel <;>
+  if debug then Prog.debug_code "printf(\"loops: %d\\n\", __i);\n" else Prog.skip
+
+def filter (pred : E → E) (g : Gen E E) : Gen E E :=
+{ g with
+  ready := g.ready && pred g.current }
+
+-- def bin_filter (pred : E → E → E) (g g' : Gen E E) : Gen E E :=
+-- { g with
+--   ready := g.ready && pred g.current }
+
+def singletonGen (a : α) : Gen unit α :=
+{ current := (),
+  value := a,
+  ready := E.true,
+  empty := E.true,
+  next := Prog.skip,
+  empty := E.true,
+  reset := Prog.skip,
+  initialize := Prog.skip }
+
+-- "iota"
+def range (n var : E) : Gen E E :=
+{ current := var,
+  value := var,
+  ready := BinOp.lt var n,
+  empty := BinOp.eq var n,
+  next := Prog.incr var,
+  empty := BinOp.eq var n,
+  reset := Prog.store var 0,
+  initialize := Prog.skip }
+
+def repeat (var : E) (val : Gen ι α) : Gen E (Gen ι α) :=
+{ current := var,
+  value := val,
+  ready := E.true,
+  empty := E.false,
+  next := Prog.incr var <;> val.reset,
+  empty := E.false,
+  reset := Prog.store var 0,
+  initialize := val.initialize }
+
+def repeatScalar (var : E) (val : α) : Gen E α :=
+{ current := var,
+  value := val,
+  ready := E.true,
+  empty := E.false,
+  next := (Prog.incr var),
+  empty := E.false,
+  reset := Prog.store var 0,
+  initialize := Prog.skip }
+
+def mulGen [has_mul α] (a b : Gen E α) : Gen E α :=
+{ current := BinOp.min a.current b.current,
+  value := a.value * b.value,
+  ready := a.ready && b.ready && BinOp.eq a.current b.current,
+  next := Prog.if (BinOp.lt a.current b.current) a.next b.next,
+  empty := a.empty || b.empty,
+  reset := a.reset <;> b.reset,
+  initialize := a.initialize <;> b.initialize }
+
+def mulFun [has_mul α] (a : Gen E α) (f : E → α) : Gen E α :=
+{ current := a.current,
+  value := a.value * f a.current,
+  ready := a.ready,
+  empty := a.empty,
+  next := a.next,
+  reset := a.reset,
+  initialize := a.initialize }
+
+def mulUnitGen [has_mul α] (a b : Gen unit α) : Gen unit α :=
+{ current := (),
+  value := a.value * b.value,
+  ready := a.ready && b.ready,
+  next := a.next <;> b.next,
+  empty := a.empty || b.empty,
+  reset := a.reset <;> b.reset,
+  initialize := a.initialize <;> b.initialize }
+
+instance mulGen.has_mul [has_mul α] : has_mul (Gen E α) := ⟨mulGen⟩
+instance mulUnitGen.has_mul [has_mul α] : has_mul (Gen unit α) := ⟨mulUnitGen⟩
+
+def externGen (x : E) : Gen E E :=
+let call op := E.call0 (E.record_access x op)
+in
+{ current    := x.current,
+  value      := x.value,
+  ready      := E.true,
+  empty      := call "done",
+  next       := Prog.next x,
+  reset      := Prog.expr $ call "reset",
+  initialize := Prog.skip }
+
+def externStorageGen (x : E) : LGen E E :=
+let g := externGen x in
+{ gen := { g with value := E.call0 (E.record_access x "value") },
+  locate := λ i, Prog.expr $ E.call1 (E.record_access x "skip") i }
+
+def flatten (outer : Gen ι (Gen ι' α)) : Gen (ι × ι') α :=
+let inner := outer.value,
+    reset_inner := Prog.if1 outer.ready inner.reset in
+{ current := (outer.current, inner.current),
+  value := inner.value,
+  ready := outer.ready && inner.ready,
+  empty := outer.empty,
+  next := let next_outer := outer.next <;> reset_inner in
+    Prog.if outer.ready
+      (Prog.if inner.empty next_outer inner.next)
+      next_outer,
+  reset := outer.reset <;> reset_inner,
+  initialize := outer.initialize <;> inner.initialize }
+
+def flatten_snd : Gen ι (Gen ι' α) → Gen ι' α :=
+imap prod.snd ∘ flatten
+
+class Accumulable (l r : Type) (out : out_param $ Type) :=
+(accum : l → r → out)
+
+export Accumulable
+
+instance : Accumulable E (Gen unit E) (Gen unit Prog) :=
+{ accum := (<$>) ∘ Prog.accum }
+
+-- basic idea: when we step r, locate a new spot in l to store the result
+instance Storable.map {l r out : Type} [Accumulable l r out] :
+  Accumulable (LGen ι l) (Gen ι r) (Gen unit out) :=
+{ accum := λ l r,
+  { current := (),
+    value := accum l.gen.value r.value,
+    ready := r.ready,
+    empty := r.empty,
+    next := r.next <;> Prog.if1 r.ready (l.locate r.current),
+    reset := l.gen.reset <;> r.reset <;>
+      Prog.if1 r.ready (l.locate r.current),
+    initialize := l.gen.initialize <;> r.initialize } }
+
+def contraction (acc : E) (v : Gen E (Gen unit E)) : Gen unit E :=
+{ singletonGen acc with
+  initialize := v.initialize,
+  reset := v.reset <;> Prog.store acc 0 <;> loop (accum acc (flatten_snd v)) }
+
+end combinators_v2
+
+open combinators_v2
 
 /-! ### Code output -/
 
@@ -603,10 +777,11 @@ def egMM   : mgup := ↓ mvar <~ m "u" <.> m "v"
 def egVVV  : mgup := ↓ vvar <~ v "u" <.> v "v" <.> v "w"
 -- AB^t
 def egmul2 : mgup := ↑ (mvar <~ sum3 ((m "A").repl2 <.> (m "B").repl1))
+def egMMM   : mgup := ↓ mvar <~ m "u" <.> m "v" <.> m "w"
 
 #eval egVV.toStr
---#eval go egmul2
+#eval go egmul2
+
+#check mulFun (range 10 (E.ident "i")) (λ i, BinOp.lt i 5)
 
 end examples
-
--- todo: addGen
