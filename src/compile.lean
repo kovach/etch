@@ -107,15 +107,14 @@ structure Gen (ι α : Type) :=
 (reset : Prog)
 (initialize : Prog)
 
-structure LGen (ι α : Type) :=
-(gen : Gen ι α)
+structure LGen (ι α : Type) extends Gen ι α :=
 (locate : ι → Prog)
 
 instance (ι : Type) : functor (Gen ι) :=
 { map := λ _ _ f g, { g with value := f g.value } }
 
 instance (ι : Type) : functor (LGen ι) :=
-{ map := λ _ _ f lg, { lg with gen := f <$> lg.gen } }
+{ map := λ _ _ f g, { g with value := f g.value } }
 
 def imap {ι ι' α : Type} (f : ι → ι') (g : Gen ι α) : Gen ι' α :=
 { g with current := f g.current }
@@ -152,7 +151,7 @@ def singletonGen (a : α) : Gen unit α :=
   initialize := Prog.skip }
 
 -- "iota"
-def range (n var : E) : Gen E E :=
+def range (n var : E) : LGen E E :=
 { current := var,
   value := var,
   ready := BinOp.lt var n,
@@ -160,7 +159,8 @@ def range (n var : E) : Gen E E :=
   next := Prog.incr var,
   empty := BinOp.eq var n,
   reset := Prog.store var 0,
-  initialize := Prog.skip }
+  initialize := Prog.skip,
+  locate := λ i, Prog.store var i }
 
 def repeat (var : E) (val : Gen ι α) : Gen E (Gen ι α) :=
 { current := var,
@@ -224,9 +224,7 @@ in
   initialize := Prog.skip }
 
 def externStorageGen (x : E) : LGen E E :=
-let g := externGen x in
-{ gen := { g with value := E.call0 (E.record_access x "value") },
-  locate := λ i, Prog.expr $ E.call1 (E.record_access x "skip") i }
+{ externGen x with locate := λ i, Prog.expr $ E.call1 (E.record_access x "skip") i }
 
 def flatten (outer : Gen ι (Gen ι' α)) : Gen (ι × ι') α :=
 let inner := outer.value,
@@ -258,13 +256,13 @@ instance Storable.map {l r out : Type} [Accumulable l r out] :
   Accumulable (LGen ι l) (Gen ι r) (Gen unit out) :=
 { accum := λ l r,
   { current := (),
-    value := accum l.gen.value r.value,
+    value := accum l.value r.value,
     ready := r.ready,
     empty := r.empty,
     next := r.next <;> Prog.if1 r.ready (l.locate r.current),
-    reset := l.gen.reset <;> r.reset <;>
+    reset := l.reset <;> r.reset <;>
       Prog.if1 r.ready (l.locate r.current),
-    initialize := l.gen.initialize <;> r.initialize } }
+    initialize := l.initialize <;> r.initialize } }
 
 def contraction (acc : E) (v : Gen E (Gen unit E)) : Gen unit E :=
 { singletonGen acc with
@@ -597,8 +595,10 @@ def egmul2 : mgup := ↑ (mvar <~ sum3 ((m "A").repl2 <.> (m "B").repl1))
 def egMMM   : mgup := ↓ mvar <~ m "u" <.> m "v" <.> m "w"
 
 #eval egVV.toStr
-#eval go egmul2
+--#eval go egmul2
 
-#check mulFun (range 10 (E.ident "i")) (λ i, BinOp.lt i 5)
+def fun1 : mgup := floatVar <~ sum1 (mulFun <$> (v "V") <*>
+(pure $ λ i, singletonGen $ BinOp.lt i 3))
+#eval go fun1
 
 end examples
