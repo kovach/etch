@@ -28,6 +28,7 @@ inductive E
 | record_access : E → Ident → E
 | value : E → E
 | current : E → E
+| not : E → E
 
 | call0 : E → E
 | call1 : E → E → E
@@ -118,6 +119,9 @@ instance (ι : Type) : functor (LGen ι) :=
 
 def imap {ι ι' α : Type} (f : ι → ι') (g : Gen ι α) : Gen ι' α :=
 { g with current := f g.current }
+
+def ivmap {ι α : Type} (f : ι → α → β) (g : Gen ι α) : Gen ι β :=
+{ g with value := f g.current g.value }
 
 def loop (g : Gen unit Prog) : Prog :=
 let loopLabel := "loop", doneLabel := "done" in
@@ -217,7 +221,7 @@ let call op := E.call0 (E.record_access x op)
 in
 { current    := x.current,
   value      := x.value,
-  ready      := E.true,
+  ready      := E.not (call "done"),
   empty      := call "done",
   next       := Prog.next x,
   reset      := Prog.expr $ call "reset",
@@ -402,7 +406,8 @@ def E.to_c : E → string
 | (E.lit i)                  := repr i
 | (E.ident i)                := i
 | (E.value i)                := i.to_c ++ ".value()"
-| (E.current i)                := i.to_c ++ ".current()"
+| (E.current i)              := i.to_c ++ ".current()"
+| (E.not i)                  := "!" ++ wrap i.to_c
 | (E.bin_op BinOp.min e1 e2) := BinOp.min.to_c ++ (wrap $ e1.to_c ++ "," ++ e2.to_c)
 | (E.bin_op op e1 e2)        := wrap $ e1.to_c ++ op.to_c ++ e2.to_c
 | (E.call0 f)                := f.to_c ++ wrap ""
@@ -599,6 +604,10 @@ def egMMM   : mgup := ↓ mvar <~ m "u" <.> m "v" <.> m "w"
 
 def fun1 : mgup := floatVar <~ sum1 (mulFun <$> (v "V") <*>
 (pure $ λ i, singletonGen $ BinOp.lt i 3))
-#eval go fun1
+def fun2 : mgup := floatVar <~ sum1 (ivmap (λ i v, singletonGen (BinOp.lt i 3) * v) <$> v "V")
+def fun3 : mgup := floatVar <~ sum1 (sum2
+  (ivmap (λ i,
+    (ivmap (λ j v, singletonGen (BinOp.lt i j) * v))) <$> m "V"))
+--#eval go fun3
 
 end examples
