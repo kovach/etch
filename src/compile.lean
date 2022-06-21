@@ -4,14 +4,13 @@ import control.monad.basic
 import category_theory.category.basic
 import category_theory.category.Kleisli
 
+-- Some configuration flags:
 def debug : bool := ff
 def disablePathCondition : bool := ff
 def disablePrinting := ff
 def disableClangFormat := ff
-def matrixFile := "data/smallM.mtx" def disableMatrixPrinting := ff
---def matrixFile := "data/cavity11.mtx" def disableMatrixPrinting := tt
-def vectorFile := "data/smallV.mtx"
---def vectorFile := "data/cavity_ones.mtx"
+def matrixFile := "data/smallM.mtx" def vectorFile := "data/smallV.mtx" def disableMatrixPrinting := ff
+--def matrixFile := "data/cavity11.mtx" def vectorFile := "data/cavity_ones.mtx" def disableMatrixPrinting := tt
 
 @[reducible] def Ident := string
 @[reducible] def Label := string
@@ -96,7 +95,6 @@ infixl ` || `:65 := BinOp.or
 
 /-! ### Gen combinators -/
 
-namespace combinators_v2
 variables {ι ι' α β : Type}
 
 structure Gen (ι α : Type) :=
@@ -113,6 +111,8 @@ structure LGen (ι α : Type) extends Gen ι α :=
 
 instance (ι : Type) : functor (Gen ι) :=
 { map := λ _ _ f g, { g with value := f g.value } }
+
+def Gen.map {α β} (f : α → β) : Gen ι α → Gen ι β := functor.map f
 
 instance (ι : Type) : functor (LGen ι) :=
 { map := λ _ _ f g, { g with value := f g.value } }
@@ -273,9 +273,6 @@ def contraction (acc : E) (v : Gen E (Gen unit E)) : Gen unit E :=
   initialize := v.initialize,
   reset := v.reset <;> Prog.store acc 0 <;> loop (accum acc (flatten_snd v)) }
 
-end combinators_v2
-
-open combinators_v2
 
 /-! ### Code output -/
 
@@ -602,12 +599,10 @@ def egMMM   : mgup := ↓ mvar <~ m "u" <.> m "v" <.> m "w"
 #eval egVV.toStr
 --#eval go egmul2
 
-def fun1 : mgup := floatVar <~ sum1 (mulFun <$> (v "V") <*>
-(pure $ λ i, singletonGen $ BinOp.lt i 3))
+def fun1 : mgup := floatVar <~ sum1 (mulFun <$> (v "V") <*> (pure $ λ i, singletonGen $ BinOp.lt i 3))
 def fun2 : mgup := floatVar <~ sum1 (ivmap (λ i v, singletonGen (BinOp.lt i 3) * v) <$> v "V")
 def fun3 : mgup := floatVar <~ sum1 (sum2
-  (ivmap (λ i,
-    (ivmap (λ j v, singletonGen (BinOp.lt i j) * v))) <$> m "V"))
+  (ivmap (λ i, ivmap (λ j v, singletonGen (BinOp.lt i j) * v)) <$> m "V"))
 --#eval go fun3
 
 end examples
