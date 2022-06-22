@@ -3,7 +3,7 @@
 This is a work-in-progress formalization of _indexed streams,_
 which model automata that compute sparse vectors. See
 
-  - src/compile.lean for the compiler and examples
+  - [compile.lean](src/compile.lean) for the compiler and examples
 
 # build
 
