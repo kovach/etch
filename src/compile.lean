@@ -16,7 +16,7 @@ def matrixFile := "data/smallM.mtx" def vectorFile := "data/smallV.mtx" def disa
 @[reducible] def Label := string
 
 @[derive [decidable_eq, fintype]]
-inductive BinOp | add | mul | lt | eq | and | or | min
+inductive BinOp | add | mul | lt | eq | and | or | min | max
 
 /-- Expressions for a simple imperative language. -/
 @[derive decidable_eq]
@@ -186,6 +186,18 @@ def repeatScalar (var : E) (val : α) : Gen E α :=
   reset := Prog.store var 0,
   initialize := Prog.skip }
 
+-- todo
+def mulLGen [has_mul α] (a b : LGen E α) : LGen E α :=
+{ current := BinOp.max a.current b.current,
+  value := a.value * b.value,
+  ready := a.ready && b.ready && BinOp.eq a.current b.current,
+  next := Prog.if sorry (a.locate b.current) (b.locate a.current),
+  empty := a.empty || b.empty,
+  reset := a.reset <;> b.reset,
+  initialize := a.initialize <;> b.initialize,
+  locate := λ i, a.locate i <;> b.locate a.current, -- a.current optimization
+  }
+
 def mulGen [has_mul α] (a b : Gen E α) : Gen E α :=
 { current := BinOp.min a.current b.current,
   value := a.value * b.value,
@@ -308,7 +320,7 @@ def SymbolTable.to_list : SymbolTable → list (string × TensorType)
 | st := st.entries.map (λ p, (p.1, p.2))
 
 structure Context :=
-(true_conditions : list E)
+(true_conditions  : list E)
 (false_conditions : list E)
 
 def emptyContext := Context.mk [1] [0]
@@ -396,6 +408,7 @@ def BinOp.to_c : BinOp → string
 | BinOp.and := "&&"
 | BinOp.or := "||"
 | BinOp.min := "min"
+| BinOp.max := "max"
 
 def wrap (s : string) : string := "(" ++ s ++ ")"
 
@@ -589,6 +602,7 @@ def M.toStr (g : M (Gen unit Prog)) : string :=
   let g := runInfo $ do g ← g, (g.initialize <;> loop g).to_c_opt in g.snd.to_string
 
 def egV    : mgup := ↓ vvar <~ v "u"
+def egVsum : mgup := floatVar <~ sum1 (v "u")
 def egVV   : mgup := ↓ vvar <~ v "u" <.> v "v"
 def egMM   : mgup := ↓ mvar <~ m "u" <.> m "v"
 def egVVV  : mgup := ↓ vvar <~ v "u" <.> v "v" <.> v "w"
@@ -597,7 +611,7 @@ def egmul2 : mgup := ↑ (mvar <~ sum3 ((m "A").repl2 <.> (m "B").repl1))
 def egMMM   : mgup := ↓ mvar <~ m "u" <.> m "v" <.> m "w"
 
 #eval egVV.toStr
---#eval go egmul2
+--#eval go egVsum
 
 def fun1 : mgup := floatVar <~ sum1 (mulFun <$> (v "V") <*> (pure $ λ i, singletonGen $ BinOp.lt i 3))
 def fun2 : mgup := floatVar <~ sum1 (ivmap (λ i v, singletonGen (BinOp.lt i 3) * v) <$> v "V")
