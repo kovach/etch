@@ -98,6 +98,10 @@ CatGen (S×S') β α :=
   empty := (f.empty ⊗ g.empty) ≫ has_bool.or,
 }
 
+/- note on above: I wouldn't suggest that we continue programming in this style;
+instead write a translation from λ-terms (or lean macro?) to generate these morphisms
+-/
+
 def Gen.to_morphism (f : CatGen S β α) : S ⟶ (β × α) × S :=
 (f.current Δ f.value) Δ f.next
 
