@@ -19,13 +19,16 @@ class Rectangle (Gen : ℕ → Type* → Type*) :=
 
 open Rectangle
 
-class Merge (α β : Type*) (γ : out_param Type*) :=
+class Merge (α β : Type*) (γ : Type*) :=
   (merge1 : α → γ)
   (merge2 : β → γ)
 
 open Merge
 
-section MergeInstances
+class NestedMap (α β γ δ : Type*) :=
+  (map : (β → γ) → α → δ)
+
+section Instances
 variables {Gen : ℕ → Type u → Type v} [Rectangle Gen]
 variables {α β γ : Type u}
 
@@ -43,12 +46,19 @@ instance Gen.merge.gt {i j : ℕ} [NatLt j i] [Merge (Gen i α) β γ] : Merge (
 ⟨repl j ∘ merge1 β, map j (merge2 (Gen i α))⟩
 
 def merge {α β γ} [Merge α β γ] : α → β → (γ × γ) := λ a b, (merge1 β a, merge2 α b)
-end MergeInstances
+
+
+instance Gen.NestedMap.Eq {i : ℕ} {α β} : NestedMap (Gen i α) α β (Gen i β) := ⟨Rectangle.map i⟩
+instance Gen.NestedMap.Lt {i j : ℕ} {α β γ δ} [NatLt i j] [NestedMap α β γ δ] : NestedMap (Gen i α) β γ (Gen i δ) :=
+⟨λ f, Rectangle.map i (NestedMap.map f)⟩
+
+end Instances
 
 def Fun (i : ℕ) (α : Type*) := ℕ → α
 def Fun.to_fun {i α} : Fun i α → ℕ → α := id
 def map {α β : Type} (m : ℕ) : (α → β) → Fun m α → Fun m β := λ f v, f ∘ v
 def repl {α : Type} (m : ℕ) : α → Fun m α := λ v _, v
+
 instance : Rectangle Fun :=
   { map := λ _ _, map, repl := λ _, repl }
 
@@ -93,6 +103,7 @@ def v3 : (Fun l V) := λ i, i
 
 --set_option trace.class_instances true
 --set_option class.instance_max_depth 20
+--set_option pp.all true
 
 -- demo with streams:
 def Gen' (i : ℕ) (α : Type) := Gen E α
@@ -104,11 +115,15 @@ instance : Rectangle Gen' :=
 instance : Atomic E := ⟨⟩
 instance Gen'.has_mul {α} {i} [has_mul α] : has_mul (Gen' i α) := ⟨mulGen⟩
 
+attribute [irreducible] Gen'
+
 def g1 : Gen' i E := Gen.idx i (externGen (E.ident "x"))
 def g2 : Gen' j E := (externGen (E.ident "y")).idx j
 def g3 : Gen' k E := (range 1 2).to_Gen.idx k
+def g4 : Gen' i (Gen' j E) := Rectangle.map i (λ _, (range 1 2).to_Gen.idx j) ((range 1 2).to_Gen.idx i)
 
-example : Merge (Gen' i E) (Gen' j E) (Gen' i (Gen' j E)) := infer_instance
+def foo1 : Merge (Gen' i E) (Gen' j E) (Gen' i (Gen' j E))    := infer_instance
+#print foo1
 example : has_hmul (Gen' i E) (Gen' j E) (Gen' i (Gen' j E)) := infer_instance
 
-#check g3 <*> g1 <*> g2 <*> g2
+#check g3 <*> g1 <*> g2 <*> g2 <*> g4
