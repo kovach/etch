@@ -97,7 +97,7 @@ infixl ` || `:65 := BinOp.or
 
 variables {ι ι' α β : Type}
 
-structure Gen (ι α : Type) :=
+structure StreamGen (ι α : Type) :=
 (current : ι)
 (value : α)
 (ready : E)
@@ -106,24 +106,25 @@ structure Gen (ι α : Type) :=
 (reset : Prog)
 (initialize : Prog)
 
-structure LGen (ι α : Type) extends Gen ι α :=
-(locate : ι → Prog)
+structure SkipStreamGen (ι α : Type) extends StreamGen ι α :=
+(skip : ι → Prog)
 
-instance (ι : Type) : functor (Gen ι) :=
+instance (ι : Type) : functor (StreamGen ι) :=
 { map := λ _ _ f g, { g with value := f g.value } }
 
-def Gen.map {α β} (f : α → β) : Gen ι α → Gen ι β := functor.map f
+namespace StreamGen
+def map {α β} (f : α → β) : StreamGen ι α → StreamGen ι β := functor.map f
 
-instance (ι : Type) : functor (LGen ι) :=
+instance (ι : Type) : functor (SkipStreamGen ι) :=
 { map := λ _ _ f g, { g with value := f g.value } }
 
-def imap {ι ι' α : Type} (f : ι → ι') (g : Gen ι α) : Gen ι' α :=
+def imap {ι ι' α : Type} (f : ι → ι') (g : StreamGen ι α) : StreamGen ι' α :=
 { g with current := f g.current }
 
-def ivmap {ι α : Type} (f : ι → α → β) (g : Gen ι α) : Gen ι β :=
+def ivmap {ι α : Type} (f : ι → α → β) (g : StreamGen ι α) : StreamGen ι β :=
 { g with value := f g.current g.value }
 
-def loop (g : Gen unit Prog) : Prog :=
+def loop (g : StreamGen unit Prog) : Prog :=
 let loopLabel := "loop", doneLabel := "done" in
 Prog.block $
   Prog.labels [loopLabel, doneLabel] <;>
@@ -136,15 +137,15 @@ Prog.block $
   Prog.label doneLabel <;>
   if debug then Prog.debug_code "printf(\"loops: %d\\n\", __i);\n" else Prog.skip
 
-def filter (pred : E → E) (g : Gen E E) : Gen E E :=
+def filter (pred : E → E) (g : StreamGen E E) : StreamGen E E :=
 { g with
   ready := g.ready && pred g.current }
 
--- def bin_filter (pred : E → E → E) (g g' : Gen E E) : Gen E E :=
+-- def bin_filter (pred : E → E → E) (g g' : StreamGen E E) : StreamGen E E :=
 -- { g with
 --   ready := g.ready && pred g.current }
 
-def singletonGen (a : α) : Gen unit α :=
+def singleton (a : α) : StreamGen unit α :=
 { current := (),
   value := a,
   ready := E.true,
@@ -155,7 +156,7 @@ def singletonGen (a : α) : Gen unit α :=
   initialize := Prog.skip }
 
 -- "iota"
-def range (n var : E) : LGen E E :=
+def range (n var : E) : SkipStreamGen E E :=
 { current := var,
   value := var,
   ready := BinOp.lt var n,
@@ -164,9 +165,9 @@ def range (n var : E) : LGen E E :=
   empty := BinOp.eq var n,
   reset := Prog.store var 0,
   initialize := Prog.skip,
-  locate := λ i, Prog.store var i }
+  skip := λ i, Prog.store var i }
 
-def repeat (var : E) (val : Gen ι α) : Gen E (Gen ι α) :=
+def repeat (var : E) (val : StreamGen ι α) : StreamGen E (StreamGen ι α) :=
 { current := var,
   value := val,
   ready := E.true,
@@ -176,7 +177,7 @@ def repeat (var : E) (val : Gen ι α) : Gen E (Gen ι α) :=
   reset := Prog.store var 0,
   initialize := val.initialize }
 
-def repeatScalar (var : E) (val : α) : Gen E α :=
+def repeatScalar (var : E) (val : α) : StreamGen E α :=
 { current := var,
   value := val,
   ready := E.true,
@@ -187,18 +188,18 @@ def repeatScalar (var : E) (val : α) : Gen E α :=
   initialize := Prog.skip }
 
 -- todo
-def mulLGen [has_mul α] (a b : LGen E α) : LGen E α :=
+def mulSkip [has_mul α] (a b : SkipStreamGen E α) : SkipStreamGen E α :=
 { current := BinOp.max a.current b.current,
   value := a.value * b.value,
   ready := a.ready && b.ready && BinOp.eq a.current b.current,
-  next := Prog.if sorry (a.locate b.current) (b.locate a.current),
+  next := Prog.if sorry (a.skip b.current) (b.skip a.current),
   empty := a.empty || b.empty,
   reset := a.reset <;> b.reset,
   initialize := a.initialize <;> b.initialize,
-  locate := λ i, a.locate i <;> b.locate a.current, -- a.current optimization
+  skip := λ i, a.skip i <;> b.skip a.current, -- a.current optimization
   }
 
-def mulGen [has_mul α] (a b : Gen E α) : Gen E α :=
+def mul [has_mul α] (a b : StreamGen E α) : StreamGen E α :=
 { current := BinOp.min a.current b.current,
   value := a.value * b.value,
   ready := a.ready && b.ready && BinOp.eq a.current b.current,
@@ -207,7 +208,7 @@ def mulGen [has_mul α] (a b : Gen E α) : Gen E α :=
   reset := a.reset <;> b.reset,
   initialize := a.initialize <;> b.initialize }
 
-def mulFun [has_mul α] (a : Gen E α) (f : E → α) : Gen E α :=
+def mulFun [has_mul α] (a : StreamGen E α) (f : E → α) : StreamGen E α :=
 { current := a.current,
   value := a.value * f a.current,
   ready := a.ready,
@@ -216,7 +217,7 @@ def mulFun [has_mul α] (a : Gen E α) (f : E → α) : Gen E α :=
   reset := a.reset,
   initialize := a.initialize }
 
-def mulUnitGen [has_mul α] (a b : Gen unit α) : Gen unit α :=
+def mulUnit [has_mul α] (a b : StreamGen unit α) : StreamGen unit α :=
 { current := (),
   value := a.value * b.value,
   ready := a.ready && b.ready,
@@ -225,10 +226,10 @@ def mulUnitGen [has_mul α] (a b : Gen unit α) : Gen unit α :=
   reset := a.reset <;> b.reset,
   initialize := a.initialize <;> b.initialize }
 
-instance mulGen.has_mul [has_mul α] : has_mul (Gen E α) := ⟨mulGen⟩
-instance mulUnitGen.has_mul [has_mul α] : has_mul (Gen unit α) := ⟨mulUnitGen⟩
+instance mulStreamGen.has_mul [has_mul α] : has_mul (StreamGen E α) := ⟨StreamGen.mul⟩
+instance mulUnitStreamGen.has_mul [has_mul α] : has_mul (StreamGen unit α) := ⟨mulUnit⟩
 
-def externGen (x : E) : Gen E E :=
+def extern (x : E) : StreamGen E E :=
 let call op := E.call0 (E.record_access x op)
 in
 { current    := x.current,
@@ -239,10 +240,10 @@ in
   reset      := Prog.expr $ call "reset",
   initialize := Prog.skip }
 
-def externStorageGen (x : E) : LGen E E :=
-{ externGen x with locate := λ i, Prog.expr $ E.call1 (E.record_access x "skip") i }
+def externStorage (x : E) : SkipStreamGen E E :=
+{ extern x with skip := λ i, Prog.expr $ E.call1 (E.record_access x "skip") i }
 
-def flatten (outer : Gen ι (Gen ι' α)) : Gen (ι × ι') α :=
+def flatten (outer : StreamGen ι (StreamGen ι' α)) : StreamGen (ι × ι') α :=
 let inner := outer.value,
     reset_inner := Prog.if1 outer.ready inner.reset in
 { current := (outer.current, inner.current),
@@ -256,7 +257,7 @@ let inner := outer.value,
   reset := outer.reset <;> reset_inner,
   initialize := outer.initialize <;> inner.initialize }
 
-def flatten_snd : Gen ι (Gen ι' α) → Gen ι' α :=
+def flatten_snd : StreamGen ι (StreamGen ι' α) → StreamGen ι' α :=
 imap prod.snd ∘ flatten
 
 class Accumulable (l r : Type) (out : out_param $ Type) :=
@@ -264,27 +265,28 @@ class Accumulable (l r : Type) (out : out_param $ Type) :=
 
 export Accumulable
 
-instance : Accumulable E (Gen unit E) (Gen unit Prog) :=
+instance Unit.Accum : Accumulable E (StreamGen unit E) (StreamGen unit Prog) :=
 { accum := (<$>) ∘ Prog.accum }
 
 -- basic idea: when we step r, locate a new spot in l to store the result
 instance Storable.map {l r out : Type} [Accumulable l r out] :
-  Accumulable (LGen ι l) (Gen ι r) (Gen unit out) :=
+  Accumulable (SkipStreamGen ι l) (StreamGen ι r) (StreamGen unit out) :=
 { accum := λ l r,
   { current := (),
     value := accum l.value r.value,
     ready := r.ready,
     empty := r.empty,
-    next := r.next <;> Prog.if1 r.ready (l.locate r.current),
+    next := r.next <;> Prog.if1 r.ready (l.skip r.current),
     reset := l.reset <;> r.reset <;>
-      Prog.if1 r.ready (l.locate r.current),
+      Prog.if1 r.ready (l.skip r.current),
     initialize := l.initialize <;> r.initialize } }
 
-def contraction (acc : E) (v : Gen E (Gen unit E)) : Gen unit E :=
-{ singletonGen acc with
+def contraction (acc : E) (v : StreamGen E (StreamGen unit E)) : StreamGen unit E :=
+{ singleton acc with
   initialize := v.initialize,
   reset := v.reset <;> Prog.store acc 0 <;> loop (accum acc (flatten_snd v)) }
 
+end StreamGen
 
 /-! ### Code output -/
 
@@ -525,35 +527,34 @@ def cint := TensorType.atom ValueType.int
 def cstorage (x : TensorType) := TensorType.storage x
 def csparse (x : TensorType) := TensorType.sparse x
 
-@[reducible] def VectorGen := Gen E (Gen unit E)
-@[reducible] def MatrixGen := Gen E (Gen E (Gen unit E))
-@[reducible] def CubeGen   := Gen E (Gen E (Gen E (Gen unit E)))
+@[reducible] def VectorStreamGen := StreamGen E (StreamGen unit E)
+@[reducible] def MatrixStreamGen := StreamGen E (StreamGen E (StreamGen unit E))
+@[reducible] def CubeStreamGen   := StreamGen E (StreamGen E (StreamGen E (StreamGen unit E)))
 
-def m (var : string) : M MatrixGen := do
+open StreamGen
+
+def m (var : string) : M MatrixStreamGen := do
   let file := matrixFile,
   var ← E.ident <$> fresh var (csparse (csparse cdouble)),
-  let gen := functor.map (functor.map singletonGen) $ functor.map externGen (externGen $ var),
+  let gen := functor.map (functor.map StreamGen.singleton) $ functor.map extern (extern $ var),
   return $ {gen with initialize := Prog.store var (E.call1 (E.ident "loadmtx")
     (E.ident $ "\"" ++ file ++ "\""))}
 
-def v (var : string) : M VectorGen := do
+def v (var : string) : M VectorStreamGen := do
   let file := vectorFile,
   var ← E.ident <$> fresh var (csparse cdouble),
-  let gen := singletonGen <$> externGen var,
+  let gen := StreamGen.singleton <$> extern var,
   return $ { gen with initialize := Prog.store var
     $ E.call1 (E.ident "loadvec") (E.ident $ "\"" ++ file ++ "\"") }
 
 def vvar  := do
   var <- E.ident <$> fresh "t" (cstorage cdouble),
-  return $ externStorageGen var
+  return $ externStorage var
 def mvar  := do
   var <- E.ident <$> fresh "t" (cstorage (cstorage cdouble)),
-  return $ externStorageGen <$> (externStorageGen var)
+  return $ externStorage <$> (externStorage var)
 def floatVar := E.ident <$> fresh "v" cdouble
 def intVar := E.ident <$> fresh "v" cint
-end input_combinators
-
-variables {ι ι' α : Type}
 
 -- is this already defined?
 def applicative.map2 {α β γ} {m} [applicative m] (f : α → β → γ) : m α → m β → m γ
@@ -561,45 +562,46 @@ def applicative.map2 {α β γ} {m} [applicative m] (f : α → β → γ) : m �
 
 infixl ` <.> `:70 := applicative.map2 (*)
 
-def contractionM : M (Gen E (Gen unit E) → Gen unit E) := do
+def contractionM : M (StreamGen E (StreamGen unit E) → StreamGen unit E) := do
   acc <- E.ident <$> fresh "acc" cdouble,
   return $ contraction acc
-def sum1 (x : M VectorGen) := contractionM <*> x
-def sum2 (x : M MatrixGen) : M VectorGen := do
+def sum1 (x : M VectorStreamGen) := contractionM <*> x
+def sum2 (x : M MatrixStreamGen) : M VectorStreamGen := do
   g ← x,
   c ← contractionM,
   return (c <$> g)
-def sum3 (x : M CubeGen) : M MatrixGen := do
+def sum3 (x : M CubeStreamGen) : M MatrixStreamGen := do
   c ← contractionM,
   g ← x,
   return $ functor.map (functor.map c) g
 
-def M.repl1  (x : M (Gen ι α)) : M (Gen E (Gen ι α)) := repeat <$> intVar <*> x
-def M.repl2  (x : M (Gen ι (Gen ι' α))) : M (Gen ι (Gen E (Gen ι' α))) := do
+def M.repl1  (x : M (StreamGen ι α)) : M (StreamGen E (StreamGen ι α)) := repeat <$> intVar <*> x
+def M.repl2  (x : M (StreamGen ι (StreamGen ι' α))) : M (StreamGen ι (StreamGen E (StreamGen ι' α))) := do
 i ← intVar, (functor.map (repeat i)) <$> x
 
-def down : Gen unit (Gen unit α) → Gen unit α := flatten_snd
-def down2 : Gen unit (Gen unit (Gen unit α)) → Gen unit α := down ∘ down
+def down : StreamGen unit (StreamGen unit α) → StreamGen unit α := flatten_snd
+def down2 : StreamGen unit (StreamGen unit (StreamGen unit α)) → StreamGen unit α := down ∘ down
 prefix ` ↓ `: 19 := functor.map down
 prefix ` ↓ `: 19 := functor.map down2
 infixl ` <~ `:20 := applicative.map2 Accumulable.accum
+end input_combinators
 
 -- write output and clang_format it
-def go (mgen : M (Gen unit Prog)) : io unit := compile $ do
+def go (mgen : M (StreamGen unit Prog)) : io unit := compile $ do
   gen <- mgen,
-  return $ gen.initialize <;> (loop gen)
+  return $ gen.initialize <;> gen.loop
 
 section examples
 
-instance flatten_snd.has_lift {α} : has_coe (Gen unit (Gen unit α)) (Gen unit α) := ⟨flatten_snd⟩
+instance flatten_snd.has_lift {α} : has_coe (StreamGen unit (StreamGen unit α)) (StreamGen unit α) := ⟨StreamGen.flatten_snd⟩
 instance M.has_lift {α β} [has_coe α β] : has_coe (M α) (M β) := ⟨functor.map coe⟩
 
-@[reducible] def mgup := M (Gen unit Prog)
-def M.toProg (g : M (Gen unit Prog)) : Prog := let g := runM g in g.initialize <;> loop g
-def M.toStr' (g : M (Gen unit Prog)) : string :=
-  let g := runInfo $ do g ← g, (g.initialize <;> loop g).to_c in g.snd.to_string
-def M.toStr (g : M (Gen unit Prog)) : string :=
-  let g := runInfo $ do g ← g, (g.initialize <;> loop g).to_c_opt in g.snd.to_string
+@[reducible] def mgup := M (StreamGen unit Prog)
+def M.toProg (g : M (StreamGen unit Prog)) : Prog := let g := runM g in g.initialize <;> g.loop
+def M.toStr' (g : M (StreamGen unit Prog)) : string :=
+  let g := runInfo $ do g ← g, (g.initialize <;> g.loop).to_c in g.snd.to_string
+def M.toStr (g : M (StreamGen unit Prog)) : string :=
+  let g := runInfo $ do g ← g, (g.initialize <;> g.loop).to_c_opt in g.snd.to_string
 
 def egV    : mgup := ↓ vvar <~ v "u"
 def egVsum : mgup := floatVar <~ sum1 (v "u")
@@ -607,16 +609,19 @@ def egVV   : mgup := ↓ vvar <~ v "u" <.> v "v"
 def egMM   : mgup := ↓ mvar <~ m "u" <.> m "v"
 def egVVV  : mgup := ↓ vvar <~ v "u" <.> v "v" <.> v "w"
 -- AB^t
-def egmul2 : mgup := ↑ (mvar <~ sum3 ((m "A").repl2 <.> (m "B").repl1))
+def egmul2 : mgup := ↓ (mvar <~ sum3 ((m "A").repl2 <.> (m "B").repl1))
 def egMMM   : mgup := ↓ mvar <~ m "u" <.> m "v" <.> m "w"
 
 #eval egVV.toStr
 --#eval go egVsum
 
-def fun1 : mgup := floatVar <~ sum1 (mulFun <$> (v "V") <*> (pure $ λ i, singletonGen $ BinOp.lt i 3))
-def fun2 : mgup := floatVar <~ sum1 (ivmap (λ i v, singletonGen (BinOp.lt i 3) * v) <$> v "V")
+section FunTest
+open StreamGen
+def fun1 : mgup := floatVar <~ sum1 (mulFun <$> (v "V") <*> (pure $ λ i, singleton $ BinOp.lt i 3))
+def fun2 : mgup := floatVar <~ sum1 (ivmap (λ i v, singleton (BinOp.lt i 3) * v) <$> v "V")
 def fun3 : mgup := floatVar <~ sum1 (sum2
-  (ivmap (λ i, ivmap (λ j v, singletonGen (BinOp.lt i j) * v)) <$> m "V"))
+  (ivmap (λ i, ivmap (λ j v, singleton (BinOp.lt i j) * v)) <$> m "V"))
 --#eval go fun3
+end FunTest
 
 end examples
