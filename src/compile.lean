@@ -98,12 +98,12 @@ infixl ` || `:65 := BinOp.or
 variables {ι ι' α β : Type}
 
 structure StreamGen (ι α : Type) :=
-(current : ι)
-(value : α)
-(ready : E)
-(next : Prog)
-(empty : E)
-(reset : Prog)
+(current    : ι)
+(value      : α)
+(ready      : E)
+(next       : Prog)
+(empty      : E)
+(reset      : Prog)
 (initialize : Prog)
 
 structure SkipStreamGen (ι α : Type) extends StreamGen ι α :=
@@ -126,6 +126,18 @@ def ivmap {ι α : Type} (f : ι → α → β) (g : StreamGen ι α) : StreamGe
 
 def loop (g : StreamGen unit Prog) : Prog :=
 let loopLabel := "loop", doneLabel := "done" in
+g.reset <;>
+Prog.block $
+Prog.labels [loopLabel, doneLabel] <;>
+  Prog.label loopLabel <;>
+    Prog.if g.ready g.value Prog.skip <;>
+    Prog.if g.empty
+      (Prog.jump doneLabel)
+      (g.next <;> Prog.jump loopLabel) <;>
+  Prog.label doneLabel
+
+def loop' (g : StreamGen unit Prog) : Prog :=
+let loopLabel := "loop", doneLabel := "done" in
 Prog.block $
   Prog.labels [loopLabel, doneLabel] <;>
   g.reset <;>
@@ -133,7 +145,9 @@ Prog.block $
   Prog.label loopLabel <;>
   Prog.debug_code "__i++;" <;>
   Prog.if g.ready g.value Prog.skip <;>
-  Prog.if g.empty (Prog.jump doneLabel) (g.next <;> Prog.jump loopLabel) <;>
+  Prog.if g.empty
+    (Prog.jump doneLabel)
+    (g.next <;> Prog.jump loopLabel) <;>
   Prog.label doneLabel <;>
   if debug then Prog.debug_code "printf(\"loops: %d\\n\", __i);\n" else Prog.skip
 
@@ -199,7 +213,21 @@ def mulSkip [has_mul α] (a b : SkipStreamGen E α) : SkipStreamGen E α :=
   skip := λ i, a.skip i <;> b.skip a.current, -- a.current optimization
   }
 
+infix ` < `:71 := BinOp.lt
+infix ` == `:71 := BinOp.eq
 def mul [has_mul α] (a b : StreamGen E α) : StreamGen E α :=
+{ current    := BinOp.max a.current b.current,
+  value      := a.value * b.value,
+  ready      := a.ready && b.ready && a.current == b.current,
+  next       := Prog.if (a.current < b.current ||
+                        (a.current == b.current && a.ready.not))
+                  a.next
+                  b.next,
+  empty      := a.empty || b.empty,
+  reset      := a.reset <;> b.reset,
+  initialize := a.initialize <;> b.initialize }
+
+def mulSimple [has_mul α] (a b : StreamGen E α) : StreamGen E α :=
 { current := BinOp.min a.current b.current,
   value := a.value * b.value,
   ready := a.ready && b.ready && BinOp.eq a.current b.current,
@@ -281,7 +309,7 @@ instance Storable.map {l r out : Type} [Accumulable l r out] :
       Prog.if1 r.ready (l.skip r.current),
     initialize := l.initialize <;> r.initialize } }
 
-def contraction (acc : E) (v : StreamGen E (StreamGen unit E)) : StreamGen unit E :=
+def contraction {ι : Type} (acc : E) (v : StreamGen ι (StreamGen unit E)) : StreamGen unit E :=
 { singleton acc with
   initialize := v.initialize,
   reset := v.reset <;> Prog.store acc 0 <;> loop (accum acc (flatten_snd v)) }
@@ -421,6 +449,7 @@ def E.to_c : E → string
 | (E.current i)              := i.to_c ++ ".current()"
 | (E.not i)                  := "!" ++ wrap i.to_c
 | (E.bin_op BinOp.min e1 e2) := BinOp.min.to_c ++ (wrap $ e1.to_c ++ "," ++ e2.to_c)
+| (E.bin_op BinOp.max e1 e2) := BinOp.max.to_c ++ (wrap $ e1.to_c ++ "," ++ e2.to_c)
 | (E.bin_op op e1 e2)        := wrap $ e1.to_c ++ op.to_c ++ e2.to_c
 | (E.call0 f)                := f.to_c ++ wrap ""
 | (E.call1 f a1)             := f.to_c ++ (wrap a1.to_c)
@@ -607,13 +636,16 @@ def egV    : mgup := ↓ vvar <~ v "u"
 def egVsum : mgup := floatVar <~ sum1 (v "u")
 def egVV   : mgup := ↓ vvar <~ v "u" <.> v "v"
 def egMM   : mgup := ↓ mvar <~ m "u" <.> m "v"
+def egM'   : mgup := ↓ (mvar <~ m "u")
+def egMsum : mgup := floatVar <~ sum1 (sum2 (m "u"))
 def egVVV  : mgup := ↓ vvar <~ v "u" <.> v "v" <.> v "w"
 -- AB^t
 def egmul2 : mgup := ↓ (mvar <~ sum3 ((m "A").repl2 <.> (m "B").repl1))
 def egMMM   : mgup := ↓ mvar <~ m "u" <.> m "v" <.> m "w"
 
+
 #eval egVV.toStr
---#eval go egVsum
+--#eval go egmul2
 
 section FunTest
 open StreamGen
