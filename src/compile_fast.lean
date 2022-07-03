@@ -44,6 +44,9 @@ inductive Prog
 @[pattern]
 def Prog.if1 (b : E) (cons : Prog) : Prog := Prog.if b cons Prog.skip
 
+def E.store : E → E → Prog := Prog.store
+def E.accum : E → E → Prog := Prog.accum
+
 infixr ` <;> `:1 := Prog.seq
 instance : has_andthen Prog Prog Prog := ⟨Prog.seq⟩
 
@@ -213,11 +216,8 @@ def M.runInfo {α} (m : M α) : SymbolTable × buffer char :=
 
 def M.runBuffer {α} (m : M α) : string := m.runInfo.snd.to_string
 
-def addHeaderFooter : string → string
-| s
-  := "#include \"prefix.cpp\"\n"
-  ++ s
-  ++ "#include \"suffix.cpp\"\n"
+def addHeaderFooter : string → string :=
+λ s, "#include \"prefix.cpp\"\n" ++ s ++ "#include \"suffix.cpp\"\n"
 
 def compile (prog : M Prog) : io unit :=
   let outName := "out_lean.cpp" in do
@@ -227,13 +227,7 @@ def compile (prog : M Prog) : io unit :=
   io.fs.close handle,
   if disableClangFormat then return () else io.cmd {cmd := "clang-format", args := ["-i", outName]} >> return ()
 
-def comp (prog : Prog) : io unit :=
-  let outName := "out_lean.cpp" in do
-  handle ← io.mk_file_handle outName io.mode.write,
-  let result : string := addHeaderFooter $ prog.to_c.runBuffer,
-  io.fs.write handle result.to_char_buffer,
-  io.fs.close handle,
-  if disableClangFormat then return () else io.cmd {cmd := "clang-format", args := ["-i", outName]} >> return ()
+def comp : Prog → io unit := compile ∘ pure
 
 end codegen
 
@@ -285,47 +279,64 @@ instance [has_hmul α β γ] : has_hmul (G E α) (G E β) (G E γ) := ⟨G.mul�
 instance GV.has_hmul [has_hmul α β γ] : has_hmul (G ι α) (View ι β) (G ι γ) := ⟨G.mulViewR⟩
 instance VG.has_hmul [has_hmul α β γ] : has_hmul (View ι α) (G ι β) (G ι γ) := ⟨G.mulViewL⟩
 
-def range (bound counter : E) : G E E :=
-{ index := counter,
-  value := counter,
-  ready := E.true,
-  valid := counter < bound,
-  init := Prog.store counter 0,
-  next := Prog.accum counter 1,
-}
+-- def range (bound counter : E) : G E E :=
+-- { index := counter,
+--   value := counter,
+--   ready := E.true,
+--   valid := counter < bound,
+--   init  := Prog.store counter 0,
+--   next  := Prog.accum counter 1,
+-- }
 
-def interval (i : E) (counter : E) (bounds : E×E) : G E E :=
+/- implementation of (nested) CSR iteration -/
+section csr
+def interval (i : E) (counter : E) (lower upper : E) : G E E :=
 { index := i.access counter,
   value := counter,
   ready := E.true,
-  init := Prog.store counter bounds.1,
-  valid := counter < bounds.2,
-  next := Prog.accum counter 1,
+  init  := counter.store lower,
+  valid := counter < upper,
+  next  := counter.accum 1,
 }
 
 structure csr := (i v var : E)
-def csr.level : csr → E → G E E := λ csr loc, interval csr.i csr.var (csr.v.access loc, csr.v.access (loc+1))
 
-def G.level : csr → G E E → G E (G E E) := λ csr, functor.map csr.level
+def csr.level : csr → E → G E E := λ csr loc, interval csr.i csr.var (csr.v.access loc) (csr.v.access (loc+1))
+def G.level   : csr → G E E → G E (G E E) := functor.map ∘ csr.level
+def G.leaf    :   E → G E E → G E E       := functor.map ∘ E.access -- λ v, functor.map $ λ i, E.access v i
 
-def E.leaf (v : E) : E → E := λ value,
-  v.access value
+def csr.of (name : string) (n : ℕ) : csr :=
+let field (x : string) := E.ident $ name ++ x ++ n.repr in
+{ i   := field "_crd",
+  v   := field "_pos",
+  var := field "_i" }
 
-def G.leaf (v : E) : G E E → G E E := functor.map $ E.leaf v
+-- TODO check if new I
+def push_i (var var' crd_one pos_two : E) : (E → E → Prog) → E → Prog × (E → E → Prog) := λ k rval_i,
+((crd_one.access var).store rval_i;
+ (pos_two.access var).store var';
+ var.accum 1 , k)
 
-def csr_mk (name : string) (n : ℕ) : csr :=
-{ i   := E.ident $ name ++ "_coo" ++ n.repr,
-  v   := E.ident $ name ++ "_pos" ++ n.repr,
-  var := E.ident $ name ++ "_i" ++ n.repr }
+-- TODO check if new I
+def push_v (var crd_n val_array: E) : E → E → Prog := λ rval_i rval_v,
+(crd_n.access var).store rval_i;
+(val_array.access var).accum rval_v;
+Prog.accum var 1
 
-def csr_t := csr_mk "A"
+def vec_lval1 := push_v "iout" "out_crd2" "out_vals"
+def mat_lval1 := push_i "iout" "jout" "out1_crd" "out2_pos" $
+         push_v "jout" "out2_crd" "out_vals"
 
-def v1 := G.leaf "v" $ interval "i1" "x" (0,10)
+end csr
+
+def csr_t := csr.of "A"
+
+def v1 := G.leaf "v" $ interval "i1" "x" 0 10
 def v1' : G E E := G.leaf "v" $ ((csr_t 1).level "i1")
 def v2  : G E (G E E) := G.leaf "v" <$> ((csr_t 1).level 0).level (csr_t 2)
-def v  : G E E := G.leaf "v" $ ((csr_mk "v" 1).level 0)
-def A  : G E (G E E) := G.leaf "A_v" <$> ((csr_mk "A" 1).level 0).level (csr_mk "A" 2)
-def B  : G E (G E E) := G.leaf "B_v" <$> ((csr_mk "B" 1).level 0).level (csr_mk "B" 2)
+def v  : G E E       := G.leaf "v_vals"  $  ((csr.of "v" 1).level 0)
+def A  : G E (G E E) := G.leaf "A_vals" <$> ((csr.of "A" 1).level 0).level (csr.of "A" 2)
+def B  : G E (G E E) := G.leaf "B_vals" <$> ((csr.of "B" 1).level 0).level (csr.of "B" 2)
 
 def gmap1 {α β} : (α → β) → G E α → G E β := functor.map
 def gmap2 {α β} : (α → β) → G E (G E α) → G E (G E β) := functor.map ∘ functor.map
@@ -336,18 +347,20 @@ structure lv (γ : Type) :=
 class Ev (l r: Type) := (eval : l → r → Prog)
 instance base.eval : Ev (E → Prog) E :=
 { eval := λ acc v, acc v }
-instance g.eval [Ev α β] : Ev (E → α) (G E β) :=
+instance level.eval [Ev α β] : Ev (E → α) (G E β) :=
 { eval := λ acc v,
   v.init ; Prog.while v.valid
-    (Prog.if1 v.ready (Ev.eval (acc v.index) v.value) ; v.next)
-}
-instance g.unit.eval [Ev α β] : Ev α (G unit β) :=
+    (Prog.if1 v.ready (Ev.eval (acc v.index) v.value) ; v.next) }
+instance level'.eval [Ev α β] : Ev (E → Prog × α) (G E β) :=
+{ eval := λ acc v, v.init ;
+    Prog.while v.valid
+      (Prog.if1 v.ready ((acc v.index).1 ; Ev.eval (acc v.index).2 v.value) ;
+      v.next) }
+instance unit.eval [Ev α β] : Ev α (G unit β) :=
 { eval := λ acc v,
   v.init ; Prog.while v.valid
-    (Prog.if1 v.ready (Ev.eval acc v.value) ; v.next)
-  }
-def G.contract (g : G ι α) : G unit α :=
-{ g with index := () }
+    (Prog.if1 v.ready (Ev.eval acc v.value) ; v.next) }
+def G.contract (g : G ι α) : G unit α := { g with index := () }
 
 -- class Contractible (α β : Type) := (contract : α → β)
 -- instance contract_base : Contractible (G E α) (G unit α) := ⟨G.contract⟩
@@ -367,6 +380,9 @@ def G.sum3 : G E (G E (G E E)) → G unit (G unit (G unit E)) :=
 --#eval comp $ Ev.eval (Prog.accum "out") (G.sum3 $ ((⇑ E) <$> A) ⋆ ⇑ E B ) -- (i,k)*(j,k)
 --#eval comp $ Ev.eval (Prog.accum "out") $ G.sum3 $ (gmap2 (⇑ E) A) ⋆ (gmap1 (⇑ E) B) -- (i,j)*(i,k)
 --#eval comp $ Ev.eval (Prog.accum "out") (G.sum3 $ (gmap2 (⇑ E) A) ⋆ ⇑ E B ) -- (i,j)*(j,k)
+--#eval comp $ Ev.eval vec_lval1 v
+--#eval comp $ Ev.eval mat_lval1 A
+#eval comp $ Ev.eval mat_lval1 (A⋆B)
 
 def hmm (var : E) (i j v : E) := Prog.accum ((var.access i).access j) v
 
@@ -380,9 +396,7 @@ let getline := Prog.inline_code $ "getline" ++ wrap ("file" ++ ",line") ++ ";" i
   init  := Prog.inline_code ("ifstream file("++name++"); string line;") ; getline,
   next  := getline,
 }
-
-#eval comp $ Ev.eval (λ (line : E), Prog.inline_code $
-  "cout << " ++ line.to_c ++ "<< endl;") $ readFile "\"test.txt\""
+--#eval comp $ Ev.eval (λ (line : E), Prog.inline_code $ "cout << " ++ line.to_c ++ "<< endl;") $ readFile "\"test.txt\""
 
 end G
 
@@ -390,9 +404,13 @@ end G
 -- [x] repeat
 -- [x] MM (sum)
 -- [x] read file
+-- [x] CSR lval
+-- [ ] initialize variables
+-- [ ] read std::map into CSR lval
 -- generate wrapper code
 -- run MM (sum)
 -- dense level, test ds * ds
 -- dense lval
--- csr lval
 -- label indices, then do indexed contraction
+-- shorthand notation
+-- database comparison? binary_search
