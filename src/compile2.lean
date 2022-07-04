@@ -75,6 +75,7 @@ inductive IdentVal
 | base : ExprVal R → IdentVal
 | arr : ∀ (n : ℕ), (fin n → IdentVal) → IdentVal
 
+instance : inhabited (IdentVal R) := ⟨IdentVal.base default⟩ 
 
 variable {R}
 def IdentVal.get : list ℕ → IdentVal R → ExprVal R
@@ -83,6 +84,23 @@ def IdentVal.get : list ℕ → IdentVal R → ExprVal R
   if h : idx < n then (vals ⟨idx, h⟩).get idcs
   else arbitrary _
 | _ _ := arbitrary _
+
+@[simp] lemma IdentVal.base_get (r : ExprVal R) :
+  (IdentVal.base r).get [] = r := rfl
+@[simp] lemma IdentVal.arr_get {n m : ℕ} (vals : fin n → IdentVal R) (h : m < n) (idcs : list ℕ) :
+  (IdentVal.arr n vals).get (m :: idcs) = (vals ⟨m, h⟩).get idcs :=
+by simp [IdentVal.get, h]
+
+
+def IdentVal.update (y : ExprVal R) : list ℕ → IdentVal R → IdentVal R
+| [] (IdentVal.base x) := IdentVal.base y
+| (idx :: idcs) (IdentVal.arr n vals) :=
+  if h : idx < n then
+    let val' : IdentVal R := (vals ⟨idx, h⟩).update idcs in IdentVal.arr n $ function.update vals ⟨idx, h⟩ val'
+  else arbitrary _ 
+| _ _ := arbitrary _
+
+-- TODO: definitional lemmas for update
 
 end Ident
 
@@ -152,12 +170,12 @@ example : Expr R := (0 : R)
 
 /-- Pretty print repr of indices; ignores [] (scalar), represents only
     vector indices -/
-def idcs_repr {n : ℕ} (idcs : vector string n) : string :=
-if n = 0 then "" else "[" ++ ", ".intercalate idcs.to_list ++ "]"
+def idcs_repr (idcs : list string) : string :=
+if idcs.length = 0 then "" else "[" ++ ", ".intercalate idcs ++ "]"
 
 def expr_repr [has_repr R] : Expr R → string
 | (Expr.lit r) := repr r
-| (Expr.ident i idcs) := repr i ++ idcs_repr (vector.of_fn $ λ j, expr_repr (idcs j))
+| (Expr.ident i idcs) := repr i ++ idcs_repr (vector.of_fn $ λ j, expr_repr (idcs j)).to_list
 | (Expr.call o args) := (repr o) ++ "(" ++ ", ".intercalate (vector.of_fn (λ i, expr_repr $ args i)).to_list ++ ")"
 
 instance [has_repr R] : has_repr (Expr R) := ⟨expr_repr⟩
@@ -178,7 +196,7 @@ variable {R}
 
 def prog_repr [has_repr R] : Prog R → list string
 | Prog.skip := [";"]
-| (Prog.store dst val) := [(repr dst) ++ " := " ++ (repr val) ++ ";"]
+| (Prog.store dst idcs val) := [(repr dst) ++ (idcs_repr (idcs.map repr)) ++ " := " ++ (repr val) ++ ";"]
 | (Prog.seq a b) := (prog_repr a) ++ (prog_repr b)
 | (Prog.branch c a b) := ["if " ++ (repr c)]
     ++ (prog_repr a).map (λ s, "  " ++ s)
@@ -189,15 +207,19 @@ def prog_repr [has_repr R] : Prog R → list string
 
 instance [has_repr R] : has_to_string (Prog R) := ⟨λ p, "\n".intercalate (prog_repr p)⟩
 
+
+
 def Prog.eval : Prog R → (Ident → IdentVal R) → (Ident → IdentVal R)
 | Prog.skip ctx := ctx
-| (Prog.store dst val) ctx := function.update ctx dst (Expr.eval ctx val)
+| (Prog.store dst idcs val) ctx := function.update ctx dst ((ctx dst).update (Expr.eval ctx val) $ idcs.map (λ e, (e.eval ctx).to_nat))
 | (Prog.seq a b) ctx := b.eval (a.eval ctx)
 | (Prog.branch cond a b) ctx := if (Expr.eval ctx cond).to_nat = 0 then a.eval ctx else b.eval ctx
 | (Prog.loop n b) ctx := (nat.iterate b.eval (Expr.eval ctx n).to_nat) ctx
 
 infixr ` <;> `:1 := Prog.seq
-infixr ` ::= `:20 := Prog.store
+notation a ` < ` b ` > ` ` ::= `:20 c := Prog.store a b c
+notation a ` ::= `:20 c := Prog.store a [] c
+
 
 section example_prog
 namespace vars
@@ -212,12 +234,12 @@ open Expr Prog vars
 
 def pow_prog : Prog ℤ :=
 z ::= (1 : ℤ) <;>
-loop (ident y) (z ::= (ident x) ⟪*⟫ (ident z))
+loop (ident y ![]) (z ::= (ident x ![]) ⟪*⟫ (ident z ![]))
 
-def pow_prog_input (i : Ident) : ExprVal ℤ :=
-  if i = x then ExprVal.rval 3
-  else if i = y then ExprVal.nat 4
-  else ExprVal.rval 0
+def pow_prog_input (i : Ident) : IdentVal ℤ :=
+  if i = x then IdentVal.base (ExprVal.rval 3)
+  else if i = y then IdentVal.base (ExprVal.nat 4)
+  else arbitrary _
 
 -- #eval (pow_prog.eval pow_prog_input) (Ident.of "z")
 
