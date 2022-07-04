@@ -378,7 +378,7 @@ Prog.accum var 1
 
 
 /- current -/
-structure lval := (new : E → Prog) -- (acc : E → α)
+structure lval := (new : Prog) -- (acc : E → α)
 
 -- def push_i0 : csr → (lval × α) → lval × (E → pre × Prog × α) := λ csr k,
 -- ( { new := λ i, (csr.v.access i).store (csr.var+1) },
@@ -390,27 +390,38 @@ structure lval := (new : E → Prog) -- (acc : E → α)
 --                   csr.var.accum 1; (csr.i.access csr.var).store i; k.1.new csr.var /-; csr.var.accum 1-/}, (k.1.new csr.var, k.2)) )
 
 structure post := (post : Prog)
-def push_v0_post (var val_array: E) : lval × (E → Prog) :=
-({ new := λ i, (val_array.access i).store 0 }, λ rval_v, (val_array.access var).accum rval_v)
-def push_i0_acc_post : csr → (lval × α) → lval × (E → post × α) := λ csr k,
-({ new := λ i, (csr.v.access (i)).store (csr.var) },
-   λ i, (⟨Prog.if1 (csr.var < 0 || i != csr.i.access csr.var) $
-                    (csr.i.access csr.var).store i; csr.var.accum 1; k.1.new (csr.var)⟩,
-         k.2))
+def push_v0_post (var val_array outer_var : E) : lval × post × (E → Prog) :=
+({new := (val_array.access outer_var).store 0}, ⟨Prog.skip⟩, λ rval_v, (val_array.access var).accum rval_v)
+def push_i0_acc_post : csr → (E → lval × post × α) → (E → lval × post × (E → pre × α))
+:= λ csr k outer_var,
+( { new := (csr.v.access outer_var).store (csr.var+1) }, ⟨(csr.v.access (outer_var+1)).store (csr.var+1); (k csr.var).2.1.post⟩,
+   λ i, (⟨Prog.if1 (csr.var < csr.v.access outer_var || i != csr.i.access csr.var) $
+                    csr.var.accum 1; (csr.i.access csr.var).store i; (k csr.var).1.new⟩,
+         (k csr.var).2.2))
+
+def push_i0_post : csr → (E → lval × post × α) → (E → lval × post × (E → pre × α))
+:= λ csr k outer_var,
+( { new := (csr.v.access outer_var).store (csr.var+1) }, ⟨(csr.v.access (outer_var+1)).store (csr.var+1); (k csr.var).2.1.post⟩,
+   λ i, (⟨csr.var.accum 1; (csr.i.access csr.var).store i; (k csr.var).1.new⟩,
+         (k csr.var).2.2))
 
 
-def push_v0 (var val_array: E) : lval × (E → Prog) :=
-({ new := λ i, (val_array.access i).store 0 }, λ rval_v, (val_array.access var).accum rval_v)
-def push_i0_acc : csr → (lval × α) → lval × (E → pre × α) := λ csr k,
-({ new := λ i, (csr.v.access (i)).store (csr.var+1); k.1.new (csr.var+1) },
-   λ i, ({ pre := Prog.if1 (csr.var < 0 || i != csr.i.access csr.var) $
-                    csr.var.accum 1; (csr.i.access csr.var).store i; k.1.new csr.var },
-         k.2))
+-- def push_v0 (var val_array: E) : lval × (E → Prog) :=
+-- ({ new := λ i, (val_array.access i).store 0 }, λ rval_v, (val_array.access var).accum rval_v)
+-- def push_i0_acc : csr → (lval × α) → lval × (E → pre × α) := λ csr k,
+-- ({ new := λ i, (csr.v.access (i)).store (csr.var+1); k.1.new (csr.var+1) },
+--    λ i, ({ pre := Prog.if1 (csr.var < 0 || i != csr.i.access csr.var) $
+--                     csr.var.accum 1; (csr.i.access csr.var).store i; k.1.new csr.var },
+--          k.2))
 
-def mat_lval' (n : string) :=
-push_i0_acc (csr.of n 1) $ push_i0_acc (csr.of n 2) $ push_v0 (csr.of n 2).var (E.ident $ n ++ "_vals")
+-- def mat_lval' (n : string) :=
+-- push_i0_acc (csr.of n 1) $ push_i0_acc (csr.of n 2) $ push_v0 (csr.of n 2).var (E.ident $ n ++ "_vals")
 def vec_lval' (n : string) :=
-push_i0_acc_post (csr.of n 2) $ push_v0_post (csr.of n 2).var (E.ident $ n ++ "_vals")
+prod.snd $ (push_i0_acc_post (csr.of n 2) $ push_v0_post (csr.of n 2).var (E.ident $ n ++ "_vals")) 0
+def mat_lval' (n : string) :=
+prod.snd $ (push_i0_acc_post (csr.of n 1) $ push_i0_acc_post (csr.of n 2) $ push_v0_post (csr.of n 2).var (E.ident $ n ++ "_vals")) 0
+def mat_lval'' (n : string) :=
+prod.snd $ (push_i0_post (csr.of n 1) $ push_i0_post (csr.of n 2) $ push_v0_post (csr.of n 2).var (E.ident $ n ++ "_vals")) 0
 
 
 def vec_lval := push_v "iout" "out_crd2" "out_vals"
@@ -486,7 +497,12 @@ instance level_pp.eval [Ev α β] : Ev (Prog × (E → pre × α)) (G E β) :=
 instance level_outer_lval.eval [Ev α β] : Ev (lval × α) β :=
 { eval := λ lhs v, let (x, acc) := lhs in
     Ev.eval acc v;
-    x.new 1 }
+    x.new  }
+
+instance level_outer_post.eval [Ev α β] : Ev (post × α) β :=
+{ eval := λ lhs v, let (x, acc) := lhs in
+    Ev.eval acc v;
+    x.post }
 
 def G.contract (g : G ι α) : G unit α := { g with index := () }
 
@@ -552,10 +568,12 @@ def eg18 := Ev.eval (mat_lval' "out") A
 def eg19 := [Ev.eval (mat_lval' "A") ref_matrix, Ev.eval (mat_lval' "B") ref_matrix, Prog.time $ Ev.eval (mat_lval' "out") $ A⋆B]
 def eg20 := [Ev.eval (mat_lval' "A") ref_matrix, Ev.eval (mat_lval' "B") ref_matrix, Prog.time $ eg06]
 def eg21 := Ev.eval (vec_lval' "out") v
+def eg22 := Ev.eval (mat_lval' "out") A
+def eg23 := [Ev.eval (mat_lval' "A") ref_matrix, Ev.eval (mat_lval' "B") ref_matrix, Prog.time $ Ev.eval (mat_lval'' "out") $ inner_prod.sum_inner]
 
 --#eval comp eg06
 
-#eval comp eg21
+#eval compile eg23
 
 
 -- -- todo errors, don't crash on empty file

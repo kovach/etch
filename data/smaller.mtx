@@ -1,0 +1,24 @@
+%%MatrixMarket matrix coordinate real general
+%-------------------------------------------------------------------------------
+% UF Sparse Matrix Collection, Tim Davis
+% http://www.cise.ufl.edu/research/sparse/matrices/DRIVCAV/cavity11
+% name: DRIVCAV/cavity11
+% [Driven Cavity  15 x 15, Reynolds number: 200]
+% id: 390
+% date: 1996
+% author: A. Chapman
+% ed: A. Baggag, Y. Saad
+% fields: title A Zeros b x name id kind notes date author ed
+% kind: subsequent computational fluid dynamics problem
+%-------------------------------------------------------------------------------
+% notes:
+% next: DRIVCAV/cavity12 first: DRIVCAV/cavity10
+% pattern is the same as the transpose of DRIVCAV/cavity10
+%-------------------------------------------------------------------------------
+4 4 4
+1 1 1.0
+1 2 2
+1 3 6
+2 1 1
+2 2 2.0
+3 3 7
