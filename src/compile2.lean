@@ -68,7 +68,7 @@ section Ident
 @[reducible] def Ident := string
 @[pattern] def Ident.of : string → Ident := id
 instance : decidable_eq Ident := infer_instance
-instance : has_repr Ident := infer_instance
+instance : has_repr Ident := ⟨id⟩
 attribute [irreducible] Ident
 
 inductive IdentVal
@@ -293,39 +293,38 @@ def test : BoundedStreamGen ℤ unit (Expr ℤ) := BoundedStreamGen.singleton (1
 end example_singleton
 
 def range (n : Expr R) (var : Ident) : BoundedStreamGen R (Expr R) (Expr R) :=
-{ current := Expr.ident var,
-  value := Expr.call Op.cast_r ![Expr.ident var],
-  ready := (Expr.ident var) ⟪<⟫ n,
-  empty := Expr.call Op.not ![(Expr.ident var) ⟪<⟫ n],
-  next := var ::= (Expr.ident var) ⟪+⟫ (1 : ℕ),
+{ current := Expr.ident var ![],
+  value := Expr.call Op.cast_r ![Expr.ident var ![]],
+  ready := (Expr.ident var ![]) ⟪<⟫ n,
+  empty := Expr.call Op.not ![(Expr.ident var ![]) ⟪<⟫ n],
+  next := var ::= (Expr.ident var ![]) ⟪+⟫ (1 : ℕ),
   reset := var ::= (0 : ℕ),
   bound := n,
   initialize := var ::= (0 : ℕ), }
 
 def contraction {ι : Type} (acc : Ident) (v : BoundedStreamGen R ι (Expr R)) :
   BoundedStreamGen R unit (Expr R) :=
-{ BoundedStreamGen.singleton (Expr.ident acc) with
+{ BoundedStreamGen.singleton (Expr.ident acc ![]) with
   reset := v.reset <;>
     acc ::= (0 : R) <;>
     Prog.loop v.bound $
-      Prog.branch v.ready (acc ::= (Expr.ident acc) ⟪+⟫ v.value) Prog.skip <;>
+      Prog.branch v.ready (acc ::= (Expr.ident acc ![]) ⟪+⟫ v.value) Prog.skip <;>
       Prog.branch v.empty Prog.skip v.next,
   initialize := v.initialize }
 
 def test₂ : BoundedStreamGen ℤ (Expr ℤ) (Expr ℤ) := range (10 : ℕ) (Ident.of "x")
 #eval trace_val $ to_string $ (contraction (Ident.of "acc") test₂).expr_to_prog.compile
 
-def externVec (len : ℕ) : BoundedStreamGen R (Expr R) (Expr R) :=
-let inp_idx := Ident.of "inp_idx" in
-{ current := Expr.ident inp_idx,
-  value := Expr.ident (Ident.of "input[inp_idx]"),
-  ready := (Expr.ident inp_idx) ⟪<⟫ len,
-  next := inp_idx ::= (Expr.ident inp_idx) ⟪+⟫ (1 : ℕ),
-  empty := Expr.call Op.not ![Expr.ident inp_idx ⟪<⟫ len],
+def externVec (len : ℕ) (inp : Ident) (inp_idx : Ident) : BoundedStreamGen R (Expr R) (Expr R) :=
+{ current := Expr.ident inp_idx ![],
+  value := Expr.ident inp ![Expr.ident inp_idx ![]],
+  ready := (Expr.ident inp_idx ![]) ⟪<⟫ len,
+  next := inp_idx ::= (Expr.ident inp_idx ![]) ⟪+⟫ (1 : ℕ),
+  empty := Expr.call Op.not ![(Expr.ident inp_idx ![]) ⟪<⟫ len],
   bound := len,
   reset := inp_idx ::= (0 : ℕ),
   initialize := inp_idx ::= (0 : ℕ) }
 
-def test₃ : BoundedStreamGen ℤ (Expr ℤ) (Expr ℤ) := externVec 10
+def test₃ : BoundedStreamGen ℤ (Expr ℤ) (Expr ℤ) := externVec 10 (Ident.of "input") (Ident.of "idx") 
 
 #eval trace_val $ to_string $ (contraction (Ident.of "acc") test₃).expr_to_prog.compile
