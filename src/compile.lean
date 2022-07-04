@@ -137,7 +137,7 @@ Prog.block $
   Prog.label doneLabel <;>
   if debug then Prog.debug_code "printf(\"loops: %d\\n\", __i);\n" else Prog.skip
 
-def filter (pred : E → E) (g : StreamGen E E) : StreamGen E E :=
+def filter (pred : ι → E) (g : StreamGen ι E) : StreamGen ι E :=
 { g with
   ready := g.ready && pred g.current }
 
@@ -257,6 +257,7 @@ let inner := outer.value,
   reset := outer.reset <;> reset_inner,
   initialize := outer.initialize <;> inner.initialize }
 
+
 def flatten_snd : StreamGen ι (StreamGen ι' α) → StreamGen ι' α :=
 imap prod.snd ∘ flatten
 
@@ -267,6 +268,7 @@ export Accumulable
 
 instance Unit.Accum : Accumulable E (StreamGen unit E) (StreamGen unit Prog) :=
 { accum := (<$>) ∘ Prog.accum }
+
 
 -- basic idea: when we step r, locate a new spot in l to store the result
 instance Storable.map {l r out : Type} [Accumulable l r out] :
@@ -281,10 +283,11 @@ instance Storable.map {l r out : Type} [Accumulable l r out] :
       Prog.if1 r.ready (l.skip r.current),
     initialize := l.initialize <;> r.initialize } }
 
-def contraction (acc : E) (v : StreamGen E (StreamGen unit E)) : StreamGen unit E :=
+def contraction {ι : Type} (acc : E) (v : StreamGen ι (StreamGen unit E)) : StreamGen unit E :=
 { singleton acc with
   initialize := v.initialize,
   reset := v.reset <;> Prog.store acc 0 <;> loop (accum acc (flatten_snd v)) }
+
 
 end StreamGen
 
@@ -500,6 +503,9 @@ def addHeaderFooter : SymbolTable × string → string
   ++ (if disablePrinting then "" else "printf(\"results:\\n\");" ++ insertPrintf st)
   ++ "#include \"suffix.cpp\"\n"
 
+def get_result (prog : M Prog) : string :=
+addHeaderFooter $ (runInfo (prog >>= Prog.to_c)).map id buffer.to_string
+
 -- compiles, writes, and formats program
 def compile (prog : M Prog) : io unit :=
   let outName := "out_lean.cpp" in do
@@ -612,8 +618,14 @@ def egVVV  : mgup := ↓ vvar <~ v "u" <.> v "v" <.> v "w"
 def egmul2 : mgup := ↓ (mvar <~ sum3 ((m "A").repl2 <.> (m "B").repl1))
 def egMMM   : mgup := ↓ mvar <~ m "u" <.> m "v" <.> m "w"
 
-#eval egVV.toStr
---#eval go egVsum
+def test : mgup := do
+  y ← StreamGen.flatten <$> (m "u"),
+  let result := StreamGen.contraction (E.ident "acc") y,
+  x ← floatVar <~ (pure result),
+  return x
+
+
+def test' : mgup := ↓ (mvar <~ m "u")
 
 section FunTest
 open StreamGen
@@ -621,7 +633,7 @@ def fun1 : mgup := floatVar <~ sum1 (mulFun <$> (v "V") <*> (pure $ λ i, single
 def fun2 : mgup := floatVar <~ sum1 (ivmap (λ i v, singleton (BinOp.lt i 3) * v) <$> v "V")
 def fun3 : mgup := floatVar <~ sum1 (sum2
   (ivmap (λ i, ivmap (λ j v, singleton (BinOp.lt i j) * v)) <$> m "V"))
---#eval go fun3
+#eval do trace_val $ get_result (do prog ← fun1, return prog.loop)
 end FunTest
 
 end examples
