@@ -263,7 +263,7 @@ def compile (progs : (list Prog)) : io unit :=
 
 def comp : Prog → io unit := compile ∘ pure
 
-#check monad.mapm
+-- #check monad.mapm
 
 end codegen
 
@@ -271,22 +271,15 @@ section G
 variables {α ι γ β : Type}
 
 structure G (ι α : Type) :=
-  (index : ι)
-  (value : α)
-  (ready : E)
-  (valid : E)
-  (init : Prog)
-  (next : Prog)
+  (index : ι)   (value : α)
+  (ready : E)   (valid : E)
+  (init : Prog) (next : Prog)
 
-structure View (ι α : Type) :=
-  (value : ι → α)
+structure View (ι α : Type) := (value : ι → α)
 
 def constView (ι : Type) (v : α) : View ι α := ⟨λ _, v⟩
-
 prefix ` ⇑ ` := constView
-
-instance : has_coe (α → β) (View α β) := ⟨View.mk⟩
---instance : has_coe (View α β) (α → β) := ⟨View.value⟩
+-- instance : has_coe (α → β) (View α β) := ⟨View.mk⟩
 
 instance {ι : Type*} : functor (G ι) :=
 { map := λ _ _ f g, { g with value := f g.value } }
@@ -302,7 +295,7 @@ def G.mul [has_hmul α β γ] (a : G E α) (b : G E β) : G E γ :=
   value := a.value ⋆ b.value,
   ready := a.ready && b.ready && a.index == b.index,
   next  := Prog.if (a.index < b.index ||
-                        (a.index == b.index && a.ready.not))
+                   (a.index == b.index && a.ready.not))
                   a.next
                   b.next,
   valid := a.valid && b.valid,
@@ -329,6 +322,7 @@ def range (counter bound : E) : G E E :=
 
 /- implementation of (nested) CSR iteration -/
 section csr
+
 def interval (i : E) (counter : E) (lower upper : E) : G E E :=
 { index := i.access counter,
   value := counter,
@@ -341,6 +335,7 @@ def interval (i : E) (counter : E) (lower upper : E) : G E E :=
 def View.to_gen (counter bound : E) : View E α → G E α := λ view,
 view.value <$> range counter bound
 
+-- in TACO terminology, i = n_crd, v = n_pos. var indexes i.
 structure csr := (i v var : E)
 
 def csr.level : csr → E → G E E := λ csr loc, interval csr.i csr.var (csr.v.access loc) (csr.v.access (loc+1))
@@ -354,96 +349,33 @@ let field (x : string) := E.ident $ name ++ n.repr ++ x in
   var := field "_i" }
 
 structure pre := (pre : Prog)
-
--- def push_i (var var' crd_one pos_two : E) : α → E → pre × α := λ k rval_i,
--- (⟨(crd_one.access var).store rval_i;
---  (pos_two.access var).store var';
---  var.accum 1⟩, k)
-
-def push_i' (var var' crd_one pos_two : E) : α → Prog × (E → pre × α) :=
-λ k, let push_pos : Prog := (pos_two.access var).store var' in
-(push_pos, λ rval_i, ({pre := (crd_one.access var).store rval_i; push_pos; var.accum 1}, k))
-
-def push_i_accum (var var' crd_one pos_two : E) : α → Prog × (E → pre × α) :=
-λ k, let push_pos : Prog := (pos_two.access var).store var' in
-(push_pos, λ rval_i, ({pre :=
-  Prog.if1 (var == 0 || rval_i != crd_one.access (var-1)) $ (crd_one.access var).store rval_i; push_pos; var.accum 1}, k))
-
-def push_i :  E → E → E → E → α → Prog × (E → pre × α) := push_i_accum
-
-def push_v (var crd_n val_array: E) : E → E → Prog := λ rval_i rval_v,
-(crd_n.access var).store rval_i;
-(val_array.access var).accum rval_v;
-Prog.accum var 1
-
-
-/- current -/
 structure lval := (new : Prog) -- (acc : E → α)
-
--- def push_i0 : csr → (lval × α) → lval × (E → pre × Prog × α) := λ csr k,
--- ( { new := λ i, (csr.v.access i).store (csr.var+1) },
---   λ i, ({pre := csr.var.accum 1; (csr.i.access csr.var).store i; k.1.new csr.var /-; csr.var.accum 1-/}, (k.1.new csr.var, k.2)) )
-
--- def push_i0_acc : csr → (lval × α) → lval × (E → pre × Prog × α) := λ csr k,
--- ( { new := λ i, (csr.v.access i).store (csr.var+1) },
---   λ i, ({pre := Prog.if1 (csr.var < 0 || i != csr.i.access csr.var) $
---                   csr.var.accum 1; (csr.i.access csr.var).store i; k.1.new csr.var /-; csr.var.accum 1-/}, (k.1.new csr.var, k.2)) )
-
 structure post := (post : Prog)
-def push_v0_post (var val_array outer_var : E) : lval × post × (E → Prog) :=
+
+-- push values at the leaf level
+def push_value (var val_array outer_var : E) : lval × post × (E → Prog) :=
 ({new := (val_array.access outer_var).store 0}, ⟨Prog.skip⟩, λ rval_v, (val_array.access var).accum rval_v)
-def push_i0_acc_post : csr → (E → lval × post × α) → (E → lval × post × (E → pre × α))
-:= λ csr k outer_var,
+
+-- if pack is true, we allow for an rval that produces duplicate coordinates and de-duplicate them as they are aggregated
+def push_level_pack' : bool → csr → (E → lval × post × α) → (E → lval × post × (E → pre × α))
+:= λ pack csr k outer_var,
 ( { new := (csr.v.access outer_var).store (csr.var+1) }, ⟨(csr.v.access (outer_var+1)).store (csr.var+1); (k csr.var).2.1.post⟩,
-   λ i, (⟨Prog.if1 (csr.var < csr.v.access outer_var || i != csr.i.access csr.var) $
-                    csr.var.accum 1; (csr.i.access csr.var).store i; (k csr.var).1.new⟩,
+   λ i, (⟨(if pack then Prog.if1 (csr.var < csr.v.access outer_var || i != csr.i.access csr.var) else id) $
+             csr.var.accum 1; (csr.i.access csr.var).store i; (k csr.var).1.new⟩,
          (k csr.var).2.2))
 
-def push_i0_post : csr → (E → lval × post × α) → (E → lval × post × (E → pre × α))
-:= λ csr k outer_var,
-( { new := (csr.v.access outer_var).store (csr.var+1) }, ⟨(csr.v.access (outer_var+1)).store (csr.var+1); (k csr.var).2.1.post⟩,
-   λ i, (⟨csr.var.accum 1; (csr.i.access csr.var).store i; (k csr.var).1.new⟩,
-         (k csr.var).2.2))
+def push_level_pack : csr → (E → lval × post × α) → (E → lval × post × (E → pre × α)) := push_level_pack' tt
+def push_level : csr → (E → lval × post × α) → (E → lval × post × (E → pre × α)) := push_level_pack' ff
 
-
--- def push_v0 (var val_array: E) : lval × (E → Prog) :=
--- ({ new := λ i, (val_array.access i).store 0 }, λ rval_v, (val_array.access var).accum rval_v)
--- def push_i0_acc : csr → (lval × α) → lval × (E → pre × α) := λ csr k,
--- ({ new := λ i, (csr.v.access (i)).store (csr.var+1); k.1.new (csr.var+1) },
---    λ i, ({ pre := Prog.if1 (csr.var < 0 || i != csr.i.access csr.var) $
---                     csr.var.accum 1; (csr.i.access csr.var).store i; k.1.new csr.var },
---          k.2))
-
--- def mat_lval' (n : string) :=
--- push_i0_acc (csr.of n 1) $ push_i0_acc (csr.of n 2) $ push_v0 (csr.of n 2).var (E.ident $ n ++ "_vals")
 def vec_lval' (n : string) :=
-prod.snd $ (push_i0_acc_post (csr.of n 2) $ push_v0_post (csr.of n 2).var (E.ident $ n ++ "_vals")) 0
+prod.snd $ (push_level_pack (csr.of n 2) $ push_value (csr.of n 2).var (E.ident $ n ++ "_vals")) 0
 def mat_lval' (n : string) :=
-prod.snd $ (push_i0_acc_post (csr.of n 1) $ push_i0_acc_post (csr.of n 2) $ push_v0_post (csr.of n 2).var (E.ident $ n ++ "_vals")) 0
+prod.snd $ (push_level_pack (csr.of n 1) $ push_level_pack (csr.of n 2) $ push_value (csr.of n 2).var (E.ident $ n ++ "_vals")) 0
 def mat_lval'' (n : string) :=
-prod.snd $ (push_i0_post (csr.of n 1) $ push_i0_post (csr.of n 2) $ push_v0_post (csr.of n 2).var (E.ident $ n ++ "_vals")) 0
-
-
-def vec_lval := push_v "iout" "out_crd2" "out_vals"
-def out_mat_lval :=
-push_i "iout" "jout" "out1_crd" "out2_pos" $ push_v "jout" "out2_crd" "out_vals"
-def out_cub_lval :=
-push_i' "_out" "iout" "out0_crd" "out1_pos" $ push_i' "iout" "jout" "out1_crd" "out2_pos" $ push_v "jout" "out2_crd" "out_vals"
-def mat_lval (n : string) :=
-  push_i (E.ident $ "i" ++ n) (E.ident $ "j"++n) (E.ident $ n++"1_crd") (E.ident $ n ++ "2_pos") $
-  push_v  (E.ident $ "j" ++ n) (E.ident $ n ++ "2_crd") (E.ident $ n ++ "_vals")
-def cub_lval (n : string) :=
-  push_i (E.ident $ "_" ++ n) (E.ident $ "i"++n) (E.ident $ n++"0_crd") (E.ident $ n ++ "1_pos") $
-  push_i (E.ident $ "i" ++ n) (E.ident $ "j"++n) (E.ident $ n++"1_crd") (E.ident $ n ++ "2_pos") $
-  push_v  (E.ident $ "j" ++ n) (E.ident $ n ++ "2_crd") (E.ident $ n ++ "_vals")
+prod.snd $ (push_level (csr.of n 1) $ push_level (csr.of n 2) $ push_value (csr.of n 2).var (E.ident $ n ++ "_vals")) 0
 
 end csr
 
-def csr_t := csr.of "A"
-
--- def v1 := G.leaf "v" $ interval "i1" "x" 0 10
--- def v1' : G E E := G.leaf "v" $ ((csr_t 1).level "i1")
--- def v2  : G E (G E E) := G.leaf "v" <$> ((csr_t 1).level 0).level (csr_t 2)
 def v  : G E E       := G.leaf "v_vals"  $  ((csr.of "v" 1).level 0)
 def A  : G E (G E E) := G.leaf "A_vals" <$> ((csr.of "A" 1).level 0).level (csr.of "A" 2)
 def B  : G E (G E E) := G.leaf "B_vals" <$> ((csr.of "B" 1).level 0).level (csr.of "B" 2)
@@ -454,50 +386,26 @@ def gmap1 {α β} : (α → β) → G E α → G E β := functor.map
 def gmap2 {α β} : (α → β) → G E (G E α) → G E (G E β) := functor.map ∘ functor.map
 
 class Ev (l r: Type) := (eval : l → r → Prog)
+
 instance base.eval : Ev ((E → Prog)) E :=
 { eval := λ acc v, acc v }
-instance base.eval' : Ev (Prog × (E → Prog)) E :=
-{ eval := λ acc v, acc.2 v }
+
 instance unit.eval [Ev α β] : Ev α (G unit β) :=
 { eval := λ acc v,
   v.init ; Prog.while v.valid
     (Prog.if1 v.ready (Ev.eval acc v.value) ; v.next) }
+
 instance level.eval  [Ev α β] : Ev (E → α) (G E β) :=
 { eval := λ acc v, v.init;
     Prog.while v.valid
       (Prog.if1 v.ready (Ev.eval (acc v.index) v.value);
       v.next) }
-instance level_p.eval [Ev α β] : Ev (E → pre × α) (G E β) :=
+
+instance level_pre.eval [Ev α β] : Ev (E → pre × α) (G E β) :=
 { eval := λ acc v, v.init ;
     Prog.while v.valid
       (Prog.if1 v.ready ((acc v.index).1.pre ; Ev.eval (acc v.index).2 v.value) ;
       v.next) }
-
-instance level_post.eval [Ev α β] : Ev (E → post × α) (G E β) :=
-{ eval := λ acc v, v.init ;
-    Prog.while v.valid
-      (Prog.if1 v.ready (Ev.eval (acc v.index).2 v.value; (acc v.index).1.post) ;
-      v.next) }
-
--- todo remove:
-instance level_pp.eval [Ev α β] : Ev (Prog × (E → pre × α)) (G E β) :=
-{ eval := λ lhs v, let (post, acc) := lhs in
-    v.init ; Prog.while v.valid
-      (Prog.if1 v.ready ((acc v.index).1.pre ; Ev.eval (acc v.index).2 v.value) ;
-      v.next);
-    post }
-
--- instance level_pp'.eval [Ev α β] : Ev (lval × (E → pre × α)) (G E β) :=
--- { eval := λ lhs v, let (x, acc) := lhs in
---     v.init ; Prog.while v.valid
---       (Prog.if1 v.ready ((acc v.index).1.pre ; Ev.eval (acc v.index).2 v.value) ;
---       v.next);
---     x.new 1 }
-
-instance level_outer_lval.eval [Ev α β] : Ev (lval × α) β :=
-{ eval := λ lhs v, let (x, acc) := lhs in
-    Ev.eval acc v;
-    x.new  }
 
 instance level_outer_post.eval [Ev α β] : Ev (post × α) β :=
 { eval := λ lhs v, let (x, acc) := lhs in
@@ -537,74 +445,38 @@ call (a b : E) := E.call0 (a.attr b) in
   valid := E.not $ var == call matrix "end",
   init  := Prog.auto var $ call matrix "begin",
   next  := Prog.expr $ var.incr,
-  --next  := Prog.expr $ call var "next",
 }
 
 
 def single (x : α) := (⇑ E x).to_gen "i" 1
+def eg00  := Ev.eval (Prog.accum "out") (E.lit 2)
+def eg00' := Ev.eval (Prog.accum "out") (v.contract)
 def eg01 := Ev.eval (Prog.accum "out") (G.contract <$> A.contract)
 def eg02 := Ev.eval (Prog.accum "out") (G.sum2 $ A⋆B)
 def eg03 := Ev.eval (Prog.accum "out") (G.sum2 $ (⇑ E v) ⋆ A)
 def eg04 := Ev.eval (Prog.accum "out") (G.sum3 $ ((⇑ E) <$> A) ⋆ ⇑ E B ) -- (i,k)*(j,k)
-def inner_prod := ((⇑ E) <$> A) ⋆ ⇑ E B
+def inner_prod :=   ((⇑ E) <$> A) ⋆ ⇑ E B -- (i,k)*(j,k)
+def comb_rows  := (gmap2 (⇑ E) A) ⋆ ⇑ E B -- (i,j)*(j,k)
 def eg05 := Ev.eval (Prog.accum "out") $ G.sum3 $ (gmap2 (⇑ E) A) ⋆ (gmap1 (⇑ E) B) -- (i,j)*(i,k)
-def comb_rows := (gmap2 (⇑ E) A) ⋆ ⇑ E B -- (i,j)*(j,k)
-def matsum := (G.sum3 $ (gmap2 (⇑ E) A) ⋆ ⇑ E B ) -- (i,j)*(j,k)
+def matsum := comb_rows.sum3
 def eg06 := Ev.eval (Prog.accum "out") matsum
 def eg07 := Ev.eval (indexed_mat_lval "out") (A⋆B)
-def eg08 := Ev.eval vec_lval v
-def eg09 := Ev.eval out_mat_lval A
-def eg10 := Ev.eval out_mat_lval (A⋆B)
-def rng1 := (λ _, (λ _, (1 : E)) <$> range "j" 10) <$> range "i" 20
-def eg11 := Ev.eval out_mat_lval $ rng1 ⋆ matrix_rval "x.data"
-def eg12 := Ev.eval out_mat_lval $ coo_matrix_rval "x.data" "entry"
-def eg13 := λ a, Ev.eval (mat_lval a) $ coo_matrix_rval "x.data" (E.ident $ "entry" ++ a)
-def eg14 := Ev.eval out_cub_lval $ (⇑ E A).to_gen "i" 1
-def eg15 := [eg13 "A", eg13 "B", eg10]
 def ref_matrix := (coo_matrix_rval "x.data" "entry")
-def eg16 := λ a, Ev.eval (cub_lval a) $ single (coo_matrix_rval "x.data" (E.ident $ "entry" ++ a))
-def eg17 := [eg16 "A", eg16 "B", Prog.time $ Ev.eval out_cub_lval $ single inner_prod.sum_inner]
 def eg18 := Ev.eval (mat_lval' "out") A
-def eg19 := [Ev.eval (mat_lval' "A") ref_matrix, Ev.eval (mat_lval' "B") ref_matrix, Prog.time $ Ev.eval (mat_lval' "out") $ A⋆B]
-def eg20 := [Ev.eval (mat_lval' "A") ref_matrix, Ev.eval (mat_lval' "B") ref_matrix, Prog.time $ eg06]
+def load_AB := [Ev.eval (mat_lval' "A") ref_matrix, Ev.eval (mat_lval' "B") ref_matrix]
+def eg19 := load_AB ++ [Prog.time $ Ev.eval (mat_lval' "out") $ A⋆B]
+def eg20 := load_AB ++ [Prog.time $ eg06]
 def eg21 := Ev.eval (vec_lval' "out") v
 def eg22 := Ev.eval (mat_lval' "out") A
 def eg23 := [Ev.eval (mat_lval' "A") ref_matrix, Ev.eval (mat_lval' "B") ref_matrix, Prog.time $ Ev.eval (mat_lval'' "out") $ inner_prod.sum_inner]
 
 --#eval comp eg06
-
-#eval compile eg23
-
-
--- -- todo errors, don't crash on empty file
--- def readFile (name : string) : G unit E :=
--- let getline := Prog.inline_code $ "getline" ++ wrap ("file" ++ ",line") ++ ";" in
--- { index := (),
---   value := "line", -- line
---   ready := E.true,
---   valid := E.not $ E.inline_code $ "file_empty(file)", -- eof check
---   init  := Prog.inline_code ("ifstream file("++name++"); string line;") ; getline,
---   next  := getline,
--- }
--- --#eval comp $ Ev.eval (λ (line : E), Prog.inline_code $ "cout << " ++ line.to_c ++ "<< endl;") $ readFile "\"test.txt\""
+--#eval compile eg20
 
 end G
 
--- [x] multiply
--- [x] repeat
--- [x] MM (sum)
--- [x] read file
--- [x] CSR lval
--- [x] initialize variables
--- [x] read std::map into CSR lval
--- do pre+post.
--- [x] accumulate same indices in new lval
-
--- generate wrapper code
--- run MM (sum)
--- run TACO
+-- [ ] stl lower bound
 -- dense level, test ds * ds
--- dense lval
--- label indices, then do indexed contraction
+-- label indices, indexed contraction
 -- shorthand notation
--- database comparison? binary_search
+-- database comparison? binary_search, early exit, compressed output

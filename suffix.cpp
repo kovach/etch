@@ -5,8 +5,8 @@
   cout << "B1_i: " << B1_i << ",  B2_i: " << B2_i << endl;
   //std::cout << "took: " << std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count() << std::endl;
 
-  //taco_ijk_sum();
-  taco_ikjk();
+  taco_ijk_sum();
+  //taco_ikjk();
 
   if (out2_i < 30 && A2_i < 30) {
     cout << "a1_crd: ";
