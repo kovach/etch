@@ -1,5 +1,6 @@
 import data.vector
 import data.fin.vec_notation
+import data.list.of_fn
 
 -- This is just some experiments I'm doing, unofficial
 -- Anything that works out will go back into compile.lean
@@ -129,23 +130,23 @@ end⟩
 | Op.eq := 2
 | Op.lt := 2
 | Op.cast_r := 1
-end Op
 
 variable {R}
-def Op.eval : ∀ o : Op, (fin o.arity → ExprVal R) → ExprVal R
-| Op.add := λ x, (x 0).add (x 1)
-| Op.mul := λ x, (x 0).mul (x 1)
-| Op.and := λ x, (x 0).and (x 1)
-| Op.or := λ x, ((x 0).not.and $ (x 1).not).not -- TODO
-| Op.not := λ x, (x 0).not
-| Op.eq := λ x, (x 0).eq (x 1)
-| Op.lt := λ x, (x 0).lt (x 1)
-| Op.cast_r := λ x, (x 0).cast_r
+def eval : ∀ o : Op, (fin o.arity → ExprVal R) → ExprVal R
+| add := λ x, (x 0).add (x 1)
+| mul := λ x, (x 0).mul (x 1)
+| and := λ x, (x 0).and (x 1)
+| or := λ x, ((x 0).not.and $ (x 1).not).not -- TODO
+| not := λ x, (x 0).not
+| eq := λ x, (x 0).eq (x 1)
+| lt := λ x, (x 0).lt (x 1)
+| cast_r := λ x, (x 0).cast_r
+end Op
 
 variable (R)
 inductive Expr
 | lit : ExprVal R → Expr
-| ident : ∀ {n : ℕ}, Ident → (fin n → Expr) → Expr
+| ident' : ∀ {n : ℕ}, Ident → (fin n → Expr) → Expr
 | call : ∀ o : Op, (fin o.arity → Expr) → Expr
 
 notation a ` ⟪+⟫ `:80 b := Expr.call Op.add ![a, b]
@@ -155,12 +156,31 @@ notation a ` ⟪||⟫ `:80 b := Expr.call Op.or ![a, b]
 notation a ` ⟪<⟫ `:80 b := Expr.call Op.lt ![a, b]
 notation a ` ⟪=⟫ `:80 b := Expr.call Op.eq ![a, b]
 
-
 variable {R}
 def Expr.eval  (ctx : Ident → IdentVal R) : Expr R → ExprVal R
 | (Expr.lit r) := r
-| (Expr.ident i idcs) := (ctx i).get (vector.of_fn (λ j, (idcs j).eval.to_nat)).to_list
+| (Expr.ident' i idcs) := (ctx i).get (list.of_fn (λ j, (idcs j).eval.to_nat))
 | (Expr.call o args) := o.eval (λ i, (args i).eval)
+
+/-- An identifier with a list of indices -/
+variable (R)
+structure ExprLoc :=
+(i : Ident)
+(idcs : list (Expr R))
+
+variable {R}
+def ExprLoc.idcs_eval (loc : ExprLoc R) (ctx : Ident → IdentVal R) : list ℕ :=
+loc.idcs.map $ ExprVal.to_nat ∘ Expr.eval ctx
+
+def ExprLoc.get (loc : ExprLoc R) (ctx : Ident → IdentVal R) : ExprVal R :=
+(ctx loc.i).get (loc.idcs_eval ctx)
+
+def ExprLoc.update (loc : ExprLoc R) (ctx : Ident → IdentVal R) (val : ExprVal R) : Ident → IdentVal R :=
+function.update ctx loc.i ((ctx loc.i).update val (loc.idcs_eval ctx))
+
+def Expr.ident (loc : ExprLoc R) : Expr R :=
+Expr.ident' loc.i (λ j : fin loc.idcs.length, loc.idcs.nth_le j (fin.is_lt j))
+
 
 instance has_coe_from_nat : has_coe ℕ (Expr R) := ⟨λ n, Expr.lit $ ExprVal.nat n⟩
 instance has_coe_From_R : has_coe R (Expr R) := ⟨λ r, Expr.lit $ ExprVal.rval r⟩
@@ -175,11 +195,12 @@ if idcs.length = 0 then "" else "[" ++ ", ".intercalate idcs ++ "]"
 
 def expr_repr [has_repr R] : Expr R → string
 | (Expr.lit r) := repr r
-| (Expr.ident i idcs) := repr i ++ idcs_repr (vector.of_fn $ λ j, expr_repr (idcs j)).to_list
+| (Expr.ident' i idcs) := repr i ++ idcs_repr (list.of_fn $ λ j, expr_repr (idcs j))
 | (Expr.call o args) := (repr o) ++ "(" ++ ", ".intercalate (vector.of_fn (λ i, expr_repr $ args i)).to_list ++ ")"
 
 instance [has_repr R] : has_repr (Expr R) := ⟨expr_repr⟩
-
+instance [has_repr R] : has_repr (ExprLoc R) :=
+⟨λ loc, repr loc.i ++ idcs_repr (loc.idcs.map repr)⟩
 -- Because ambiguous whether R or ℕ
 -- instance : has_zero (Expr R) := ⟨Expr.lit 0⟩
 -- instance : has_one (Expr R) := ⟨Expr.lit 1⟩
@@ -187,7 +208,7 @@ instance [has_repr R] : has_repr (Expr R) := ⟨expr_repr⟩
 variable (R)
 inductive Prog
 | skip : Prog
-| store (dst : Ident) (idcs : list (Expr R)) (val : Expr R)
+| store (dst : ExprLoc R) (val : Expr R)
 | seq (a : Prog) (b : Prog)
 | branch (cond : Expr R) (a : Prog) (b : Prog)
 | loop (n : Expr R) (b : Prog)
@@ -196,7 +217,7 @@ variable {R}
 
 def prog_repr [has_repr R] : Prog R → list string
 | Prog.skip := [";"]
-| (Prog.store dst idcs val) := [(repr dst) ++ (idcs_repr (idcs.map repr)) ++ " := " ++ (repr val) ++ ";"]
+| (Prog.store dst val) := [(repr dst.i) ++ (idcs_repr (dst.idcs.map repr)) ++ " := " ++ (repr val) ++ ";"]
 | (Prog.seq a b) := (prog_repr a) ++ (prog_repr b)
 | (Prog.branch c a b) := ["if " ++ (repr c)]
     ++ (prog_repr a).map (λ s, "  " ++ s)
@@ -211,16 +232,17 @@ instance [has_repr R] : has_to_string (Prog R) := ⟨λ p, "\n".intercalate (pro
 
 def Prog.eval : Prog R → (Ident → IdentVal R) → (Ident → IdentVal R)
 | Prog.skip ctx := ctx
-| (Prog.store dst idcs val) ctx := function.update ctx dst ((ctx dst).update (Expr.eval ctx val) $ idcs.map (λ e, (e.eval ctx).to_nat))
+| (Prog.store dst val) ctx := dst.update ctx (val.eval ctx)
 | (Prog.seq a b) ctx := b.eval (a.eval ctx)
 | (Prog.branch cond a b) ctx := if (Expr.eval ctx cond).to_nat = 0 then a.eval ctx else b.eval ctx
 | (Prog.loop n b) ctx := (nat.iterate b.eval (Expr.eval ctx n).to_nat) ctx
 
 infixr ` <;> `:1 := Prog.seq
-notation a ` < ` b ` > ` ` ::= `:20 c := Prog.store a b c
-notation a ` ::= `:20 c := Prog.store a [] c
+notation a ` ::= `:20 c := Prog.store a c
+notation x ` ⟬ ` l:(foldr `, ` (h t, list.cons h t) list.nil ` ⟭ `) := (ExprLoc.mk x l)
+notation x ` ⟬ `:10000 l:(foldr `, ` (h t, list.cons h t) list.nil ` ⟭ `) := Expr.ident (ExprLoc.mk x l)
 
-
+-- 
 section example_prog
 namespace vars
 
@@ -233,8 +255,8 @@ end vars
 open Expr Prog vars
 
 def pow_prog : Prog ℤ :=
-z ::= (1 : ℤ) <;>
-loop (ident y ![]) (z ::= (ident x ![]) ⟪*⟫ (ident z ![]))
+z⟬⟭ ::= (1 : ℤ) <;>
+loop (y⟬⟭) (z⟬⟭ ::= x⟬⟭ ⟪*⟫ z⟬⟭)
 
 def pow_prog_input (i : Ident) : IdentVal ℤ :=
   if i = x then IdentVal.base (ExprVal.rval 3)
@@ -276,7 +298,7 @@ def BoundedStreamGen.singleton (a : α) : BoundedStreamGen R unit α :=
 
 def BoundedStreamGen.expr_to_prog (inp : BoundedStreamGen R unit (Expr R)) : BoundedStreamGen R unit (Prog R) :=
 { current := (),
-  value := (Ident.of "output") ::= inp.value,
+  value := (Ident.of "output")⟬⟭ ::= inp.value,
   ready := inp.ready,
   next := inp.next,
   empty := inp.empty,
@@ -293,38 +315,77 @@ def test : BoundedStreamGen ℤ unit (Expr ℤ) := BoundedStreamGen.singleton (1
 end example_singleton
 
 def range (n : Expr R) (var : Ident) : BoundedStreamGen R (Expr R) (Expr R) :=
-{ current := Expr.ident var ![],
-  value := Expr.call Op.cast_r ![Expr.ident var ![]],
-  ready := (Expr.ident var ![]) ⟪<⟫ n,
-  empty := Expr.call Op.not ![(Expr.ident var ![]) ⟪<⟫ n],
-  next := var ::= (Expr.ident var ![]) ⟪+⟫ (1 : ℕ),
-  reset := var ::= (0 : ℕ),
+{ current := var⟬⟭,
+  value := Expr.call Op.cast_r ![var⟬⟭],
+  ready := var⟬⟭ ⟪<⟫ n,
+  empty := Expr.call Op.not ![var⟬⟭ ⟪<⟫ n],
+  next := var⟬⟭ ::= var⟬⟭ ⟪+⟫ (1 : ℕ),
+  reset := var⟬⟭ ::= (0 : ℕ),
   bound := n,
-  initialize := var ::= (0 : ℕ), }
+  initialize := var⟬⟭ ::= (0 : ℕ), }
 
 def contraction {ι : Type} (acc : Ident) (v : BoundedStreamGen R ι (Expr R)) :
   BoundedStreamGen R unit (Expr R) :=
-{ BoundedStreamGen.singleton (Expr.ident acc ![]) with
+{ BoundedStreamGen.singleton (Expr.ident acc⟬⟭) with
   reset := v.reset <;>
-    acc ::= (0 : R) <;>
+    acc⟬⟭ ::= (0 : R) <;>
     Prog.loop v.bound $
-      Prog.branch v.ready (acc ::= (Expr.ident acc ![]) ⟪+⟫ v.value) Prog.skip <;>
+      Prog.branch v.ready (acc⟬⟭ ::= acc⟬⟭ ⟪+⟫ v.value) Prog.skip <;>
       Prog.branch v.empty Prog.skip v.next,
   initialize := v.initialize }
+
+def flatten {ι₁ ι₂ α : Type} (outer : BoundedStreamGen R ι₁ (BoundedStreamGen R ι₂ α)) :
+  BoundedStreamGen R (ι₁ × ι₂) α :=
+let inner := outer.value in
+{ current := (outer.current, inner.current),
+  value := inner.value,
+  ready := outer.ready ⟪&&⟫ inner.ready,
+  next := let next_outer := outer.next <;> inner.reset in
+  Prog.branch outer.ready 
+    (Prog.branch inner.empty next_outer inner.next) 
+    next_outer,
+  empty := outer.empty,
+  bound := outer.bound ⟪*⟫ inner.bound, -- TODO: fix
+  reset := outer.reset <;> inner.reset, -- TODO: fix
+  initialize := outer.initialize <;> inner.initialize }
 
 def test₂ : BoundedStreamGen ℤ (Expr ℤ) (Expr ℤ) := range (10 : ℕ) (Ident.of "x")
 #eval trace_val $ to_string $ (contraction (Ident.of "acc") test₂).expr_to_prog.compile
 
-def externVec (len : ℕ) (inp : Ident) (inp_idx : Ident) : BoundedStreamGen R (Expr R) (Expr R) :=
-{ current := Expr.ident inp_idx ![],
-  value := Expr.ident inp ![Expr.ident inp_idx ![]],
-  ready := (Expr.ident inp_idx ![]) ⟪<⟫ len,
-  next := inp_idx ::= (Expr.ident inp_idx ![]) ⟪+⟫ (1 : ℕ),
-  empty := Expr.call Op.not ![(Expr.ident inp_idx ![]) ⟪<⟫ len],
+def externVec (len : Expr R) (inp : Ident) (inp_idx : Ident) : BoundedStreamGen R (Expr R) (Expr R) :=
+{ current := Expr.ident inp_idx⟬⟭,
+  value := inp⟬ inp_idx⟬⟭ ⟭,
+  ready := inp_idx⟬⟭ ⟪<⟫ len,
+  next := inp_idx⟬⟭ ::= inp_idx⟬⟭ ⟪+⟫ (1 : ℕ),
+  empty := Expr.call Op.not ![inp_idx⟬⟭ ⟪<⟫ len],
   bound := len,
-  reset := inp_idx ::= (0 : ℕ),
-  initialize := inp_idx ::= (0 : ℕ) }
+  reset := inp_idx⟬⟭ ::= (0 : ℕ),
+  initialize := inp_idx⟬⟭ ::= (0 : ℕ) }
 
-def test₃ : BoundedStreamGen ℤ (Expr ℤ) (Expr ℤ) := externVec 10 (Ident.of "input") (Ident.of "idx") 
+def externMat (l₁ l₂ : Expr R) (inp idx₁ idx₂ : Ident) : BoundedStreamGen R (Expr R) (BoundedStreamGen R (Expr R) (Expr R)) :=
+{ current := Expr.ident idx₁⟬⟭,
+  value := { current := Expr.ident idx₂⟬⟭,
+    value := inp⟬idx₁⟬⟭, idx₂⟬⟭⟭,
+    ready := idx₂⟬⟭ ⟪<⟫ l₂,
+    next := idx₂⟬⟭ ::= idx₂⟬⟭ ⟪+⟫ (1 : ℕ),
+    empty := Expr.call Op.not ![idx₂⟬⟭ ⟪<⟫ l₂],
+    bound := l₂,
+    reset := idx₂⟬⟭ ::= (0 : ℕ),
+    initialize := idx₂⟬⟭ ::= (0 : ℕ) },
+  ready := idx₁⟬⟭ ⟪<⟫ l₁,
+  next := idx₁⟬⟭ ::= idx₁⟬⟭ ⟪+⟫ (1 : ℕ),
+  empty := Expr.call Op.not ![idx₁⟬⟭ ⟪<⟫ l₁],
+  bound := l₁,
+  reset := idx₁⟬⟭ ::= (0 : ℕ),
+  initialize := idx₁⟬⟭ ::= (0 : ℕ) }
+
+def test₃ : BoundedStreamGen ℤ (Expr ℤ) (Expr ℤ) := externVec (10 : ℕ) (Ident.of "input") (Ident.of "idx") 
 
 #eval trace_val $ to_string $ (contraction (Ident.of "acc") test₃).expr_to_prog.compile
+
+def test₄ : BoundedStreamGen ℤ (Expr ℤ) _ := externMat (10 : ℕ) (20 : ℕ) (Ident.of "inp") vars.x vars.y 
+#check test₄
+def test₅ : BoundedStreamGen ℤ (Expr ℤ × Expr ℤ) (Expr ℤ) := flatten test₄
+#check test₅
+
+#eval trace_val $ to_string $ (contraction (Ident.of "acc") test₅).expr_to_prog.compile
