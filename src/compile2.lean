@@ -263,7 +263,7 @@ def pow_prog_input (i : Ident) : IdentVal ℤ :=
   else if i = y then IdentVal.base (ExprVal.nat 4)
   else arbitrary _
 
--- #eval (pow_prog.eval pow_prog_input) (Ident.of "z")
+#eval ExprLoc.get z⟬⟭ (pow_prog.eval pow_prog_input)
 
 end example_prog
 
@@ -379,13 +379,34 @@ def externMat (l₁ l₂ : Expr R) (inp idx₁ idx₂ : Ident) : BoundedStreamGe
   reset := idx₁⟬⟭ ::= (0 : ℕ),
   initialize := idx₁⟬⟭ ::= (0 : ℕ) }
 
+def externSparseMat (l₁ l₂ : Expr R) (vals idx₁ idx₂ i j : Ident) : BoundedStreamGen R (Expr R) (BoundedStreamGen R (Expr R) (Expr R)) :=
+{ current := Expr.ident i⟬⟭,
+  value := { current := Expr.ident j⟬⟭,
+    value := vals⟬ idx₂⟬idx₁⟬i⟬⟭⟭, j⟬⟭⟭ ⟭,
+    ready := j⟬⟭ ⟪<⟫ l₂,
+    next := j⟬⟭ ::= j⟬⟭ ⟪+⟫ (1 : ℕ),
+    empty := Expr.call Op.not ![j⟬⟭ ⟪<⟫ l₂],
+    bound := l₂,
+    reset := j⟬⟭ ::= (0 : ℕ),
+    initialize := j⟬⟭ ::= (0 : ℕ) },
+  ready := i⟬⟭ ⟪<⟫ l₁,
+  next := i⟬⟭ ::= i⟬⟭ ⟪+⟫ (1 : ℕ),
+  empty := Expr.call Op.not ![i⟬⟭ ⟪<⟫ l₁],
+  bound := l₁,
+  reset := i⟬⟭ ::= (0 : ℕ),
+  initialize := i⟬⟭ ::= (0 : ℕ) }
+
 def test₃ : BoundedStreamGen ℤ (Expr ℤ) (Expr ℤ) := externVec (10 : ℕ) (Ident.of "input") (Ident.of "idx") 
 
 #eval trace_val $ to_string $ (contraction (Ident.of "acc") test₃).expr_to_prog.compile
 
 def test₄ : BoundedStreamGen ℤ (Expr ℤ) _ := externMat (10 : ℕ) (20 : ℕ) (Ident.of "inp") vars.x vars.y 
-#check test₄
 def test₅ : BoundedStreamGen ℤ (Expr ℤ × Expr ℤ) (Expr ℤ) := flatten test₄
-#check test₅
 
 #eval trace_val $ to_string $ (contraction (Ident.of "acc") test₅).expr_to_prog.compile
+
+
+def test₆ : BoundedStreamGen ℤ (Expr ℤ) _ := externSparseMat (10 : ℕ) (20 : ℕ) (Ident.of "vals") (Ident.of "idx₁") (Ident.of "idx₂") (Ident.of "i") (Ident.of "j")
+def test₇ : BoundedStreamGen ℤ (Expr ℤ × Expr ℤ) (Expr ℤ) := flatten test₆
+
+#eval trace_val $ to_string $ (contraction (Ident.of "acc") test₇).expr_to_prog.compile
