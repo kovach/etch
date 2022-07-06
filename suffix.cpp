@@ -1,11 +1,11 @@
   //auto t2 = std::chrono::high_resolution_clock::now();
-  cout << "out: " << out << endl;
-  cout << "out1_i: " << out1_i << ",  out2_i: " << out2_i << endl;
-  cout << "A1_i: " << A1_i << ",  A2_i: " << A2_i << endl;
-  cout << "B1_i: " << B1_i << ",  B2_i: " << B2_i << endl;
+  // cout << "out: " << out << endl;
+  // cout << "out1_i: " << out1_i << ",  out2_i: " << out2_i << endl;
+  // cout << "A1_i: " << A1_i << ",  A2_i: " << A2_i << endl;
+  // cout << "B1_i: " << B1_i << ",  B2_i: " << B2_i << endl;
   //std::cout << "took: " << std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count() << std::endl;
 
-  taco_ijk_sum();
+  //taco_ijk_sum();
   //taco_ikjk();
 
   if (out2_i < 30 && A2_i < 30) {

@@ -7,7 +7,6 @@ def disableClangFormat := ff
 class has_hmul (α β : Type*) (γ : out_param Type*) :=
   (mul : α → β → γ)
 instance hmul_of_mul {α : Type*} [has_mul α] : has_hmul α α α := ⟨has_mul.mul⟩
-instance mul_of_hmul {α : Type*} [has_hmul α α α] : has_mul α := ⟨has_hmul.mul⟩
 infix ` ⋆ `:71 := has_hmul.mul
 
 @[reducible] def Ident := string
@@ -35,6 +34,7 @@ inductive E
 | call1 : E → E → E
 | call2 : E → E → E → E
 
+
 /-- Statements for a simple imperative language, including sequencing. -/
 inductive Prog
 | skip
@@ -44,7 +44,7 @@ inductive Prog
 | seq (a b : Prog)
 
 | block (body : Prog)
-| time  (body : Prog)
+| time  (n : string) (body : Prog)
 
 | while (cond : E) (body : Prog)
 | for (var bound : E) (body : Prog)
@@ -60,28 +60,41 @@ inductive Prog
 @[pattern]
 def Prog.if1 (b : E) (cons : Prog) : Prog := Prog.if b cons Prog.skip
 
-def E.store : E → E → Prog := Prog.store
-def E.accum : E → E → Prog := Prog.accum
-def E.declare : E → E → Prog := Prog.declare
+@[pattern] def E.false : E := E.lit 0
+@[pattern] def E.true  : E := E.lit 1
+
+namespace E
+
+def neg : E → E
+| (E.true) := E.false
+| (E.false) := E.true
+| e := e.not
+
+def store : E → E → Prog := Prog.store
+def accum : E → E → Prog := Prog.accum
+def declare : E → E → Prog := Prog.declare
 
 infixr ` <;> `:1 := Prog.seq
-instance : has_andthen Prog Prog Prog := ⟨Prog.seq⟩
+infixr ` ; `:1 := Prog.seq
+--instance : has_andthen Prog Prog Prog := ⟨Prog.seq⟩
+
+instance : has_zero E := ⟨E.lit 0⟩
+instance : has_one E  := ⟨E.lit 1⟩
+
+instance : has_coe string E := ⟨E.ident⟩
+end E
 
 def BinOp.mk_type : BinOp → Type
 | _ := E → E → E
 
-instance : has_zero E := ⟨E.lit 0⟩
-instance : has_one E := ⟨E.lit 1⟩
-@[pattern] def E.false : E := E.lit 0
-@[pattern] def E.true : E := E.lit 1
-
-instance : has_coe string E := ⟨E.ident⟩
-
+-- a little smart
 def BinOp.mk : Π (b : BinOp), BinOp.mk_type b
 | BinOp.and := λ x y,
   match x, y with
   | E.true, y := y
   | x, E.true := x
+  | E.false, y := E.false
+  | x, E.false := E.false
   | x, y := E.bin_op BinOp.and x y
   end
 | BinOp.or := λ x y,
@@ -101,7 +114,7 @@ def BinOp.mk : Π (b : BinOp), BinOp.mk_type b
   end
 | BinOp.mul := λ x y,
   match x, y with
-  | E.lit a, E.lit b := E.lit (a+b)
+  | E.lit a, E.lit b := E.lit (a*b)
   | E.lit 0, x := E.lit 0
   | x, E.lit 0 := E.lit 0
   | E.lit 1, x := x
@@ -115,17 +128,6 @@ instance : has_coe_to_fun BinOp BinOp.mk_type := ⟨BinOp.mk⟩
 instance : has_add E := ⟨BinOp.add⟩
 instance : has_sub E := ⟨BinOp.sub⟩
 instance : has_mul E := ⟨BinOp.mul⟩
-
-
-infixl ` && `:70 := BinOp.and
-infixl ` || `:65 := BinOp.or
-infix  ` < `:71  := BinOp.lt
-infix  ` == `:71 := BinOp.eq
-infix  ` != `:71 := λ a b, (BinOp.eq a b).not
-infix  ` ** `:71 := has_hmul.mul
-notation e `⟦` k `⟧` := e.access k
-
-prefix `i!`:100 := E.ident
 
 section codegen
 
@@ -212,35 +214,38 @@ def emitLine (s : string) : M unit := do emit $ s ++ ";"
 namespace Prog
 
 def to_c : Prog → M unit
-| (expr e)        := emitLine $ e.to_c
-| (accum dst val) := emitLine $ dst.to_c ++ " += " ++ val.to_c
-| (store dst val) := emitLine $ dst.to_c ++ " = " ++ val.to_c
+| (expr e)          := emitLine $ e.to_c
+| (accum dst val)   := emitLine $ dst.to_c ++ " += " ++ val.to_c
+| (store dst val)   := emitLine $ dst.to_c ++ " = " ++ val.to_c
 | (declare dst val) := emitLine $ "index " ++ dst.to_c ++ " = " ++ val.to_c
-| (auto dst val) := emitLine $ "auto " ++ dst.to_c ++ " = " ++ val.to_c
-| (seq a b)       := a.to_c >> b.to_c
-| (while c body)  := emit ("while" ++ wrap c.to_c ++ "{") >> body.to_c >> emit "}"
-| (for i n body)  := emit ( "for" ++ wrap (i.to_c ++ "= 0;" ++ i.to_c ++ "<" ++ n.to_c ++ ";" ++ i.to_c++"++") ++ "{"
+| (auto dst val)    := emitLine $ "auto " ++ dst.to_c ++ " = " ++ val.to_c
+| (seq a b)         := a.to_c >> b.to_c
+| (while c body)    := emit ("while" ++ wrap c.to_c ++ "{") >> body.to_c >> emit "}"
+| (for i n body)    := emit ( "for" ++ wrap (i.to_c ++ "= 0;" ++ i.to_c ++ "<" ++ n.to_c ++ ";" ++ i.to_c++"++") ++ "{"
                           ) >> body.to_c >> emit "}"
-| (inline_code s) := emit s
-| (skip)          := emit ""
-| (comment s)     := emit $ "// " ++ s ++ "\n"
-| (if1 E.false t) := emit ""
-| (if1 E.true t)  := t.to_c
-| (if1 c t)       := do
+| (inline_code s)   := emit s
+| (skip)            := emit ""
+| (comment s)       := emit $ "// " ++ s ++ "\n"
+| (if1 E.false t)   := emit ""
+| (if1 E.true t)    := t.to_c
+| (if1 c t)         := do
     emit "if (" >> emit c.to_c >> emit ") {",
       t.to_c,
     emit "}"
-| («if» c t e)    := do
+| («if» c t e)      := do
     emit "if (" >> emit c.to_c >> emit ") {",
       t.to_c,
     emit "}", emit " else {",
       e.to_c,
     emit "}"
-| (block p)       := emit "{" >> p.to_c >> emit "}"
-| (time p)        := emit "{" >>
-  ( emit "auto t1 = std::chrono::high_resolution_clock::now();" >>
+| (block p)         := emit "{" >> p.to_c >> emit "}"
+| (time n p)          :=
+  emit "{" >>
+  ( emit ("cout << \"timing (" ++ n ++ "):\" << endl;") >>
+    emit "auto t1 = std::chrono::high_resolution_clock::now();" >>
     p.to_c >>
     emit "auto t2 = std::chrono::high_resolution_clock::now();" >>
+    emit "cout << \"out: \" << out << endl;" >>
     emit "std::cout << \"took: \" << std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count() << std::endl;"
   ) >> emit "}"
 end Prog
@@ -268,6 +273,14 @@ def comp : Prog → io unit := compile ∘ pure
 end codegen
 
 section G
+
+local infixl ` && `:70 := BinOp.and
+local infixl ` || `:65 := BinOp.or
+local infix  ` < `:71  := BinOp.lt
+infix  ` == `:71 := BinOp.eq
+infix  ` != `:71 := λ a b, (BinOp.eq a b).neg
+--notation e `⟦` k `⟧` := e.access k
+
 variables {α ι γ β : Type}
 
 structure G (ι α : Type) :=
@@ -287,36 +300,43 @@ instance {ι : Type*} : functor (G ι) :=
 instance {ι : Type*} : functor (View ι) :=
 { map := λ _ _ f v, { v with value := f ∘ v.value } }
 
-def G.iv {ι ι' α α'} (i : ι → ι') (v : α → α') : G ι α → G ι' α'
+namespace G
+def iv {ι ι' α α'} (i : ι → ι') (v : α → α') : G ι α → G ι' α'
 := λ g, { g with value := v g.value, index := i g.index }
 
-def G.mul [has_hmul α β γ] (a : G E α) (b : G E β) : G E γ :=
+def mul [has_hmul α β γ] (a : G E α) (b : G E β) : G E γ :=
 { index := BinOp.max a.index b.index,
   value := a.value ⋆ b.value,
   ready := a.ready && b.ready && a.index == b.index,
   next  := Prog.if (a.index < b.index ||
-                   (a.index == b.index && a.ready.not))
+                     (a.index == b.index && a.ready.neg))
                   a.next
                   b.next,
   valid := a.valid && b.valid,
-  init  := a.init <;> b.init,
+  init  := a.init; b.init,
 }
+instance [has_hmul α β γ] : has_hmul (G E α) (G E β) (G E γ) := ⟨mul⟩
 
-def G.mulViewR [has_hmul α β γ] (a : G ι α) (b : View ι β) : G ι γ :=
+def mul_unit_const_r [has_hmul α β γ] (a : G unit α) (b : β) : G unit γ := (⋆ b) <$> a
+def mul_unit_const_l [has_hmul α β γ] (a : α) (b : G unit β) : G unit γ := (λ v, a ⋆ v) <$> b
+def mulViewR [has_hmul α β γ] (a : G ι α) (b : View ι β) : G ι γ :=
 (⋆ b.value a.index) <$> a
-def G.mulViewL [has_hmul α β γ] (a : View ι α) (b : G ι β) : G ι γ :=
+def mulViewL [has_hmul α β γ] (a : View ι α) (b : G ι β) : G ι γ :=
 (λ v, a.value b.index ⋆ v) <$> b
 
-instance [has_hmul α β γ] : has_hmul (G E α) (G E β) (G E γ) := ⟨G.mul⟩
 instance GV.has_hmul [has_hmul α β γ] : has_hmul (G ι α) (View ι β) (G ι γ) := ⟨G.mulViewR⟩
 instance VG.has_hmul [has_hmul α β γ] : has_hmul (View ι α) (G ι β) (G ι γ) := ⟨G.mulViewL⟩
+instance unit_const_r.has_hmul [has_hmul α β γ] : has_hmul (G unit α) β (G unit γ) := ⟨mul_unit_const_r⟩
+instance unit_const_l.has_hmul [has_hmul α β γ] : has_hmul α (G unit β) (G unit γ) := ⟨mul_unit_const_l⟩
+
+end G
 
 def range (counter bound : E) : G E E :=
 { index := counter,
   value := counter,
   ready := E.true,
   valid := counter < bound,
-  init  := Prog.declare counter 0,
+  init  := counter.declare 0,
   next  := Prog.accum counter 1,
 }
 
@@ -338,7 +358,8 @@ view.value <$> range counter bound
 -- in TACO terminology, i = n_crd, v = n_pos. var indexes i.
 structure csr := (i v var : E)
 
-def csr.level : csr → E → G E E := λ csr loc, interval csr.i csr.var (csr.v.access loc) (csr.v.access (loc+1))
+def csr.level : csr → E → G E E := λ csr loc, interval csr.i csr.var
+                                     (csr.v.access loc) (csr.v.access (loc+1))
 def G.level   : csr → G E E → G E (G E E) := functor.map ∘ csr.level
 def G.leaf    :   E → G E E → G E E       := functor.map ∘ E.access -- λ v, functor.map $ λ i, E.access v i
 
@@ -353,13 +374,14 @@ structure lval := (new : Prog) -- (acc : E → α)
 structure post := (post : Prog)
 
 -- push values at the leaf level
-def push_value (var val_array outer_var : E) : lval × post × (E → Prog) :=
-({new := (val_array.access outer_var).store 0}, ⟨Prog.skip⟩, λ rval_v, (val_array.access var).accum rval_v)
+def push_value (var val_array outer_var : E) : lval × post × E :=
+({new := (val_array.access outer_var).store 0}, ⟨Prog.skip⟩, (val_array.access var))
 
 -- if pack is true, we allow for an rval that produces duplicate coordinates and de-duplicate them as they are aggregated
-def push_level_pack' : bool → csr → (E → lval × post × α) → (E → lval × post × (E → pre × α))
-:= λ pack csr k outer_var,
-( { new := (csr.v.access outer_var).store (csr.var+1) }, ⟨(csr.v.access (outer_var+1)).store (csr.var+1); (k csr.var).2.1.post⟩,
+def push_level_pack' (pack : bool) (csr : csr) (k : E → lval × post × α) : (E → lval × post × (E → pre × α))
+:= λ outer_var,
+( { new := (csr.v.access outer_var).store (csr.var+1) },
+  { post := (csr.v.access (outer_var+1)).store (csr.var+1); (k csr.var).2.1.post },
    λ i, (⟨(if pack then Prog.if1 (csr.var < csr.v.access outer_var || i != csr.i.access csr.var) else id) $
              csr.var.accum 1; (csr.i.access csr.var).store i; (k csr.var).1.new⟩,
          (k csr.var).2.2))
@@ -379,6 +401,7 @@ end csr
 def v  : G E E       := G.leaf "v_vals"  $  ((csr.of "v" 1).level 0)
 def A  : G E (G E E) := G.leaf "A_vals" <$> ((csr.of "A" 1).level 0).level (csr.of "A" 2)
 def B  : G E (G E E) := G.leaf "B_vals" <$> ((csr.of "B" 1).level 0).level (csr.of "B" 2)
+def M_  : G E (G E E) := G.leaf "M_vals" <$> ((csr.of "M" 1).level 0).level (csr.of "M" 2)
 
 def indexed_mat_lval (var : E) (i j v : E) := ((var.access i).access j).accum v
 
@@ -386,18 +409,28 @@ def gmap1 {α β} : (α → β) → G E α → G E β := functor.map
 def gmap2 {α β} : (α → β) → G E (G E α) → G E (G E β) := functor.map ∘ functor.map
 
 class Ev (l r: Type) := (eval : l → r → Prog)
+class Scalar (α : Type) := (fold : α → E → Prog) (value : α → E)
+instance : Scalar E := ⟨λ l r, l.accum r, id⟩
 
-instance base.eval : Ev ((E → Prog)) E :=
+instance base.eval [Scalar α] : Ev α E :=
+{ eval := λ l v, Scalar.fold l v }
+-- todo remove
+instance base.eval' : Ev (E → Prog) E :=
 { eval := λ acc v, acc v }
 
 instance unit.eval [Ev α β] : Ev α (G unit β) :=
 { eval := λ acc v,
-  v.init ; Prog.while v.valid
-    (Prog.if1 v.ready (Ev.eval acc v.value) ; v.next) }
+    v.init; Prog.while v.valid
+      (Prog.if1 v.ready (Ev.eval acc v.value) ; v.next) }
+
+instance unit.bool [Scalar α] [Ev α β] : Ev α (G unit β) :=
+{ eval := λ acc v,
+    v.init; Prog.while (v.valid && (Scalar.value acc).neg)
+      (Prog.if1 v.ready (Ev.eval acc v.value) ; v.next) }
 
 instance level.eval  [Ev α β] : Ev (E → α) (G E β) :=
-{ eval := λ acc v, v.init;
-    Prog.while v.valid
+{ eval := λ acc v,
+    v.init; Prog.while v.valid
       (Prog.if1 v.ready (Ev.eval (acc v.index) v.value);
       v.next) }
 
@@ -420,15 +453,15 @@ def G.contract (g : G ι α) : G unit α := { g with index := () }
 -- ⟨functor.map Contractible.contract⟩
 -- def G.sum [Contractible α β] : α → β := Contractible.contract
 
-def G.sum2 : G E (G E E) → G unit (G unit E) := λ v, G.contract <$> v.contract
-def G.sum3 : G E (G E (G E E)) → G unit (G unit (G unit E)) :=
-(functor.map $ functor.map G.contract) ∘ (functor.map G.contract) ∘ (G.contract)
+def G.sum1 : G E α → G unit α := G.contract
+def G.sum2 : (G E (G E α)) → (G unit (G unit α)) := (functor.map $ G.sum1) ∘ (G.contract)
+def G.sum3 : G E (G E (G E α)) → G unit (G unit (G unit α)) := (functor.map $ G.sum2) ∘ (G.contract)
 def G.sum_inner : G E (G E (G E E)) → G E (G E (G unit E)) := functor.map $ functor.map G.contract
 def matrix_rval (var : E) : View E (View E E) := View.mk $ λ i, View.mk $ λ j , var.access (E.call2 "make_tuple" i j)
 
 -- Janky!
--- i   = get<0>(x.first)
--- j   = get<1>(x.first)
+-- i   = get<0>(x->first)
+-- j   = get<1>(x->first)
 -- val = x.second
 def coo_matrix_rval (matrix var : E) : G E (G E E) :=
 let
@@ -442,36 +475,52 @@ call (a b : E) := E.call0 (a.attr b) in
     init  := Prog.skip,
     next  := Prog.inline_code "break;" },
   ready := E.true,
-  valid := E.not $ var == call matrix "end",
+  valid := E.neg $ var == call matrix "end",
   init  := Prog.auto var $ call matrix "begin",
   next  := Prog.expr $ var.incr,
 }
 
 
 def single (x : α) := (⇑ E x).to_gen "i" 1
-def eg00  := Ev.eval (Prog.accum "out") (E.lit 2)
-def eg00' := Ev.eval (Prog.accum "out") (v.contract)
+def eg00  := Ev.eval (E.ident "out") (E.lit 2)
+def eg00' := Ev.eval (E.ident "out") (v.contract)
 def eg01 := Ev.eval (Prog.accum "out") (G.contract <$> A.contract)
 def eg02 := Ev.eval (Prog.accum "out") (G.sum2 $ A⋆B)
 def eg03 := Ev.eval (Prog.accum "out") (G.sum2 $ (⇑ E v) ⋆ A)
 def eg04 := Ev.eval (Prog.accum "out") (G.sum3 $ ((⇑ E) <$> A) ⋆ ⇑ E B ) -- (i,k)*(j,k)
-def inner_prod :=   ((⇑ E) <$> A) ⋆ ⇑ E B -- (i,k)*(j,k)
-def comb_rows  := (gmap2 (⇑ E) A) ⋆ ⇑ E B -- (i,j)*(j,k)
+
+def inner_prod := (gmap1 (⇑ E) A) ⋆ ⇑ E B -- (i,k)*(j,k)
+-- (i,j)*(j,k)
+def comb_rows : G E (G E (G unit E)) := G.sum_inner $ (gmap2 (⇑ E) A) ⋆ ⇑ E B
+
 def eg05 := Ev.eval (Prog.accum "out") $ G.sum3 $ (gmap2 (⇑ E) A) ⋆ (gmap1 (⇑ E) B) -- (i,j)*(i,k)
-def matsum := comb_rows.sum3
+def matsum := comb_rows.sum2
 def eg06 := Ev.eval (Prog.accum "out") matsum
 def eg07 := Ev.eval (indexed_mat_lval "out") (A⋆B)
-def ref_matrix := (coo_matrix_rval "x.data" "entry")
+def ref_matrix (n : string) := (coo_matrix_rval (E.ident $ n ++ ".data") "entry")
+def ref_x := ref_matrix "x"
+def ref_y := ref_matrix "y"
+def ref_M := ref_matrix "M"
 def eg18 := Ev.eval (mat_lval' "out") A
-def load_AB := [Ev.eval (mat_lval' "A") ref_matrix, Ev.eval (mat_lval' "B") ref_matrix]
-def eg19 := load_AB ++ [Prog.time $ Ev.eval (mat_lval' "out") $ A⋆B]
-def eg20 := load_AB ++ [Prog.time $ eg06]
+def load_AB' := [Ev.eval (mat_lval' "A") ref_x, Ev.eval (mat_lval' "B") ref_x]
+def load_AB : list Prog := [
+  Ev.eval (mat_lval' "A") (ref_matrix "x"),
+  Ev.eval (mat_lval' "B") (ref_matrix "y") ]
+def load : list Prog := load_AB ++ [
+  Ev.eval (mat_lval' "M") (ref_matrix "z") ]
+def eg19 := load_AB' ++ [Prog.time "me" $ Ev.eval (mat_lval' "out") $ A⋆B]
+def taco_ijk := Prog.inline_code "taco_ijk_sum();"
+def eg20 := load_AB ++ [Prog.time "me" $ eg06, Prog.time "taco" $ taco_ijk]
 def eg21 := Ev.eval (vec_lval' "out") v
 def eg22 := Ev.eval (mat_lval' "out") A
-def eg23 := [Ev.eval (mat_lval' "A") ref_matrix, Ev.eval (mat_lval' "B") ref_matrix, Prog.time $ Ev.eval (mat_lval'' "out") $ inner_prod.sum_inner]
+def eg23 := load_AB' ++ [Prog.time "me" $ Ev.eval (mat_lval'' "out") $ inner_prod.sum_inner]
+def eg24 := Ev.eval (λ i, (Prog.accum $ (E.ident "out").access i)) ((λ (i : E), 2*i) <$> (range "i" 10))
+def eg25 := Ev.eval (Prog.accum $ E.ident "out") ((λ (i : E), 2*i) <$> (range "i" 10)).contract
+def eg26 := load ++ [Prog.time "me" $ Ev.eval ("out" : E) $ G.sum2 (comb_rows), Prog.time "taco" $ taco_ijk]
+def eg27 := load_AB ++ [Prog.time "me" $ Ev.eval (mat_lval'' "out") $ comb_rows]
 
---#eval comp eg06
 --#eval compile eg20
+#eval compile eg27
 
 end G
 
