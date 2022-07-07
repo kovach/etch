@@ -232,12 +232,12 @@ def image_type := row →ₛ col →ₛ channel →ₛ intensity
 
 /- END setup for diagram -/
 
-def mat_mul_ijk' := Σ j $ (A : i →ₛ j →ₛ E) ⋆ (B : j →ₛ k →ₛ E)
-def inner2'      := Σ k $ (A : i →ₛ k →ₛ E) ⋆ (B : j →ₛ k →ₛ E)
-def ttv'         := Σ i $ Σ j $ Σ k $ (C : i →ₛ j →ₛ k →ₛ R) ⋆ (v : k →ₛ R)
-def ttm'         := Σ i $ Σ j $ Σ k $ Σ l $ (C : i →ₛ j →ₛ l →ₛ R) ⋆ (A : k →ₛ l →ₛ R)
-def mttkrp'      := Σ i $ Σ j $ Σ k $ Σ l $ (C : i →ₛ j →ₛ k →ₛ R) ⋆ (A : j →ₛ l →ₛ R) ⋆ (B : k →ₛ l →ₛ R)
-def inner3'      := Σ i $ Σ j $ Σ k $ (C : i →ₛ j →ₛ k →ₛ R) ⋆ (C : i →ₛ j →ₛ k →ₛ R)
+def mmul1'  := Σ i $ Σ j $ Σ k $ (A : i →ₛ j →ₛ E) ⋆ (B : j →ₛ k →ₛ E)
+def mmul2'  := Σ i $ Σ j $ Σ k $ (A : i →ₛ k →ₛ E) ⋆ (B : j →ₛ k →ₛ E)
+def ttv'    := Σ i $ Σ j $ Σ k $ (C : i →ₛ j →ₛ k →ₛ R) ⋆ (v : k →ₛ R)
+def ttm'    := Σ i $ Σ j $ Σ k $ Σ l $ (C : i →ₛ j →ₛ l →ₛ R) ⋆ (A : k →ₛ l →ₛ R)
+def mttkrp' := Σ i $ Σ j $ Σ k $ Σ l $ (C : i →ₛ j →ₛ k →ₛ R) ⋆ (A : j →ₛ l →ₛ R) ⋆ (B : k →ₛ l →ₛ R)
+def inner3' := Σ i $ Σ j $ Σ k $ (C : i →ₛ j →ₛ k →ₛ R) ⋆ (D : i →ₛ j →ₛ k →ₛ R)
 
 -- hmm def mat_mul_ijk' := Σ j $ (A : j →ₛ i →ₛ E) ⋆ (B : j →ₛ k →ₛ E)
 -- iklj
@@ -260,6 +260,32 @@ def eg28'' := load_AB ++ [
     (A : i →ₛ k →ₛ E) ⋆ (B : j →ₛ k →ₛ E),
   Prog.time "taco" $ Prog.inline_code "taco_ikjk();" ]
 
-#eval compile $ eg30
+
+
+def eg_mmul1 := load ++
+  [me $ Ev.eval out mmul1'] ++
+  [ta $ Prog.inline_code "taco_ijk_sum();"]
+
+def eg_mmul2 := load ++
+  [me $ Ev.eval out mmul2'] ++
+  [ta $ Prog.inline_code "mmul2_compute();"]
+
+def eg_ttv := load ++
+  [me $ Ev.eval out ttv'] ++
+  [ta $ Prog.inline_code "taco_ttv();"]
+
+def eg_ttm := load ++
+  [me $ Ev.eval out ttm'] ++
+  [ta $ Prog.inline_code "ttm_compute();"]
+
+def eg_mttkrp := load ++
+  [me $ Ev.eval out mttkrp'] ++
+  [ta $ Prog.inline_code "mttkrp_compute();"]
+
+def eg_inner3 := load ++
+  [me $ Ev.eval out inner3'] ++
+  [ta $ Prog.inline_code "inner3_compute();"]
+
+#eval compile $ eg_mmul1
 
 end Streams

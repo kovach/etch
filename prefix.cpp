@@ -57,6 +57,18 @@ index* C3_crd = (index*)calloc(array_size, sizeof(index));
 index* C3_pos = (index*)calloc(array_size, sizeof(index));
 num* C_vals = (num*)calloc(array_size, sizeof(num));
 
+int D1_i = -1;
+int D2_i = -1;
+int D3_i = -1;
+index _D = 0;
+index* D1_crd = (index*)calloc(array_size, sizeof(index));
+index* D1_pos = (index*)calloc(array_size, sizeof(index));
+index* D2_crd = (index*)calloc(array_size, sizeof(index));
+index* D2_pos = (index*)calloc(array_size, sizeof(index));
+index* D3_crd = (index*)calloc(array_size, sizeof(index));
+index* D3_pos = (index*)calloc(array_size, sizeof(index));
+num* D_vals = (num*)calloc(array_size, sizeof(num));
+
 int B1_i = -1;
 int B2_i = -1;
 index* B1_crd = (index*)calloc(array_size, sizeof(index));
@@ -71,6 +83,7 @@ index* out0_crd = (index*)calloc(array_size, sizeof(index));
 num* out_vals = (num*)calloc(array_size*10, sizeof(num));
 num* B_vals = (num*)calloc(array_size, sizeof(num));
 num out = 0.0;
+num out_val = 0.0;
 
 //index* A0_crd = (index*)calloc(array_size, sizeof(index));
 //index* B0_crd = (index*)calloc(array_size, sizeof(index));
@@ -84,6 +97,11 @@ index iout = 0;
 index jout = 0;
 
 #include "taco_kernels.cpp"
+#include "ttv.cpp"
+#include "ttm.cpp"
+#include "mttkrp.cpp"
+#include "inner3.cpp"
+#include "mmul2.cpp"
 
 
 using namespace std;

@@ -246,7 +246,7 @@ def to_c : Prog → M unit
     emit "auto t1 = std::chrono::high_resolution_clock::now();" >>
     p.to_c >>
     emit "auto t2 = std::chrono::high_resolution_clock::now();" >>
-    emit "cout << \"out: \" << out << endl;" >>
+    emit "cout << \"out: \" << out_val << endl;" >>
     emit "std::cout << \"took: \" << std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count() << std::endl;"
   ) >> emit "}"
 end Prog
@@ -519,6 +519,8 @@ def A  : G E (G E E) := G.leaf "A_vals" <$> ((csr.of "A" 1).level 0).level (csr.
 def B  : G E (G E E) := G.leaf "B_vals" <$> ((csr.of "B" 1).level 0).level (csr.of "B" 2)
 def C  : G E (G E (G E E)) := (functor.map (G.leaf "C_vals")) <$> (G.level (csr.of "C" 3) <$>
                                             ((csr.of "C" 1).level 0).level (csr.of "C" 2))
+def D  : G E (G E (G E E)) := (functor.map (G.leaf "D_vals")) <$> (G.level (csr.of "D" 3) <$>
+                                            ((csr.of "D" 1).level 0).level (csr.of "D" 2))
 def M_  : G E (G E E) := G.leaf "M_vals" <$> ((csr.of "M" 1).level 0).level (csr.of "M" 2)
 
 
@@ -535,6 +537,10 @@ def inner_prod := (gmap1 (⇑ E) A) ⋆ ⇑ E B -- (i,k)*(j,k)
 def comb_rows : G E (G E (G unit E)) := G.sum_inner $ (gmap2 (⇑ E) A) ⋆ ⇑ E B
 
 def me := Prog.time "me"
+def ta := Prog.time "taco"
+
+
+def out : E := "out_val"
 
 def eg05 := Ev.eval (Prog.accum "out") $ G.sum3 $ (gmap2 (⇑ E) A) ⋆ (gmap1 (⇑ E) B) -- (i,j)*(i,k)
 def matsum := comb_rows.sum2
@@ -551,31 +557,32 @@ def load_AB' := [Ev.eval (mat_lval' "A") ref_x, Ev.eval (mat_lval' "B") ref_x]
 def load_AB : list Prog := [
   Prog.time "gen A" $ Ev.eval (mat_lval' "A") (ref_matrix "x"),
   Prog.time "gen B" $ Ev.eval (mat_lval' "B") (ref_matrix "y") ]
-def load : list Prog := load_AB ++ [
-  Ev.eval (mat_lval' "M") (ref_matrix "z") ]
+-- def load : list Prog := load_AB ++ [Ev.eval (mat_lval' "M") (ref_matrix "z") ]
 def eg19 := load_AB' ++ [Prog.time "me" $ Ev.eval (mat_lval' "out") $ A⋆B]
 def taco_ijk := Prog.inline_code "taco_ijk_sum();"
 def eg21 := Ev.eval (vec_lval' "out") v
 def eg22 := me $ Ev.eval (mat_lval' "out") A
 def eg23 := load_AB' ++ [Prog.time "me" $ Ev.eval (mval "out") $ inner_prod.sum_inner]
-def eg24 := Ev.eval (λ i, (Prog.accum $ (E.ident "out").access i)) ((λ (i : E), 2*i) <$> (range "i" 10))
-def eg25 := Ev.eval (Prog.accum $ E.ident "out") ((λ (i : E), 2*i) <$> (range "i" 10)).contract
+def eg24 := Ev.eval (λ i, (Prog.accum $ out.access i)) ((λ (i : E), 2*i) <$> (range "i" 10))
+def eg25 := Ev.eval (Prog.accum out) ((λ (i : E), 2*i) <$> (range "i" 10)).contract
 -- important
 def eg20 := load_AB ++ [me $ eg06, Prog.time "taco" $ taco_ijk]
-def eg26 := load_AB ++ [me $ Ev.eval ("out" : E) $ G.sum2 (comb_rows), Prog.time "taco" $ taco_ijk]
+def eg26 := load_AB ++ [me $ Ev.eval out $ G.sum2 (comb_rows), Prog.time "taco" $ taco_ijk]
 def eg27 := load_AB ++ [me $ Ev.eval (mval "out") $ comb_rows]
-def load_ABC := load_AB ++ [Ev.eval (cub_lval' "C") (ref_cube "c"), Ev.eval (vec_lval' "V") (ref_vector "v")]
+
+def load := load_AB ++ [
+  Ev.eval (cub_lval' "C") (ref_cube "c"),
+  Ev.eval (cub_lval' "D") (ref_cube "c"),
+  Ev.eval (vec_lval' "V") (ref_vector "v")]
+
 def eg28 := load_AB ++ [
   Prog.time "me" $ Ev.eval (mval "out") $ inner_prod.sum_inner,
   Prog.time "taco" $ Prog.inline_code "taco_ikjk();" ]
 
-def eg_ttv := load_ABC ++ [me $ Ev.eval (mval "out" ) $ G.sum_inner $ C ⋆ (⇑ E (⇑ E v))]
-def eg_ttv' := load_ABC ++
-  [me $ Ev.eval (E.ident "out" ) $ G.sum2 $ G.sum_inner $ C ⋆ (⇑ E (⇑ E v))] ++
-  [Prog.time "taco" $ Prog.inline_code "taco_ttv();"]
-
---#eval compile eg20
---#eval compile eg_ttv'
+-- def eg_ttv := load ++ [me $ Ev.eval (mval "out" ) $ G.sum_inner $ C ⋆ (⇑ E (⇑ E v))]
+-- def eg_ttv' := load ++
+--   [me $ Ev.eval out $ G.sum2 $ G.sum_inner $ C ⋆ (⇑ E (⇑ E v))] ++
+--   [Prog.time "taco" $ Prog.inline_code "taco_ttv();"]
 
 end G
 
