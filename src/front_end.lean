@@ -19,7 +19,7 @@ class Rectangle (Gen : ℕ → Type* → Type*) :=
 
 open Rectangle
 
-class Merge (α β : Type*) (γ : Type*) :=
+class Merge (α β : Type*) (γ : out_param Type*) :=
   (merge1 : α → γ)
   (merge2 : β → γ)
 
@@ -185,10 +185,68 @@ instance sum_eq (n : ℕ) : Sum n (Stream n α) (G unit α) := ⟨G.contract ∘
 instance sum_lt (m n : ℕ) [NatLt n m] [Sum m α β] : Sum m (Stream n α) (Stream n β) :=
 ⟨functor.map $ Sum.sum m⟩
 
-def A1 : i →ₛ j →ₛ E := A
-def B1 : j →ₛ k →ₛ E := B
+--def sum_all : list ℕ →
 
-def eg06' : Prog := me $ Ev.eval (E.ident "out") $ Sum.sum i $ Sum.sum j $ Sum.sum k $
+abbreviation R := E
+
+def A1 : i →ₛ j →ₛ R := A
+def B1 : j →ₛ k →ₛ R := B
+
+-- class Sum (n : ℕ) (α : Type) (β : out_param Type) := (sum : α → β)
+prefix ` Σ ` := Sum.sum
+notation `Σ` n `,` := Sum.sum n
+
+-- notation `∑` binders ` in ` s `, ` r:(scoped:67 f, finset.sum s f) := r
+-- notation ` Σ ` l:(foldr (h t, list.cons h t) list.nil ` ⟭ `) := (ExprLoc.mk x l)
+
+--def sum [Sum n α β] : α → β :=
+--def mat_mul_ijk   := Σ i j k, (A : i →ₛ j →ₛ E) ⋆ (B : j →ₛ k →ₛ E)
+
+/- setup for diagram -/
+def row := 1
+def col := 2
+def channel := 3
+def intensity := ℕ
+
+-- Tensor Examples
+-- index ordering: i, j, k, l
+def mmul1  := Σ j $ (A : i →ₛ j →ₛ R) ⋆ (B : j →ₛ k →ₛ R)
+def mmul2  := Σ k $ (A : i →ₛ k →ₛ R) ⋆ (B : j →ₛ k →ₛ R)
+def ttv    := Σ k $ (C : i →ₛ j →ₛ k →ₛ R) ⋆ (v : k →ₛ R)
+def ttm    := Σ l $ (C : i →ₛ j →ₛ l →ₛ R) ⋆ (A : k →ₛ l →ₛ R)
+def mttkrp := Σ j $ Σ k $ (C : i →ₛ j →ₛ k →ₛ R) ⋆
+                   (A : j →ₛ l →ₛ R) ⋆ (B : k →ₛ l →ₛ R)
+def inner3 := Σ i $ Σ j $ Σ k $
+    (C : i →ₛ j →ₛ k →ₛ R) ⋆ (C : i →ₛ j →ₛ k →ₛ R)
+
+-- alternative declaration style:
+def M1 : i →ₛ j →ₛ R := A
+def M2 : j →ₛ k →ₛ R := B
+def mat_mul_alt := Σ j (M1 ⋆ M2)
+
+-- missing index leads to type elaboration error:
+def mat_mul_err := Σ l (M1 ⋆ M2)
+
+-- a more informative tensor type
+def image_type := row →ₛ col →ₛ channel →ₛ intensity
+
+/- END setup for diagram -/
+
+def mat_mul_ijk' := Σ j $ (A : i →ₛ j →ₛ E) ⋆ (B : j →ₛ k →ₛ E)
+def inner2'      := Σ k $ (A : i →ₛ k →ₛ E) ⋆ (B : j →ₛ k →ₛ E)
+def ttv'         := Σ i $ Σ j $ Σ k $ (C : i →ₛ j →ₛ k →ₛ R) ⋆ (v : k →ₛ R)
+def ttm'         := Σ i $ Σ j $ Σ k $ Σ l $ (C : i →ₛ j →ₛ l →ₛ R) ⋆ (A : k →ₛ l →ₛ R)
+def mttkrp'      := Σ i $ Σ j $ Σ k $ Σ l $ (C : i →ₛ j →ₛ k →ₛ R) ⋆ (A : j →ₛ l →ₛ R) ⋆ (B : k →ₛ l →ₛ R)
+def inner3'      := Σ i $ Σ j $ Σ k $ (C : i →ₛ j →ₛ k →ₛ R) ⋆ (C : i →ₛ j →ₛ k →ₛ R)
+
+-- hmm def mat_mul_ijk' := Σ j $ (A : j →ₛ i →ₛ E) ⋆ (B : j →ₛ k →ₛ E)
+-- iklj
+-- ijkl
+def eg06' : Prog := me $ Ev.eval (E.ident "out") $
+
+-- Σ i j k,
+Sum.sum i $ Sum.sum j $ Sum.sum k $
+
   (A : i →ₛ j →ₛ E) ⋆ (B : j →ₛ k →ₛ E)
 
 def eg30 := load_AB ++ [eg06', Prog.time "taco" $ taco_ijk]

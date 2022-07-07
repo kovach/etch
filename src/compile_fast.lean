@@ -393,13 +393,6 @@ prod.snd $ (push_level (csr.of n 1) $ push_level (csr.of n 2) $ push_level (csr.
 
 end csr
 
-def v  : G E E       := G.leaf "V_vals"  $  ((csr.of "V" 1).level 0)
-def A  : G E (G E E) := G.leaf "A_vals" <$> ((csr.of "A" 1).level 0).level (csr.of "A" 2)
-def B  : G E (G E E) := G.leaf "B_vals" <$> ((csr.of "B" 1).level 0).level (csr.of "B" 2)
-def C  : G E (G E (G E E)) := (functor.map (G.leaf "C_vals")) <$> (G.level (csr.of "C" 3) <$>
-                                            ((csr.of "C" 1).level 0).level (csr.of "C" 2))
-def M_  : G E (G E E) := G.leaf "M_vals" <$> ((csr.of "M" 1).level 0).level (csr.of "M" 2)
-
 def indexed_mat_lval (var : E) (i j v : E) := ((var.access i).access j).accum v
 
 def gmap1 {α β} : (α → β) → G E α → G E β := functor.map
@@ -521,6 +514,13 @@ def sum_inner : G E (G E (G E E)) → G E (G E (G unit E)) := functor.map $ func
 
 end G
 
+def v  : G E E       := G.leaf "V_vals"  $  ((csr.of "V" 1).level 0)
+def A  : G E (G E E) := G.leaf "A_vals" <$> ((csr.of "A" 1).level 0).level (csr.of "A" 2)
+def B  : G E (G E E) := G.leaf "B_vals" <$> ((csr.of "B" 1).level 0).level (csr.of "B" 2)
+def C  : G E (G E (G E E)) := (functor.map (G.leaf "C_vals")) <$> (G.level (csr.of "C" 3) <$>
+                                            ((csr.of "C" 1).level 0).level (csr.of "C" 2))
+def M_  : G E (G E E) := G.leaf "M_vals" <$> ((csr.of "M" 1).level 0).level (csr.of "M" 2)
+
 
 def single (x : α) := (⇑ E x).to_gen "i" 1
 def eg00  := Ev.eval (E.ident "out") (E.lit 2)
@@ -569,13 +569,13 @@ def eg28 := load_AB ++ [
   Prog.time "me" $ Ev.eval (mval "out") $ inner_prod.sum_inner,
   Prog.time "taco" $ Prog.inline_code "taco_ikjk();" ]
 
-def ttv := load_ABC ++ [me $ Ev.eval (mval "out" ) $ G.sum_inner $ C ⋆ (⇑ E (⇑ E v))]
-def ttv' := load_ABC ++
+def eg_ttv := load_ABC ++ [me $ Ev.eval (mval "out" ) $ G.sum_inner $ C ⋆ (⇑ E (⇑ E v))]
+def eg_ttv' := load_ABC ++
   [me $ Ev.eval (E.ident "out" ) $ G.sum2 $ G.sum_inner $ C ⋆ (⇑ E (⇑ E v))] ++
   [Prog.time "taco" $ Prog.inline_code "taco_ttv();"]
 
 --#eval compile eg20
-#eval compile ttv'
+--#eval compile eg_ttv'
 
 end G
 
