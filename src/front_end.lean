@@ -1,5 +1,5 @@
 import tactic
-import compile
+import compile_fast
 
 class NatLt (m n : ℕ) := (proof : m < n) .
 instance NatLt.one (n : ℕ) : NatLt 0 (n+1) := ⟨nat.succ_pos _⟩
@@ -15,7 +15,7 @@ class Atomic (α : Type u) .
 
 class Rectangle (Gen : ℕ → Type* → Type*) :=
   (map {α β : Type*} (i : ℕ) : (α → β) → Gen i α → Gen i β)
-  (repl {α : Type*} (i : ℕ) : α → Gen i α)
+  (repl {α : Type*}  (i : ℕ) : α → Gen i α)
 
 open Rectangle
 
@@ -29,7 +29,10 @@ class NestedMap (α β γ δ : Type*) :=
   (map : (β → γ) → α → δ)
 
 section Instances
-variables {Gen : ℕ → Type u → Type v} [Rectangle Gen]
+variables
+{Gen : ℕ → Type u → Type v}
+{View : ℕ → Type u → Type v}
+[Rectangle Gen]
 variables {α β γ : Type u}
 
 instance Gen.Merge.one {ρ} [Atomic ρ] : Merge ρ ρ ρ := ⟨id, id⟩
@@ -78,15 +81,11 @@ example {i j k : ℕ} [NatLt i j] : Merge (Fun i (Fun j ℕ)) (Fun j (Fun k ℕ)
 @[reducible] def l := 4
 @[reducible] def V := ℕ
 
-class has_hmul (α β : Type*) (γ : out_param Type*) :=
-  (mul : α → β → γ)
-infixr ` <*> ` := has_hmul.mul
 instance hmul_of_Merge {α β γ : Type}  [has_mul γ] [Merge α β γ] : has_hmul α β γ :=
 ⟨λ a b, merge1 β a * merge2 α b⟩
 
-
 -- demo with functions:
-instance mul_Fun {i : ℕ} {α : Type} [has_mul α] : has_mul (Fun i α) :=
+instance Fun.mul {i : ℕ} {α : Type} [has_mul α] : has_mul (Fun i α) :=
 ⟨λ a b i, a.to_fun i * b.to_fun i⟩
 example {i : ℕ} : has_hmul (Fun i ℕ) ℕ (Fun i ℕ) := infer_instance
 
@@ -96,34 +95,118 @@ def v3 : (Fun l V) := λ i, i
 #check merge v1 v2
 #reduce (merge v1 v2)
 -- the final result:
-#reduce v1 <*> v2
-  -- 72:1: λ (i i_1 i_2 : ℕ), (i.add i_1).mul (i_1.mul i_2)
-#reduce v1 <*> v2 <*> v3
+-- #reduce v1 <*> v2
+--   -- 72:1: λ (i i_1 i_2 : ℕ), (i.add i_1).mul (i_1.mul i_2)
+-- #reduce v1 <*> v2 <*> v3
   -- 81:1: λ (i i_1 i_2 i_3 : ℕ), (i.add i_1).mul ((i_1.mul i_2).mul i_3)
 
 --set_option trace.class_instances true
 --set_option class.instance_max_depth 20
 --set_option pp.all true
 
+section Streams
 -- demo with streams:
-def Gen' (i : ℕ) (α : Type) := Gen E α
-def Gen.idx {α} (i : ℕ) : Gen E α → Gen' i α := id
+--def StreamGen' (i : ℕ) (α : Type) := StreamGen E α
+--def StreamGen.idx {α} (i : ℕ) : StreamGen E α → StreamGen' i α := id
+def Ind (i : ℕ) := E
+inductive Stream (n : ℕ) (α : Type)
+| view (v : View (Ind n) α) : Stream
+| gen  (g : G (Ind n) α)    : Stream
 
-instance : Rectangle Gen' :=
--- TODO! need to use repeat instead
-{ map := λ _ _ i, Gen.map, repl := λ _ m v, repeatScalar (E.ident "x") v }
+instance {n} : functor (Stream n) :=
+{ map := λ _ _ f g, match g with
+  | Stream.view v := Stream.view { v with value := f ∘ v.value }
+  | Stream.gen  g := Stream.gen  { g with value := f g.value }
+  end }
+
+instance : Rectangle Stream :=
+{ map  := λ _ _ _, functor.map,
+  repl := λ _ m v, Stream.view ⟨λ _, v⟩ }
 instance : Atomic E := ⟨⟩
-instance Gen'.has_mul {α} {i} [has_mul α] : has_mul (Gen' i α) := ⟨mulGen⟩
 
-attribute [irreducible] Gen'
+def foo1 : Merge (Stream i E) (Stream j E) (Stream i (Stream j E)) := infer_instance
 
-def g1 : Gen' i E := Gen.idx i (externGen (E.ident "x"))
-def g2 : Gen' j E := (externGen (E.ident "y")).idx j
-def g3 : Gen' k E := (range 1 2).to_Gen.idx k
-def g4 : Gen' i (Gen' j E) := Rectangle.map i (λ _, (range 1 2).to_Gen.idx j) ((range 1 2).to_Gen.idx i)
+variables {ι α β γ : Type}
+(n : ℕ)
 
-def foo1 : Merge (Gen' i E) (Gen' j E) (Gen' i (Gen' j E))    := infer_instance
-#print foo1
-example : has_hmul (Gen' i E) (Gen' j E) (Gen' i (Gen' j E)) := infer_instance
+instance G.Ind.hmul {i : ℕ} [has_hmul α β γ] : has_hmul (G (Ind i) α) (G (Ind i) β) (G (Ind i) γ) := ⟨G.mul⟩
 
-#check g3 <*> g1 <*> g2 <*> g2 <*> g4
+instance : inhabited (Stream n α) := ⟨sorry⟩
+instance : inhabited (G ι α) := ⟨sorry⟩
+
+-- instance Stream.has_mul {α} {i} [has_mul α] : has_mul (StreamGen' i α) := ⟨StreamGen.mul⟩
+instance Stream.has_mul {γ} {i} [has_mul γ] : has_mul (Stream i γ) := ⟨λ a b,
+match a, b with
+| Stream.view a, Stream.view b := arbitrary _ -- Stream.view $ a⋆b
+| Stream.gen a, Stream.view b := Stream.gen $ a⋆b
+| Stream.view a, Stream.gen b := Stream.gen $ a⋆b
+| Stream.gen a, Stream.gen b := Stream.gen $ a⋆b
+end⟩
+
+variables
+(a : Stream i E)
+(a' : G E E)
+(b : Stream j E)
+
+example : has_mul (Stream i (Stream j E)) := infer_instance
+example : Stream i (Stream j E) := a ⋆ b
+
+instance : has_coe (G E E) (Stream n E) := ⟨Stream.gen⟩
+instance coe_stream [has_coe α β] : has_coe (G E α) (Stream n β) := ⟨Stream.gen ∘ functor.map has_coe.coe⟩
+
+class of_stream (α β : Type) := (coe : α → β)
+instance base.of_stream : of_stream α α := ⟨id⟩
+instance [of_stream α β] : of_stream (Stream n α) (G E β) := ⟨λ s, match s with
+| Stream.view _ := arbitrary _
+| Stream.gen a := of_stream.coe <$> a
+end⟩
+
+example : of_stream (Stream n α) (G E α) := infer_instance
+
+def asdf  : Stream i E := a'
+def asdf1 : Stream j E := a'
+
+-- attribute [irreducible] StreamGen'
+
+-- def g1 : StreamGen' i E := StreamGen.idx i (extern (E.ident "x"))
+-- def g2 : StreamGen' j E := (extern (E.ident "y")).idx j
+-- def g3 : StreamGen' k E := (range 1 2).to_StreamGen.idx k
+-- def g4 : StreamGen' i (StreamGen' j E) := Rectangle.map i (λ _, (range 1 2).to_StreamGen.idx j) ((range 1 2).to_StreamGen.idx i)
+
+-- def foo1 : Merge (StreamGen' i E) (StreamGen' j E) (StreamGen' i (StreamGen' j E))    := infer_instance
+-- #print foo1
+-- example : has_hmul (StreamGen' i E) (StreamGen' j E) (StreamGen' i (StreamGen' j E)) := infer_instance
+
+-- #check g3 <*> g1 <*> g2 <*> g2 <*> g4
+
+section front_end
+infixr ` →ₛ `:24 := Stream
+
+--def Stream.to_stream {n} [of_stream α β] : Stream n α → G E β := of_stream.coe
+instance s_level.eval [of_stream γ β] [Ev α (G E β)] : Ev α (Stream i γ) := ⟨ λ l r, Ev.eval l (of_stream.coe r : G E β) ⟩
+def Stream.of [of_stream α β] : α → β := of_stream.coe
+
+def A1 : i →ₛ j →ₛ E := A
+def B1 : j →ₛ k →ₛ E := B
+
+def eg06' : Prog := me $ Ev.eval (E.ident "out") $ G.sum3' $ Stream.of $
+
+  (A : i →ₛ j →ₛ E) ⋆ (B : j →ₛ k →ₛ E)
+
+def eg30 := load_AB ++ [eg06', Prog.time "taco" $ taco_ijk]
+#eval compile $ eg30
+
+
+-- def typedMatrix (var : string) (i j : ℕ) : M (i →ₛ j →ₛ sorry) := do
+--   let file := matrixFile,
+--   var ← E.ident <$> fresh var (csparse (csparse cdouble)),
+--   let gen := functor.map (functor.map StreamGen.singleton) $ functor.map extern (extern $ var),
+--   return $ {gen with initialize := Prog.store var (E.call1 (E.ident "loadmtx")
+--     (E.ident $ "\"" ++ file ++ "\""))}
+
+-- infixr ` →ₛ `:24 := StreamGen
+-- #check E →ₛ unit →ₛ E
+
+-- #check @functor.map
+-- --600:1: functor.map : Π {f : Type u_1 → Type u_2} [self : functor f] {α β : Type u_1}, (α → β) → f α → f β
+-- #check @functor.map (λ x, E →ₛ x) _ (unit →ₛ E) β

@@ -5,27 +5,111 @@
 #include <cassert>
 #include <chrono>
 #include <string>
+#include <cstring>
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <filesystem>
 #include <map>
 #include <algorithm>
+
 #define num double
 #define index int
-#define BUFFER_SIZE 10
+// #define BUFFER_SIZE 10
+
+// todo
+int array_size = 1000000;
+int out1_i = -1;
+int out2_i = -1;
+
+int V1_i = -1;
+index* V1_crd = (index*)calloc(array_size, sizeof(index));
+index* V1_pos = (index*)calloc(array_size, sizeof(index));
+num* V_vals = (num*)calloc(array_size, sizeof(num));
+
+int A1_i = -1;
+int A2_i = -1;
+index _A = 0;
+index* A1_crd = (index*)calloc(array_size, sizeof(index));
+index* A1_pos = (index*)calloc(array_size, sizeof(index));
+index* A2_crd = (index*)calloc(array_size, sizeof(index));
+index* A2_pos = (index*)calloc(array_size, sizeof(index));
+num* A_vals = (num*)calloc(array_size, sizeof(num));
+
+int M1_i = -1;
+int M2_i = -1;
+index _M = 0;
+index* M1_crd = (index*)calloc(array_size, sizeof(index));
+index* M1_pos = (index*)calloc(array_size, sizeof(index));
+index* M2_crd = (index*)calloc(array_size, sizeof(index));
+index* M2_pos = (index*)calloc(array_size, sizeof(index));
+num* M_vals = (num*)calloc(array_size, sizeof(num));
+
+int C1_i = -1;
+int C2_i = -1;
+int C3_i = -1;
+index _C = 0;
+index* C1_crd = (index*)calloc(array_size, sizeof(index));
+index* C1_pos = (index*)calloc(array_size, sizeof(index));
+index* C2_crd = (index*)calloc(array_size, sizeof(index));
+index* C2_pos = (index*)calloc(array_size, sizeof(index));
+index* C3_crd = (index*)calloc(array_size, sizeof(index));
+index* C3_pos = (index*)calloc(array_size, sizeof(index));
+num* C_vals = (num*)calloc(array_size, sizeof(num));
+
+int B1_i = -1;
+int B2_i = -1;
+index* B1_crd = (index*)calloc(array_size, sizeof(index));
+index* B1_pos = (index*)calloc(array_size, sizeof(index));
+index* B2_crd = (index*)calloc(array_size, sizeof(index));
+index* B2_pos = (index*)calloc(array_size, sizeof(index));
+index* out1_crd = (index*)calloc(array_size, sizeof(index));
+index* out1_pos = (index*)calloc(array_size, sizeof(index));
+index* out2_crd = (index*)calloc(array_size*10, sizeof(index));
+index* out2_pos = (index*)calloc(array_size, sizeof(index));
+index* out0_crd = (index*)calloc(array_size, sizeof(index));
+num* out_vals = (num*)calloc(array_size*10, sizeof(num));
+num* B_vals = (num*)calloc(array_size, sizeof(num));
+num out = 0.0;
+
+//index* A0_crd = (index*)calloc(array_size, sizeof(index));
+//index* B0_crd = (index*)calloc(array_size, sizeof(index));
+// index iA = 0;
+// index jA = 0;
+// index iB = 0;
+// index jB = 0;
+// index _B = 0;
+// index _out = 0;
+index iout = 0;
+index jout = 0;
+
+#include "taco_kernels.cpp"
+
 
 using namespace std;
 
 index min(index a, index b) {
   return (a < b) ? a : b;
 }
-
 index max(index a, index b) {
   return (a > b) ? a : b;
 }
 
-#define TACO_MIN min
+bool int_lt(index a, index b) {
+  return a < b;
+}
+bool int_eq(index a, index b) {
+  return a == b;
+}
+
+
+// todo optimize
+bool str_lt(char* a, char* b) {
+  return strcmp(a,b) < 0;
+}
+bool str_eq(char* a, char* b) {
+  return strcmp(a,b) == 0;
+}
 
 bool file_empty(std::ifstream& pFile)
 {
@@ -44,11 +128,27 @@ std::vector<std::string> split(const std::string &s, char delim) {
   return elems;
 }
 
+class Vector {
+  public:
+  map<tuple<index>, num> data;
+  int i_max;
+  Vector(int i_max, map<tuple<index>, num> data) : i_max(i_max), data(data) {
+  }
+};
+
 class Matrix {
   public:
   map<tuple<index, index>, num> data;
   int i_max, j_max;
   Matrix(int i_max, int j_max, map<tuple<index, index>, num> data) : i_max(i_max), j_max(j_max), data(data) {
+  }
+};
+
+class Cube {
+  public:
+  map<tuple<index, index, index>, num> data;
+  int i_max, j_max, k_max;
+  Cube(int i_max, int j_max, int k_max, map<tuple<index, index, index>, num> data) : i_max(i_max), j_max(j_max), k_max(k_max), data(data) {
   }
 };
 
@@ -82,150 +182,58 @@ Matrix loadmtx1(string name) {
   return Matrix(i_max, j_max, temp);
 }
 
+Cube load_random(int rows, int columns, int ranks, int n) {
+  map<tuple<index, index, index>, num> result;
+  int count = 0;
+  for (int i = 0; i < rows; i++) {
+    for (int j = 0; j < rows; j++) {
+      for (int k = 0; k < rows; k++) {
+	if (std::rand() % n == 0) {
+	  float r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+	  result[make_tuple(i,j,k)] = r - 0.5;
+	  count++;
+	}
+      }
+    }
+  }
+  cout << "nnz: " << count << endl;
+  return Cube(rows, columns, ranks, result);
+}
+
 Matrix load_random(int rows, int columns, int n) {
   map<tuple<index, index>, num> result;
+  int count = 0;
   for (int i = 0; i < rows; i++) {
     for (int j = 0; j < rows; j++) {
       if (std::rand() % n == 0) {
 	float r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
 	result[make_tuple(i,j)] = r - 0.5;
+	count++;
       }
     }
   }
+  cout << "nnz: " << count << endl;
   return Matrix(rows, columns, result);
 }
 
-
-int array_size = 1000000;
-int out1_i = -1;
-int out2_i = -1;
-
-int A1_i = -1;
-int A2_i = -1;
-index _A = 0;
-index* A1_crd = (index*)calloc(array_size, sizeof(index));
-index* A1_pos = (index*)calloc(array_size, sizeof(index));
-index* A2_crd = (index*)calloc(array_size, sizeof(index));
-index* A2_pos = (index*)calloc(array_size, sizeof(index));
-num* A_vals = (num*)calloc(array_size, sizeof(num));
-
-int M1_i = -1;
-int M2_i = -1;
-index _M = 0;
-index* M1_crd = (index*)calloc(array_size, sizeof(index));
-index* M1_pos = (index*)calloc(array_size, sizeof(index));
-index* M2_crd = (index*)calloc(array_size, sizeof(index));
-index* M2_pos = (index*)calloc(array_size, sizeof(index));
-num* M_vals = (num*)calloc(array_size, sizeof(num));
-
-int B1_i = -1;
-int B2_i = -1;
-index* B1_crd = (index*)calloc(array_size, sizeof(index));
-index* B1_pos = (index*)calloc(array_size, sizeof(index));
-index* B2_crd = (index*)calloc(array_size, sizeof(index));
-index* B2_pos = (index*)calloc(array_size, sizeof(index));
-index* out1_crd = (index*)calloc(array_size, sizeof(index));
-index* out1_pos = (index*)calloc(array_size, sizeof(index));
-index* out2_crd = (index*)calloc(array_size*10, sizeof(index));
-index* out2_pos = (index*)calloc(array_size, sizeof(index));
-index* out0_crd = (index*)calloc(array_size, sizeof(index));
-num* out_vals = (num*)calloc(array_size*10, sizeof(num));
-num* B_vals = (num*)calloc(array_size, sizeof(num));
-num out = 0.0;
-
-//index* A0_crd = (index*)calloc(array_size, sizeof(index));
-//index* B0_crd = (index*)calloc(array_size, sizeof(index));
-// index iA = 0;
-// index jA = 0;
-// index iB = 0;
-// index jB = 0;
-// index _B = 0;
-// index _out = 0;
-index iout = 0;
-index jout = 0;
-
-void taco_ijk_sum()
-{
-  // cout << "taco_ijk_sum" << endl;
-  auto t1 = std::chrono::high_resolution_clock::now();
-  out = 0;
-  for (int32_t iA = A1_pos[0]; iA < A1_pos[1]; iA++) {
-    int32_t jA = A2_pos[iA];
-    int32_t pA2_end = A2_pos[(iA + 1)];
-    int32_t jB = B1_pos[0];
-    int32_t pB1_end = B1_pos[1];
-
-    while (jA < pA2_end && jB < pB1_end) {
-      int32_t jA0 = A2_crd[jA];
-      int32_t jB0 = B1_crd[jB];
-      int32_t j = min(jA0,jB0);
-      if (jA0 == j && jB0 == j) {
-        for (int32_t kB = B2_pos[jB]; kB < B2_pos[(jB + 1)]; kB++) {
-          out += A_vals[jA] * B_vals[kB];
-        }
+Vector load_random(int rows, int n) {
+  map<tuple<index>, num> result;
+  int count = 0;
+  for (int i = 0; i < rows; i++) {
+      if (std::rand() % n == 0) {
+	float r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+	result[make_tuple(i)] = r - 0.5;
+	count++;
       }
-      jA += (int32_t)(jA0 == j);
-      jB += (int32_t)(jB0 == j);
-    }
   }
-  // cout << "out_taco: " << out << endl;
-  //   auto t2 = std::chrono::high_resolution_clock::now();
-  //   std::cout << "taco took: "
-  //             << std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1)
-  //                    .count()
-  //             << std::endl;
+  cout << "nnz: " << count << endl;
+  return Vector(rows, result);
 }
 
-void taco_ikjk() {
-  auto t1 = std::chrono::high_resolution_clock::now();
-  int _i = 0;
-  for (int32_t iA = A1_pos[0]; iA < A1_pos[1]; iA++) {
-    int32_t i = A1_crd[iA];
-    int32_t pout2_begin = jout;
-    for (int32_t jB = B1_pos[0]; jB < B1_pos[1]; jB++) {
-      int32_t j = B1_crd[jB];
-      double tkout_val = 0.0;
-      int32_t kA = A2_pos[iA];
-      int32_t pA2_end = A2_pos[(iA + 1)];
-      int32_t kB = B2_pos[jB];
-      int32_t pB2_end = B2_pos[(jB + 1)];
-      while (kA < pA2_end && kB < pB2_end) {
-        int32_t kA0 = A2_crd[kA];
-        int32_t kB0 = B2_crd[kB];
-        int32_t k = TACO_MIN(kA0,kB0);
-        if (kA0 == k && kB0 == k) {
-          tkout_val += A_vals[kA] * B_vals[kB];
-        }
-        kA += (int32_t)(kA0 == k);
-        kB += (int32_t)(kB0 == k);
-      }
-      _i++;
-      out_vals[jout] = tkout_val;
-      out2_crd[jout] = j;
-      jout++;
-    }
-
-    out2_pos[iout + 1] = jout;
-    if (pout2_begin < jout) {
-      out1_crd[iout] = i;
-      iout++;
-    }
-  }
-
-  out1_pos[1] = iout;
-
-  cout << "taco iterations: " << _i << endl;
-
-  cout << "out_taco: " << out << endl;
-    auto t2 = std::chrono::high_resolution_clock::now();
-    std::cout << "taco took: "
-              << std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1)
-                     .count()
-              << std::endl;
-}
 
 int main() {
   int __i = 0;
+  cout << "starting..." << endl;
 
  // int myints[] = {1,3,4,5,8,22};
  // std::vector<int> v(myints,myints+9);
@@ -246,7 +254,13 @@ int main() {
 
   //auto x = loadmtx1("data/smaller.mtx");
   //auto x = loadmtx1("data/cavity11.mtx");
-  auto x = load_random(1000,1000, 6);
-  auto y = load_random(1000,1000, 5);
-  auto z = load_random(1000,1000, 20);
+  //auto y = loadmtx1("data/cavity11.mtx");
+  int m = 2000;
+  int k = 2000;
+  int l = 1000;
+  Matrix x = load_random(m,k,40);
+  Matrix y = load_random(k,l,40);
+  Vector v = load_random(10000, 10);
+  Cube c = load_random(100,100,100, 40);
+  //auto z = load_random(m,l, 20);
   //auto t1 = std::chrono::high_resolution_clock::now();
