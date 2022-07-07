@@ -156,57 +156,52 @@ instance coe_stream [has_coe α β] : has_coe (G E α) (Stream n β) := ⟨Strea
 
 class of_stream (α β : Type) := (coe : α → β)
 instance base.of_stream : of_stream α α := ⟨id⟩
+def Stream.to_g : (Stream n α) → (G E α) := λ s, match s with
+| Stream.view _ := arbitrary _
+| Stream.gen a := of_stream.coe <$> a
+end
+
 instance [of_stream α β] : of_stream (Stream n α) (G E β) := ⟨λ s, match s with
 | Stream.view _ := arbitrary _
 | Stream.gen a := of_stream.coe <$> a
 end⟩
 
-example : of_stream (Stream n α) (G E α) := infer_instance
+def asdf1 : Stream i E := a'
+def asdf2 : Stream j E := a'
 
-def asdf  : Stream i E := a'
-def asdf1 : Stream j E := a'
-
--- attribute [irreducible] StreamGen'
-
--- def g1 : StreamGen' i E := StreamGen.idx i (extern (E.ident "x"))
--- def g2 : StreamGen' j E := (extern (E.ident "y")).idx j
--- def g3 : StreamGen' k E := (range 1 2).to_StreamGen.idx k
--- def g4 : StreamGen' i (StreamGen' j E) := Rectangle.map i (λ _, (range 1 2).to_StreamGen.idx j) ((range 1 2).to_StreamGen.idx i)
-
--- def foo1 : Merge (StreamGen' i E) (StreamGen' j E) (StreamGen' i (StreamGen' j E))    := infer_instance
--- #print foo1
--- example : has_hmul (StreamGen' i E) (StreamGen' j E) (StreamGen' i (StreamGen' j E)) := infer_instance
-
--- #check g3 <*> g1 <*> g2 <*> g2 <*> g4
-
-section front_end
 infixr ` →ₛ `:24 := Stream
 
 --def Stream.to_stream {n} [of_stream α β] : Stream n α → G E β := of_stream.coe
-instance s_level.eval [of_stream γ β] [Ev α (G E β)] : Ev α (Stream i γ) := ⟨ λ l r, Ev.eval l (of_stream.coe r : G E β) ⟩
+instance s_level.eval [of_stream γ β] [Ev α (G E β)] : Ev α (Stream i γ) :=
+⟨ λ l r, Ev.eval l (of_stream.coe r : G E β) ⟩
+instance stream.level.eval' (n : ℕ) [Ev α (G E β)] : Ev α (Stream n β) :=
+⟨ λ l r, Ev.eval l $ r.to_g _ ⟩
+
 def Stream.of [of_stream α β] : α → β := of_stream.coe
+
+
+class Sum (n : ℕ) (α : Type) (β : out_param Type) := (sum : α → β)
+instance sum_eq (n : ℕ) : Sum n (Stream n α) (G unit α) := ⟨G.contract ∘ Stream.to_g n⟩
+instance sum_lt (m n : ℕ) [NatLt n m] [Sum m α β] : Sum m (Stream n α) (Stream n β) :=
+⟨functor.map $ Sum.sum m⟩
 
 def A1 : i →ₛ j →ₛ E := A
 def B1 : j →ₛ k →ₛ E := B
 
-def eg06' : Prog := me $ Ev.eval (E.ident "out") $ G.sum3' $ Stream.of $
-
+def eg06' : Prog := me $ Ev.eval (E.ident "out") $ Sum.sum i $ Sum.sum j $ Sum.sum k $
   (A : i →ₛ j →ₛ E) ⋆ (B : j →ₛ k →ₛ E)
 
 def eg30 := load_AB ++ [eg06', Prog.time "taco" $ taco_ijk]
+
+example : Sum i (Stream i E) (G unit E) := infer_instance
+example : Sum j (Stream i (Stream j E)) (Stream i (G unit E)) := infer_instance
+def inner : Stream i (Stream j (G unit E)) :=
+  Sum.sum k $ (A : i →ₛ k →ₛ E) ⋆ (B : j →ₛ k →ₛ E)
+def eg28'' := load_AB ++ [
+  Prog.time "me" $ Ev.eval (mval "out") $ Sum.sum k $
+    (A : i →ₛ k →ₛ E) ⋆ (B : j →ₛ k →ₛ E),
+  Prog.time "taco" $ Prog.inline_code "taco_ikjk();" ]
+
 #eval compile $ eg30
 
-
--- def typedMatrix (var : string) (i j : ℕ) : M (i →ₛ j →ₛ sorry) := do
---   let file := matrixFile,
---   var ← E.ident <$> fresh var (csparse (csparse cdouble)),
---   let gen := functor.map (functor.map StreamGen.singleton) $ functor.map extern (extern $ var),
---   return $ {gen with initialize := Prog.store var (E.call1 (E.ident "loadmtx")
---     (E.ident $ "\"" ++ file ++ "\""))}
-
--- infixr ` →ₛ `:24 := StreamGen
--- #check E →ₛ unit →ₛ E
-
--- #check @functor.map
--- --600:1: functor.map : Π {f : Type u_1 → Type u_2} [self : functor f] {α β : Type u_1}, (α → β) → f α → f β
--- #check @functor.map (λ x, E →ₛ x) _ (unit →ₛ E) β
+end Streams
