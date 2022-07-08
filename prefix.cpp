@@ -204,8 +204,8 @@ Cube load_random(int rows, int columns, int ranks, int n) {
   map<tuple<index, index, index>, num> result;
   int count = 0;
   for (int i = 0; i < rows; i++) {
-    for (int j = 0; j < rows; j++) {
-      for (int k = 0; k < rows; k++) {
+    for (int j = 0; j < columns; j++) {
+      for (int k = 0; k < ranks; k++) {
 	if (std::rand() % n == 0) {
 	  float r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
 	  result[make_tuple(i,j,k)] = r - 0.5;
@@ -222,7 +222,7 @@ Matrix load_random(int rows, int columns, int n) {
   map<tuple<index, index>, num> result;
   int count = 0;
   for (int i = 0; i < rows; i++) {
-    for (int j = 0; j < rows; j++) {
+    for (int j = 0; j < columns; j++) {
       if (std::rand() % n == 0) {
 	float r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
 	result[make_tuple(i,j)] = r - 0.5;
@@ -278,7 +278,7 @@ int main() {
   int l = 1000;
   Matrix x = load_random(m,k,40);
   Matrix y = load_random(k,l,40);
-  Vector v = load_random(10000, 10);
-  Cube c = load_random(100,100,100, 40);
+  Vector v = load_random(1000, 2);
+  Cube c = load_random(100,100,1000, 20);
   //auto z = load_random(m,l, 20);
   //auto t1 = std::chrono::high_resolution_clock::now();

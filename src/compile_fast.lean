@@ -13,7 +13,7 @@ infix ` ⋆ `:71 := has_hmul.mul
 @[reducible] def Label := string
 
 @[derive [decidable_eq, fintype]]
-inductive BinOp | add | sub | mul | lt | eq | and | or | min | max
+inductive BinOp | add | sub | mul | lt | eq | lit_eq | and | or | min | max
 
 /-- Expressions for a simple imperative language. -/
 @[derive decidable_eq]
@@ -181,8 +181,9 @@ def BinOp.to_c : BinOp → string
 | BinOp.add := "+"
 | BinOp.sub := "-"
 | BinOp.mul := "*"
-| BinOp.lt := "<"
-| BinOp.eq := "=="
+| BinOp.lt := "int_lt"
+| BinOp.eq := "int_eq"
+| BinOp.lit_eq := "=="
 | BinOp.and := "&&"
 | BinOp.or := "||"
 | BinOp.min := "min"
@@ -197,7 +198,8 @@ def E.to_c : E → string
 | (E.not i)                  := "!" ++ wrap i.to_c
 | (E.bin_op BinOp.min e1 e2) := BinOp.min.to_c ++ (wrap $ e1.to_c ++ "," ++ e2.to_c)
 | (E.bin_op BinOp.max e1 e2) := BinOp.max.to_c ++ (wrap $ e1.to_c ++ "," ++ e2.to_c)
-| (E.bin_op BinOp.lt e1 e2)  := "int_lt" ++ (wrap $ e1.to_c ++ "," ++ e2.to_c)
+| (E.bin_op BinOp.lt e1 e2)  := BinOp.lt.to_c ++ (wrap $ e1.to_c ++ "," ++ e2.to_c)
+| (E.bin_op BinOp.eq e1 e2)  := BinOp.eq.to_c ++ (wrap $ e1.to_c ++ "," ++ e2.to_c)
 | (E.bin_op op e1 e2)        := wrap $ e1.to_c ++ op.to_c ++ e2.to_c
 | (E.ternary c t e)          := wrap $ wrap c.to_c ++ "?" ++ t.to_c ++ ":" ++ e.to_c
 | (E.access e i)             := e.to_c ++ "[" ++ i.to_c ++ "]"
@@ -242,7 +244,7 @@ def to_c : Prog → M unit
 | (block p)         := emit "{" >> p.to_c >> emit "}"
 | (time n p)          :=
   emit "{" >>
-  ( emit ("cout << \"timing (" ++ n ++ "):\" << endl;") >>
+  ( emit ("cout << \"\\ntiming (" ++ n ++ "):\" << endl;") >>
     emit "out_val = 0.0; auto t1 = std::chrono::high_resolution_clock::now();" >>
     p.to_c >>
     emit "auto t2 = std::chrono::high_resolution_clock::now();" >>
@@ -279,6 +281,7 @@ local infixl ` && `:70 := BinOp.and
 local infixl ` || `:65 := BinOp.or
 local infix  ` < `:71  := BinOp.lt
 infix  ` == `:71 := BinOp.eq
+infix  ` === `:71 := BinOp.lit_eq
 infix  ` != `:71 := λ a b, (BinOp.eq a b).neg
 --notation e `⟦` k `⟧` := e.access k
 
@@ -309,12 +312,11 @@ def mul [has_hmul α β γ] (a : G E α) (b : G E β) : G E γ :=
 { index := BinOp.max a.index b.index,
   value := a.value ⋆ b.value,
   ready := a.ready && b.ready && a.index == b.index,
-  valid := a.valid && b.valid,
-
   next  := Prog.if (a.index < b.index ||
-                     (a.index == b.index && a.ready.neg))
-                  a.next
-                  b.next,
+                   (a.index == b.index && a.ready.neg))
+                        a.next
+                        b.next,
+  valid := a.valid && b.valid,
   init  := a.init; b.init,
 }
 instance [has_hmul α β γ] : has_hmul (G E α) (G E β) (G E γ) := ⟨mul⟩
@@ -402,6 +404,7 @@ class Ev (l r: Type) := (eval : l → r → Prog)
 class Scalar (α : Type) := (fold : α → E → Prog) (value : α → E)
 instance : Scalar E := ⟨λ l r, l.accum r, id⟩
 
+--instance discard.eval : Ev unit E := ⟨λ _ _, Prog.skip⟩
 instance base.eval [Scalar α] : Ev α E :=
 { eval := λ l v, Scalar.fold l v }
 -- todo remove
@@ -448,7 +451,7 @@ call (a b : E) := E.call0 (a.attr b) in
 { index := E.call1 "get<0>" $ var.pattr "first",
   value := var.pattr "second",
   ready := E.true,
-  valid := E.neg $ var == call matrix "end",
+  valid := E.neg $ var === call matrix "end",
   init  := Prog.auto var $ call matrix "begin",
   next  := Prog.expr $ var.incr,
 }
@@ -465,7 +468,7 @@ call (a b : E) := E.call0 (a.attr b) in
     init  := Prog.skip,
     next  := Prog.inline_code "break;" },
   ready := E.true,
-  valid := E.neg $ var == call matrix "end",
+  valid := E.neg $ var === call matrix "end",
   init  := Prog.auto var $ call matrix "begin",
   next  := Prog.expr $ var.incr,
 }
@@ -488,7 +491,7 @@ call (a b : E) := E.call0 (a.attr b) in
     init  := Prog.skip,
     next  := Prog.inline_code "break;" },
   ready := E.true,
-  valid := E.neg $ var == call matrix "end",
+  valid := E.neg $ var === call matrix "end",
   init  := Prog.auto var $ call matrix "begin",
   next  := Prog.expr $ var.incr,
 }
@@ -579,16 +582,8 @@ def eg28 := load_AB ++ [
   Prog.time "me" $ Ev.eval (mval "out") $ inner_prod.sum_inner,
   Prog.time "taco" $ Prog.inline_code "taco_ikjk();" ]
 
--- def eg_ttv := load ++ [me $ Ev.eval (mval "out" ) $ G.sum_inner $ C ⋆ (⇑ E (⇑ E v))]
--- def eg_ttv' := load ++
---   [me $ Ev.eval out $ G.sum2 $ G.sum_inner $ C ⋆ (⇑ E (⇑ E v))] ++
---   [Prog.time "taco" $ Prog.inline_code "taco_ttv();"]
-
 end G
 
 
--- [ ] stl lower bound
 -- dense level, test ds * ds
--- label indices, indexed contraction
--- shorthand notation
 -- database comparison? binary_search, early exit, compressed output

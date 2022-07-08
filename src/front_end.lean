@@ -271,8 +271,8 @@ def eg_mmul2 :=
   [ta $ Prog.inline_code "mmul2_compute();"]
 
 def eg_ttv :=
-  [me $ Ev.eval out ttv'] ++
-  [ta $ Prog.inline_code "taco_ttv();"]
+  [me $ Ev.eval out $ G.contract $ View.to_gen "foo" 30 $ constView E $ ttv'] ++
+  [ta $ Ev.eval out $ G.contract $ View.to_gen "bar" 30 $ constView E $ E.inline_code "ttv_compute();"]
 
 def eg_ttm :=
   [me $ Ev.eval out ttm'] ++
@@ -286,15 +286,19 @@ def eg_inner3 :=
   [me $ Ev.eval out inner3'] ++
   [ta $ Prog.inline_code "inner3_compute();"]
 
+def eg_inner3' :=
+  [me $ Ev.eval out $ G.contract $ View.to_gen "foo" 200 $ constView E $ inner3'] ++
+  [ta $ Ev.eval out $ G.contract $ View.to_gen "foo" 200 $ constView E $ E.inline_code "inner3_compute();"]
+
 def compp (v : list Prog) := compile $ load ++ v
 def tests :=
-eg_mmul1 ++
-eg_mmul2 ++
-eg_ttv ++
-eg_ttm ++
-eg_mttkrp ++
-eg_inner3
+  /- 1 -/ eg_mmul1 ++
+  /- 2 -/ eg_mmul2 ++
+  /- 3 -/ eg_ttv ++
+  /- 4 -/ eg_ttm ++
+  /- 5 -/ eg_mttkrp ++
+  /- 6 -/ eg_inner3'
 
-#eval compp eg_ttm
+#eval compp eg_inner3'
 
 end Streams
