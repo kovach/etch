@@ -6,7 +6,7 @@ void taco_ijk_sum()
 {
   // cout << "taco_ijk_sum" << endl;
   auto t1 = std::chrono::high_resolution_clock::now();
-  out = 0;
+  out_val = 0;
   for (int32_t iA = A1_pos[0]; iA < A1_pos[1]; iA++) {
     int32_t jA = A2_pos[iA];
     int32_t pA2_end = A2_pos[(iA + 1)];
@@ -19,7 +19,7 @@ void taco_ijk_sum()
       int32_t j = min(jA0,jB0);
       if (jA0 == j && jB0 == j) {
         for (int32_t kB = B2_pos[jB]; kB < B2_pos[(jB + 1)]; kB++) {
-          out += A_vals[jA] * B_vals[kB];
+          out_val += A_vals[jA] * B_vals[kB];
         }
       }
       jA += (int32_t)(jA0 == j);
@@ -72,18 +72,18 @@ void taco_ikjk() {
 
   out1_pos[1] = iout;
 
-  cout << "taco iterations: " << _i << endl;
+  // cout << "taco iterations: " << _i << endl;
 
-  cout << "out_taco: " << out << "(<- IGNORE)" << endl;
-    auto t2 = std::chrono::high_resolution_clock::now();
-    std::cout << "taco took: "
-              << std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1)
-                     .count()
-              << std::endl;
+  // cout << "out: " << out << "(<- IGNORE)" << endl;
+  //   auto t2 = std::chrono::high_resolution_clock::now();
+  //   std::cout << "took: "
+  //             << std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1)
+  //                    .count()
+  //             << std::endl;
 }
 
 void taco_ttv() {
-  out = 0;
+  out_val = 0;
   auto t1 = std::chrono::high_resolution_clock::now();
   for (int32_t iC = C1_pos[0]; iC < C1_pos[1]; iC++) {
     for (int32_t jC = C2_pos[iC]; jC < C2_pos[(iC + 1)]; jC++) {
@@ -97,7 +97,7 @@ void taco_ttv() {
         int32_t kV0 = V1_crd[kV];
         int32_t k = TACO_MIN(kC0,kV0);
         if (kC0 == k && kV0 == k) {
-          out += C_vals[kC] * V_vals[kV];
+          out_val += C_vals[kC] * V_vals[kV];
         }
         kC += (int32_t)(kC0 == k);
         kV += (int32_t)(kV0 == k);
@@ -106,11 +106,11 @@ void taco_ttv() {
   }
 
 
-  std::cout << "out_taco: " << out << endl;
-    auto t2 = std::chrono::high_resolution_clock::now();
-    std::cout << "taco took: "
-              << std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1)
-                     .count()
-              << std::endl;
+  // std::cout << "out: " << out << endl;
+  //   auto t2 = std::chrono::high_resolution_clock::now();
+  //   std::cout << "taco took: "
+  //             << std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1)
+  //                    .count()
+  //             << std::endl;
 
 }

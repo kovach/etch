@@ -262,30 +262,39 @@ def eg28'' := load_AB ++ [
 
 
 
-def eg_mmul1 := load ++
+def eg_mmul1 :=
   [me $ Ev.eval out mmul1'] ++
   [ta $ Prog.inline_code "taco_ijk_sum();"]
 
-def eg_mmul2 := load ++
+def eg_mmul2 :=
   [me $ Ev.eval out mmul2'] ++
   [ta $ Prog.inline_code "mmul2_compute();"]
 
-def eg_ttv := load ++
+def eg_ttv :=
   [me $ Ev.eval out ttv'] ++
   [ta $ Prog.inline_code "taco_ttv();"]
 
-def eg_ttm := load ++
+def eg_ttm :=
   [me $ Ev.eval out ttm'] ++
   [ta $ Prog.inline_code "ttm_compute();"]
 
-def eg_mttkrp := load ++
+def eg_mttkrp :=
   [me $ Ev.eval out mttkrp'] ++
   [ta $ Prog.inline_code "mttkrp_compute();"]
 
-def eg_inner3 := load ++
+def eg_inner3 :=
   [me $ Ev.eval out inner3'] ++
   [ta $ Prog.inline_code "inner3_compute();"]
 
-#eval compile $ eg_mmul1
+def compp (v : list Prog) := compile $ load ++ v
+def tests :=
+eg_mmul1 ++
+eg_mmul2 ++
+eg_ttv ++
+eg_ttm ++
+eg_mttkrp ++
+eg_inner3
+
+#eval compp eg_ttm
 
 end Streams

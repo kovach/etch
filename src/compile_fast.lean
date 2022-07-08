@@ -243,7 +243,7 @@ def to_c : Prog → M unit
 | (time n p)          :=
   emit "{" >>
   ( emit ("cout << \"timing (" ++ n ++ "):\" << endl;") >>
-    emit "auto t1 = std::chrono::high_resolution_clock::now();" >>
+    emit "out_val = 0.0; auto t1 = std::chrono::high_resolution_clock::now();" >>
     p.to_c >>
     emit "auto t2 = std::chrono::high_resolution_clock::now();" >>
     emit "cout << \"out: \" << out_val << endl;" >>
