@@ -1,5 +1,8 @@
-ltest: out_lean.cpp prefix.cpp suffix.cpp
-	clang++ -o ltest -g -O3 -Wno-parentheses-equality -fsanitize=address out_lean.cpp
+ltest: out_lean.cpp prefix.cpp suffix.cpp taco_kernels.cpp
+	clang++ -o ltest -g -O3 -Wno-parentheses-equality out_lean.cpp
+ltest_san: out_lean.cpp prefix.cpp suffix.cpp
+	clang++ -o ltest -g -O3 -Wno-parentheses-equality -fsanitize=address -fno-omit-frame-pointer out_lean.cpp
+
 test: out4.cpp prefix.cpp suffix.cpp
 	clang++ -o test -g -O3 -Wno-parentheses-equality out4.cpp
 old: out3.cpp prefix.cpp suffix.cpp
