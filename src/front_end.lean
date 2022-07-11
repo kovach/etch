@@ -92,13 +92,6 @@ example {i : ℕ} : has_hmul (Fun i ℕ) ℕ (Fun i ℕ) := infer_instance
 def v1 : Fun i (Fun j V) := λ i j, i+j
 def v2 : Fun j (Fun k V) := λ i j, i*j
 def v3 : (Fun l V) := λ i, i
-#check merge v1 v2
-#reduce (merge v1 v2)
--- the final result:
--- #reduce v1 <*> v2
---   -- 72:1: λ (i i_1 i_2 : ℕ), (i.add i_1).mul (i_1.mul i_2)
--- #reduce v1 <*> v2 <*> v3
-  -- 81:1: λ (i i_1 i_2 i_3 : ℕ), (i.add i_1).mul ((i_1.mul i_2).mul i_3)
 
 --set_option trace.class_instances true
 --set_option class.instance_max_depth 20
@@ -185,22 +178,13 @@ instance sum_eq (n : ℕ) : Sum n (Stream n α) (G unit α) := ⟨G.contract ∘
 instance sum_lt (m n : ℕ) [NatLt n m] [Sum m α β] : Sum m (Stream n α) (Stream n β) :=
 ⟨functor.map $ Sum.sum m⟩
 
---def sum_all : list ℕ →
-
 abbreviation R := E
 
 def A1 : i →ₛ j →ₛ R := A
 def B1 : j →ₛ k →ₛ R := B
 
--- class Sum (n : ℕ) (α : Type) (β : out_param Type) := (sum : α → β)
 prefix ` Σ ` := Sum.sum
-notation `Σ` n `,` := Sum.sum n
-
--- notation `∑` binders ` in ` s `, ` r:(scoped:67 f, finset.sum s f) := r
--- notation ` Σ ` l:(foldr (h t, list.cons h t) list.nil ` ⟭ `) := (ExprLoc.mk x l)
-
---def sum [Sum n α β] : α → β :=
---def mat_mul_ijk   := Σ i j k, (A : i →ₛ j →ₛ E) ⋆ (B : j →ₛ k →ₛ E)
+--notation `Σ` n `,` := Sum.sum n
 
 /- setup for diagram -/
 def row := 1
@@ -239,15 +223,9 @@ def ttm'    := Σ i $ Σ j $ Σ k $ Σ l $ (C : i →ₛ j →ₛ l →ₛ R) �
 def mttkrp' := Σ i $ Σ j $ Σ k $ Σ l $ (C : i →ₛ j →ₛ k →ₛ R) ⋆ (A : j →ₛ l →ₛ R) ⋆ (B : k →ₛ l →ₛ R)
 def inner3' := Σ i $ Σ j $ Σ k $ (C : i →ₛ j →ₛ k →ₛ R) ⋆ (D : i →ₛ j →ₛ k →ₛ R)
 
--- hmm def mat_mul_ijk' := Σ j $ (A : j →ₛ i →ₛ E) ⋆ (B : j →ₛ k →ₛ E)
--- iklj
--- ijkl
 def eg06' : Prog := me $ Ev.eval (E.ident "out") $
-
--- Σ i j k,
-Sum.sum i $ Sum.sum j $ Sum.sum k $
-
-  (A : i →ₛ j →ₛ E) ⋆ (B : j →ₛ k →ₛ E)
+  Sum.sum i $ Sum.sum j $ Sum.sum k $
+    (A : i →ₛ j →ₛ E) ⋆ (B : j →ₛ k →ₛ E)
 
 def eg30 := load_AB ++ [eg06', Prog.time "taco" $ taco_ijk]
 
@@ -272,7 +250,7 @@ def eg_mmul2 :=
 
 def eg_ttv :=
   [me $ Ev.eval out $ G.contract $ View.to_gen "foo" 30 $ constView E $ ttv'] ++
-  [ta $ Ev.eval out $ G.contract $ View.to_gen "bar" 30 $ constView E $ E.inline_code "ttv_compute();"]
+  [ta $ Ev.eval out $ G.contract $ View.to_gen "foo" 30 $ constView E $ E.inline_code "ttv_compute();"]
 
 def eg_ttm :=
   [me $ Ev.eval out ttm'] ++
@@ -299,6 +277,7 @@ def tests :=
   /- 5 -/ eg_mttkrp ++
   /- 6 -/ eg_inner3'
 
-#eval compp eg_inner3'
+-- main comparison script:
+--#eval compp
 
 end Streams

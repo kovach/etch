@@ -379,8 +379,10 @@ def push_level_pack' (pack : bool) (csr : csr) (k : E → lval × post × α) : 
              csr.var.accum 1; (csr.i.access csr.var).store i; (k csr.var).1.new⟩,
          (k csr.var).2.2))
 
-def push_level_pack : csr → (E → lval × post × α) → (E → lval × post × (E → pre × α)) := push_level_pack' tt
-def push_level : csr → (E → lval × post × α) → (E → lval × post × (E → pre × α)) := push_level_pack' ff
+def push_level_pack : csr → (E → lval × post × α) → (E → lval × post × (E → pre × α)) :=
+push_level_pack' tt
+def push_level      : csr → (E → lval × post × α) → (E → lval × post × (E → pre × α)) :=
+push_level_pack' ff
 
 def vec_lval' (n : string) :=
 prod.snd $ (push_level_pack (csr.of n 1) $ push_value (csr.of n 1).var (E.ident $ n ++ "_vals")) 0
@@ -401,6 +403,7 @@ def gmap1 {α β} : (α → β) → G E α → G E β := functor.map
 def gmap2 {α β} : (α → β) → G E (G E α) → G E (G E β) := functor.map ∘ functor.map
 
 class Ev (l r: Type) := (eval : l → r → Prog)
+
 class Scalar (α : Type) := (fold : α → E → Prog) (value : α → E)
 instance : Scalar E := ⟨λ l r, l.accum r, id⟩
 
@@ -410,6 +413,12 @@ instance base.eval [Scalar α] : Ev α E :=
 -- todo remove
 instance base.eval' : Ev (E → Prog) E :=
 { eval := λ acc v, acc v }
+
+
+-- acc[x] += v
+-- accum ((var acc).access x) v
+-- (λ x v, ((ident acc).access.accum x) v) : E → E → Prog
+-- (λ i₁ i₂ v, ((ident acc).access.accum x) v) : E → E → E → R → Prog
 
 instance unit.eval [Ev α β] : Ev α (G unit β) :=
 { eval := λ acc v,
@@ -428,15 +437,17 @@ instance level.eval  [Ev α β] : Ev (E → α) (G E β) :=
       v.next) }
 
 instance level_pre.eval [Ev α β] : Ev (E → pre × α) (G E β) :=
-{ eval := λ acc v, v.init ;
+{ eval := λ acc v,
+    let loop_body := acc v.index in
+    v.init ;
     Prog.while v.valid
-      (Prog.if1 v.ready ((acc v.index).1.pre ; Ev.eval (acc v.index).2 v.value) ;
+      (Prog.if1 v.ready
+        (loop_body.1.pre;
+         Ev.eval loop_body.2 v.value);
       v.next) }
 
 instance level_outer_post.eval [Ev α β] : Ev (post × α) β :=
-{ eval := λ lhs v, let (x, acc) := lhs in
-    Ev.eval acc v;
-    x.post }
+{ eval := λ lhs v, let (x, acc) := lhs in Ev.eval acc v; x.post }
 
 
 -- def matrix_rval (var : E) : View E (View E E) := View.mk $ λ i, View.mk $ λ j , var.access (E.call2 "make_tuple" i j)
@@ -509,12 +520,6 @@ def sum3' : G E (G E (G E E)) → G unit (G unit (G unit E)) :=
 (functor.map $ sum2) ∘ contract
 def sum_inner : G E (G E (G E E)) → G E (G E (G unit E)) := functor.map $ functor.map G.contract
 
--- class Contractible (α β : Type) := (sum : α → β)
--- instance contract_base : Contractible (G E E) (G unit E) := ⟨G.contract⟩
--- instance contract_step [Contractible α β] : Contractible (G E α) (G unit β) :=
--- ⟨functor.map Contractible.sum ∘ G.contract⟩
--- def sum [Contractible α β] : α → β := Contractible.sum
-
 end G
 
 def v  : G E E       := G.leaf "V_vals"  $  ((csr.of "V" 1).level 0)
@@ -555,7 +560,7 @@ def ref_cube   (n : string) := (coo_cube_rval   (E.ident $ n ++ ".data") "entry"
 def ref_x := ref_matrix "x"
 def ref_y := ref_matrix "y"
 def ref_M := ref_matrix "M"
-def eg18 := Ev.eval (mat_lval' "out") A
+def eg18 := Ev.eval (λ (_ _ : E), Prog.accum "out") A
 def load_AB' := [Ev.eval (mat_lval' "A") ref_x, Ev.eval (mat_lval' "B") ref_x]
 def load_AB : list Prog := [
   Prog.time "gen A" $ Ev.eval (mat_lval' "A") (ref_matrix "x"),
@@ -568,7 +573,6 @@ def eg22 := me $ Ev.eval (mat_lval' "out") A
 def eg23 := load_AB' ++ [Prog.time "me" $ Ev.eval (mval "out") $ inner_prod.sum_inner]
 def eg24 := Ev.eval (λ i, (Prog.accum $ out.access i)) ((λ (i : E), 2*i) <$> (range "i" 10))
 def eg25 := Ev.eval (Prog.accum out) ((λ (i : E), 2*i) <$> (range "i" 10)).contract
--- important
 def eg20 := load_AB ++ [me $ eg06, Prog.time "taco" $ taco_ijk]
 def eg26 := load_AB ++ [me $ Ev.eval out $ G.sum2 (comb_rows), Prog.time "taco" $ taco_ijk]
 def eg27 := load_AB ++ [me $ Ev.eval (mval "out") $ comb_rows]
@@ -582,8 +586,6 @@ def eg28 := load_AB ++ [
   Prog.time "me" $ Ev.eval (mval "out") $ inner_prod.sum_inner,
   Prog.time "taco" $ Prog.inline_code "taco_ikjk();" ]
 
+#eval compile load
+
 end G
-
-
--- dense level, test ds * ds
--- database comparison? binary_search, early exit, compressed output
