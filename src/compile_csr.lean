@@ -1,17 +1,18 @@
 import data.vector
 import data.fin.vec_notation
 import data.list.of_fn
+import data.list.alist
+import data.finsupp.basic
 
 -- This is just some experiments I'm doing, unofficial
 -- Anything that works out will go back into compile.lean
 
-variables (R : Type) [has_zero R] [has_one R] [has_add R] [has_mul R]
+variables (R : Type) [add_zero_class R] [has_one R] [has_mul R]
 
 -- Same thing as `ℕ ⊕ R` TODO: change or keep?
 inductive ExprVal
 | nat (n : ℕ)
 | rval (r : R)
-
 
 namespace ExprVal
 variable {R}
@@ -214,6 +215,18 @@ def Prog.eval : Prog R → (Ident → IdentVal R) → (Ident → IdentVal R)
 | (Prog.branch cond a b) ctx := if 0 < (Expr.eval ctx cond).to_nat then a.eval ctx else b.eval ctx
 | (Prog.loop n b) ctx := (nat.iterate b.eval (Expr.eval ctx n).to_nat) ctx
 
+def alist.ilookup {α β : Type*} [decidable_eq α] [inhabited β] (s : alist (λ _ : α, β)) (a : α) : β :=
+(s.lookup a).iget
+
+-- Faster version of eval
+-- TODO: which one should be the "main" one
+def Prog.eval' : Prog R → (alist (λ _ : Ident, IdentVal R)) → (alist (λ _ : Ident, IdentVal R))
+| Prog.skip ctx := ctx
+| (Prog.store dst ind val) ctx := ctx.insert dst ((ctx.ilookup dst).update (ind.map (λ i : Expr R, (i.eval ctx.ilookup).to_nat)) (val.eval ctx.ilookup))
+| (Prog.seq a b) ctx := b.eval' (a.eval' ctx)
+| (Prog.branch cond a b) ctx := if 0 < (cond.eval ctx.ilookup).to_nat then a.eval' ctx else b.eval' ctx
+| (Prog.loop n b) ctx := (nat.iterate b.eval' (n.eval ctx.ilookup).to_nat) ctx
+
 infixr ` <;> `:1 := Prog.seq
 notation a ` ::= `:20 c := Prog.store a none c
 notation a ` ⟬ `:9000 i ` ⟭ ` ` ::= `:20 c := Prog.store a (some i) c
@@ -256,6 +269,14 @@ def arr_prog_input (i : Ident) : IdentVal ℤ :=
   else if i = y then IdentVal.base (ExprVal.nat 3)
   else arbitrary _
 
+def range_sum : Prog ℤ :=
+s ::= (0 : ℤ) <;>
+i ::= (0 : ℕ) <;>
+loop (500 : ℕ) $
+  s ::= s ⟪+⟫ (Expr.call Op.cast_r ![i]) <;>
+  i ::= i ⟪+⟫ (1 : ℕ)
+
+
 end example_prog
 
 variable (R)
@@ -271,6 +292,10 @@ structure BoundedStreamGen (ι α : Type) :=
 
 variables {ι α : Type} {R}
 
+-- TODO: Turn this into functor instance
+def BoundedStreamGen.iv {ι ι' α α'} (i : ι → ι') (v : α → α') (g : BoundedStreamGen R ι α) : BoundedStreamGen R ι' α'
+:= { g with value := v g.value, current := i g.current }
+
 @[pattern]
 def Prog.if1 (cond : Expr R) (b : Prog R) := Prog.branch cond b Prog.skip
 
@@ -282,6 +307,48 @@ Prog.loop g.bound $
     Prog.if1 g.ready g.value <;>
     Prog.branch g.valid g.next (Ident.reserved_break ::= (1 : ℕ))
 
+variable (R)
+
+/-- Indicates that things of type α (which typically involve Expr R)'s can eval
+  to things of type β -/
+class StreamEval (α β: Type*) :=
+(eval : (Ident → IdentVal R) → α → β)
+
+/-- An Compileable.compile (f, e) indicates that f describes how to compile e to a program -/
+class Compileable (α β : Type*) :=
+(compile : α → β → Prog R)
+
+variable {R}
+-- This is ind_eval, but we need to support recursion so we extract it specifically
+-- I've never had mathlib's lack of computability bite me like this before
+-- but since finsupp is noncomputable (this is actually a controversial-ish decision from what I gather from the Zulip)
+-- it poisons "eval_stream"
+-- We only use finsupp.single and finsupp.zero (zero is computable), so maybe a TODO is a computable implementation
+noncomputable def eval_stream {ι β : Type*} [decidable_eq ι] [add_zero_class β] :
+  ℕ → (Ident → IdentVal R) → (BoundedStreamGen R ((Ident → IdentVal R) → ι) ((Ident → IdentVal R) → β)) → (ι →₀ β)
+| 0 _ _ := 0
+| (n+1) ctx s :=
+if (s.valid.eval ctx).to_nat = 1 then
+  (if (s.ready.eval ctx).to_nat = 1 then finsupp.single (s.current ctx) (s.value ctx) else 0)
+    + (eval_stream n (s.next.eval ctx) s)
+else 0
+
+instance base_eval : StreamEval R (Expr R) (ExprVal R) :=
+⟨Expr.eval⟩
+
+instance base_eval_nat : StreamEval R (ExprVal R) ℕ :=
+⟨λ _, ExprVal.to_nat⟩
+
+instance base_eval_R : StreamEval R (ExprVal R) R :=
+⟨λ _, ExprVal.to_r⟩
+
+noncomputable instance ind_eval {ι ι' α β : Type*} [decidable_eq ι'] [StreamEval R ι ι'] [StreamEval R α β] [add_zero_class β] :
+  StreamEval R (BoundedStreamGen R ι α) (ι' →₀ β) :=
+{ eval := λ ctx s, eval_stream (s.bound.eval ctx).to_nat ctx 
+  (s.iv (λ i ctx', StreamEval.eval ctx' i) (λ i ctx', StreamEval.eval ctx' i)) }
+
+instance base_compile : Compileable R (Expr R → Prog R) (Expr R) := 
+⟨λ c e, c e⟩
 
 def BoundedStreamGen.singleton (a : α) : BoundedStreamGen R unit α :=
 { current := (),
@@ -306,8 +373,6 @@ def BoundedStreamGen.expr_to_prog (inp : BoundedStreamGen R unit (Expr R)) : Bou
 section example_singleton
 
 def test : BoundedStreamGen ℤ unit (Expr ℤ) := BoundedStreamGen.singleton (10 : ℤ)
-
-#eval trace_val (to_string test.expr_to_prog.compile)
 
 end example_singleton
 
@@ -347,34 +412,10 @@ let inner := outer.value in
   initialize := outer.initialize <;> inner.initialize }
 
 
--- x := (nat 0);
--- acc := (rval 0);
--- for at most (nat 2) times
---   if lt(x, (nat 2))
---     acc := add(acc, cast(x));
---   else
---     ;
---   if lt(x, (nat 2))
---     x := add(x, (nat 1));
---   else
---     ;
--- break := (nat 0);
--- for at most (nat 1) times
---   if not(break)
---     if (nat 1)
---       output := acc;
---     else
---       ;
---     if (nat 0)
---       ;
---     else
---       break := (nat 1);
---   else
---     ;
-
-def test₂ : BoundedStreamGen ℤ (Expr ℤ) (Expr ℤ) := range (4 : ℕ) vars.x
+def test₂ : BoundedStreamGen ℤ (Expr ℤ) (Expr ℤ) := range (40 : ℕ) vars.x
 -- #eval trace_val $ to_string $ (contraction vars.acc test₂).expr_to_prog.compile
 -- #eval ((contraction vars.acc test₂).expr_to_prog.compile.eval (λ _, arbitrary _) (Ident.of "output")).get none
+#eval (((contraction vars.acc test₂).expr_to_prog.compile.eval' ∅).ilookup vars.output).get none
 
 def externVec (len : Expr R) (inp : Ident) (inp_idx : Ident) : BoundedStreamGen R (Expr R) (Expr R) :=
 { current := inp_idx,
