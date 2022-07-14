@@ -528,6 +528,12 @@ def M_  : G E (G E E) := G.leaf "M_vals" <$> ((csr.of "M" 1).level 0).level (csr
 
 
 def single (x : α) := (⇑ E x).to_gen "i" 1
+#eval (single (3 : E)).ready.to_c
+-- structure G (ι α : Type) :=
+--   (index : ι)   (value : α)
+--   (ready : E)   (valid : E)
+--   (init : Prog) (next : Prog)
+
 def eg00  := Ev.eval (E.ident "out") (E.lit 2)
 def eg00' := Ev.eval (E.ident "out") (v.contract)
 def eg01 := Ev.eval (Prog.accum "out") (G.contract <$> A.contract)

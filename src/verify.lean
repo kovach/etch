@@ -3,6 +3,8 @@ import data.fin.vec_notation
 import data.list.of_fn
 import data.list.alist
 import data.finsupp.basic
+import control.bifunctor
+import finsupp_lemmas
 
 -- This is just some experiments I'm doing, unofficial
 -- Anything that works out will go back into compile.lean
@@ -25,41 +27,49 @@ instance [has_repr R] : has_repr (ExprVal R) :=
 | (rval r) := "(rval " ++ (repr r) ++ ")"
 end⟩
 
+@[simp]
 def add : ExprVal R → ExprVal R → ExprVal R
 | (nat n₁) (nat n₂) := nat (n₁ + n₂)
 | (rval f₁) (rval f₂) := rval (f₁ + f₂)
 | _ _ := arbitrary _
 
-
+@[simp]
 def and : ExprVal R → ExprVal R → ExprVal R
 | (nat n₁) (nat n₂) := if n₁ = 0 then nat 0 else nat n₂
 | _ _ := arbitrary _
 
+@[simp]
 def mul : ExprVal R → ExprVal R → ExprVal R
 | (nat n₁) (nat n₂) := nat (n₁ * n₂)
 | (rval f₁) (rval f₂) := rval (f₁ * f₂)
 | _ _ := arbitrary _
 
+@[simp]
 def not : ExprVal R → ExprVal R
 | (nat n₁) := if n₁ = 0 then nat 1 else nat 0
 | _ := arbitrary _
 
+@[simp]
 def to_nat : ExprVal R → ℕ
 | (nat n₁) := n₁
 | _ := default
 
+@[simp]
 def eq : ExprVal R → ExprVal R → ExprVal R
 | (nat n₁) (nat n₂) := if n₁ = n₂ then nat 1 else nat 0
 | _ _ := arbitrary _
 
+@[simp]
 def lt : ExprVal R → ExprVal R → ExprVal R
 | (nat n₁) (nat n₂) := if n₁ < n₂ then nat 1 else nat 0
 | _ _ := arbitrary _
 
+@[simp]
 def to_r : ExprVal R → R
 | (nat n) := n
 | (rval r) := r
 
+@[simp]
 def cast_r (v : ExprVal R) : ExprVal R := rval v.to_r
 
 end ExprVal
@@ -80,9 +90,6 @@ instance : has_repr Ident := ⟨λ i, match i with
 | (Ident.name s) := s
 end⟩
 
--- attribute [irreducible] Ident
--- #exit
-
 inductive IdentVal
 | base (val : ExprVal R) : IdentVal
 | arr (val : list (ExprVal R)) : IdentVal
@@ -94,10 +101,19 @@ def IdentVal.get : IdentVal R → option ℕ → ExprVal R
 | (IdentVal.arr val) (some i) := val.inth i
 | _ _ := arbitrary _ 
 
+@[simp] lemma IdentVal.get_none (b : ExprVal R) : (IdentVal.base b).get none = b := rfl
+@[simp] lemma IdentVal.get_ind (arr : list (ExprVal R)) (n : ℕ) :
+  (IdentVal.arr arr).get (some n) = arr.inth n := rfl
+
 def IdentVal.update : IdentVal R → option ℕ → ExprVal R → IdentVal R
-| (IdentVal.base val) none newval := IdentVal.base newval
 | (IdentVal.arr val) (some i) newval := IdentVal.arr (val.modify_nth (λ _, newval) i)
+| _ none newval := IdentVal.base newval
 | _ _ _ := arbitrary _
+
+@[simp] lemma IdentVal.update_none (i : IdentVal R) (x : ExprVal R) :
+  i.update none x = IdentVal.base x := by cases i; simp [IdentVal.update]
+@[simp] lemma IdentVal.update_ind (arr : list (ExprVal R)) (n : ℕ) (x : ExprVal R) :
+  (IdentVal.arr arr).update (some n) x = IdentVal.arr (arr.modify_nth (λ _, x) n) := rfl
 
 end Ident
 
@@ -128,6 +144,7 @@ end⟩
 | Op.cast_r := 1
 
 variable {R}
+@[simp]
 def eval : ∀ o : Op, (fin o.arity → ExprVal R) → ExprVal R
 | add := λ x, (x 0).add (x 1)
 | mul := λ x, (x 0).mul (x 1)
@@ -154,6 +171,8 @@ notation a ` ⟪<⟫ `:80 b := Expr.call Op.lt ![a, b]
 notation a ` ⟪=⟫ `:80 b := Expr.call Op.eq ![a, b]
 
 variable {R}
+
+@[simp]
 def Expr.eval  (ctx : Ident → IdentVal R) : Expr R → ExprVal R
 | (Expr.lit r) := r
 | (Expr.ident x) := (ctx x).get none
@@ -166,6 +185,16 @@ instance has_coe_from_expr : has_coe Ident (Expr R) := ⟨Expr.ident⟩
 
 example : Expr R := (0 : ℕ)
 example : Expr R := (0 : R)
+
+@[simp] lemma Expr.eval_const_nat (ctx : Ident → IdentVal R) (n : ℕ) :
+  Expr.eval ctx n = ExprVal.nat n := rfl
+
+@[simp] lemma Expr.eval_const_r (ctx : Ident → IdentVal R) (r : R) :
+  Expr.eval ctx r = ExprVal.rval r := rfl
+
+@[simp] lemma Expr.eval_coe_ident (ctx : Ident → IdentVal R) (i : Ident) :
+  Expr.eval ctx i = (ctx i).get none := rfl 
+
 
 /-- Pretty print repr of indices; ignores [] (scalar), represents only
     vector indices -/
@@ -280,6 +309,7 @@ loop (500 : ℕ) $
 end example_prog
 
 variable (R)
+@[ext]
 structure BoundedStreamGen (ι α : Type) :=
 (current : ι)
 (value : α)
@@ -292,15 +322,48 @@ structure BoundedStreamGen (ι α : Type) :=
 
 variables {ι α : Type} {R}
 
--- TODO: Turn this into functor instance
-def BoundedStreamGen.iv {ι ι' α α'} (i : ι → ι') (v : α → α') (g : BoundedStreamGen R ι α) : BoundedStreamGen R ι' α'
-:= { g with value := v g.value, current := i g.current }
+section functorality
+
+@[simps]
+instance : bifunctor (BoundedStreamGen R) :=
+{ bimap := λ _ _ _ _ i v g, { g with value := v g.value, current := i g.current } }
+
+instance : is_lawful_bifunctor (BoundedStreamGen R) :=
+{ id_bimap := λ _ _ g, by ext; simp [bimap],
+  bimap_bimap := λ _ _ _ _ _ _ i i' v v' g, by ext; simp [bimap] }
+
+infixr ` <$₁> `:1 := bifunctor.fst
+infixr ` <$₂> `:1 := bifunctor.snd
+
+-- TODO: find a better way
+variables {ι' α' : Type} (f : ι → ι') (g : α → α') (s : BoundedStreamGen R ι α)
+@[simp] lemma BSG_fst_value : (f <$₁> s).value = s.value := rfl 
+@[simp] lemma BSG_fst_ready : (f <$₁> s).ready = s.ready := rfl
+@[simp] lemma BSG_fst_next : (f <$₁> s).next = s.next := rfl
+@[simp] lemma BSG_fst_valid : (f <$₁> s).valid = s.valid := rfl
+@[simp] lemma BSG_fst_bound : (f <$₁> s).bound = s.bound := rfl
+@[simp] lemma BSG_fst_reset : (f <$₁> s).reset = s.reset := rfl
+@[simp] lemma BSG_fst_init : (f <$₁> s).initialize = s.initialize := rfl
+@[simp] lemma BSG_snd_current : (g <$₂> s).current = s.current := rfl 
+@[simp] lemma BSG_snd_ready : (g <$₂> s).ready = s.ready := rfl
+@[simp] lemma BSG_snd_next : (g <$₂> s).next = s.next := rfl
+@[simp] lemma BSG_snd_valid : (g <$₂> s).valid = s.valid := rfl
+@[simp] lemma BSG_snd_bound : (g <$₂> s).bound = s.bound := rfl
+@[simp] lemma BSG_snd_reset : (g <$₂> s).reset = s.reset := rfl
+@[simp] lemma BSG_snd_init : (g <$₂> s).initialize = s.initialize := rfl
+
+@[simp] lemma BSG_fst_current : (f <$₁> s).current = f s.current := rfl
+@[simp] lemma BSG_snd_value : (g <$₂> s).value = g s.value := rfl
+
+attribute [functor_norm] bifunctor.fst_snd bifunctor.snd_fst
+
+end functorality
 
 @[pattern]
 def Prog.if1 (cond : Expr R) (b : Prog R) := Prog.branch cond b Prog.skip
 
 def BoundedStreamGen.compile (g : BoundedStreamGen R unit (Prog R)) : Prog R :=
-g.reset <;>
+g.initialize <;>
 Ident.reserved_break ::= (0 : ℕ) <;>
 Prog.loop g.bound $
   Prog.if1 (Expr.call Op.not ![Ident.reserved_break]) $
@@ -310,21 +373,22 @@ Prog.loop g.bound $
 variable (R)
 
 /-- Indicates that things of type α (which typically involve Expr R)'s can eval
-  to things of type β -/
-class StreamEval (α β: Type*) :=
+  to things of type β given a context ctx : Ident → IdentVal R -/
+class StreamEval (α β: Type) :=
 (eval : (Ident → IdentVal R) → α → β)
 
 /-- An Compileable.compile (f, e) indicates that f describes how to compile e to a program -/
-class Compileable (α β : Type*) :=
+class Compileable (α β : Type) :=
 (compile : α → β → Prog R)
 
 variable {R}
 -- This is ind_eval, but we need to support recursion so we extract it specifically
--- I've never had mathlib's lack of computability bite me like this before
--- but since finsupp is noncomputable (this is actually a controversial-ish decision from what I gather from the Zulip)
+-- Mathlib's lack of computability bites here;
+-- since finsupp is noncomputable (this is actually a controversial-ish decision from what I gather from the Zulip)
 -- it poisons "eval_stream"
--- We only use finsupp.single and finsupp.zero (zero is computable), so maybe a TODO is a computable implementation
-noncomputable def eval_stream {ι β : Type*} [decidable_eq ι] [add_zero_class β] :
+-- We only use +, finsupp.single and finsupp.zero (zero is computable), so maybe a TODO is a computable implementation
+@[simp]
+noncomputable def eval_stream {ι β : Type} [add_zero_class β] :
   ℕ → (Ident → IdentVal R) → (BoundedStreamGen R ((Ident → IdentVal R) → ι) ((Ident → IdentVal R) → β)) → (ι →₀ β)
 | 0 _ _ := 0
 | (n+1) ctx s :=
@@ -336,43 +400,54 @@ else 0
 instance base_eval : StreamEval R (Expr R) (ExprVal R) :=
 ⟨Expr.eval⟩
 
-instance base_eval_nat : StreamEval R (ExprVal R) ℕ :=
-⟨λ _, ExprVal.to_nat⟩
+instance base_eval_nat : StreamEval R (Expr R) ℕ :=
+⟨λ ctx e, (e.eval ctx).to_nat⟩
 
-instance base_eval_R : StreamEval R (ExprVal R) R :=
-⟨λ _, ExprVal.to_r⟩
+instance base_eval_R : StreamEval R (Expr R) R :=
+⟨λ ctx e, (e.eval ctx).to_r⟩
 
-noncomputable instance ind_eval {ι ι' α β : Type*} [decidable_eq ι'] [StreamEval R ι ι'] [StreamEval R α β] [add_zero_class β] :
+instance refl_eval {α : Type} : StreamEval R α α := ⟨λ _, id⟩
+
+noncomputable instance ind_eval {ι ι' α β : Type} [StreamEval R ι ι'] [StreamEval R α β] [add_zero_class β] :
   StreamEval R (BoundedStreamGen R ι α) (ι' →₀ β) :=
-{ eval := λ ctx s, eval_stream (s.bound.eval ctx).to_nat ctx 
-  (s.iv (λ i ctx', StreamEval.eval ctx' i) (λ i ctx', StreamEval.eval ctx' i)) }
+{ eval := λ ctx s, eval_stream (s.bound.eval ctx).to_nat (s.initialize.eval ctx) 
+  ((λ i ctx', StreamEval.eval ctx' i) <$₁> (λ i ctx', StreamEval.eval ctx' i) <$₂> s) }
+
+/- Convenience instance for `unit` so we don't have to write `unit → R` and can directly go to R
+TODO: Remove? -/
+noncomputable instance unit_eval {α β : Type} [StreamEval R α β] [add_zero_class β] :
+  StreamEval R (BoundedStreamGen R unit α) β :=
+{ eval := λ ctx s, (StreamEval.eval ctx s : unit →₀ β) () }
 
 instance base_compile : Compileable R (Expr R → Prog R) (Expr R) := 
 ⟨λ c e, c e⟩
 
-def BoundedStreamGen.singleton (a : α) : BoundedStreamGen R unit α :=
+def BoundedStreamGen.singleton (i : Ident) (a : α) : BoundedStreamGen R unit α :=
 { current := (),
   value := a,
   ready := (1 : ℕ),
-  valid := (0 : ℕ),
+  valid := i ⟪<⟫ (1 : ℕ),
   bound := (1 : ℕ),
-  next := Prog.skip,
+  next := i ::= (1 : ℕ),
   reset := Prog.skip,
-  initialize := Prog.skip }
+  initialize := i ::= (0 : ℕ) }
 
 def BoundedStreamGen.expr_to_prog (inp : BoundedStreamGen R unit (Expr R)) : BoundedStreamGen R unit (Prog R) :=
 { current := (),
-  value := vars.output ::= inp.value,
+  value := vars.output ::= vars.output ⟪+⟫ inp.value,
   ready := inp.ready,
   next := inp.next,
   valid := inp.valid,
   bound := inp.bound,
   reset := inp.reset,
-  initialize := inp.initialize }
+  initialize := inp.initialize <;> vars.output ::= (0 : R) }
 
 section example_singleton
 
-def test : BoundedStreamGen ℤ unit (Expr ℤ) := BoundedStreamGen.singleton (10 : ℤ)
+def test : BoundedStreamGen ℤ unit (Expr ℤ) := BoundedStreamGen.singleton vars.i (10 : ℤ)
+
+lemma test_eval : (StreamEval.eval (λ _, arbitrary (IdentVal ℤ)) test : ℤ) = 10 :=
+by { simp [StreamEval.eval, test, Prog.eval, BoundedStreamGen.singleton], }
 
 end example_singleton
 
@@ -386,9 +461,42 @@ def range (n : Expr R) (var : Ident) : BoundedStreamGen R (Expr R) (Expr R) :=
   bound := n,
   initialize := var ::= (0 : ℕ), }
 
+section contract
+
+def contract (g : BoundedStreamGen R ι α) : BoundedStreamGen R unit α :=
+(λ _, ()) <$₁> g
+
+lemma contract_aux [add_comm_monoid α] (n : ℕ) (ctx : Ident → IdentVal R) 
+  (g : BoundedStreamGen R ((Ident → IdentVal R) → ι) ((Ident → IdentVal R) → α)) :
+  (eval_stream n ctx ((λ _ _, ()) <$₁> g)) () = (eval_stream n ctx g).sum_range :=
+begin
+  induction n with n ih generalizing ctx, { simp, },
+  simp,
+  split_ifs,
+  { simp [← ih (g.next.eval ctx)], }, -- Valid and ready
+  { simp [← ih (g.next.eval ctx)], }, -- Valid but not ready
+  refl, -- Invalid, both are 0
+end
+
+theorem contract_spec {β ι' : Type} [add_comm_monoid β] [StreamEval R α β] [StreamEval R ι ι']
+  (s : BoundedStreamGen R ι α) (ctx : Ident → IdentVal R) :
+  StreamEval.eval ctx (contract s) = (StreamEval.eval ctx s : ι' →₀ β).sum_range :=
+by simpa [StreamEval.eval, contract, bifunctor.fst] with functor_norm
+using contract_aux (s.bound.eval ctx).to_nat (s.initialize.eval ctx)
+      ((λ i ctx', StreamEval.eval ctx' i) <$₁>
+        (λ i ctx', StreamEval.eval ctx' i) <$₂> s)
+
+end contract
+
+section repeat
+
+
+
+end repeat
+
 def contraction {ι : Type} (acc : Ident) (v : BoundedStreamGen R ι (Expr R)) :
   BoundedStreamGen R unit (Expr R) :=
-{ BoundedStreamGen.singleton acc with
+{ BoundedStreamGen.singleton (Ident.of "random_index_singleton") acc with
   reset := v.reset <;>
     acc ::= (0 : R) <;>
     Prog.loop v.bound $
@@ -413,9 +521,9 @@ let inner := outer.value in
 
 
 def test₂ : BoundedStreamGen ℤ (Expr ℤ) (Expr ℤ) := range (40 : ℕ) vars.x
--- #eval trace_val $ to_string $ (contraction vars.acc test₂).expr_to_prog.compile
+-- #eval trace_val $ to_string $ (contract test₂).expr_to_prog.compile
 -- #eval ((contraction vars.acc test₂).expr_to_prog.compile.eval (λ _, arbitrary _) (Ident.of "output")).get none
-#eval (((contraction vars.acc test₂).expr_to_prog.compile.eval' ∅).ilookup vars.output).get none
+-- #eval (((contract test₂).expr_to_prog.compile.eval' ∅).ilookup vars.output).get none
 
 def externVec (len : Expr R) (inp : Ident) (inp_idx : Ident) : BoundedStreamGen R (Expr R) (Expr R) :=
 { current := inp_idx,
@@ -445,4 +553,4 @@ def externCSRMat (l₁ l₂ : Expr R) (rows cols data : Ident) (i j k : Ident) :
 
 def test₃ : BoundedStreamGen ℤ (Expr ℤ) (Expr ℤ) := externVec (10 : ℕ) (Ident.of "input") (Ident.of "idx") 
 
-#eval trace_val $ to_string $ (contraction (Ident.of "acc") test₃).expr_to_prog.compile
+-- #eval trace_val $ to_string $ (contraction (Ident.of "acc") test₃).expr_to_prog.compile
