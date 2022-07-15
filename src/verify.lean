@@ -82,12 +82,14 @@ section Ident
 inductive Ident
 | reserved_break : Ident
 | name : string → Ident
+| num : ℕ → Ident
 
 def Ident.of : string → Ident := Ident.name
 -- instance : decidable_eq Ident := infer_instance
 instance : has_repr Ident := ⟨λ i, match i with
 | Ident.reserved_break := "break"
 | (Ident.name s) := s
+| (Ident.num n) := "x" ++ (repr n)
 end⟩
 
 inductive IdentVal
@@ -422,7 +424,44 @@ noncomputable instance unit_eval {α β : Type} [StreamEval R α β] [add_zero_c
 instance base_compile : Compileable R (Expr R → Prog R) (Expr R) := 
 ⟨λ c e, c e⟩
 
-def BoundedStreamGen.singleton (i : Ident) (a : α) : BoundedStreamGen R unit α :=
+section variable_counter
+
+structure MState :=
+(counter : ℕ)
+
+@[reducible] def M := state MState
+def M.fresh : M Ident :=
+{ run := λ σ, (Ident.num σ.counter, ⟨σ.counter + 1⟩) }
+
+def M.get {σ} (x : M σ) : σ := (x.run ⟨0⟩).1
+def M.getn {σ} (n : ℕ) (x : M σ) : σ := (x.run ⟨n⟩).1
+
+def MRespects {β : Type} [StreamEval R α β] (x : M α) : Prop :=
+∀ (ctx₁ ctx₂ : Ident → IdentVal R),
+  (∀ n < (x.run ⟨0⟩).2.counter, ctx₁ (Ident.num n) = ctx₂ (Ident.num n)) →
+    (StreamEval.eval ctx₁ (M.get x) : β) = StreamEval.eval ctx₂ (M.get x)
+
+
+
+
+@[simp] lemma get_fresh_bind {α : Type} (f : Ident → M α) :
+  M.get (M.fresh >>= f) = M.getn 1 (f (Ident.num 0)) := rfl
+  
+@[simp] lemma getn_fresh_bind {α : Type} (n : ℕ) (f : Ident → M α) :
+  M.getn n (M.fresh >>= f) = M.getn (n+1) (f (Ident.num n)) := rfl
+
+@[simp] lemma get_fresh_pure {α} (f : α) : M.get (return f) = f := rfl
+
+@[simp] lemma getn_fresh_pure {α : Type} (n : ℕ) (f : α) :
+  M.getn n (return f) = f := rfl
+
+end variable_counter
+
+section singleton
+
+def BoundedStreamGen.singleton (a : α) : M (BoundedStreamGen R unit α) :=
+do i ← M.fresh,
+  return
 { current := (),
   value := a,
   ready := (1 : ℕ),
@@ -431,6 +470,14 @@ def BoundedStreamGen.singleton (i : Ident) (a : α) : BoundedStreamGen R unit α
   next := i ::= (1 : ℕ),
   reset := Prog.skip,
   initialize := i ::= (0 : ℕ) }
+
+theorem singleton_spec {β : Type} [add_zero_class β] [StreamEval R α β] (ctx : Ident → IdentVal R) (a : α) :
+  (StreamEval.eval ctx (M.get $ BoundedStreamGen.singleton a : BoundedStreamGen R unit α) : β) = StreamEval.eval ctx a :=
+begin
+  simp [StreamEval.eval, Prog.eval, BoundedStreamGen.singleton], sorry,
+end
+
+end singleton
 
 def BoundedStreamGen.expr_to_prog (inp : BoundedStreamGen R unit (Expr R)) : BoundedStreamGen R unit (Prog R) :=
 { current := (),
@@ -444,12 +491,14 @@ def BoundedStreamGen.expr_to_prog (inp : BoundedStreamGen R unit (Expr R)) : Bou
 
 section example_singleton
 
-def test : BoundedStreamGen ℤ unit (Expr ℤ) := BoundedStreamGen.singleton vars.i (10 : ℤ)
+def test : BoundedStreamGen ℤ unit (Expr ℤ) := M.get (BoundedStreamGen.singleton (10 : ℤ))
 
 lemma test_eval : (StreamEval.eval (λ _, arbitrary (IdentVal ℤ)) test : ℤ) = 10 :=
 by { simp [StreamEval.eval, test, Prog.eval, BoundedStreamGen.singleton], }
 
 end example_singleton
+
+section range
 
 def range (n : Expr R) (var : Ident) : BoundedStreamGen R (Expr R) (Expr R) :=
 { current := var,
@@ -460,6 +509,10 @@ def range (n : Expr R) (var : Ident) : BoundedStreamGen R (Expr R) (Expr R) :=
   reset := var ::= (0 : ℕ),
   bound := n,
   initialize := var ::= (0 : ℕ), }
+
+
+
+end range
 
 section contract
 
@@ -490,19 +543,7 @@ end contract
 
 section repeat
 
-
-
 end repeat
-
-def contraction {ι : Type} (acc : Ident) (v : BoundedStreamGen R ι (Expr R)) :
-  BoundedStreamGen R unit (Expr R) :=
-{ BoundedStreamGen.singleton (Ident.of "random_index_singleton") acc with
-  reset := v.reset <;>
-    acc ::= (0 : R) <;>
-    Prog.loop v.bound $
-      Prog.if1 v.ready (acc ::= acc ⟪+⟫ v.value) <;>
-      Prog.if1 v.valid v.next,
-  initialize := v.initialize }
 
 def flatten {ι₁ ι₂ α : Type} (outer : BoundedStreamGen R ι₁ (BoundedStreamGen R ι₂ α)) :
   BoundedStreamGen R (ι₁ × ι₂) α :=
@@ -519,10 +560,8 @@ let inner := outer.value in
   reset := outer.reset <;> inner.reset, -- TODO: fix
   initialize := outer.initialize <;> inner.initialize }
 
-
 def test₂ : BoundedStreamGen ℤ (Expr ℤ) (Expr ℤ) := range (40 : ℕ) vars.x
 -- #eval trace_val $ to_string $ (contract test₂).expr_to_prog.compile
--- #eval ((contraction vars.acc test₂).expr_to_prog.compile.eval (λ _, arbitrary _) (Ident.of "output")).get none
 -- #eval (((contract test₂).expr_to_prog.compile.eval' ∅).ilookup vars.output).get none
 
 def externVec (len : Expr R) (inp : Ident) (inp_idx : Ident) : BoundedStreamGen R (Expr R) (Expr R) :=
