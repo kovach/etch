@@ -258,6 +258,95 @@ def Prog.eval' : Prog R → (alist (λ _ : Ident, IdentVal R)) → (alist (λ _ 
 | (Prog.branch cond a b) ctx := if 0 < (cond.eval ctx.ilookup).to_nat then a.eval' ctx else b.eval' ctx
 | (Prog.loop n b) ctx := (nat.iterate b.eval' (n.eval ctx.ilookup).to_nat) ctx
 
+section frame
+
+@[simp]
+def Expr.frame : Expr R → finset Ident
+| (Expr.lit r) := ∅
+| (Expr.ident i) := {i}
+| (Expr.access x n) := insert x n.frame
+| (Expr.call o args) := finset.bUnion finset.univ (λ i, (args i).frame)
+
+/-- The evaluation of an Expr dependso only on the values in its frame -/
+theorem frame_sound_Expr {e : Expr R} {ctx₀ ctx₁ : Ident → IdentVal R}
+  (h : ∀ v ∈ e.frame, ctx₀ v = ctx₁ v) : e.eval ctx₀ = e.eval ctx₁ :=
+begin
+  induction e,
+  case Expr.lit : { simp, },
+  case Expr.ident : i { simp [h i _], },
+  case Expr.access : x n ih { simp at h ⊢, specialize ih h.2, simp [ih, h.1], },
+  case Expr.call : o args ih 
+  { simp, congr, ext i, apply ih, refine (λ v hv, h v _), simp, refine ⟨_, hv⟩, }
+end
+
+@[simp]
+def Prog.frame : Prog R → finset Ident
+| Prog.skip := ∅
+| (Prog.store dst none val) := insert dst val.frame
+| (Prog.store dst (some ind) val) := insert dst (ind.frame ∪ val.frame)
+| (Prog.seq a b) := a.frame ∪ b.frame
+| (Prog.branch cond a b) := cond.frame ∪ a.frame ∪ b.frame
+| (Prog.loop n b) := n.frame ∪ b.frame
+
+/-- Ident's not in the frame remain unchanged -/
+theorem not_mem_Prog_frame {p : Prog R} {s} (hs : s ∉ p.frame) (ctx : Ident → IdentVal R) :
+  p.eval ctx s = ctx s :=
+begin
+  induction p generalizing ctx,
+  case Prog.skip : { simp [Prog.eval], },
+  case Prog.store : dst ind val
+  { suffices : s ≠ dst, { simp [Prog.eval, this] },
+    rintro rfl, cases ind; simpa using hs, },
+  case Prog.seq : a b ih₁ ih₂
+  { simp [decidable.not_or_iff_and_not] at hs, 
+    simp [Prog.eval, ih₂ hs.2, ih₁ hs.1], },
+  case Prog.branch : cond a b ih₁ ih₂
+  { simp [decidable.not_or_iff_and_not] at hs, 
+    simp [Prog.eval], split_ifs, exacts [ih₁ hs.2.1 _, ih₂ hs.2.2 _], },
+  case Prog.loop : n b ih
+  { simp [Prog.eval],
+    generalize : (n.eval ctx).to_nat = n',
+    induction n' with n' ihn', { refl, },
+    simp [function.iterate_succ_apply'],
+    rwa ih, simp [decidable.not_or_iff_and_not] at hs, exact hs.2, }
+end
+
+/-- If two contexts agree on a set S ⊇ p.frame, then they agree after the evaluation as well. -/
+theorem frame_sound_Prog {p : Prog R} {ctx₀ ctx₁ : Ident → IdentVal R} {S : finset Ident} (hS : p.frame ⊆ S)
+  (h : ∀ v ∈ S, ctx₀ v = ctx₁ v) {s} (hs : s ∈ S) : p.eval ctx₀ s = p.eval ctx₁ s :=
+begin
+  induction p generalizing ctx₀ ctx₁ s,
+  case Prog.skip : { simpa [Prog.eval] using h _ hs, },
+  case Prog.store : dst ind val
+  { by_cases s_eq : s = dst, swap, { simpa [Prog.eval, s_eq] using h _ hs, },
+    subst s_eq, simp [Prog.eval], congr' 1, { exact h _ hs, },
+    { cases ind; simp, congr' 1, apply frame_sound_Expr, refine λ v hv, h v _, simp [finset.subset_iff] at hS, apply hS.2, left, exact hv, },
+    apply frame_sound_Expr, refine λ v hv, h v _, cases ind; simp [finset.subset_iff] at hS, exacts [hS.2 _ hv, hS.2 _ (or.inr hv)], },
+  case Prog.seq : a b ih₁ ih₂
+  { simp [Prog.eval],
+    simp at hS, refine ih₂ (finset.union_subset_right hS) _ hs,
+    intros v hv, exact ih₁ (finset.union_subset_left hS) h hv, },
+  case Prog.branch : cond a b ih₁ ih₂
+  { have : cond.eval ctx₀ = cond.eval ctx₁,
+    { apply frame_sound_Expr, refine λ v hv, h v _,
+      simp [finset.subset_iff] at hS, exact hS (or.inl hv), },
+    simp [Prog.eval, this], simp at hS, split_ifs,
+    { exact ih₁ (finset.union_subset_left (finset.union_subset_right hS)) h hs, },
+    exact ih₂ (finset.union_subset_right (finset.union_subset_right hS)) h hs, },
+  case Prog.loop : n b ih
+  { have : n.eval ctx₀ = n.eval ctx₁,
+    { apply frame_sound_Expr, refine λ v hv, h v _, simp [finset.subset_iff] at hS, exact hS (or.inl hv), },
+    simp [Prog.eval, this],
+    generalize : (n.eval ctx₁).to_nat = n',
+    induction n' with n' ihn generalizing s, { exact h _ hs, },
+    simp [function.iterate_succ_apply'], 
+    refine ih _ @ihn hs, simp at hS, exact finset.union_subset_right hS, }
+end
+
+example {β} [decidable_eq β] (s₁ s₂ S : finset β) : s₁ ∪ s₂ ⊆ S → s₁ ⊆ S  := by refine finset.union_subset_left
+
+end frame
+
 infixr ` <;> `:1 := Prog.seq
 notation a ` ::= `:20 c := Prog.store a none c
 notation a ` ⟬ `:9000 i ` ⟭ ` ` ::= `:20 c := Prog.store a (some i) c
@@ -440,9 +529,6 @@ def MRespects {β : Type} [StreamEval R α β] (x : M α) : Prop :=
 ∀ (ctx₁ ctx₂ : Ident → IdentVal R),
   (∀ n < (x.run ⟨0⟩).2.counter, ctx₁ (Ident.num n) = ctx₂ (Ident.num n)) →
     (StreamEval.eval ctx₁ (M.get x) : β) = StreamEval.eval ctx₂ (M.get x)
-
-
-
 
 @[simp] lemma get_fresh_bind {α : Type} (f : Ident → M α) :
   M.get (M.fresh >>= f) = M.getn 1 (f (Ident.num 0)) := rfl
