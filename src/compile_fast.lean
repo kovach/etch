@@ -339,6 +339,32 @@ def mul [has_hmul α β γ] (a : G E α) (b : G E β) : G E γ :=
 }
 instance [has_hmul α β γ] : has_hmul (G E α) (G E β) (G E γ) := ⟨mul⟩
 
+instance scalar_G [has_scalar E α] : has_scalar E (G E α) :=
+⟨λ s v, { v with value := s • v.value } ⟩
+instance scalar_unit [has_scalar E α] : has_scalar E (G unit α) :=
+⟨λ s v, { v with value := s • v.value } ⟩
+instance scalar_base [has_hmul E α α] : has_scalar E α := ⟨(⋆)⟩
+
+example : has_scalar E E := infer_instance
+
+def add [has_scalar E α] [has_mul α] [has_add α] (a b : G E α) : G E α :=
+let current := BinOp.min a.index b.index in
+{ index := current,
+  value := (a.index == current) • a.value + (b.index == current) • b.value,
+  ready := a.ready || b.ready,
+  next  := Prog.if (a.index < b.index ||
+                   (a.index == b.index && a.ready.neg && b.ready)) -- ($) <$>
+             a.next
+             $ (Prog.if (b.index < a.index ||
+                        (a.index == b.index && b.ready.neg && a.ready))
+                  b.next
+                  (a.next; b.next)),
+  valid := a.valid || b.valid,
+  init  := a.init; b.init,
+}
+
+instance [has_mul α] [has_scalar E α] [has_add α] : has_add (G E α) := ⟨add⟩
+
 def mul_unit_const_r [has_hmul α β γ] (a : G unit α) (b : β) : G unit γ := (⋆ b) <$> a
 def mul_unit_const_l [has_hmul α β γ] (a : α) (b : G unit β) : G unit γ := (λ v, a ⋆ v) <$> b
 def mulViewR [has_hmul α β γ] (a : G ι α) (b : View ι β) : G ι γ :=
@@ -350,8 +376,9 @@ instance GV.has_hmul [has_hmul α β γ] : has_hmul (G ι α) (View ι β) (G ι
 instance VG.has_hmul [has_hmul α β γ] : has_hmul (View ι α) (G ι β) (G ι γ) := ⟨G.mulViewL⟩
 instance unit_const_r.has_hmul [has_hmul α β γ] : has_hmul (G unit α) β (G unit γ) := ⟨mul_unit_const_r⟩
 instance unit_const_l.has_hmul [has_hmul α β γ] : has_hmul α (G unit β) (G unit γ) := ⟨mul_unit_const_l⟩
-end G
+instance [has_mul α] : has_mul (G E α) := ⟨(⋆)⟩
 
+end G
 
 section simple_streams
 
@@ -396,8 +423,12 @@ end rval
 /- csr lval v3 -/
 /- implementation of composable sparse lval level -/
 section csr_lval
-structure il := (push : E → (loc → Prog) → Prog × loc) (crd : loc → E)
-structure vl  (α : Type) := (pos : loc → α) (init : loc → Prog)
+structure il :=
+  (crd : loc → E)
+  (push : E → (loc → Prog) → Prog × loc)
+structure vl  (α : Type) :=
+  (pos : loc → α)
+  (init : loc → Prog)
 structure lvl (α : Type) extends il, vl α .
 instance : functor lvl := { map := λ _ _ f l, { l with pos := f ∘ l.pos } }
 
@@ -408,10 +439,11 @@ def sparse_index (indices : E) (bounds : E × E) : il :=
 let upper := bounds.2, lower := bounds.1, current := indices.access (upper-1) in
 let loc := upper-1 in
 { crd  := indices.access,
-  push := λ i init, (Prog.if1 (lower == upper || i != current)
+  push := λ i init,
+    let prog := Prog.if1 (lower == upper || i != current)
                       ((upper.accum 1); init loc);
-                     current.store i,
-                     loc) }
+                     current.store i
+    in (prog, loc) }
 
 def dense_index (dim : E) (base : E) : il :=
 { crd  := id,
@@ -441,6 +473,9 @@ def dense_mat (d₁ d₂ : E) := 0 &
 def dcsr := (interval_vl "A1_pos").pos 0 &
   (with_values (sparse_index "A1_crd") (interval_vl "A2_pos")) ⊚
   (with_values (sparse_index "A2_crd") (dense_vl "A_vals"))
+
+def sparse_vec := (0, E.ident "size") &
+  (with_values (sparse_index "A1_crd") (dense_vl "A_vals"))
 
 def csr_mat := 0 &
   (with_values (dense_index 2000) (interval_vl "A2_pos")) ⊚
@@ -669,6 +704,7 @@ def eg20 := load_AB ++ [me $ eg06, Prog.time "taco" $ taco_ijk]
 def eg26 := load_AB ++ [me $ exec out $ G.sum2 (comb_rows), Prog.time "taco" $ taco_ijk]
 def eg27 := load_AB ++ [me $ exec (mval "out") $ comb_rows]
 
+
 def c0 : csr := { i := "", v := "A1_pos", var := "" }
 def c1 : csr := csr'.of "A" 1
 def c2 : csr := { i := "A2_crd", v := "A_vals", var := "" }
@@ -687,11 +723,17 @@ def eg28 := load_AB ++ [
   Prog.time "me" $ exec (mval "out") $ inner_prod.sum_inner,
   Prog.time "taco" $ Prog.inline_code "taco_ikjk();" ]
 
+def eg29 := exec (mval "out") (A + B)
+def eg30 := exec out (C + D).sum3
+
+#eval comp eg30
+
 --#eval comp $ exec A_lval A
 --#eval compile $ [exec A_lval (ref_matrix "x"), me $ exec out $ G.sum2 $ A ]
-#eval compile $ [exec dcsr (ref_matrix "x"), me $ exec out $ G.sum2 $ A ]
+--#eval compile $ [exec dcsr (ref_matrix "x"), me $ exec out $ G.sum2 $ A ]
+--#eval compile $ [exec sparse_vec (ref_vector "v")] -- , me $ exec out $ G.sum2 $ A ]
 -- not working:
--- #eval compile $ [exec csr_mat (ref_matrix "x"), me $ exec out $ G.sum2 $ A_csr ]
+--#eval compile $ [exec csr_mat (ref_matrix "x"), me $ exec out $ G.sum2 $ A_csr ]
 --#eval compile [exec sparse_cube_lvl $ ref_cube "c"]
 
 end G
