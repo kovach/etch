@@ -98,9 +98,7 @@ def v3 : (Fun l V) := λ i, i
 --set_option pp.all true
 
 section Streams
--- demo with streams:
---def StreamGen' (i : ℕ) (α : Type) := StreamGen E α
---def StreamGen.idx {α} (i : ℕ) : StreamGen E α → StreamGen' i α := id
+
 def Ind (i : ℕ) := E
 inductive Stream (n : ℕ) (α : Type)
 | view (v : View (Ind n) α) : Stream
@@ -124,11 +122,11 @@ variables {ι α β γ : Type}
 
 instance G.Ind.hmul {i : ℕ} [has_hmul α β γ] : has_hmul (G (Ind i) α) (G (Ind i) β) (G (Ind i) γ) := ⟨G.mul⟩
 
-instance : inhabited (Stream n α) := ⟨sorry⟩
-instance : inhabited (G ι α) := ⟨sorry⟩
+instance [inhabited α] : inhabited (Stream n α) := ⟨Stream.view ⟨λ _, default⟩⟩
+instance [inhabited ι] [inhabited α] : inhabited (G ι α) := ⟨G.empty⟩
 
 -- instance Stream.has_mul {α} {i} [has_mul α] : has_mul (StreamGen' i α) := ⟨StreamGen.mul⟩
-instance Stream.has_mul {γ} {i} [has_mul γ] : has_mul (Stream i γ) := ⟨λ a b,
+instance Stream.has_mul {γ} {i} [inhabited γ] [has_mul γ] : has_mul (Stream i γ) := ⟨λ a b,
 match a, b with
 | Stream.view a, Stream.view b := arbitrary _ -- Stream.view $ a⋆b
 | Stream.gen a, Stream.view b := Stream.gen $ a⋆b
@@ -136,10 +134,7 @@ match a, b with
 | Stream.gen a, Stream.gen b := Stream.gen $ a⋆b
 end⟩
 
-variables
-(a : Stream i E)
-(a' : G E E)
-(b : Stream j E)
+variables (a : Stream i E) (b : Stream j E)
 
 example : has_mul (Stream i (Stream j E)) := infer_instance
 example : Stream i (Stream j E) := a ⋆ b
@@ -149,72 +144,35 @@ instance coe_stream [has_coe α β] : has_coe (G E α) (Stream n β) := ⟨Strea
 
 class of_stream (α β : Type) := (coe : α → β)
 instance base.of_stream : of_stream α α := ⟨id⟩
-def Stream.to_g : (Stream n α) → (G E α) := λ s, match s with
+def Stream.to_g {n} [inhabited α] : (Stream n α) → (G E α) := λ s, match s with
 | Stream.view _ := arbitrary _
-| Stream.gen a := of_stream.coe <$> a
+| Stream.gen a := a
 end
 
-instance [of_stream α β] : of_stream (Stream n α) (G E β) := ⟨λ s, match s with
+instance [inhabited β] [of_stream α β] : of_stream (Stream n α) (G E β) := ⟨λ s, match s with
 | Stream.view _ := arbitrary _
 | Stream.gen a := of_stream.coe <$> a
 end⟩
 
-def asdf1 : Stream i E := a'
-def asdf2 : Stream j E := a'
+def Stream.of [of_stream α β] : α → β := of_stream.coe
 
 infixr ` →ₛ `:24 := Stream
 
 --def Stream.to_stream {n} [of_stream α β] : Stream n α → G E β := of_stream.coe
-instance s_level.eval [of_stream γ β] [Ev α (G E β)] : Ev α (Stream i γ) :=
-⟨ λ l r, Ev.eval l (of_stream.coe r : G E β) ⟩
-instance stream.level.eval' (n : ℕ) [Ev α (G E β)] : Ev α (Stream n β) :=
-⟨ λ l r, Ev.eval l $ r.to_g _ ⟩
 
-def Stream.of [of_stream α β] : α → β := of_stream.coe
+-- instance s_level.eval [of_stream γ β] [Ev α (G E β)] : Ev α (Stream i γ) :=
+-- ⟨ λ l r, exec l (of_stream.coe r : G E β) ⟩
+-- instance stream.level.eval' (n : ℕ) [Ev α (G E β)] : Ev α (Stream n β) :=
+-- ⟨ λ l r, exec l $ r.to_g _ ⟩
 
 
 class Sum (n : ℕ) (α : Type) (β : out_param Type) := (sum : α → β)
-instance sum_eq (n : ℕ) : Sum n (Stream n α) (G unit α) := ⟨G.contract ∘ Stream.to_g n⟩
-instance sum_lt (m n : ℕ) [NatLt n m] [Sum m α β] : Sum m (Stream n α) (Stream n β) :=
-⟨functor.map $ Sum.sum m⟩
+instance sum_eq (n : ℕ) [inhabited α] : Sum n (Stream n α) (G unit α) := ⟨G.contract ∘ Stream.to_g⟩
+instance sum_lt (m n : ℕ) [NatLt n m] [Sum m α β] : Sum m (Stream n α) (Stream n β) := ⟨functor.map $ Sum.sum m⟩
 
 abbreviation R := E
 
-def A1 : i →ₛ j →ₛ R := A
-def B1 : j →ₛ k →ₛ R := B
-
 prefix ` Σ ` := Sum.sum
---notation `Σ` n `,` := Sum.sum n
-
-/- setup for diagram -/
-def row := 1
-def col := 2
-def channel := 3
-def intensity := ℕ
-
--- Tensor Examples
--- index ordering: i, j, k, l
-def mmul1  := Σ j $ (A : i →ₛ j →ₛ R) ⋆ (B : j →ₛ k →ₛ R)
-def mmul2  := Σ k $ (A : i →ₛ k →ₛ R) ⋆ (B : j →ₛ k →ₛ R)
-def ttv    := Σ k $ (C : i →ₛ j →ₛ k →ₛ R) ⋆ (v : k →ₛ R)
-def ttm    := Σ l $ (C : i →ₛ j →ₛ l →ₛ R) ⋆ (A : k →ₛ l →ₛ R)
-def mttkrp := Σ j $ Σ k $ (C : i →ₛ j →ₛ k →ₛ R) ⋆
-                   (A : j →ₛ l →ₛ R) ⋆ (B : k →ₛ l →ₛ R)
-def inner3 := Σ i $ Σ j $ Σ k $
-    (C : i →ₛ j →ₛ k →ₛ R) ⋆ (C : i →ₛ j →ₛ k →ₛ R)
-
--- alternative declaration style:
-def M1 : i →ₛ j →ₛ R := A
-def M2 : j →ₛ k →ₛ R := B
-def mat_mul_alt := Σ j (M1 ⋆ M2)
-
--- missing index leads to type elaboration error:
-def mat_mul_err := Σ l (M1 ⋆ M2)
-
--- a more informative tensor type
-def image_type := row →ₛ col →ₛ channel →ₛ intensity
-
-/- END setup for diagram -/
 
 def mmul1'  := Σ i $ Σ j $ Σ k $ (A : i →ₛ j →ₛ E) ⋆ (B : j →ₛ k →ₛ E)
 def mmul2'  := Σ i $ Σ j $ Σ k $ (A : i →ₛ k →ₛ E) ⋆ (B : j →ₛ k →ₛ E)
@@ -223,52 +181,42 @@ def ttm'    := Σ i $ Σ j $ Σ k $ Σ l $ (C : i →ₛ j →ₛ l →ₛ R) �
 def mttkrp' := Σ i $ Σ j $ Σ k $ Σ l $ (C : i →ₛ j →ₛ k →ₛ R) ⋆ (A : j →ₛ l →ₛ R) ⋆ (B : k →ₛ l →ₛ R)
 def inner3' := Σ i $ Σ j $ Σ k $ (C : i →ₛ j →ₛ k →ₛ R) ⋆ (D : i →ₛ j →ₛ k →ₛ R)
 
-def eg06' : Prog := me $ Ev.eval (E.ident "out") $
-  Sum.sum i $ Sum.sum j $ Sum.sum k $
-    (A : i →ₛ j →ₛ E) ⋆ (B : j →ₛ k →ₛ E)
-
-def eg30 := load_AB ++ [eg06', Prog.time "taco" $ taco_ijk]
-
 example : Sum i (Stream i E) (G unit E) := infer_instance
 example : Sum j (Stream i (Stream j E)) (Stream i (G unit E)) := infer_instance
+
 def inner : Stream i (Stream j (G unit E)) :=
   Sum.sum k $ (A : i →ₛ k →ₛ E) ⋆ (B : j →ₛ k →ₛ E)
-def eg28'' := load_AB ++ [
-  Prog.time "me" $ Ev.eval (mval "out") $ Sum.sum k $
-    (A : i →ₛ k →ₛ E) ⋆ (B : j →ₛ k →ₛ E),
-  Prog.time "taco" $ Prog.inline_code "taco_ikjk();" ]
-
-
 
 def eg_mmul1 :=
-  [me $ Ev.eval out mmul1'] ++
+  [me $ exec out mmul1'] ++
   [ta $ Prog.inline_code "taco_ijk_sum();"]
 
 def eg_mmul2 :=
-  [me $ Ev.eval out mmul2'] ++
+  [me $ exec out mmul2'] ++
   [ta $ Prog.inline_code "mmul2_compute();"]
 
 def eg_ttv :=
-  [me $ Ev.eval out $ G.contract $ View.to_gen "foo" 30 $ constView E $ ttv'] ++
-  [ta $ Ev.eval out $ G.contract $ View.to_gen "foo" 30 $ constView E $ E.inline_code "ttv_compute();"]
+  [me $ exec out $ G.contract $ View.to_gen "foo" 30 $ constView E $ ttv'] ++
+  [ta $ exec out $ G.contract $ View.to_gen "foo" 30 $ constView E $ E.inline_code "ttv_compute();"]
 
 def eg_ttm :=
-  [me $ Ev.eval out ttm'] ++
+  [me $ exec out ttm'] ++
   [ta $ Prog.inline_code "ttm_compute();"]
 
 def eg_mttkrp :=
-  [me $ Ev.eval out mttkrp'] ++
+  [me $ exec out mttkrp'] ++
   [ta $ Prog.inline_code "mttkrp_compute();"]
 
 def eg_inner3 :=
-  [me $ Ev.eval out inner3'] ++
+  [me $ exec out inner3'] ++
   [ta $ Prog.inline_code "inner3_compute();"]
 
 def eg_inner3' :=
-  [me $ Ev.eval out $ G.contract $ View.to_gen "foo" 200 $ constView E $ inner3'] ++
-  [ta $ Ev.eval out $ G.contract $ View.to_gen "foo" 200 $ constView E $ E.inline_code "inner3_compute();"]
+  [me $ exec out $ G.contract $ View.to_gen "foo" 200 $ constView E $ inner3'] ++
+  [ta $ exec out $ G.contract $ View.to_gen "foo" 200 $ constView E $ E.inline_code "inner3_compute();"]
 
-def compp (v : list Prog) := compile $ load ++ v
+def compile_with_load (v : list Prog) := compile $ load ++ v
+
 def tests :=
   /- 1 -/ eg_mmul1 ++
   /- 2 -/ eg_mmul2 ++
@@ -277,7 +225,9 @@ def tests :=
   /- 5 -/ eg_mttkrp ++
   /- 6 -/ eg_inner3'
 
+def run_comparisons := compile_with_load tests
+
 -- main comparison script:
---#eval compp
+-- #eval run_comparisons
 
 end Streams

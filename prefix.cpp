@@ -276,9 +276,9 @@ int main() {
   int m = 2000;
   int k = 2000;
   int l = 1000;
-  Matrix x = load_random(m,k,40);
+  Matrix x = load_random(m,k,80);
   Matrix y = load_random(k,l,40);
   Vector v = load_random(1000, 2);
-  Cube c = load_random(100,100,1000, 20);
+  Cube c = load_random(100,100,100, 20);
   //auto z = load_random(m,l, 20);
   //auto t1 = std::chrono::high_resolution_clock::now();
