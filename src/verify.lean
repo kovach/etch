@@ -376,15 +376,15 @@ def Ident.get_num : Ident → ℕ
 | _ := 0
 
 def fresh (S : finset Ident) : Ident :=
-Ident.num $ (finset.image (λ i : Ident, i.get_num) S).max.iget + 1
+Ident.num $ (finset.image Ident.get_num S).max.iget + 1
 
 theorem not_fresh_mem (S : finset Ident) : fresh S ∉ S :=
 begin
   simp only [fresh],
-  cases hn : (finset.image (λ i : Ident, i.get_num) S).max,
+  cases hn : (finset.image Ident.get_num S).max,
   { rw [finset.max_eq_none, finset.image_eq_empty] at hn, subst hn, exact finset.not_mem_empty _, },
   intro h,
-  simpa using finset.le_max_of_mem (finset.mem_image_of_mem (λ i : Ident, i.get_num) h) hn,
+  simpa using finset.le_max_of_mem (finset.mem_image_of_mem Ident.get_num h) hn,
 end
 
 end frame
@@ -523,13 +523,28 @@ structure WithFrame (α : Type) : Type :=
 (val : α)
 (frame : finset Ident)
 
-instance WithFrame_coe {α : Type} : has_coe (WithFrame α) α := ⟨WithFrame.val⟩ 
+instance WithFrame_coe {α : Type} : has_coe (WithFrame α) α := ⟨WithFrame.val⟩
 
-def WithFrame.is_sound (β : Type) [StreamEval α β] (x : WithFrame α) : Prop :=
+@[simp] lemma WithFrame_coe_val (x : WithFrame α) : x.val = (x : α) := rfl
+
+@[simp] lemma WithFrame.val_eq (val : α) (frame : finset Ident) :
+  (WithFrame.mk val frame : α) = val := rfl
+
+@[simp] lemma WithFrame.frame_eq (val : α) (frame : finset Ident) :
+  (WithFrame.mk val frame).frame = frame := rfl
+
+parameter (R)
+def WithFrame.is_sound (x : WithFrame α) (β : Type) [StreamEval α β] : Prop :=
 function.has_frame (StreamEval.eval (x : α) : (Ident → IdentVal) → β) x.frame
 
+parameter {R}
 def WithFrame.fresh {β : Type} (x : WithFrame α) (f : Ident → β) : WithFrame β :=
 ⟨f (fresh x.frame), insert (fresh x.frame) x.frame⟩
+
+-- @[elab_as_eliminator]
+def WithFrame.fresh_elim {β : Type} (x : WithFrame α) (f : α → Ident → β)
+  (P : α → β → Prop) (hP : ∀ i : Ident, i ∉ x.frame → P x (f x i)) : P x (x.fresh (f x)) :=
+hP _ (not_fresh_mem _)
 
 end variable_state
 
@@ -545,7 +560,10 @@ abbreviation output := Ident.of "output"
 
 end vars
 
+-- example (i : Ident) :  := rfl
+
 section singleton
+
 
 def BoundedStreamGen.singleton (a : WithFrame α) : WithFrame (BoundedStreamGen unit α) :=
 a.fresh $ λ i,
@@ -556,6 +574,23 @@ a.fresh $ λ i,
   bound := (1 : ℕ),
   next := i ::= (1 : ℕ),
   initialize := i ::= (0 : ℕ) }
+
+theorem singleton_spec {β : Type} [add_zero_class β] [StreamEval α β] (ctx : Ident → IdentVal) (a : WithFrame α)
+  (h : WithFrame.is_sound a β) :
+  (StreamEval.eval (BoundedStreamGen.singleton a).val ctx : β) = StreamEval.eval a.val ctx :=
+begin
+  simp only [BoundedStreamGen.singleton, WithFrame.fresh],
+  set i := fresh a.frame, have : i ∉ a.frame := not_fresh_mem _,
+  simp [StreamEval.eval, Prog.eval], rw [WithFrame.is_sound, function.has_frame_iff] at h,
+  apply h, intros x hx, simp [show x ≠ i, from λ H, by { rw H at hx, contradiction, }],
+end
+-- (current : ι)
+-- (value : α)
+-- (ready : Expr)
+-- (next : Prog)
+-- (valid : Expr)
+-- (bound : Expr)
+-- (initialize : Prog)
 -- theorem singleton_spec {β : Type} [add_zero_class β] [StreamEval α β] (ctx : Ident → IdentVal R) (a : α) :
 --   (StreamEval.eval ctx (M.get $ BoundedStreamGen.singleton a : BoundedStreamGen R unit α) : β) = StreamEval.eval ctx a :=
 -- begin
