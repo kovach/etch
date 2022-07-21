@@ -4,6 +4,7 @@ import data.list.of_fn
 import data.list.alist
 import data.finsupp.basic
 import control.bifunctor
+import tactic.derive_fintype
 import finsupp_lemmas
 import frames
 
@@ -22,10 +23,10 @@ parameter {R}
 namespace ExprVal
 instance : inhabited ExprVal := ⟨nat 0⟩
 
-instance [has_repr R] : has_repr ExprVal :=
+instance [has_to_string R] : has_to_string ExprVal :=
 ⟨λ v, match v with
-| (nat n) := "(nat " ++ (repr n) ++ ")"
-| (rval r) := "(rval " ++ (repr r) ++ ")"
+| (nat n) := "(" ++ (to_string n) ++ " : ℕ)"
+| (rval r) := "(" ++ (to_string r) ++ " : R)"
 end⟩
 
 @[simp]
@@ -76,21 +77,50 @@ def cast_r (v : ExprVal) : ExprVal := rval v.to_r
 end ExprVal
 section Ident
 
+section vars
+@[derive decidable_eq, derive fintype]
+inductive Vars
+| i | j | k | w | x | y | z | ind₀ | ind₁ | ind₂ | break
 
--- @[reducible] def Ident := string
-@[derive decidable_eq]
-inductive Ident
-| reserved_break : Ident
-| name : string → Ident
-| num : ℕ → Ident
-
-def Ident.of : string → Ident := Ident.name
--- instance : decidable_eq Ident := infer_instance
-instance : has_repr Ident := ⟨λ i, match i with
-| Ident.reserved_break := "break"
-| (Ident.name s) := s
-| (Ident.num n) := "x" ++ (repr n)
+open Vars
+instance : has_to_string Vars :=
+⟨λ v, match v with 
+-- S.split(" | ").map(s => s + ' := "' + s + '"')
+| i := "i" | j := "j" | k := "k" | w := "w" | x := "x" | y := "y" | z := "z" | ind₀ := "ind₀" | ind₁ := "ind₁" | ind₂ := "ind₂" | break := "break"
 end⟩
+end vars
+
+section NameSpace
+@[derive decidable_eq, derive inhabited, derive has_to_string, reducible]
+def NameSpace := ℕ
+
+def fresh (S : finset NameSpace) : NameSpace :=
+S.max.iget + 1
+
+theorem not_fresh_mem (S : finset NameSpace) : fresh S ∉ S :=
+begin
+  simp only [fresh],
+  cases hn : S.max,
+  { rw [finset.max_eq_none] at hn, subst hn, exact finset.not_mem_empty _, },
+  intro h, simpa using finset.le_max_of_mem h hn,
+end
+
+attribute [irreducible] NameSpace
+end NameSpace
+
+@[derive decidable_eq]
+structure Ident :=
+(ns : NameSpace)
+(name : Vars)
+
+@[simp] lemma Ident_ns (ns : NameSpace) (name : Vars) :
+  (Ident.mk ns name).ns = ns := rfl
+
+@[simp] lemma Ident_name (ns : NameSpace) (name : Vars) :
+  (Ident.mk ns name).name = name := rfl
+-- def Ident.of : string → Ident := Ident.name
+instance : has_to_string Ident :=
+⟨λ i, "n" ++ (to_string i.ns) ++ "_" ++ (to_string i.name)⟩
 
 parameter (R)
 inductive IdentVal
@@ -125,7 +155,7 @@ inductive Op
 | add | mul | and | or | not | eq | lt | cast_r
 
 namespace Op
-instance : has_repr Op := ⟨λ v, match v with
+instance : has_to_string Op := ⟨λ v, match v with
 | add := "add"
 | mul := "mul"
 | and := "and"
@@ -202,13 +232,13 @@ example : Expr := (0 : R)
 -- def idcs_repr (idcs : list string) : string :=
 -- if idcs.length = 0 then "" else "[" ++ ", ".intercalate idcs ++ "]"
 
-def expr_repr [has_repr R] : Expr → string
-| (Expr.lit r) := repr r
-| (Expr.ident x) := repr x
-| (Expr.access x i) := (repr x) ++ "[" ++ (expr_repr i) ++ "]"
-| (Expr.call o args) := (repr o) ++ "(" ++ ", ".intercalate (vector.of_fn (λ i, expr_repr $ args i)).to_list ++ ")"
+def expr_repr [has_to_string R] : Expr → string
+| (Expr.lit r) := to_string r
+| (Expr.ident x) := to_string x
+| (Expr.access x i) := (to_string x) ++ "[" ++ (expr_repr i) ++ "]"
+| (Expr.call o args) := (to_string o) ++ "(" ++ ", ".intercalate (vector.of_fn (λ i, expr_repr $ args i)).to_list ++ ")"
 
-instance [has_repr R] : has_repr Expr := ⟨expr_repr⟩
+instance [has_to_string R] : has_to_string Expr := ⟨expr_repr⟩
 -- Because ambiguous whether R or ℕ
 -- instance : has_zero (Expr R) := ⟨Expr.lit 0⟩
 -- instance : has_one (Expr R) := ⟨Expr.lit 1⟩
@@ -240,18 +270,18 @@ inductive Prog
 | loop (n : LoopBound) (b : Prog)
 
 parameter {R}
-def prog_repr [has_repr R] : Prog → list string
+def prog_repr [has_to_string R] : Prog → list string
 | Prog.skip := [";"]
-| (Prog.store dst ind val) := [(repr dst) ++ (ind.elim "" (λ i, "[" ++ repr i ++ "]")) ++ " := " ++ (repr val) ++ ";"]
+| (Prog.store dst ind val) := [(to_string dst) ++ (ind.elim "" (λ i, "[" ++ to_string i ++ "]")) ++ " := " ++ (to_string val) ++ ";"]
 | (Prog.seq a b) := (prog_repr a) ++ (prog_repr b)
-| (Prog.branch c a b) := ["if " ++ (repr c)]
+| (Prog.branch c a b) := ["if " ++ (to_string c)]
     ++ (prog_repr a).map (λ s, "  " ++ s)
     ++ ["else"]
     ++ (prog_repr b).map (λ s, "  " ++ s)
 | (Prog.loop n b) := ["for at most some bounded # of times"]
     ++ (prog_repr b).map (λ s, "  " ++ s)
 
-instance [has_repr R] : has_to_string Prog := ⟨λ p, "\n".intercalate (prog_repr p)⟩
+instance [has_to_string R] : has_to_string Prog := ⟨λ p, "\n".intercalate (prog_repr p)⟩
 
 
 
@@ -370,22 +400,6 @@ def Expr.to_loop_bound (e : Expr) : LoopBound :=
 @[simp] lemma Expr.to_loop_bound_to_fun (e : Expr) (ctx : Ident → IdentVal) : e.to_loop_bound ctx = (e.eval ctx).to_nat :=
 by simp [Expr.to_loop_bound]
 
-@[simp]
-def Ident.get_num : Ident → ℕ
-| (Ident.num n) := n
-| _ := 0
-
-def fresh (S : finset Ident) : Ident :=
-Ident.num $ (finset.image Ident.get_num S).max.iget + 1
-
-theorem not_fresh_mem (S : finset Ident) : fresh S ∉ S :=
-begin
-  simp only [fresh],
-  cases hn : (finset.image Ident.get_num S).max,
-  { rw [finset.max_eq_none, finset.image_eq_empty] at hn, subst hn, exact finset.not_mem_empty _, },
-  intro h,
-  simpa using finset.le_max_of_mem (finset.mem_image_of_mem Ident.get_num h) hn,
-end
 
 end frame
 
@@ -393,6 +407,7 @@ local infixr ` <;> `:1 := Prog.seq
 local notation a ` ::= `:20 c := Prog.store a none c
 local notation a ` ⟬ `:9000 i ` ⟭ ` ` ::= `:20 c := Prog.store a (some i) c
 local notation x ` ⟬ `:9000 i ` ⟭ ` := Expr.access x i 
+local infix `∷`:10000 := Ident.mk
 
 parameter (R)
 structure BoundedStreamGen (ι α : Type) :=
@@ -453,11 +468,11 @@ def Prog.if1 (cond : Expr) (b : Prog) := Prog.branch cond b Prog.skip
 
 def BoundedStreamGen.compile (g : BoundedStreamGen unit Prog) : Prog :=
 g.initialize <;>
-Ident.reserved_break ::= (0 : ℕ) <;>
+Ident.mk default Vars.break ::= (0 : ℕ) <;>
 Prog.loop (Expr.to_loop_bound g.bound) $
-  Prog.if1 (Expr.call Op.not ![Ident.reserved_break]) $
+  Prog.if1 (Expr.call Op.not ![Ident.mk default Vars.break]) $
     Prog.if1 g.ready g.value <;>
-    Prog.branch g.valid g.next (Ident.reserved_break ::= (1 : ℕ))
+    Prog.branch g.valid g.next (Ident.mk default Vars.break ::= (1 : ℕ))
 
 parameter (R)
 /-- Indicates that things of type α (which typically involve Expr R)'s can eval
@@ -512,6 +527,21 @@ instance base_compile : Compileable (Expr → Prog) Expr :=
 
 section laws
 -- Law 1: eval frame should be frame
+structure BoundedStreamGen.has_frame (x : BoundedStreamGen ι α) (ι' β) [StreamEval ι ι'] [StreamEval α β] (S : set Ident) :=
+(current : function.has_frame (StreamEval.eval x.current : _ → ι') S)
+(value : function.has_frame (StreamEval.eval x.value : _ → β) S)
+(ready : ↑x.ready.frame ⊆ S)
+(next : ↑x.next.frame ⊆ S)
+(valid : ↑x.valid.frame ⊆ S)
+(bound : ↑x.bound.frame ⊆ S)
+(initialize : ↑x.initialize.frame ⊆ S)
+
+theorem eval_has_frame_of_has_frame {ι' β S} [StreamEval ι ι'] [StreamEval α β] [add_zero_class β] {x : BoundedStreamGen ι α} (hx : x.has_frame ι' β S) :
+  function.has_frame (StreamEval.eval x : _ → (ι' →₀ β)) S :=
+begin
+  sorry,
+end
+
 
 -- Law 2: eval for bound steps should make invalid
 
@@ -521,69 +551,38 @@ section variable_state
 
 structure WithFrame (α : Type) : Type :=
 (val : α)
-(frame : finset Ident)
+(frame : finset NameSpace)
 
 instance WithFrame_coe {α : Type} : has_coe (WithFrame α) α := ⟨WithFrame.val⟩
 
 @[simp] lemma WithFrame_coe_val (x : WithFrame α) : x.val = (x : α) := rfl
 
-@[simp] lemma WithFrame.val_eq (val : α) (frame : finset Ident) :
+@[simp] lemma WithFrame.val_eq (val : α) (frame : finset NameSpace) :
   (WithFrame.mk val frame : α) = val := rfl
 
-@[simp] lemma WithFrame.frame_eq (val : α) (frame : finset Ident) :
+@[simp] lemma WithFrame.frame_eq (val : α) (frame : finset NameSpace) :
   (WithFrame.mk val frame).frame = frame := rfl
 
 parameter (R)
 def WithFrame.is_sound (x : WithFrame α) (β : Type) [StreamEval α β] : Prop :=
-function.has_frame (StreamEval.eval (x : α) : (Ident → IdentVal) → β) x.frame
+function.has_frame (StreamEval.eval (x : α) : (Ident → IdentVal) → β) (Ident.ns⁻¹' x.frame)
 
 parameter {R}
-def WithFrame.fresh {β : Type} (x : WithFrame α) (f : Ident → β) : WithFrame β :=
-⟨f (fresh x.frame), insert (fresh x.frame) x.frame⟩
+def WithFrame.fresh {β : Type} (x : finset NameSpace) (f : NameSpace → β) : WithFrame β :=
+⟨f (fresh x), insert (fresh x) x⟩
 
--- @[elab_as_eliminator]
-def WithFrame.fresh_elim {β : Type} (x : WithFrame α) (f : α → Ident → β)
-  (P : α → β → Prop) (hP : ∀ i : Ident, i ∉ x.frame → P x (f x i)) : P x (x.fresh (f x)) :=
-hP _ (not_fresh_mem _)
+lemma WithFrame.fresh_spec₁ (x : finset NameSpace) ⦃v : Ident⦄ (hx : v.ns ∈ x) (v' : Vars) :
+  v ≠ (fresh x)∷v' :=
+by { rintro rfl, exact not_fresh_mem _ hx, }
 
-end variable_state
-
-namespace vars
-
-abbreviation x := Ident.of "x"
-abbreviation y := Ident.of "y"
-abbreviation z := Ident.of "z"
-abbreviation s := Ident.of "s"
-abbreviation i := Ident.of "i"
-abbreviation acc := Ident.of "acc"
-abbreviation output := Ident.of "output"
-
-end vars
-
--- example (i : Ident) :  := rfl
-
-section singleton
-
-
-def BoundedStreamGen.singleton (a : WithFrame α) : WithFrame (BoundedStreamGen unit α) :=
-a.fresh $ λ i,
-{ current := (),
-  value := a,
-  ready := (1 : ℕ),
-  valid := i ⟪<⟫ (1 : ℕ),
-  bound := (1 : ℕ),
-  next := i ::= (1 : ℕ),
-  initialize := i ::= (0 : ℕ) }
-
-theorem singleton_spec {β : Type} [add_zero_class β] [StreamEval α β] (ctx : Ident → IdentVal) (a : WithFrame α)
-  (h : WithFrame.is_sound a β) :
-  (StreamEval.eval (BoundedStreamGen.singleton a).val ctx : β) = StreamEval.eval a.val ctx :=
+lemma WithFrame.is_sound_of_fresh₁ {ι' β} [add_zero_class β] [StreamEval ι ι'] [StreamEval α β] (x : finset NameSpace) {f : NameSpace → WithFrame (BoundedStreamGen ι α)} 
+  (hf : BoundedStreamGen.has_frame (f (fresh x)).val ι β (Ident.ns⁻¹' (insert (fresh x) x))) :
+  WithFrame.is_sound (f (fresh x)) (ι →₀ β) :=
 begin
-  simp only [BoundedStreamGen.singleton, WithFrame.fresh],
-  set i := fresh a.frame, have : i ∉ a.frame := not_fresh_mem _,
-  simp [StreamEval.eval, Prog.eval], rw [WithFrame.is_sound, function.has_frame_iff] at h,
-  apply h, intros x hx, simp [show x ≠ i, from λ H, by { rw H at hx, contradiction, }],
+  simp [WithFrame.is_sound], sorry,
 end
+
+
 -- (current : ι)
 -- (value : α)
 -- (ready : Expr)
@@ -591,11 +590,40 @@ end
 -- (valid : Expr)
 -- (bound : Expr)
 -- (initialize : Prog)
--- theorem singleton_spec {β : Type} [add_zero_class β] [StreamEval α β] (ctx : Ident → IdentVal R) (a : α) :
---   (StreamEval.eval ctx (M.get $ BoundedStreamGen.singleton a : BoundedStreamGen R unit α) : β) = StreamEval.eval ctx a :=
--- begin
---   simp [StreamEval.eval, Prog.eval, BoundedStreamGen.singleton], sorry,
--- end
+
+end variable_state
+-- example (i : Ident) :  := rfl
+
+section singleton
+open Vars (i)
+
+def BoundedStreamGen.singleton (a : WithFrame α) : WithFrame (BoundedStreamGen unit α) :=
+WithFrame.fresh a.frame $ λ ns,
+{ current := (),
+  value := a,
+  ready := (1 : ℕ),
+  valid := ns∷i ⟪<⟫ (1 : ℕ),
+  bound := (1 : ℕ),
+  next := ns∷i ::= (1 : ℕ),
+  initialize := ns∷i ::= (0 : ℕ) }
+
+theorem singleton_spec {β : Type} [add_zero_class β] [StreamEval α β] (ctx : Ident → IdentVal) (a : WithFrame α)
+  (h : WithFrame.is_sound a β) :
+  (StreamEval.eval (BoundedStreamGen.singleton a).val ctx : β) = StreamEval.eval a.val ctx :=
+begin
+  simp only [BoundedStreamGen.singleton, WithFrame.fresh],
+  have := WithFrame.fresh_spec₁ a.frame, set ns := fresh a.frame,
+  simp [StreamEval.eval, Prog.eval], rw [WithFrame.is_sound, function.has_frame_iff] at h,
+  apply h, intros x hx, simp [this hx],
+end
+
+theorem singleton_frame_sound {β : Type} [add_zero_class β] [StreamEval α β] {a : WithFrame α}
+  (h : WithFrame.is_sound a β) : WithFrame.is_sound (BoundedStreamGen.singleton a) β :=
+begin
+  simp only [BoundedStreamGen.singleton],
+end
+
+#exit
 
 end singleton
 

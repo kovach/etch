@@ -1,7 +1,7 @@
 import tactic.ext
 
 section
-parameter (α : Type)
+variable (α : Type)
 
 @[ext]
 structure TestStruct :=
