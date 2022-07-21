@@ -18,6 +18,9 @@
 // #define BUFFER_SIZE 10
 
 // todo
+
+int i1 = 0;
+int i2 = 0;
 int array_size = 1000000;
 int out1_i = -1;
 int out2_i = -1;
@@ -276,7 +279,7 @@ int main() {
   int m = 2000;
   int k = 2000;
   int l = 1000;
-  Matrix x = load_random(m,k,80);
+  Matrix x = load_random(10,10,10);
   Matrix y = load_random(k,l,40);
   Vector v = load_random(1000, 2);
   Cube c = load_random(100,100,100, 20);

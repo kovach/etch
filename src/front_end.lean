@@ -1,7 +1,7 @@
 import tactic
 import compile_fast
 
-class NatLt (m n : ℕ) := (proof : m < n) .
+class NatLt (m n : ℕ) := (proof : m < n)
 instance NatLt.one (n : ℕ) : NatLt 0 (n+1) := ⟨nat.succ_pos _⟩
 instance NatLt.trans (m n : ℕ) [h : NatLt m n] : NatLt (m+1) (n+1) :=
 ⟨nat.succ_lt_succ h.proof⟩

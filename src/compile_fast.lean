@@ -297,6 +297,9 @@ local infix  ` < `:71  := BinOp.lt
 infix  ` == `:71 := BinOp.eq
 infix  ` === `:71 := BinOp.lit_eq
 infix  ` != `:71 := λ a b, (BinOp.eq a b).neg
+@[pattern] def E.le : E → E → E := λ a b, BinOp.or (a < b) (a == b)
+local infix  ` ≤ `:71  := E.le
+
 --notation e `⟦` k `⟧` := e.access k
 
 structure G (ι α : Type) :=
@@ -419,21 +422,18 @@ def G.leaf    :   E → G E E → G E E       := functor.map ∘ E.access -- λ 
 
 end rval
 
-@[reducible] def loc := E
 /- csr lval v3 -/
 /- implementation of composable sparse lval level -/
 section csr_lval
+@[reducible] def loc := E
 structure il :=
-  (crd : loc → E)
+  (crd  : loc → E)
   (push : E → (loc → Prog) → Prog × loc)
 structure vl  (α : Type) :=
-  (pos : loc → α)
+  (pos  : loc → α)
   (init : loc → Prog)
-structure lvl (α : Type) extends il, vl α .
+structure lvl (α : Type) extends il, vl α.
 instance : functor lvl := { map := λ _ _ f l, { l with pos := f ∘ l.pos } }
-
-structure lval (α : Type) := (push : E → Prog × α)
-instance : functor lval := { map := λ _ _ f l, { l with push := prod.map id f ∘ l.push } }
 
 def sparse_index (indices : E) (bounds : E × E) : il :=
 let upper := bounds.2, lower := bounds.1, current := indices.access (upper-1) in
@@ -445,45 +445,57 @@ let loc := upper-1 in
                      current.store i
     in (prog, loc) }
 
-def dense_index (dim : E) (base : E) : il :=
+def dense_index (dim : E) (counter : E) (base : E) : il :=
 { crd  := id,
-  push := λ i init, let loc := base * dim + i in (init loc, loc) }
+  push := λ i init,
+    let l i  : loc := base * dim + i,
+        prog : Prog := Prog.while (counter ≤ i) (init (l counter); counter.accum 1)
+    in (prog, l i) }
 
 def interval_vl (array : E) : vl (E × E) :=
-{ pos := λ loc, (array.access loc, array.access (loc + 1)),
-  init := λ loc, (array.access (loc+1)).store (array.access (loc)) }
+let fn := array.access in
+{ pos  := λ loc, (array.access loc, array.access (loc + 1)),
+  init := λ loc, (fn (loc + 1)).store (fn loc) }
+
 def dense_vl    (array : E) : vl E :=
 { pos := λ loc, array.access loc,
   init := λ loc, (array.access loc).store 0 }
+
 def implicit_vl : vl E := { pos := id, init := λ _, Prog.skip }
 
 -- def base (array : E) : lvl E := { i_shift := λ _ i, array.access i,  }
 
--- we use this to thread the primary argument to a level through ⊚; see dcsr/csr_mat/dense below
-def with_values : (β → il) → vl α → β → lvl α := λ i v e, lvl.mk (i e) v
-
-def cube_lvl := 0 & (with_values (dense_index 11) implicit_vl)
-             ⊚ (with_values (dense_index 7) implicit_vl)
-             ⊚ (with_values (dense_index 5) $ dense_vl "values")
+-- this combinator combines an il with a vl to form a lvl.
+-- the extra parameter α is used to thread the primary argument to a level through ⊚.
+--   see dcsr/csr_mat/dense below
+def with_values : (α → il) → vl β → α → lvl β := λ i v e, lvl.mk (i e) v
 
 def dense_mat (d₁ d₂ : E) := 0 &
-  (with_values (dense_index d₁) implicit_vl) ⊚
-  (with_values (dense_index d₂) $ dense_vl "values")
+  (with_values (dense_index d₁ "i1") implicit_vl) ⊚
+  (with_values (dense_index d₂ "i2") $ dense_vl "values")
+
+def cube_lvl := 0 &
+  (with_values (dense_index 11 "i1") implicit_vl) ⊚
+  (with_values (dense_index 7 "i2") implicit_vl) ⊚
+  (with_values (dense_index 5 "i3") $ dense_vl "values")
+
+def sparse_vec := (0, E.ident "size") &
+  (with_values (sparse_index "A1_crd") (dense_vl "A_vals"))
 
 def dcsr := (interval_vl "A1_pos").pos 0 &
   (with_values (sparse_index "A1_crd") (interval_vl "A2_pos")) ⊚
   (with_values (sparse_index "A2_crd") (dense_vl "A_vals"))
 
-def sparse_vec := (0, E.ident "size") &
-  (with_values (sparse_index "A1_crd") (dense_vl "A_vals"))
-
 def csr_mat := 0 &
-  (with_values (dense_index 2000) (interval_vl "A2_pos")) ⊚
-  (with_values (sparse_index "A2_crd") (dense_vl "A_vals"))
+  (with_values (dense_index 2000 "i1") (interval_vl "B2_pos")) ⊚
+  (with_values (sparse_index "B2_crd") (dense_vl "B_vals"))
 
 end csr_lval
 
 /- csr lval v2. TODO remove -/
+structure lval (α : Type) := (push : E → Prog × α)
+instance : functor lval := { map := λ _ _ f l, { l with push := prod.map id f ∘ l.push } }
+
 def csr.base (csr : csr) : E×E := ((csr.v.access 0), (csr.v.access 1))
 def csr.lval (csr : csr) (bounds : E×E) : lval (E×E)  :=
 let upper := bounds.2, lower := bounds.1 in
@@ -653,6 +665,9 @@ def A  : G E (G E E) := (csr.of "A" 1).level 0 & G.level (csr.of "A" 2) ⊚ G.le
 def A_csr  : G E (G E E) :=
   let dense : G E E := range "_i" 2000 in
   dense & G.level (csr.of "A" 2) ⊚ G.leaf "A_vals"
+def B_csr  : G E (G E E) :=
+  let dense : G E E := range "_i" 2000 in
+  dense & G.level (csr.of "B" 2) ⊚ G.leaf "B_vals"
 def B  : G E (G E E) := (csr.of "B" 1).level 0 & G.level (csr.of "B" 2) ⊚ G.leaf "B_vals"
 def C  : G E (G E (G E E)) := (csr.of "C" 1).level 0 & G.level (csr.of "C" 2) ⊚ G.level (csr.of "C" 3) ⊚ G.leaf "C_vals"
 def D  : G E (G E (G E E)) := (csr.of "D" 1).level 0 & G.level (csr.of "D" 2) ⊚ G.level (csr.of "D" 3) ⊚ G.leaf "D_vals"
@@ -675,6 +690,10 @@ def comb_rows : G E (G E (G unit E)) := G.sum_inner $ (fmap2 (⇑ E) A) ⋆ ⇑ 
 def me := Prog.time "me"
 def ta := Prog.time "taco"
 
+def c0 : csr := { i := "", v := "A1_pos", var := "" }
+def c1 : csr := csr'.of "A" 1
+def c2 : csr := { i := "A2_crd", v := "A_vals", var := "" }
+def A_lval := c0.base & ( c1.lval ⊚ c2.vec )
 
 def out : E := "out_val"
 
@@ -704,14 +723,6 @@ def eg20 := load_AB ++ [me $ eg06, Prog.time "taco" $ taco_ijk]
 def eg26 := load_AB ++ [me $ exec out $ G.sum2 (comb_rows), Prog.time "taco" $ taco_ijk]
 def eg27 := load_AB ++ [me $ exec (mval "out") $ comb_rows]
 
-
-def c0 : csr := { i := "", v := "A1_pos", var := "" }
-def c1 : csr := csr'.of "A" 1
-def c2 : csr := { i := "A2_crd", v := "A_vals", var := "" }
-
-
-def A_lval := c0.base & ( c1.lval ⊚ c2.vec )
-
 def load := [
   exec A_lval (ref_matrix "x"),
   exec (mat_lval' "B") (ref_matrix "y"),
@@ -723,17 +734,20 @@ def eg28 := load_AB ++ [
   Prog.time "me" $ exec (mval "out") $ inner_prod.sum_inner,
   Prog.time "taco" $ Prog.inline_code "taco_ikjk();" ]
 
-def eg29 := exec (mval "out") (A + B)
+def eg29 := load ++ [exec (mval "out") (A + B)]
 def eg30 := exec out (C + D).sum3
-
-#eval comp eg30
 
 --#eval comp $ exec A_lval A
 --#eval compile $ [exec A_lval (ref_matrix "x"), me $ exec out $ G.sum2 $ A ]
---#eval compile $ [exec dcsr (ref_matrix "x"), me $ exec out $ G.sum2 $ A ]
 --#eval compile $ [exec sparse_vec (ref_vector "v")] -- , me $ exec out $ G.sum2 $ A ]
--- not working:
---#eval compile $ [exec csr_mat (ref_matrix "x"), me $ exec out $ G.sum2 $ A_csr ]
+--#eval compile $ [exec dcsr (ref_matrix "x"), me $ exec out $ G.sum2 $ A ]
+
+-- compare dcsr anc csr:
+#eval compile $
+[ exec dcsr (ref_matrix "x"),
+  exec csr_mat (ref_matrix "x"),
+  me $ exec out $ B_csr.sum2,
+  me $ exec out $ (ref_matrix "x").sum2 ]
 --#eval compile [exec sparse_cube_lvl $ ref_cube "c"]
 
 end G
