@@ -5,6 +5,7 @@ import data.list.alist
 import data.finsupp.basic
 import control.bifunctor
 import tactic.derive_fintype
+import tactic.fin_cases
 import finsupp_lemmas
 import frames
 
@@ -78,21 +79,23 @@ end ExprVal
 section Ident
 
 section vars
-@[derive decidable_eq, derive fintype]
+@[derive decidable_eq, derive fintype, derive inhabited]
 inductive Vars
-| i | j | k | w | x | y | z | ind₀ | ind₁ | ind₂ | break
+| i | j | k | w | x | y | z | ind₀ | ind₁ | ind₂ | break | output
 
 open Vars
 instance : has_to_string Vars :=
 ⟨λ v, match v with 
 -- S.split(" | ").map(s => s + ' := "' + s + '"')
-| i := "i" | j := "j" | k := "k" | w := "w" | x := "x" | y := "y" | z := "z" | ind₀ := "ind₀" | ind₁ := "ind₁" | ind₂ := "ind₂" | break := "break"
+| i := "i" | j := "j" | k := "k" | w := "w" | x := "x" | y := "y" | z := "z" | ind₀ := "ind₀" | ind₁ := "ind₁" | ind₂ := "ind₂" | break := "break" | output := "output"
 end⟩
 end vars
 
 section NameSpace
 @[derive decidable_eq, derive inhabited, derive has_to_string, reducible]
 def NameSpace := ℕ
+
+def NameSpace.reserved : NameSpace := 0
 
 def fresh (S : finset NameSpace) : NameSpace :=
 S.max.iget + 1
@@ -104,6 +107,9 @@ begin
   { rw [finset.max_eq_none] at hn, subst hn, exact finset.not_mem_empty _, },
   intro h, simpa using finset.le_max_of_mem h hn,
 end
+
+theorem not_fresh_reserved (S : finset NameSpace) : fresh S ≠ NameSpace.reserved :=
+by simp [fresh, NameSpace.reserved]
 
 attribute [irreducible] NameSpace
 end NameSpace
@@ -121,6 +127,9 @@ structure Ident :=
 -- def Ident.of : string → Ident := Ident.name
 instance : has_to_string Ident :=
 ⟨λ i, "n" ++ (to_string i.ns) ++ "_" ++ (to_string i.name)⟩
+
+@[simp] lemma Ident_ns_range : set.range Ident.ns = set.univ :=
+by { ext, simp, exact ⟨⟨x, default⟩, rfl⟩, }
 
 parameter (R)
 inductive IdentVal
@@ -313,6 +322,10 @@ def Expr.frame : Expr → finset Ident
 | (Expr.access x n) := insert x n.frame
 | (Expr.call o args) := finset.bUnion finset.univ (λ i, (args i).frame)
 
+@[simp] lemma Expr_frame_coe_nat (n : ℕ) : (n : Expr).frame = ∅ := rfl
+@[simp] lemma Expr_frame_coe_R (r : R) : (r : Expr).frame = ∅ := rfl
+@[simp] lemma Expr_frame_coe_ident (i : Ident) : (i : Expr).frame = {i} := rfl
+
 /-- The evaluation of an Expr depends only on the values in its frame -/
 theorem frame_sound_Expr {e : Expr} {ctx₀ ctx₁ : Ident → IdentVal}
   (h : ∀ v ∈ e.frame, ctx₀ v = ctx₁ v) : e.eval ctx₀ = e.eval ctx₁ :=
@@ -407,7 +420,7 @@ local infixr ` <;> `:1 := Prog.seq
 local notation a ` ::= `:20 c := Prog.store a none c
 local notation a ` ⟬ `:9000 i ` ⟭ ` ` ::= `:20 c := Prog.store a (some i) c
 local notation x ` ⟬ `:9000 i ` ⟭ ` := Expr.access x i 
-local infix `∷`:10000 := Ident.mk
+local infix `∷`:9000 := Ident.mk
 
 parameter (R)
 structure BoundedStreamGen (ι α : Type) :=
@@ -571,13 +584,20 @@ parameter {R}
 def WithFrame.fresh {β : Type} (x : finset NameSpace) (f : NameSpace → β) : WithFrame β :=
 ⟨f (fresh x), insert (fresh x) x⟩
 
-lemma WithFrame.fresh_spec₁ (x : finset NameSpace) ⦃v : Ident⦄ (hx : v.ns ∈ x) (v' : Vars) :
+lemma WithFrame.fresh_spec (x : finset NameSpace) ⦃v : Ident⦄ (hx : v.ns ∈ x) (v' : Vars) :
   v ≠ (fresh x)∷v' :=
 by { rintro rfl, exact not_fresh_mem _ hx, }
 
-lemma WithFrame.is_sound_of_fresh₁ {ι' β} [add_zero_class β] [StreamEval ι ι'] [StreamEval α β] (x : finset NameSpace) {f : NameSpace → WithFrame (BoundedStreamGen ι α)} 
-  (hf : BoundedStreamGen.has_frame (f (fresh x)).val ι β (Ident.ns⁻¹' (insert (fresh x) x))) :
-  WithFrame.is_sound (f (fresh x)) (ι →₀ β) :=
+lemma WithFrame.is_sound_of_fresh₁ {ι' β} [add_zero_class β] [StreamEval ι ι'] [StreamEval α β] (x : finset NameSpace) {f : NameSpace → BoundedStreamGen ι α} 
+  (hf : BoundedStreamGen.has_frame (f (fresh x)) ι β (Ident.ns⁻¹' (insert (fresh x) x))) :
+  WithFrame.is_sound (WithFrame.fresh x f) (ι →₀ β) :=
+begin
+  simp [WithFrame.is_sound], sorry,
+end
+
+lemma WithFrame.is_sound_of_fresh₂ {β} [add_zero_class β] [StreamEval α β] (x : finset NameSpace) {f : NameSpace → (BoundedStreamGen unit α)} 
+  (hf : BoundedStreamGen.has_frame (f (fresh x)) unit β (Ident.ns⁻¹' (insert (fresh x) x))) :
+  WithFrame.is_sound (WithFrame.fresh x f) β :=
 begin
   simp [WithFrame.is_sound], sorry,
 end
@@ -612,7 +632,7 @@ theorem singleton_spec {β : Type} [add_zero_class β] [StreamEval α β] (ctx :
   (StreamEval.eval (BoundedStreamGen.singleton a).val ctx : β) = StreamEval.eval a.val ctx :=
 begin
   simp only [BoundedStreamGen.singleton, WithFrame.fresh],
-  have := WithFrame.fresh_spec₁ a.frame, set ns := fresh a.frame,
+  have := WithFrame.fresh_spec a.frame, set ns := fresh a.frame,
   simp [StreamEval.eval, Prog.eval], rw [WithFrame.is_sound, function.has_frame_iff] at h,
   apply h, intros x hx, simp [this hx],
 end
@@ -620,10 +640,12 @@ end
 theorem singleton_frame_sound {β : Type} [add_zero_class β] [StreamEval α β] {a : WithFrame α}
   (h : WithFrame.is_sound a β) : WithFrame.is_sound (BoundedStreamGen.singleton a) β :=
 begin
-  simp only [BoundedStreamGen.singleton],
+  simp only [BoundedStreamGen.singleton], apply WithFrame.is_sound_of_fresh₂,
+  split,
+  { simp [StreamEval.eval], apply function.has_frame.mono, apply function.has_frame.const, exact set.empty_subset _, },
+  { simp, apply function.has_frame.mono, exact h, simp [set.preimage_subset_preimage_iff], },
+  all_goals { simp [fin.forall_fin_two], },
 end
-
-#exit
 
 end singleton
 
@@ -631,12 +653,12 @@ end singleton
 
 def BoundedStreamGen.expr_to_prog (inp : BoundedStreamGen unit Expr) : BoundedStreamGen unit Prog :=
 { current := (),
-  value := vars.output ::= vars.output ⟪+⟫ inp.value,
+  value := NameSpace.reserved∷Vars.output ::= NameSpace.reserved∷Vars.output ⟪+⟫ inp.value,
   ready := inp.ready,
   next := inp.next,
   valid := inp.valid,
   bound := inp.bound,
-  initialize := inp.initialize <;> vars.output ::= (0 : R) }
+  initialize := inp.initialize <;> NameSpace.reserved∷Vars.output ::= (0 : R) }
 
 -- section example_singleton
 
