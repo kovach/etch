@@ -55,7 +55,7 @@ def not : ExprVal → ExprVal
 @[simp]
 def to_nat : ExprVal → ℕ
 | (nat n₁) := n₁
-| _ := default
+| _ := arbitrary _
 
 @[simp]
 def eq : ExprVal → ExprVal → ExprVal
@@ -429,7 +429,7 @@ structure BoundedStreamGen (ι α : Type) :=
 (ready : Expr)
 (next : Prog)
 (valid : Expr)
-(bound : Expr)
+(bound : LoopBound)
 (initialize : Prog)
 
 parameter {R}
@@ -482,7 +482,7 @@ def Prog.if1 (cond : Expr) (b : Prog) := Prog.branch cond b Prog.skip
 def BoundedStreamGen.compile (g : BoundedStreamGen unit Prog) : Prog :=
 g.initialize <;>
 Ident.mk default Vars.break ::= (0 : ℕ) <;>
-Prog.loop (Expr.to_loop_bound g.bound) $
+Prog.loop g.bound $
   Prog.if1 (Expr.call Op.not ![Ident.mk default Vars.break]) $
     Prog.if1 g.ready g.value <;>
     Prog.branch g.valid g.next (Ident.mk default Vars.break ::= (1 : ℕ))
@@ -526,7 +526,7 @@ instance refl_eval {α : Type} : StreamEval α α := ⟨λ x _, x⟩
 
 noncomputable instance ind_eval {ι ι' α β : Type} [StreamEval ι ι'] [StreamEval α β] [add_zero_class β] :
   StreamEval (BoundedStreamGen ι α) (ι' →₀ β) :=
-{ eval := λ s ctx, eval_stream (s.bound.eval ctx).to_nat (s.initialize.eval ctx) 
+{ eval := λ s ctx, eval_stream (s.bound ctx) (s.initialize.eval ctx) 
   (StreamEval.eval <$₁> StreamEval.eval <$₂> s) }
 
 /- Convenience instance for `unit` so we don't have to write `unit → R` and can directly go to R
@@ -623,7 +623,7 @@ WithFrame.fresh a.frame $ λ ns,
   value := a,
   ready := (1 : ℕ),
   valid := ns∷i ⟪<⟫ (1 : ℕ),
-  bound := (1 : ℕ),
+  bound := ⟨∅, λ _, 1, function.has_frame.const _ _ _⟩,
   next := ns∷i ::= (1 : ℕ),
   initialize := ns∷i ::= (0 : ℕ) }
 
@@ -671,16 +671,41 @@ def BoundedStreamGen.expr_to_prog (inp : BoundedStreamGen unit Expr) : BoundedSt
 
 section range
 
-def range (n : Expr) (var : Ident) : BoundedStreamGen Expr Expr :=
-{ current := var,
-  value := Expr.call Op.cast_r ![var],
-  ready := var ⟪<⟫ n,
-  valid := var ⟪<⟫ n,
-  next := var ::= var ⟪+⟫ (1 : ℕ),
-  bound := n,
-  initialize := var ::= (0 : ℕ), }
+def range_aux (n : Expr) (v : Ident) : BoundedStreamGen Expr Expr :=
+{ current := v,
+  value := Expr.call Op.cast_r ![v],
+  ready := (1 : ℕ),
+  valid := v ⟪<⟫ n,
+  next := v ::= v ⟪+⟫ (1 : ℕ),
+  bound := (n : Expr).to_loop_bound,
+  initialize := v ::= (0 : ℕ), }
 
+def range (n : WithFrame Expr) : WithFrame (BoundedStreamGen Expr Expr) :=
+WithFrame.fresh n.frame $ λ ns, range_aux n ns∷Vars.i
 
+lemma range_spec_aux (bound n x₀ : ℕ) (hn : n ≤ x₀ + bound)
+  (ctx : Ident → IdentVal)
+  (n' : WithFrame Expr) (hn' : Expr.eval ctx n' = ExprVal.nat n)
+  (v : Ident) (hv : v.ns ∉ n'.frame) (hx₀ : ctx v = IdentVal.base (ExprVal.nat x₀)) :
+  ∀ (t : ℕ), eval_stream bound ctx ((λ (e : Expr) ctx, (e.eval ctx).to_nat) <$₁> (λ (e : Expr) ctx, (e.eval ctx).to_r) <$₂> (range_aux n' v)) t =
+   (if x₀ ≤ t ∧ t < n then (t : R) else 0) :=
+begin
+  induction bound with bound ih generalizing ctx x₀,
+  { intro t, simp, split_ifs, { cases not_lt.mpr (hn.trans h.1) h.2, }, refl, },
+  intro t, simp [range_aux, hx₀, hn', ← apply_ite _root_.ExprVal.nat, imp_false],
+  by_cases h : x₀ < n, swap,
+  { have h' : ¬(x₀ ≤ t ∧ t < n) := λ H, h (lt_of_le_of_lt H.1 H.2), simp [h, h'], },
+
+end
+
+#check finsupp.has_coe_to_fun
+
+noncomputable theorem range_spec (n : WithFrame Expr) (hn : WithFrame.is_sound n ℕ) (ctx : Ident → IdentVal) :
+  (StreamEval.eval (range n).val ctx : ℕ →₀ R) = finsupp.indicator (finset.range (n.val.eval ctx).to_nat) (λ i _, (i : R)) :=
+begin
+  simp only [StreamEval.eval, range, WithFrame.fresh],
+  have n_fresh := WithFrame.fresh_spec n.frame, set ns := fresh n.frame,
+end
 
 end range
 
@@ -705,7 +730,7 @@ theorem contract_spec {β ι' : Type} [add_comm_monoid β] [StreamEval α β] [S
   (s : BoundedStreamGen ι α) (ctx : Ident → IdentVal) :
   StreamEval.eval (contract s) ctx = (StreamEval.eval s ctx : ι' →₀ β).sum_range :=
 by simpa [StreamEval.eval, contract, bifunctor.fst] with functor_norm
-using contract_aux (s.bound.eval ctx).to_nat (s.initialize.eval ctx)
+using contract_aux (s.bound ctx) (s.initialize.eval ctx)
       (StreamEval.eval <$₁> StreamEval.eval <$₂> s)
 
 end contract
@@ -725,7 +750,7 @@ let inner := outer.value in
     (Prog.branch inner.valid inner.next next_outer) 
     next_outer,
   valid := outer.valid,
-  bound := outer.bound ⟪*⟫ inner.bound, -- TODO: fix
+  bound := sorry, --outer.bound ⟪*⟫ inner.bound, -- TODO: fix
   initialize := outer.initialize <;> inner.initialize }
 
 -- def test₂ : BoundedStreamGen ℤ (Expr ℤ) (Expr ℤ) := range (40 : ℕ) vars.x
@@ -738,7 +763,7 @@ def externVec (len : Expr) (inp : Ident) (inp_idx : Ident) : BoundedStreamGen Ex
   ready := inp_idx ⟪<⟫ len,
   next := inp_idx ::= inp_idx ⟪+⟫ (1 : ℕ),
   valid := inp_idx ⟪<⟫ len,
-  bound := len,
+  bound := len.to_loop_bound,
   initialize := inp_idx ::= (0 : ℕ) }
 
 def externCSRMat (l₁ l₂ : Expr) (rows cols data : Ident) (i j k : Ident) :
@@ -752,7 +777,7 @@ def externCSRMat (l₁ l₂ : Expr) (rows cols data : Ident) (i j k : Ident) :
       (j ::= j ⟪+⟫ (1 : ℕ))
       (i ::= i ⟪+⟫ (1 : ℕ)),
   valid := i ⟪<⟫ l₁,
-  bound := l₁ ⟪*⟫ l₂ ,
+  bound := sorry, --l₁ ⟪*⟫ l₂ ,
   initialize := i ::= (0 : ℕ) <;> j ::= (0 : ℕ) <;> k ::= (0 : ℕ), }
 
 

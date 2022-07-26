@@ -1,4 +1,4 @@
-import data.finsupp.basic
+import data.finsupp.indicator
 
 variables {α β : Type*} [add_comm_monoid β]
 noncomputable theory 
@@ -22,5 +22,6 @@ by simp [sum_range]
 by simp [sum_range]
 
 /- This shows sum_range is a monoid homomorphism. We could explicitly write an `add_monoid_hom` def -/
+
 
 end finsupp
