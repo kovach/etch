@@ -6,8 +6,10 @@ import data.finsupp.basic
 import control.bifunctor
 import tactic.derive_fintype
 import tactic.fin_cases
-import finsupp_lemmas
-import frames
+import verification.finsupp_lemmas
+import verification.frames
+import verification.ident
+import verification.misc
 
 section
 -- This is just some experiments I'm doing, unofficial
@@ -77,59 +79,6 @@ def cast_r (v : ExprVal) : ExprVal := rval v.to_r
 
 end ExprVal
 section Ident
-
-section vars
-@[derive decidable_eq, derive fintype, derive inhabited]
-inductive Vars
-| i | j | k | w | x | y | z | ind₀ | ind₁ | ind₂ | break | output
-
-open Vars
-instance : has_to_string Vars :=
-⟨λ v, match v with 
--- S.split(" | ").map(s => s + ' := "' + s + '"')
-| i := "i" | j := "j" | k := "k" | w := "w" | x := "x" | y := "y" | z := "z" | ind₀ := "ind₀" | ind₁ := "ind₁" | ind₂ := "ind₂" | break := "break" | output := "output"
-end⟩
-end vars
-
-section NameSpace
-@[derive decidable_eq, derive inhabited, derive has_to_string, reducible]
-def NameSpace := ℕ
-
-def NameSpace.reserved : NameSpace := 0
-
-def fresh (S : finset NameSpace) : NameSpace :=
-S.max.iget + 1
-
-theorem not_fresh_mem (S : finset NameSpace) : fresh S ∉ S :=
-begin
-  simp only [fresh],
-  cases hn : S.max,
-  { rw [finset.max_eq_none] at hn, subst hn, exact finset.not_mem_empty _, },
-  intro h, simpa using finset.le_max_of_mem h hn,
-end
-
-theorem not_fresh_reserved (S : finset NameSpace) : fresh S ≠ NameSpace.reserved :=
-by simp [fresh, NameSpace.reserved]
-
-attribute [irreducible] NameSpace
-end NameSpace
-
-@[derive decidable_eq]
-structure Ident :=
-(ns : NameSpace)
-(name : Vars)
-
-@[simp] lemma Ident_ns (ns : NameSpace) (name : Vars) :
-  (Ident.mk ns name).ns = ns := rfl
-
-@[simp] lemma Ident_name (ns : NameSpace) (name : Vars) :
-  (Ident.mk ns name).name = name := rfl
--- def Ident.of : string → Ident := Ident.name
-instance : has_to_string Ident :=
-⟨λ i, "n" ++ (to_string i.ns) ++ "_" ++ (to_string i.name)⟩
-
-@[simp] lemma Ident_ns_range : set.range Ident.ns = set.univ :=
-by { ext, simp, exact ⟨⟨x, default⟩, rfl⟩, }
 
 parameter (R)
 inductive IdentVal
@@ -413,6 +362,7 @@ def Expr.to_loop_bound (e : Expr) : LoopBound :=
 @[simp] lemma Expr.to_loop_bound_to_fun (e : Expr) (ctx : Ident → IdentVal) : e.to_loop_bound ctx = (e.eval ctx).to_nat :=
 by simp [Expr.to_loop_bound]
 
+@[simp] lemma Expr.to_loop_bound_frame (e : Expr) : e.to_loop_bound.frame = e.frame := rfl
 
 end frame
 
@@ -589,8 +539,8 @@ lemma WithFrame.fresh_spec (x : finset NameSpace) ⦃v : Ident⦄ (hx : v.ns ∈
 by { rintro rfl, exact not_fresh_mem _ hx, }
 
 lemma WithFrame.is_sound_of_fresh₁ {ι' β} [add_zero_class β] [StreamEval ι ι'] [StreamEval α β] (x : finset NameSpace) {f : NameSpace → BoundedStreamGen ι α} 
-  (hf : BoundedStreamGen.has_frame (f (fresh x)) ι β (Ident.ns⁻¹' (insert (fresh x) x))) :
-  WithFrame.is_sound (WithFrame.fresh x f) (ι →₀ β) :=
+  (hf : BoundedStreamGen.has_frame (f (fresh x)) ι' β (Ident.ns⁻¹' (insert (fresh x) x))) :
+  WithFrame.is_sound (WithFrame.fresh x f) (ι' →₀ β) :=
 begin
   simp [WithFrame.is_sound], sorry,
 end
@@ -680,14 +630,13 @@ def range_aux (n : Expr) (v : Ident) : BoundedStreamGen Expr Expr :=
   bound := (n : Expr).to_loop_bound,
   initialize := v ::= (0 : ℕ), }
 
-def range (n : WithFrame Expr) : WithFrame (BoundedStreamGen Expr Expr) :=
-WithFrame.fresh n.frame $ λ ns, range_aux n ns∷Vars.i
+def range (n : Expr) : WithFrame (BoundedStreamGen Expr Expr) :=
+WithFrame.fresh (n.frame.image Ident.ns) $ λ ns, range_aux n ns∷Vars.i
 
 lemma range_spec_aux (bound n x₀ : ℕ) (hn : n ≤ x₀ + bound)
   (ctx : Ident → IdentVal)
-  (n' : WithFrame Expr) (hn' : Expr.eval ctx n' = ExprVal.nat n)
-  (n'_sound : WithFrame.is_sound n' ExprVal)
-  (v : Ident) (hv : v.ns ∉ n'.frame) (hx₀ : ctx v = IdentVal.base (ExprVal.nat x₀)) :
+  (n' : Expr) (hn' : Expr.eval ctx n' = ExprVal.nat n)
+  (v : Ident) (hv : v ∉ n'.frame) (hx₀ : ctx v = IdentVal.base (ExprVal.nat x₀)) :
   ∀ (t : ℕ), eval_stream bound ctx ((λ (e : Expr) ctx, (e.eval ctx).to_nat) <$₁> (λ (e : Expr) ctx, (e.eval ctx).to_r) <$₂> (range_aux n' v)) t =
    (if x₀ ≤ t ∧ t < n then (t : R) else 0) :=
 begin
@@ -700,26 +649,35 @@ begin
   rw [← range_aux, ih (function.update ctx v (IdentVal.base (ExprVal.nat $ x₀ + 1))) (x₀ + 1) _ _ _]; clear ih,
   { by_cases H : x₀ = t, { subst H, simp [h], }, simp [ne.le_iff_lt H, ← nat.succ_le_iff, H, nat.succ_eq_add_one], },
   { refine hn.trans (le_of_eq _), rw nat.succ_eq_add_one, ac_refl, },
-  { simp only [WithFrame.is_sound, function.has_frame_iff, StreamEval.eval] at n'_sound, rw ← hn', apply n'_sound,
-    simp_intros x hx, suffices : x ≠ v, { simp [this], }, rintro rfl, exact hv hx, },
+  { rw ← hn', apply frame_sound_Expr, intros v' hv', suffices : v' ≠ v, { simp [this], }, rintro rfl, contradiction, },
   { simp, }
 end
 
 example (a b :ℕ) (h : a ≠ b) : a + 1 ≤ b ↔ a ≤ b := 
 by { rw nat.succ_le_iff, exact (ne.le_iff_lt h).symm}
 
-theorem range_spec (n : WithFrame Expr) (hn : WithFrame.is_sound n ExprVal) (ctx : Ident → IdentVal) (n' : ℕ)
+theorem range_spec (n : Expr) (ctx : Ident → IdentVal) (n' : ℕ)
   (hn' : Expr.eval ctx n = ExprVal.nat n') :
   (StreamEval.eval (range n).val ctx : ℕ →₀ R) = finsupp.indicator (finset.range n') (λ i _, (i : R)) :=
 begin
   simp only [StreamEval.eval, range, WithFrame.fresh],
-  have n_fresh := WithFrame.fresh_spec n.frame, set ns := fresh n.frame,
+  have n_fresh := WithFrame.fresh_spec (n.frame.image Ident.ns), set ns := fresh (n.frame.image Ident.ns),
   ext t,
-  convert range_spec_aux ((n : Expr).to_loop_bound ctx) n' 0 _ ((range_aux n ns∷Vars.i).initialize.eval ctx) n _ hn ns∷Vars.i _ _ t, { simp, },
+  convert range_spec_aux ((n : Expr).to_loop_bound ctx) n' 0 _ ((range_aux n ns∷Vars.i).initialize.eval ctx) n _ ns∷Vars.i _ _ t, { simp, },
   { simp [hn'], },
-  { simp only [WithFrame.is_sound, function.has_frame_iff, StreamEval.eval] at hn, rw ← hn', apply hn, simp_intros x hx, suffices : x ≠ ns∷Vars.i, { simp [range_aux, Prog.eval, this], }, rintro rfl, exact n_fresh hx _ rfl, },
-  { intro h, exact n_fresh h _ rfl, },
+  { rw ← hn', apply frame_sound_Expr, intros x hx, apply not_mem_Prog_frame, simp [range_aux], apply n_fresh, apply finset.mem_image_of_mem _ hx, },
+  { intro h, exact n_fresh (finset.mem_image_of_mem _ h) _ rfl, },
   { simp [range_aux, Prog.eval], },
+end
+
+theorem range_frame_sound (n : Expr) :
+  WithFrame.is_sound (range n) (ℕ →₀ R) :=
+begin
+  apply WithFrame.is_sound_of_fresh₁, split,
+  iterate 2 { simp only [StreamEval.eval, range_aux], apply function.has_frame.postcomp, apply function.has_frame.mono, apply Expr.has_frame, simp, },
+  iterate 2 { simp [range_aux], },
+  iterate 2 { simp [range_aux, set.subset_def], tauto, },
+  { simp [range_aux], },
 end
 
 end range
