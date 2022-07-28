@@ -1,5 +1,6 @@
 import data.vector
 import data.fin.vec_notation
+import data.fin.tuple.basic
 import data.list.of_fn
 import data.list.alist
 import data.finsupp.basic
@@ -8,27 +9,121 @@ import tactic.derive_fintype
 import tactic.fin_cases
 import finsupp_lemmas
 import frames
+import verification.vars
 
 section
--- This is just some experiments I'm doing, unofficial
--- Anything that works out will go back into compile.lean
 
-parameters {R : Type} [add_zero_class R] [has_one R] [has_mul R]
-parameter (R)
--- Same thing as `ℕ ⊕ R` TODO: change or keep?
-inductive ExprVal
-| nat (n : ℕ)
-| rval (r : R)
+parameters (R : Type) [add_zero_class R] [has_one R] [has_mul R]
+
+@[reducible]
+def ExprVal : bool → Type
+| ff := ℕ
+| tt := R
 
 parameter {R}
+parameter (bbb : bool)
 namespace ExprVal
-instance : inhabited ExprVal := ⟨nat 0⟩
 
-instance [has_to_string R] : has_to_string ExprVal :=
-⟨λ v, match v with
-| (nat n) := "(" ++ (to_string n) ++ " : ℕ)"
-| (rval r) := "(" ++ (to_string r) ++ " : R)"
+instance : ∀ b, inhabited (ExprVal b)
+| ff := ⟨0⟩
+| tt := ⟨0⟩
+
+instance [has_to_string R] :
+  ∀ b, has_to_string (ExprVal b)
+| ff := infer_instance
+| tt := infer_instance
+
+end ExprVal
+
+inductive Op
+| nadd | radd | nmul | rmul | and | or | not | nat_eq | lt | cast_r
+
+namespace Op
+instance : has_to_string Op := ⟨λ v, match v with
+| nadd := "add" | radd := "add"
+| nmul := "mul" | rmul := "mul"
+| and := "and"
+| or := "or"
+| not := "not"
+| nat_eq := "eq"
+| lt := "lt"
+| cast_r := "cast"
 end⟩
+
+@[reducible]
+def arity : Op → ℕ
+| nadd := 2 | radd := 2 | nmul := 2 | rmul := 2
+| and := 2 | or := 2 | not := 1 | nat_eq := 2 | lt := 2
+| cast_r := 1
+
+@[reducible]
+def signature : ∀ (o : Op), (fin o.arity → bool) × bool
+| nadd := (![ff, ff], ff) | radd := (![tt, tt], tt)
+| nmul := (![ff, ff], ff) | rmul := (![tt, tt], tt)
+| and := (![ff, ff], ff) | or := (![ff, ff], ff) | not := (![ff], ff)
+| nat_eq := (![ff, ff], ff) | lt := (![ff, ff], ff)
+| cast_r := (![ff], tt)
+
+@[simp]
+def Op.eval : ∀ (o : Op), (Π (n : fin o.arity), ExprVal (o.signature.1 n)) → ExprVal o.signature.2
+| nadd := λ args, ((+) : ℕ → ℕ → ℕ) (args 0) (args 1)
+| radd := λ args, ((+) : R → R → R) (args 0) (args 1)
+| nmul := λ args, ((*) : ℕ → ℕ → ℕ) (args 0) (args 1)
+| rmul := λ args, ((*) : R → R → R) (args 0) (args 1)
+| and := λ args, if args 0 = (0 : ℕ) then (0 : ℕ) else args 1
+| or := λ args, if args 0 = (0 : ℕ) then args 1 else args 0
+| not := λ args, if args 0 = (0 : ℕ) then 1 else 0
+| nat_eq := λ args, if args 0 = args 1 then 1 else 0
+| lt := λ args, if (show ℕ, from args 0) < args 1 then 1 else 0
+| cast_r := λ args, show ℕ, from args 0 
+
+end Op
+
+parameter (R)
+inductive IdentVal (b : bool)
+| base (val : ExprVal b) : IdentVal
+| arr (val : list (ExprVal b)) : IdentVal
+
+parameter {R}
+
+namespace IdentVal
+
+instance {b : bool} : inhabited (IdentVal b) := ⟨IdentVal.base default⟩ 
+
+def get {b : bool} : IdentVal b → option ℕ → ExprVal b
+| (IdentVal.base val) none := val
+| (IdentVal.arr val) (some i) := val.inth i
+| _ _ := arbitrary _ 
+
+
+@[simp] lemma get_none {b : bool} (e : ExprVal b) : (IdentVal.base e).get none = e := rfl
+@[simp] lemma IdentVal.get_ind {b : bool} (a : list (ExprVal b)) (n : ℕ) :
+  (arr a).get (some n) = a.inth n := rfl
+
+
+def update {b : bool} : IdentVal b → option ℕ → ExprVal b → IdentVal b
+| (arr val) (some i) newval := arr (val.modify_nth (λ _, newval) i)
+| _ none newval := IdentVal.base newval
+| _ _ _ := arbitrary _
+
+@[simp] lemma update_none {b : bool} (i : IdentVal b) (x : ExprVal b) :
+  i.update none x = IdentVal.base x := by cases i; simp [IdentVal.update]
+@[simp] lemma update_ind {b : bool} (a : list (ExprVal b)) (n : ℕ) (x : ExprVal b) :
+  (arr a).update (some n) x = arr (a.modify_nth (λ _, x) n) := rfl
+
+end IdentVal
+
+parameter (R)
+inductive Expr (b : bool)
+| lit : ExprVal b → Expr
+| ident : Ident → Expr
+| access : Ident → Expr → Expr
+| call : ∀ o : Op, (fin o.arity → Expr) → Expr
+
+
+end
+
+#exit
 
 @[simp]
 def add : ExprVal → ExprVal → ExprVal
@@ -76,61 +171,6 @@ def to_r : ExprVal → R
 def cast_r (v : ExprVal) : ExprVal := rval v.to_r
 
 end ExprVal
-section Ident
-
-section vars
-@[derive decidable_eq, derive fintype, derive inhabited]
-inductive Vars
-| i | j | k | w | x | y | z | ind₀ | ind₁ | ind₂ | break | output
-
-open Vars
-instance : has_to_string Vars :=
-⟨λ v, match v with 
--- S.split(" | ").map(s => s + ' := "' + s + '"')
-| i := "i" | j := "j" | k := "k" | w := "w" | x := "x" | y := "y" | z := "z" | ind₀ := "ind₀" | ind₁ := "ind₁" | ind₂ := "ind₂" | break := "break" | output := "output"
-end⟩
-end vars
-
-section NameSpace
-@[derive decidable_eq, derive inhabited, derive has_to_string, reducible]
-def NameSpace := ℕ
-
-def NameSpace.reserved : NameSpace := 0
-
-def fresh (S : finset NameSpace) : NameSpace :=
-S.max.iget + 1
-
-theorem not_fresh_mem (S : finset NameSpace) : fresh S ∉ S :=
-begin
-  simp only [fresh],
-  cases hn : S.max,
-  { rw [finset.max_eq_none] at hn, subst hn, exact finset.not_mem_empty _, },
-  intro h, simpa using finset.le_max_of_mem h hn,
-end
-
-theorem not_fresh_reserved (S : finset NameSpace) : fresh S ≠ NameSpace.reserved :=
-by simp [fresh, NameSpace.reserved]
-
-attribute [irreducible] NameSpace
-end NameSpace
-
-@[derive decidable_eq]
-structure Ident :=
-(ns : NameSpace)
-(name : Vars)
-
-@[simp] lemma Ident_ns (ns : NameSpace) (name : Vars) :
-  (Ident.mk ns name).ns = ns := rfl
-
-@[simp] lemma Ident_name (ns : NameSpace) (name : Vars) :
-  (Ident.mk ns name).name = name := rfl
--- def Ident.of : string → Ident := Ident.name
-instance : has_to_string Ident :=
-⟨λ i, "n" ++ (to_string i.ns) ++ "_" ++ (to_string i.name)⟩
-
-@[simp] lemma Ident_ns_range : set.range Ident.ns = set.univ :=
-by { ext, simp, exact ⟨⟨x, default⟩, rfl⟩, }
-
 parameter (R)
 inductive IdentVal
 | base (val : ExprVal) : IdentVal
@@ -420,7 +460,6 @@ local infixr ` <;> `:1 := Prog.seq
 local notation a ` ::= `:20 c := Prog.store a none c
 local notation a ` ⟬ `:9000 i ` ⟭ ` ` ::= `:20 c := Prog.store a (some i) c
 local notation x ` ⟬ `:9000 i ` ⟭ ` := Expr.access x i 
-local infix `∷`:9000 := Ident.mk
 
 parameter (R)
 structure BoundedStreamGen (ι α : Type) :=
