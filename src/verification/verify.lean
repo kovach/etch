@@ -15,72 +15,90 @@ section
 
 parameters (R : Type) [add_zero_class R] [has_one R] [has_mul R]
 
+
+open Types (nn rr)
+
 @[reducible]
-def ExprVal : bool → Type
-| ff := ℕ
-| tt := R
+def ExprVal : Types → Type
+| nn := ℕ
+| rr := R
 
 parameter {R}
 parameter (bbb : bool)
 namespace ExprVal
 
 instance : ∀ b, inhabited (ExprVal b)
-| ff := ⟨0⟩
-| tt := ⟨0⟩
+| nn := ⟨0⟩
+| rr := ⟨0⟩
 
 instance [has_to_string R] :
   ∀ b, has_to_string (ExprVal b)
-| ff := infer_instance
-| tt := infer_instance
+| nn := infer_instance
+| rr := infer_instance
 
 end ExprVal
 
-inductive Op
-| nadd | radd | nmul | rmul | and | or | not | nat_eq | lt | cast_r
+inductive Op : Types → Type
+| nadd : Op nn | radd : Op rr
+| nmul : Op nn | rmul : Op rr
+| and : Op nn
+| or : Op nn
+| not : Op nn
+| nat_eq : Op nn
+| lt : Op nn
+| cast_r : Op rr
 
 namespace Op
-instance : has_to_string Op := ⟨λ v, match v with
-| nadd := "add" | radd := "add"
-| nmul := "mul" | rmul := "mul"
+instance : ∀ b, has_to_string (Op b) 
+| rr := ⟨λ v, match v with
+| radd := "add"
+| rmul := "mul"
+| cast_r := "cast"
+end⟩
+| nn := ⟨λ v, match v with
+| nadd := "add" 
+| nmul := "mul" 
 | and := "and"
 | or := "or"
 | not := "not"
 | nat_eq := "eq"
 | lt := "lt"
-| cast_r := "cast"
 end⟩
 
 @[reducible]
-def arity : Op → ℕ
-| nadd := 2 | radd := 2 | nmul := 2 | rmul := 2
-| and := 2 | or := 2 | not := 1 | nat_eq := 2 | lt := 2
-| cast_r := 1
+def arity : ∀ {b}, Op b → ℕ
+| _ nadd := 2
+| _ radd := 2
+| _ nmul := 2
+| _ rmul := 2
+| _ and := 2 | _ or := 2 | _ not := 1 | _ nat_eq := 2 | _ lt := 2
+| _ cast_r := 1
 
 @[reducible]
-def signature : ∀ (o : Op), (fin o.arity → bool) × bool
-| nadd := (![ff, ff], ff) | radd := (![tt, tt], tt)
-| nmul := (![ff, ff], ff) | rmul := (![tt, tt], tt)
-| and := (![ff, ff], ff) | or := (![ff, ff], ff) | not := (![ff], ff)
-| nat_eq := (![ff, ff], ff) | lt := (![ff, ff], ff)
-| cast_r := (![ff], tt)
+def signature : ∀ {b} (o : Op b), (fin o.arity → Types)
+| _ nadd := ![nn, nn] | _ radd := ![rr, rr]
+| _ nmul := ![nn, nn] | _ rmul := ![rr, rr]
+| _ and := ![nn, nn] | _ or := ![nn, nn] | _ not := ![nn]
+| _ nat_eq := ![nn, nn] | _ lt := ![nn, nn]
+| _ cast_r := ![nn]
 
 @[simp]
-def Op.eval : ∀ (o : Op), (Π (n : fin o.arity), ExprVal (o.signature.1 n)) → ExprVal o.signature.2
-| nadd := λ args, ((+) : ℕ → ℕ → ℕ) (args 0) (args 1)
-| radd := λ args, ((+) : R → R → R) (args 0) (args 1)
-| nmul := λ args, ((*) : ℕ → ℕ → ℕ) (args 0) (args 1)
-| rmul := λ args, ((*) : R → R → R) (args 0) (args 1)
-| and := λ args, if args 0 = (0 : ℕ) then (0 : ℕ) else args 1
-| or := λ args, if args 0 = (0 : ℕ) then args 1 else args 0
-| not := λ args, if args 0 = (0 : ℕ) then 1 else 0
-| nat_eq := λ args, if args 0 = args 1 then 1 else 0
-| lt := λ args, if (show ℕ, from args 0) < args 1 then 1 else 0
-| cast_r := λ args, show ℕ, from args 0 
+def eval : ∀ {b} (o : Op b), (Π (n : fin o.arity), ExprVal (o.signature n)) → ExprVal b
+| _ nadd := λ args, ((+) : ℕ → ℕ → ℕ) (args 0) (args 1)
+| _ radd := λ args, ((+) : R → R → R) (args 0) (args 1)
+| _ nmul := λ args, ((*) : ℕ → ℕ → ℕ) (args 0) (args 1)
+| _ rmul := λ args, ((*) : R → R → R) (args 0) (args 1)
+| _ and := λ args, if args 0 = (0 : ℕ) then (0 : ℕ) else args 1
+| _ or := λ args, if args 0 = (0 : ℕ) then args 1 else args 0
+| _ not := λ args, if args 0 = (0 : ℕ) then 1 else 0
+| _ nat_eq := λ args, if args 0 = args 1 then 1 else 0
+| _ lt := λ args, if (show ℕ, from args 0) < args 1 then 1 else 0
+| _ cast_r := λ args, show ℕ, from args 0 
 
 end Op
 
 parameter (R)
-inductive IdentVal (b : bool)
+inductive IdentVal (b : Types)
 | base (val : ExprVal b) : IdentVal
 | arr (val : list (ExprVal b)) : IdentVal
 
@@ -88,40 +106,41 @@ parameter {R}
 
 namespace IdentVal
 
-instance {b : bool} : inhabited (IdentVal b) := ⟨IdentVal.base default⟩ 
+instance {b : Types} : inhabited (IdentVal b) := ⟨IdentVal.base default⟩ 
 
-def get {b : bool} : IdentVal b → option ℕ → ExprVal b
+def get {b : Types} : IdentVal b → option ℕ → ExprVal b
 | (IdentVal.base val) none := val
 | (IdentVal.arr val) (some i) := val.inth i
 | _ _ := arbitrary _ 
 
 
-@[simp] lemma get_none {b : bool} (e : ExprVal b) : (IdentVal.base e).get none = e := rfl
-@[simp] lemma IdentVal.get_ind {b : bool} (a : list (ExprVal b)) (n : ℕ) :
+@[simp] lemma get_none {b : Types} (e : ExprVal b) : (IdentVal.base e).get none = e := rfl
+@[simp] lemma IdentVal.get_ind {b : Types} (a : list (ExprVal b)) (n : ℕ) :
   (arr a).get (some n) = a.inth n := rfl
 
 
-def update {b : bool} : IdentVal b → option ℕ → ExprVal b → IdentVal b
+def update {b : Types} : IdentVal b → option ℕ → ExprVal b → IdentVal b
 | (arr val) (some i) newval := arr (val.modify_nth (λ _, newval) i)
 | _ none newval := IdentVal.base newval
 | _ _ _ := arbitrary _
 
-@[simp] lemma update_none {b : bool} (i : IdentVal b) (x : ExprVal b) :
+@[simp] lemma update_none {b : Types} (i : IdentVal b) (x : ExprVal b) :
   i.update none x = IdentVal.base x := by cases i; simp [IdentVal.update]
-@[simp] lemma update_ind {b : bool} (a : list (ExprVal b)) (n : ℕ) (x : ExprVal b) :
+@[simp] lemma update_ind {b : Types} (a : list (ExprVal b)) (n : ℕ) (x : ExprVal b) :
   (arr a).update (some n) x = arr (a.modify_nth (λ _, x) n) := rfl
 
 end IdentVal
 
 parameter (R)
-inductive Expr (b : bool)
-| lit : ExprVal b → Expr
-| ident : Ident → Expr
-| access : Ident → Expr → Expr
-| call : ∀ o : Op, (fin o.arity → Expr) → Expr
+inductive Expr : Types → Type
+| lit (b) : ExprVal b → Expr b
+| ident (b) : Ident → Expr b
+| access (b) : Ident → Expr nn → Expr b
+| call (b) : ∀ o : Op b, (Π (n : fin o.arity), Expr (o.signature n)) → Expr b
 
 
 end
+
 
 #exit
 

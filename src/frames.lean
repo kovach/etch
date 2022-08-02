@@ -30,3 +30,25 @@ theorem has_frame.postcomp (h : has_frame f S) (g : γ → δ) :
 by { rcases h with ⟨g', rfl⟩, use (g ∘ g'), }
 
 end function
+
+section examples
+
+def test_fun (f : ℕ → ℤ) : ℤ := (f 0) + (f 1) * (f 2)
+
+theorem test_fun_frame : function.has_frame test_fun {0, 1, 2} :=
+begin
+  rw function.has_frame_iff,
+  intros c₁ c₂ h,
+  simp [test_fun, h],
+end
+
+def test_fun₂ (f : ℕ → ℤ) : ℤ := if test_fun f = 5 then f 3 else -(f 3) 
+
+theorem test_fun₂_frame : function.has_frame test_fun₂ {0, 1, 2, 3} :=
+begin
+  rw function.has_frame_iff,
+  intros c₁ c₂ h,
+  simp [test_fun₂],
+end
+
+end examples
