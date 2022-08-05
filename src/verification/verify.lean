@@ -108,17 +108,17 @@ namespace IdentVal
 
 instance {b : Types} : inhabited (IdentVal b) := ⟨IdentVal.base default⟩ 
 
-def get {b : Types} : IdentVal b → option ℕ → ExprVal b
-| (IdentVal.base val) none := val
-| (IdentVal.arr val) (some i) := val.inth i
-| _ _ := arbitrary _ 
+def get {b : Types} : IdentVal b → ℕ → option (ExprVal b)
+| (IdentVal.base val) 0 := some val
+| (IdentVal.arr val) i := val.nth i
+| _ _ := none
 
 
-@[simp] lemma get_none {b : Types} (e : ExprVal b) : (IdentVal.base e).get none = e := rfl
+@[simp] lemma get_zero {b : Types} (e : ExprVal b) : (IdentVal.base e).get 0 = e := rfl
 @[simp] lemma IdentVal.get_ind {b : Types} (a : list (ExprVal b)) (n : ℕ) :
-  (arr a).get (some n) = a.inth n := rfl
+  (arr a).get n = a.nth n := rfl
 
-
+-- TODO: Handle out of bounds
 def update {b : Types} : IdentVal b → option ℕ → ExprVal b → IdentVal b
 | (arr val) (some i) newval := arr (val.modify_nth (λ _, newval) i)
 | _ none newval := IdentVal.base newval
@@ -133,14 +133,115 @@ end IdentVal
 
 parameter (R)
 inductive Expr : Types → Type
-| lit (b) : ExprVal b → Expr b
-| ident (b) : Ident → Expr b
-| access (b) : Ident → Expr nn → Expr b
-| call (b) : ∀ o : Op b, (Π (n : fin o.arity), Expr (o.signature n)) → Expr b
+| lit {b} : ExprVal b → Expr b
+| ident {b} : Ident b → Expr b
+| access {b} : Ident b → Expr nn → Expr b
+| call {b} : ∀ o : Op b, (Π (n : fin o.arity), Expr (o.signature n)) → Expr b
+| ternary {b} : Expr nn → Expr b → Expr b → Expr b
 
+parameter {R}
+
+def Context := Π ⦃b : Types⦄ (i : Ident b), IdentVal b
+def Frame := Π (b : Types), finset (Ident b)
+
+def Expr.eval (ctx : Context) : ∀ {b}, Expr b → option (ExprVal b)
+| _ (Expr.lit r) := some r
+| _ (Expr.ident x) := (ctx x).get 0
+| _ (Expr.access x i) := i.eval >>= λ i', (ctx x).get i'
+| _ (Expr.call o args) := if ∃ i, (args i).eval.is_none then none else some (o.eval (λ i, (args i).eval.iget))
+| _ (Expr.ternary cond e₁ e₂) := cond.eval >>= λ r, if r = 0 then e₂.eval else e₁.eval
+
+section Expr
+
+def expr_repr [has_to_string R] : ∀ {b : Types}, (Expr b) → string
+| _ (Expr.lit r) := to_string r
+| _ (Expr.ident x) := to_string x
+| _ (Expr.access x i) := (to_string x) ++ "[" ++ (expr_repr i) ++ "]"
+| _ (Expr.call o args) := (to_string o) ++ "(" ++ ", ".intercalate (vector.of_fn (λ i, expr_repr $ args i)).to_list ++ ")"
+| _ (Expr.ternary c e₁ e₂) := (expr_repr c) ++ " ? " ++ (expr_repr e₁) ++ " : " ++ (expr_repr e₂)
+
+instance {b : Types} [has_to_string R] : has_to_string (Expr b) := ⟨expr_repr⟩
+
+instance Expr.zero_nn : has_zero (Expr nn) := ⟨Expr.lit (0 : ℕ)⟩
+instance Expr.one_nn : has_one (Expr nn) := ⟨Expr.lit (1 : ℕ)⟩
+instance Expr.zero_rr : has_zero (Expr rr) := ⟨Expr.lit (0 : R)⟩
+instance Expr.one_rr : has_one (Expr rr) := ⟨Expr.lit (1 : R)⟩
+
+instance has_coe_from_nat : has_coe ℕ (Expr nn) := ⟨λ n, Expr.lit n⟩
+instance has_coe_From_R : has_coe R (Expr rr) := ⟨λ r, Expr.lit r⟩
+
+instance Expr.add_nn : has_add (Expr nn) :=
+⟨λ a b, Expr.call Op.nadd (fin.cons a (fin.cons b default))⟩
+instance Expr.add_rr : has_add (Expr rr) :=
+⟨λ a b, Expr.call Op.radd (fin.cons a (fin.cons b default))⟩
+instance Expr.mul_nn : has_mul (Expr nn) :=
+⟨λ a b, Expr.call Op.nmul (fin.cons a (fin.cons b default))⟩
+instance Expr.mul_rr : has_add (Expr rr) :=
+⟨λ a b, Expr.call Op.rmul (fin.cons a (fin.cons b default))⟩
+
+instance has_coe_from_expr {b : Types} : has_coe (Ident b) (Expr b) := ⟨Expr.ident⟩
+
+/- Warning! Lean 3 uses zero, add, one instead of coe from ℕ for numerals -/
+example : (3 : Expr nn) = 1 + 1 + 1 := rfl
+example : (3 : Expr nn) ≠ Expr.lit 3 := by trivial
+example : ((3 : ℕ) : Expr nn) = Expr.lit 3 := rfl
+
+end Expr
+
+parameter (R)
+structure LoopBound :=
+(frame : Frame)
+(to_fun : Context → ℕ)
+(has_frame : true /- TODO: function.has_frame to_fun frame -/)
+
+section LoopBound
+
+instance : has_coe_to_fun LoopBound (λ _, Context → ℕ) :=
+⟨LoopBound.to_fun⟩
+
+
+end LoopBound
+
+parameter (R)
+inductive Prog
+| skip : Prog
+| store {b : Types} (dst : Ident b) (val : Expr b)
+| store_arr {b : Types} (dst : Ident b) (ind : Expr nn) (val : Expr b)
+| seq (a : Prog) (b : Prog)
+| branch (cond : Expr nn) (a : Prog) (b : Prog)
+| loop (n : LoopBound) (cond : Expr nn) (b : Prog)
+
+section Prog
+
+parameter {R}
+def prog_repr [has_to_string R] : Prog → list string
+| Prog.skip := [";"]
+| (Prog.store dst val) := [(to_string dst) ++ " := " ++ (to_string val) ++ ";"]
+| (Prog.store_arr dst ind val) := [(to_string dst) ++ ("[" ++ to_string ind ++ "]") ++ " := " ++ (to_string val) ++ ";"]
+| (Prog.seq a b) := (prog_repr a) ++ (prog_repr b)
+| (Prog.branch c a b) := ["if " ++ (to_string c)]
+    ++ (prog_repr a).map (λ s, "  " ++ s)
+    ++ ["else"]
+    ++ (prog_repr b).map (λ s, "  " ++ s)
+| (Prog.loop n cond b) := ["while " ++ (to_string cond)]
+    ++ (prog_repr b).map (λ s, "  " ++ s)
+
+-- TODO
+def Context.update {b : Types} (ctx : Context) (dst : Ident b) (ind : option ℕ) (val : ExprVal b) : Context := sorry 
+
+def Prog.eval : Prog → Context → option Context
+| Prog.skip ctx := ctx
+| (Prog.store dst val) ctx := ctx.update dst _ sorry --((ctx dst).update (ind.map (λ i : Expr, (i.eval ctx).to_nat)) (val.eval ctx))
+| (Prog.store_arr dst ind val) ctx := ctx.update dst _ sorry
+| (Prog.seq a b) ctx := (a.eval ctx) >>= b.eval
+| (Prog.branch cond a b) ctx := (Expr.eval ctx cond) >>= λ c : ℕ, if 0 < c then a.eval ctx else b.eval ctx
+| (Prog.loop n c b) ctx := (iterate_while (flip bind b.eval)
+      (λ ctx : option Context, ∃ c' ∈ ctx, c.eval c' = some 0)
+      (n ctx)) (some ctx)
+
+end Prog
 
 end
-
 
 #exit
 
