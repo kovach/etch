@@ -1,6 +1,7 @@
 import tactic.derive_fintype
 import logic.function.basic
 import data.set.function
+import data.fin.tuple
 
 section vars
 @[derive decidable_eq, derive fintype, derive inhabited]
@@ -106,7 +107,47 @@ end
 
 end frames
 
+section context
+
+def Context (val_type : Types → Type) : Type :=
+∀ ⦃b : Types⦄, Ident b → val_type b
+
+variable {val_type : Types → Type}
+
+def Context.get (ctx : Context val_type) {b : Types} (x : Ident b) : val_type b := ctx x
+
+def Context.update (ctx : Context val_type) {b : Types} (x : Ident b) (v : val_type b) :
+  Context val_type :=
+function.update ctx b (function.update (@ctx b) x v)
+
+/- TODO: Add simp lemmas -/
+
+/- For some reason doesn't play well with equation compiler -/
+-- attribute [irreducible] Context
+
+def Context.try_modify (ctx : Context val_type) {b : Types} (x : Ident b) (f : val_type b → option (val_type b)) :
+  option (Context val_type) :=
+(f (ctx.get x)).map (ctx.update x)
+
+end context
+
 section iterate
 
-def iterate_while {α : Type*} (f : α → α) (cond : α → Prop) [decidable_pred cond] : ℕ → α → α := sorry
+@[simp]
+def iterate_while {α : Type*} (f : α → option α) (cond : α → option bool) : ℕ → α → option α
+| 0 x := none
+| (n+1) x := (cond x).bind (λ b, if b then (f x).bind (iterate_while n) else some x)
+
 end iterate
+
+lemma bool.coe_iff_eq_tt (b : bool) : b ↔ b = tt := iff.rfl
+@[simp] lemma option.bind_const_none {α β} (x : option α) :
+  x.bind (λ _, none) = (none : option β) :=
+by cases x; simp
+@[simp] lemma option.is_none_ff_iff_is_some {α} (x : option α) :
+  x.is_none = ff ↔ x.is_some = tt :=
+by cases x; simp
+
+@[simp] lemma fin.tuple_eval_one {n : ℕ} {α : fin (n + 2) → Type*}
+  (x₀ : α 0) (x₁ : α 1) (x₂ : Π i : fin n, α i.succ.succ) :
+  fin.cons x₀ (fin.cons x₁ x₂) 1 = x₁ := rfl

@@ -24,7 +24,6 @@ def ExprVal : Types → Type
 | rr := R
 
 parameter {R}
-parameter (bbb : bool)
 namespace ExprVal
 
 instance : ∀ b, inhabited (ExprVal b)
@@ -106,7 +105,7 @@ parameter {R}
 
 namespace IdentVal
 
-instance {b : Types} : inhabited (IdentVal b) := ⟨IdentVal.base default⟩ 
+instance {b : Types} : inhabited (IdentVal b) := ⟨IdentVal.arr []⟩ 
 
 def get {b : Types} : IdentVal b → ℕ → option (ExprVal b)
 | (IdentVal.base val) 0 := some val
@@ -141,13 +140,13 @@ inductive Expr : Types → Type
 
 parameter {R}
 
-def Context := Π ⦃b : Types⦄ (i : Ident b), IdentVal b
+abbreviation EContext := Context IdentVal
 def Frame := Π (b : Types), finset (Ident b)
 
-def Expr.eval (ctx : Context) : ∀ {b}, Expr b → option (ExprVal b)
+def Expr.eval (ctx : EContext) : ∀ {b}, Expr b → option (ExprVal b)
 | _ (Expr.lit r) := some r
-| _ (Expr.ident x) := (ctx x).get 0
-| _ (Expr.access x i) := i.eval >>= λ i', (ctx x).get i'
+| b (Expr.ident x) := (ctx.get x).get 0
+| b (Expr.access x i) := i.eval >>= λ i', (ctx.get x).get i' --(λ a : Ident b → IdentVal b, (a x).get i') (Context.get ctx)
 | _ (Expr.call o args) := if ∃ i, (args i).eval.is_none then none else some (o.eval (λ i, (args i).eval.iget))
 | _ (Expr.ternary cond e₁ e₂) := cond.eval >>= λ r, if r = 0 then e₂.eval else e₁.eval
 
@@ -170,13 +169,13 @@ instance Expr.one_rr : has_one (Expr rr) := ⟨Expr.lit (1 : R)⟩
 instance has_coe_from_nat : has_coe ℕ (Expr nn) := ⟨λ n, Expr.lit n⟩
 instance has_coe_From_R : has_coe R (Expr rr) := ⟨λ r, Expr.lit r⟩
 
-instance Expr.add_nn : has_add (Expr nn) :=
+@[simps { attrs := [] }] instance add_nn : has_add (Expr nn) :=
 ⟨λ a b, Expr.call Op.nadd (fin.cons a (fin.cons b default))⟩
-instance Expr.add_rr : has_add (Expr rr) :=
+@[simps { attrs := [] }] instance add_rr : has_add (Expr rr) :=
 ⟨λ a b, Expr.call Op.radd (fin.cons a (fin.cons b default))⟩
-instance Expr.mul_nn : has_mul (Expr nn) :=
+@[simps { attrs := [] }] instance mul_nn : has_mul (Expr nn) :=
 ⟨λ a b, Expr.call Op.nmul (fin.cons a (fin.cons b default))⟩
-instance Expr.mul_rr : has_add (Expr rr) :=
+@[simps { attrs := [] }] instance mul_rr : has_mul (Expr rr) :=
 ⟨λ a b, Expr.call Op.rmul (fin.cons a (fin.cons b default))⟩
 
 instance has_coe_from_expr {b : Types} : has_coe (Ident b) (Expr b) := ⟨Expr.ident⟩
@@ -186,17 +185,59 @@ example : (3 : Expr nn) = 1 + 1 + 1 := rfl
 example : (3 : Expr nn) ≠ Expr.lit 3 := by trivial
 example : ((3 : ℕ) : Expr nn) = Expr.lit 3 := rfl
 
+@[simp] lemma Expr.eval_lit {b : Types} (x : ExprVal b) (ctx : EContext) :
+  (Expr.lit x).eval ctx = some x := rfl
+@[simp] lemma Expr.lit_eq_nn (x : ℕ) : @Expr.lit nn x = ↑x := rfl
+@[simp] lemma Expr.lit_eq_rr (x : R) : @Expr.lit rr x = ↑x := rfl
+@[simp] lemma Expr.eval_lit_nn (x : ℕ) (ctx : EContext) :
+  (x : Expr nn).eval ctx = some x := rfl
+@[simp] lemma Expr.eval_lit_rr (x : R) (ctx : EContext) :
+  (x : Expr rr).eval ctx = some x := rfl
+@[simp] lemma Expr.eval_ident {b : Types} (x : Ident b) (ctx : EContext) :
+  (Expr.ident x).eval ctx = (ctx.get x).get 0 := rfl
+@[simp] lemma Expr.eval_access {b : Types} (x : Ident b) (ind : Expr nn) (ctx : EContext) :
+  (Expr.access x ind).eval ctx = ind.eval ctx >>= λ i, (ctx.get x).get i := rfl
+
+
+-- lemma Expr.call₂ {b₀ b₁ b : Types} (o : Op b) (ho : o.arity = 2) (hargs : o.signature = (by rw ho; exact ![b₀, b₁])) :
+--   Expr.call o (by { rw [hargs], }) :=
+-- begin
+
+-- end
+
+meta def Expr_op_call₂ : tactic unit :=
+`[
+  simp [Expr.eval], split_ifs with h,
+  { rcases h with ⟨i, hi⟩, fin_cases i; simp [option.is_none_iff_eq_none, bool.coe_iff_eq_tt] at hi; simp [hi, option.bind_eq_bind], },
+  push_neg at h, simp [option.is_some_iff_exists, ← bool.coe_iff_eq_tt] at h,
+  rcases h 0 with ⟨r₀, hr₀⟩, simp at hr₀, rcases h 1 with ⟨r₁, hr₁⟩, simp at hr₁,
+  simp [hr₀, hr₁]
+]
+
+@[simp] lemma Expr.eval_nadd (e₁ e₂ : Expr nn) (ctx : EContext) :
+  (e₁ + e₂).eval ctx = (e₁.eval ctx) >>= λ n, e₂.eval ctx >>= λ m, some (n + m) :=
+by { simp [add_nn_add], Expr_op_call₂, }
+@[simp] lemma Expr.eval_radd (e₁ e₂ : Expr rr) (ctx : EContext) :
+  (e₁ + e₂).eval ctx = (e₁.eval ctx) >>= λ n, e₂.eval ctx >>= λ m, some (n + m) :=
+by { simp [add_rr_add], Expr_op_call₂, }
+@[simp] lemma Expr.eval_nmul (e₁ e₂ : Expr nn) (ctx : EContext) :
+  (e₁ * e₂).eval ctx = (e₁.eval ctx) >>= λ n, e₂.eval ctx >>= λ m, some (n * m) :=
+by { simp [mul_nn_mul], Expr_op_call₂, }
+@[simp] lemma Expr.eval_rmul (e₁ e₂ : Expr rr) (ctx : EContext) :
+  (e₁ * e₂).eval ctx = (e₁.eval ctx) >>= λ n, e₂.eval ctx >>= λ m, some (n * m) :=
+by { simp [mul_rr_mul], Expr_op_call₂, }
+
 end Expr
 
 parameter (R)
 structure LoopBound :=
 (frame : Frame)
-(to_fun : Context → ℕ)
+(to_fun : EContext → ℕ)
 (has_frame : true /- TODO: function.has_frame to_fun frame -/)
 
 section LoopBound
 
-instance : has_coe_to_fun LoopBound (λ _, Context → ℕ) :=
+instance : has_coe_to_fun LoopBound (λ _, EContext → ℕ) :=
 ⟨LoopBound.to_fun⟩
 
 
@@ -226,18 +267,17 @@ def prog_repr [has_to_string R] : Prog → list string
 | (Prog.loop n cond b) := ["while " ++ (to_string cond)]
     ++ (prog_repr b).map (λ s, "  " ++ s)
 
--- TODO
-def Context.update {b : Types} (ctx : Context) (dst : Ident b) (ind : option ℕ) (val : ExprVal b) : Context := sorry 
+def Context.update_arr {b : Types} (ctx : EContext) (dst : Ident b) (ind : ℕ) (val : ExprVal b) : option EContext := sorry
 
-def Prog.eval : Prog → Context → option Context
+def Prog.eval : Prog → EContext → option EContext
 | Prog.skip ctx := ctx
-| (Prog.store dst val) ctx := ctx.update dst _ sorry --((ctx dst).update (ind.map (λ i : Expr, (i.eval ctx).to_nat)) (val.eval ctx))
-| (Prog.store_arr dst ind val) ctx := ctx.update dst _ sorry
+| (Prog.store dst val) ctx := (val.eval ctx).map (λ r, ctx.update dst (IdentVal.base r)) --ctx.update dst _ sorry --((ctx dst).update (ind.map (λ i : Expr, (i.eval ctx).to_nat)) (val.eval ctx))
+| (Prog.store_arr dst ind val) ctx := ctx.try_modify dst sorry
 | (Prog.seq a b) ctx := (a.eval ctx) >>= b.eval
 | (Prog.branch cond a b) ctx := (Expr.eval ctx cond) >>= λ c : ℕ, if 0 < c then a.eval ctx else b.eval ctx
-| (Prog.loop n c b) ctx := (iterate_while (flip bind b.eval)
-      (λ ctx : option Context, ∃ c' ∈ ctx, c.eval c' = some 0)
-      (n ctx)) (some ctx)
+| (Prog.loop n c b) ctx := (iterate_while b.eval
+      (λ ctx : EContext, (c.eval ctx).map (λ r, r ≠ 0))
+      (n ctx)) ctx
 
 end Prog
 
