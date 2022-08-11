@@ -10,6 +10,7 @@ import tactic.fin_cases
 import finsupp_lemmas
 import frames
 import verification.vars
+import verification.misc
 
 section
 
@@ -117,16 +118,13 @@ def get {b : Types} : IdentVal b → ℕ → option (ExprVal b)
 @[simp] lemma IdentVal.get_ind {b : Types} (a : list (ExprVal b)) (n : ℕ) :
   (arr a).get n = a.nth n := rfl
 
--- TODO: Handle out of bounds
-def update {b : Types} : IdentVal b → option ℕ → ExprVal b → IdentVal b
-| (arr val) (some i) newval := arr (val.modify_nth (λ _, newval) i)
-| _ none newval := IdentVal.base newval
-| _ _ _ := arbitrary _
+def update_arr {b : Types} : IdentVal b → ℕ → ExprVal b → option (IdentVal b)
+| (IdentVal.arr val) i x := if i < val.length then some (IdentVal.arr (val.modify_nth (λ _, x) i)) else none
+| _ _ _ := none
 
-@[simp] lemma update_none {b : Types} (i : IdentVal b) (x : ExprVal b) :
-  i.update none x = IdentVal.base x := by cases i; simp [IdentVal.update]
-@[simp] lemma update_ind {b : Types} (a : list (ExprVal b)) (n : ℕ) (x : ExprVal b) :
-  (arr a).update (some n) x = arr (a.modify_nth (λ _, x) n) := rfl
+lemma update_arr_def {b : Types} (x : list (ExprVal b)) {i : ℕ} (hi : i < x.length) (v : ExprVal b) :
+  (IdentVal.arr x).update_arr i v = some (IdentVal.arr $ x.modify_nth (λ _, v) i) :=
+by simp [update_arr, hi]
 
 end IdentVal
 
@@ -147,7 +145,7 @@ def Expr.eval (ctx : EContext) : ∀ {b}, Expr b → option (ExprVal b)
 | _ (Expr.lit r) := some r
 | b (Expr.ident x) := (ctx.get x).get 0
 | b (Expr.access x i) := i.eval >>= λ i', (ctx.get x).get i' --(λ a : Ident b → IdentVal b, (a x).get i') (Context.get ctx)
-| _ (Expr.call o args) := if ∃ i, (args i).eval.is_none then none else some (o.eval (λ i, (args i).eval.iget))
+| _ (Expr.call o args) := fin.tuple_some (λ i, (args i).eval) >>= λ r, some (o.eval r)
 | _ (Expr.ternary cond e₁ e₂) := cond.eval >>= λ r, if r = 0 then e₂.eval else e₁.eval
 
 section Expr
@@ -198,34 +196,18 @@ example : ((3 : ℕ) : Expr nn) = Expr.lit 3 := rfl
 @[simp] lemma Expr.eval_access {b : Types} (x : Ident b) (ind : Expr nn) (ctx : EContext) :
   (Expr.access x ind).eval ctx = ind.eval ctx >>= λ i, (ctx.get x).get i := rfl
 
-
--- lemma Expr.call₂ {b₀ b₁ b : Types} (o : Op b) (ho : o.arity = 2) (hargs : o.signature = (by rw ho; exact ![b₀, b₁])) :
---   Expr.call o (by { rw [hargs], }) :=
--- begin
-
--- end
-
-meta def Expr_op_call₂ : tactic unit :=
-`[
-  simp [Expr.eval], split_ifs with h,
-  { rcases h with ⟨i, hi⟩, fin_cases i; simp [option.is_none_iff_eq_none, bool.coe_iff_eq_tt] at hi; simp [hi, option.bind_eq_bind], },
-  push_neg at h, simp [option.is_some_iff_exists, ← bool.coe_iff_eq_tt] at h,
-  rcases h 0 with ⟨r₀, hr₀⟩, simp at hr₀, rcases h 1 with ⟨r₁, hr₁⟩, simp at hr₁,
-  simp [hr₀, hr₁]
-]
-
 @[simp] lemma Expr.eval_nadd (e₁ e₂ : Expr nn) (ctx : EContext) :
   (e₁ + e₂).eval ctx = (e₁.eval ctx) >>= λ n, e₂.eval ctx >>= λ m, some (n + m) :=
-by { simp [add_nn_add], Expr_op_call₂, }
+by { simp [add_nn_add, Expr.eval, fin.tuple_some] with functor_norm, refl, }
 @[simp] lemma Expr.eval_radd (e₁ e₂ : Expr rr) (ctx : EContext) :
   (e₁ + e₂).eval ctx = (e₁.eval ctx) >>= λ n, e₂.eval ctx >>= λ m, some (n + m) :=
-by { simp [add_rr_add], Expr_op_call₂, }
+by { simp [add_rr_add, Expr.eval, fin.tuple_some] with functor_norm, refl, }
 @[simp] lemma Expr.eval_nmul (e₁ e₂ : Expr nn) (ctx : EContext) :
   (e₁ * e₂).eval ctx = (e₁.eval ctx) >>= λ n, e₂.eval ctx >>= λ m, some (n * m) :=
-by { simp [mul_nn_mul], Expr_op_call₂, }
+by { simp [mul_nn_mul, Expr.eval, fin.tuple_some] with functor_norm, refl, }
 @[simp] lemma Expr.eval_rmul (e₁ e₂ : Expr rr) (ctx : EContext) :
   (e₁ * e₂).eval ctx = (e₁.eval ctx) >>= λ n, e₂.eval ctx >>= λ m, some (n * m) :=
-by { simp [mul_rr_mul], Expr_op_call₂, }
+by { simp [mul_rr_mul, Expr.eval, fin.tuple_some] with functor_norm, refl, }
 
 end Expr
 
@@ -267,12 +249,10 @@ def prog_repr [has_to_string R] : Prog → list string
 | (Prog.loop n cond b) := ["while " ++ (to_string cond)]
     ++ (prog_repr b).map (λ s, "  " ++ s)
 
-def Context.update_arr {b : Types} (ctx : EContext) (dst : Ident b) (ind : ℕ) (val : ExprVal b) : option EContext := sorry
-
 def Prog.eval : Prog → EContext → option EContext
 | Prog.skip ctx := ctx
 | (Prog.store dst val) ctx := (val.eval ctx).map (λ r, ctx.update dst (IdentVal.base r)) --ctx.update dst _ sorry --((ctx dst).update (ind.map (λ i : Expr, (i.eval ctx).to_nat)) (val.eval ctx))
-| (Prog.store_arr dst ind val) ctx := ctx.try_modify dst sorry
+| (Prog.store_arr dst ind val) ctx := ind.eval ctx >>= λ i, val.eval ctx >>= λ v, ctx.try_modify dst (λ arr, arr.update_arr i v)
 | (Prog.seq a b) ctx := (a.eval ctx) >>= b.eval
 | (Prog.branch cond a b) ctx := (Expr.eval ctx cond) >>= λ c : ℕ, if 0 < c then a.eval ctx else b.eval ctx
 | (Prog.loop n c b) ctx := (iterate_while b.eval
@@ -280,6 +260,26 @@ def Prog.eval : Prog → EContext → option EContext
       (n ctx)) ctx
 
 end Prog
+
+local infixr ` <;> `:1 := Prog.seq
+local notation a ` ::= `:20 c := Prog.store a c
+local notation a ` ⟬ `:9000 i ` ⟭ ` ` ::= `:20 c := Prog.store_arr a i c
+local notation x ` ⟬ `:9000 i ` ⟭ ` := Expr.access x i 
+
+section stream
+
+parameter (R)
+structure BoundedStreamGen (ι α : Type) :=
+(current : ι)
+(value : α)
+(ready : Expr nn)
+(next : Prog)
+(valid : Expr nn)
+(bound : LoopBound)
+(initialize : Prog)
+
+
+end stream
 
 end
 
