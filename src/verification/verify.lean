@@ -11,6 +11,7 @@ import finsupp_lemmas
 import frames
 import verification.vars
 import verification.misc
+import verification.stream
 
 section
 
@@ -277,6 +278,18 @@ structure BoundedStreamGen (ι α : Type) :=
 (valid : Expr nn)
 (bound : LoopBound)
 (initialize : Prog)
+
+variables {ι α : Type}
+
+def singleton (x : α) : BoundedStreamGen unit α := sorry
+
+def range_nn (n : Expr nn) : BoundedStreamGen (Expr nn) (Expr nn) := sorry
+
+def range_rr (n : Expr nn) : BoundedStreamGen (Expr nn) (Expr rr) := sorry
+
+def contract (x : BoundedStreamGen ι α) : BoundedStreamGen unit α := sorry
+
+
 
 
 end stream
