@@ -267,6 +267,20 @@ local notation a ` ::= `:20 c := Prog.store a c
 local notation a ` ⟬ `:9000 i ` ⟭ ` ` ::= `:20 c := Prog.store_arr a i c
 local notation x ` ⟬ `:9000 i ` ⟭ ` := Expr.access x i 
 
+class Evalable (α : Type) (β : out_param Type) :=
+(eval : EContext → α → option β)
+
+class Evalable' (α : Type) (σ : α → Type) (β : out_param Type) :=
+(eval : Π x, σ x → option β)
+
+instance eval_expr_nn : Evalable (Expr nn) ℕ :=
+{ eval := λ ctx e, e.eval ctx }
+
+#check Expr.frame : Expr → Frame
+
+instance eval_expr_rr : Evalable (Expr rr) R :=
+{ eval := λ ctx e, e.eval ctx }
+
 section stream
 
 parameter (R)
@@ -279,7 +293,27 @@ structure BoundedStreamGen (ι α : Type) :=
 (bound : LoopBound)
 (initialize : Prog)
 
-variables {ι α : Type}
+parameter {R}
+variables {ι α ι' β : Type}
+
+structure is_defined [Evalable ι ι'] [Evalable α β] (s : BoundedStreamGen ι α) (ctx : EContext) : Prop :=
+(hvalid : (s.valid.eval ctx).is_some)
+(hready : ∀ {n : ℕ}, s.valid.eval ctx = some n → 0 < n → (s.ready.eval ctx).is_some)
+(hnext : ∀ {n : ℕ}, s.valid.eval ctx = some n → 0 < n → (s.next.eval ctx).is_some)
+(hinit : (s.initialize.eval ctx).is_some)
+(hcurr : ∀ {n₁ n₂ : ℕ}, s.valid.eval ctx = some n₁ → s.ready.eval ctx = some n₂ → 0 < n₁ → 0 < n₂ → (Evalable.eval ctx s.current).is_some)
+(hval : ∀ {n₁ n₂ : ℕ}, s.valid.eval ctx = some n₁ → s.ready.eval ctx = some n₂ → 0 < n₁ → 0 < n₂ → (Evalable.eval ctx s.value).is_some)
+
+def BoundedStreamGen.to_stream_of_is_defined [Evalable ι ι'] [Evalable α β] (s : BoundedStreamGen ι α)
+  (hs : ∀ ctx, is_defined s ctx) (ctx : EContext) : StreamExec EContext ι' β := sorry
+
+section
+local attribute [instance] classical.dec
+
+noncomputable instance eval_stream [Evalable ι ι'] [Evalable α β] : Evalable (BoundedStreamGen ι α) (StreamExec EContext ι' β) :=
+{ eval := λ ctx s, if H : (∀ c, is_defined s c) then some (s.to_stream_of_is_defined H ctx) else none }
+
+end
 
 def singleton (x : α) : BoundedStreamGen unit α := sorry
 
@@ -289,7 +323,24 @@ def range_rr (n : Expr nn) : BoundedStreamGen (Expr nn) (Expr rr) := sorry
 
 def contract (x : BoundedStreamGen ι α) : BoundedStreamGen unit α := sorry
 
+structure tr {ι ι' σ α β} (x : BoundedStreamGen ι α) (y : Stream σ ι' β) :=
+(tr_ι : EContext → ι → ι')
+(tr_α : EContext → α → β)
+(tr_ctx : EContext → σ)
+-- (hcurr : ∀ ctx : EContext, y.stream.valid (tr_ctx ctx) = tt → )
+(hvalid : ∀ ctx : EContext, ∃ n : ℕ, n ∈ x.valid.eval ctx ∧ (0 < n ↔ y.valid (tr_ctx ctx) = tt))
+(hready : ∀ ctx : EContext, ∃ n : ℕ, n ∈ x.ready.eval ctx ∧ (0 < n ↔ y.ready (tr_ctx ctx) = tt))
+(hnext : ∀ ctx : EContext, ∃ ctx' ∈ x.next.eval ctx, y.next (tr_ctx ctx) = tr_ctx ctx')
+-- (hval : ∀ ctx : EContext, ∃ n : ℕ, )
+-- etc.
 
+
+
+-- (N : Expr nn)
+-- tr (range_nn N) (range ?)
+
+-- range_nn (n : Expr nn) ∼ range_nn
+-- singleton (range_nn (n : Expr nn))  ∼ singleton (range )
 
 
 end stream

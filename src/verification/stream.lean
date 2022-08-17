@@ -1,12 +1,16 @@
 import data.finsupp.basic
 
-structure BoundedStream (σ ι α : Type) :=
+structure Stream (σ ι α : Type) :=
 (next  : σ → σ)
 (index : σ → ι)
 (value : σ → α)
 (ready : σ → bool)
 (valid : σ → bool)
 (bound : ℕ)
+
+structure StreamExec (σ ι α : Type) :=
+(stream : Stream σ ι α)
+(state : σ)
 
 structure status (σ ι α : Type) :=
 (next  : σ)
@@ -19,7 +23,7 @@ structure status (σ ι α : Type) :=
 variables {σ ι α : Type}
 
 @[simps]
-def BoundedStream.now (s : BoundedStream σ ι α) (x : σ) : status σ ι α :=
+def Stream.now (s : Stream σ ι α) (x : σ) : status σ ι α :=
 { next  := s.next x,
   index := s.index x,
   value := s.value x,
@@ -27,17 +31,27 @@ def BoundedStream.now (s : BoundedStream σ ι α) (x : σ) : status σ ι α :=
   valid := s.valid x,
   state := x }
 
-noncomputable def BoundedStream.eval₀ [has_zero α] (s : BoundedStream σ ι α) (x : σ) : ι →₀ α :=
-if (s.now x).ready = tt then finsupp.single (s.now x).index (s.now x).value else 0
+@[simps]
+def StreamExec.now (s : StreamExec σ ι α) : status σ ι α :=
+s.stream.now s.state
+
+@[simps] def StreamExec.δ (s : StreamExec σ ι α) : StreamExec σ ι α :=
+{ stream := s.stream,
+  state := s.now.next }
+
+noncomputable def StreamExec.eval₀ [has_zero α] (s : StreamExec σ ι α) : ι →₀ α :=
+if s.now.ready = tt then finsupp.single s.now.index s.now.value else 0
 
 @[simp]
-noncomputable def BoundedStream.eval_steps [add_zero_class α] (s : BoundedStream σ ι α) :
-  ℕ → σ → option (ι →₀ α)
-| 0 x := if (s.now x).valid = ff ∧ (s.now x).ready = ff then some 0 else none
-| (n + 1) x := (BoundedStream.eval_steps n (s.next x)).map (λ r, r + s.eval₀ x)
+noncomputable def StreamExec.eval_steps [add_zero_class α] :
+  ℕ → (StreamExec σ ι α) → option (ι →₀ α)
+| 0 s := if s.now.valid = ff ∧ s.now.ready = ff then some 0 else none
+| (n + 1) s := (StreamExec.eval_steps n s.δ).map (λ r, r + s.eval₀)
 
 @[simp]
-noncomputable def BoundedStream.eval [add_zero_class α] (s : BoundedStream σ ι α) : σ → option (ι →₀ α) :=
-s.eval_steps s.bound
+noncomputable def StreamExec.eval [add_zero_class α] (s : StreamExec σ ι α) : option (ι →₀ α) :=
+s.eval_steps s.stream.bound
+
+
 
 
