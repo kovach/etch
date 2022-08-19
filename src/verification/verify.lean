@@ -50,15 +50,15 @@ inductive Op : Types → Type
 | cast_r : Op rr
 
 namespace Op
-instance : ∀ b, has_to_string (Op b) 
+instance : ∀ b, has_to_string (Op b)
 | rr := ⟨λ v, match v with
 | radd := "add"
 | rmul := "mul"
 | cast_r := "cast"
 end⟩
 | nn := ⟨λ v, match v with
-| nadd := "add" 
-| nmul := "mul" 
+| nadd := "add"
+| nmul := "mul"
 | and := "and"
 | or := "or"
 | not := "not"
@@ -94,7 +94,7 @@ def eval : ∀ {b} (o : Op b), (Π (n : fin o.arity), ExprVal (o.signature n)) �
 | _ not := λ args, if args 0 = (0 : ℕ) then 1 else 0
 | _ nat_eq := λ args, if args 0 = args 1 then 1 else 0
 | _ lt := λ args, if (show ℕ, from args 0) < args 1 then 1 else 0
-| _ cast_r := λ args, show ℕ, from args 0 
+| _ cast_r := λ args, show ℕ, from args 0
 
 end Op
 
@@ -107,7 +107,7 @@ parameter {R}
 
 namespace IdentVal
 
-instance {b : Types} : inhabited (IdentVal b) := ⟨IdentVal.arr []⟩ 
+instance {b : Types} : inhabited (IdentVal b) := ⟨IdentVal.arr []⟩
 
 def get {b : Types} : IdentVal b → ℕ → option (ExprVal b)
 | (IdentVal.base val) 0 := some val
@@ -265,7 +265,7 @@ end Prog
 local infixr ` <;> `:1 := Prog.seq
 local notation a ` ::= `:20 c := Prog.store a c
 local notation a ` ⟬ `:9000 i ` ⟭ ` ` ::= `:20 c := Prog.store_arr a i c
-local notation x ` ⟬ `:9000 i ` ⟭ ` := Expr.access x i 
+local notation x ` ⟬ `:9000 i ` ⟭ ` := Expr.access x i
 
 class Evalable (α : Type) (β : out_param Type) :=
 (eval : EContext → α → option β)
@@ -447,13 +447,13 @@ parameter (R)
 inductive IdentVal
 | base (val : ExprVal) : IdentVal
 | arr (val : list (ExprVal)) : IdentVal
-instance : inhabited IdentVal := ⟨IdentVal.base default⟩ 
+instance : inhabited IdentVal := ⟨IdentVal.base default⟩
 
 parameter {R}
 def IdentVal.get : IdentVal → option ℕ → ExprVal
 | (IdentVal.base val) none := val
 | (IdentVal.arr val) (some i) := val.inth i
-| _ _ := arbitrary _ 
+| _ _ := arbitrary _
 
 @[simp] lemma IdentVal.get_none (b : ExprVal) : (IdentVal.base b).get none = b := rfl
 @[simp] lemma IdentVal.get_ind (arr : list ExprVal) (n : ℕ) :
@@ -646,7 +646,7 @@ begin
   case Expr.lit : { simp, },
   case Expr.ident : i { simp [h i _], },
   case Expr.access : x n ih { simp at h ⊢, specialize ih h.2, simp [ih, h.1], },
-  case Expr.call : o args ih 
+  case Expr.call : o args ih
   { simp, congr, ext i, apply ih, refine (λ v hv, h v _), simp, refine ⟨_, hv⟩, }
 end
 
@@ -672,10 +672,10 @@ begin
   { suffices : s ≠ dst, { simp [Prog.eval, this] },
     rintro rfl, cases ind; simpa using hs, },
   case Prog.seq : a b ih₁ ih₂
-  { simp [decidable.not_or_iff_and_not] at hs, 
+  { simp [decidable.not_or_iff_and_not] at hs,
     simp [Prog.eval, ih₂ hs.2, ih₁ hs.1], },
   case Prog.branch : cond a b ih₁ ih₂
-  { simp [decidable.not_or_iff_and_not] at hs, 
+  { simp [decidable.not_or_iff_and_not] at hs,
     simp [Prog.eval], split_ifs, exacts [ih₁ hs.2.1 _, ih₂ hs.2.2 _], },
   case Prog.loop : n b ih
   { simp [Prog.eval],
@@ -713,7 +713,7 @@ begin
     simp [Prog.eval, this],
     generalize : n ctx₁ = n',
     induction n' with n' ihn generalizing s, { exact h _ hs, },
-    simp [function.iterate_succ_apply'], 
+    simp [function.iterate_succ_apply'],
     refine ih _ @ihn hs, simp at hS, exact finset.union_subset_right hS, }
 end
 
@@ -731,7 +731,7 @@ end frame
 local infixr ` <;> `:1 := Prog.seq
 local notation a ` ::= `:20 c := Prog.store a none c
 local notation a ` ⟬ `:9000 i ` ⟭ ` ` ::= `:20 c := Prog.store a (some i) c
-local notation x ` ⟬ `:9000 i ` ⟭ ` := Expr.access x i 
+local notation x ` ⟬ `:9000 i ` ⟭ ` := Expr.access x i
 
 parameter (R)
 structure BoundedStreamGen (ι α : Type) :=
@@ -767,13 +767,13 @@ infixr ` <$₂> `:1 := bifunctor.snd
 
 -- TODO: find a better way
 variables {ι' α' : Type} (f : ι → ι') (g : α → α') (s : BoundedStreamGen ι α)
-@[simp] lemma BSG_fst_value : (f <$₁> s).value = s.value := rfl 
+@[simp] lemma BSG_fst_value : (f <$₁> s).value = s.value := rfl
 @[simp] lemma BSG_fst_ready : (f <$₁> s).ready = s.ready := rfl
 @[simp] lemma BSG_fst_next : (f <$₁> s).next = s.next := rfl
 @[simp] lemma BSG_fst_valid : (f <$₁> s).valid = s.valid := rfl
 @[simp] lemma BSG_fst_bound : (f <$₁> s).bound = s.bound := rfl
 @[simp] lemma BSG_fst_init : (f <$₁> s).initialize = s.initialize := rfl
-@[simp] lemma BSG_snd_current : (g <$₂> s).current = s.current := rfl 
+@[simp] lemma BSG_snd_current : (g <$₂> s).current = s.current := rfl
 @[simp] lemma BSG_snd_ready : (g <$₂> s).ready = s.ready := rfl
 @[simp] lemma BSG_snd_next : (g <$₂> s).next = s.next := rfl
 @[simp] lemma BSG_snd_valid : (g <$₂> s).valid = s.valid := rfl
@@ -837,7 +837,7 @@ instance refl_eval {α : Type} : StreamEval α α := ⟨λ x _, x⟩
 
 noncomputable instance ind_eval {ι ι' α β : Type} [StreamEval ι ι'] [StreamEval α β] [add_zero_class β] :
   StreamEval (BoundedStreamGen ι α) (ι' →₀ β) :=
-{ eval := λ s ctx, eval_stream (s.bound ctx) (s.initialize.eval ctx) 
+{ eval := λ s ctx, eval_stream (s.bound ctx) (s.initialize.eval ctx)
   (StreamEval.eval <$₁> StreamEval.eval <$₂> s) }
 
 /- Convenience instance for `unit` so we don't have to write `unit → R` and can directly go to R
@@ -846,7 +846,7 @@ noncomputable instance unit_eval {α β : Type} [StreamEval α β] [add_zero_cla
   StreamEval (BoundedStreamGen unit α) β :=
 { eval := λ s ctx, (StreamEval.eval s ctx : unit →₀ β) () }
 
-instance base_compile : Compileable (Expr → Prog) Expr := 
+instance base_compile : Compileable (Expr → Prog) Expr :=
 ⟨λ c e, c e⟩
 
 section laws
@@ -899,14 +899,14 @@ lemma WithFrame.fresh_spec (x : finset NameSpace) ⦃v : Ident⦄ (hx : v.ns ∈
   v ≠ (fresh x)∷v' :=
 by { rintro rfl, exact not_fresh_mem _ hx, }
 
-lemma WithFrame.is_sound_of_fresh₁ {ι' β} [add_zero_class β] [StreamEval ι ι'] [StreamEval α β] (x : finset NameSpace) {f : NameSpace → BoundedStreamGen ι α} 
+lemma WithFrame.is_sound_of_fresh₁ {ι' β} [add_zero_class β] [StreamEval ι ι'] [StreamEval α β] (x : finset NameSpace) {f : NameSpace → BoundedStreamGen ι α}
   (hf : BoundedStreamGen.has_frame (f (fresh x)) ι β (Ident.ns⁻¹' (insert (fresh x) x))) :
   WithFrame.is_sound (WithFrame.fresh x f) (ι →₀ β) :=
 begin
   simp [WithFrame.is_sound], sorry,
 end
 
-lemma WithFrame.is_sound_of_fresh₂ {β} [add_zero_class β] [StreamEval α β] (x : finset NameSpace) {f : NameSpace → (BoundedStreamGen unit α)} 
+lemma WithFrame.is_sound_of_fresh₂ {β} [add_zero_class β] [StreamEval α β] (x : finset NameSpace) {f : NameSpace → (BoundedStreamGen unit α)}
   (hf : BoundedStreamGen.has_frame (f (fresh x)) unit β (Ident.ns⁻¹' (insert (fresh x) x))) :
   WithFrame.is_sound (WithFrame.fresh x f) β :=
 begin
@@ -1007,7 +1007,7 @@ begin
   intro t, simp [range_aux, hx₀, hn', ← apply_ite _root_.ExprVal.nat, imp_false],
   by_cases h : x₀ < n, swap,
   { have h' : ¬(x₀ ≤ t ∧ t < n) := λ H, h (lt_of_le_of_lt H.1 H.2), simp [h, h'], },
-  simp [h, Prog.eval, hx₀], 
+  simp [h, Prog.eval, hx₀],
   rw [← range_aux, ih (function.update ctx v (IdentVal.base (ExprVal.nat $ x₀ + 1))) (x₀ + 1) _ _ _]; clear ih,
   { by_cases H : x₀ = t, { subst H, simp [h], }, simp [ne.le_iff_lt H, ← nat.succ_le_iff, H, nat.succ_eq_add_one], },
   { refine hn.trans (le_of_eq _), rw nat.succ_eq_add_one, ac_refl, },
@@ -1016,7 +1016,7 @@ begin
   { simp, }
 end
 
-example (a b :ℕ) (h : a ≠ b) : a + 1 ≤ b ↔ a ≤ b := 
+example (a b :ℕ) (h : a ≠ b) : a + 1 ≤ b ↔ a ≤ b :=
 by { rw nat.succ_le_iff, exact (ne.le_iff_lt h).symm}
 
 theorem range_spec (n : WithFrame Expr) (hn : WithFrame.is_sound n ExprVal) (ctx : Ident → IdentVal) (n' : ℕ)
@@ -1040,7 +1040,7 @@ section contract
 def contract (g : BoundedStreamGen ι α) : BoundedStreamGen unit α :=
 (λ _, ()) <$₁> g
 
-lemma contract_aux [add_comm_monoid α] (n : ℕ) (ctx : Ident → IdentVal) 
+lemma contract_aux [add_comm_monoid α] (n : ℕ) (ctx : Ident → IdentVal)
   (g : BoundedStreamGen ((Ident → IdentVal) → ι) ((Ident → IdentVal) → α)) :
   (eval_stream n ctx ((λ _ _, ()) <$₁> g)) () = (eval_stream n ctx g).sum_range :=
 begin
@@ -1072,8 +1072,8 @@ let inner := outer.value in
   value := inner.value,
   ready := outer.ready ⟪&&⟫ inner.ready,
   next := let next_outer := outer.next <;> inner.initialize in
-  Prog.branch outer.ready 
-    (Prog.branch inner.valid inner.next next_outer) 
+  Prog.branch outer.ready
+    (Prog.branch inner.valid inner.next next_outer)
     next_outer,
   valid := outer.valid,
   bound := sorry, --outer.bound ⟪*⟫ inner.bound, -- TODO: fix
@@ -1097,7 +1097,7 @@ def externCSRMat (l₁ l₂ : Expr) (rows cols data : Ident) (i j k : Ident) :
 { current := (i, cols⟬j⟭),
   value := data⟬k⟭,
   ready := j ⟪<⟫ rows⟬i ⟪+⟫ (1 : ℕ)⟭,
-  next := 
+  next :=
     k ::= k ⟪+⟫ (1 : ℕ) <;>
     Prog.branch (j ⟪<⟫ rows⟬i ⟪+⟫ (1 : ℕ)⟭)
       (j ::= j ⟪+⟫ (1 : ℕ))
@@ -1107,7 +1107,7 @@ def externCSRMat (l₁ l₂ : Expr) (rows cols data : Ident) (i j k : Ident) :
   initialize := i ::= (0 : ℕ) <;> j ::= (0 : ℕ) <;> k ::= (0 : ℕ), }
 
 
--- def test₃ : BoundedStreamGen ℤ (Expr ℤ) (Expr ℤ) := externVec (10 : ℕ) (Ident.of "input") (Ident.of "idx") 
+-- def test₃ : BoundedStreamGen ℤ (Expr ℤ) (Expr ℤ) := externVec (10 : ℕ) (Ident.of "input") (Ident.of "idx")
 
 -- #eval trace_val $ to_string $ (contraction (Ident.of "acc") test₃).expr_to_prog.compile
 

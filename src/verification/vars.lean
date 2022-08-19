@@ -10,7 +10,7 @@ inductive Vars
 
 open Vars
 instance : has_to_string Vars :=
-⟨λ v, match v with 
+⟨λ v, match v with
 -- S.split(" | ").map(s => s + ' := "' + s + '"')
 | i := "i" | j := "j" | k := "k" | w := "w" | x := "x" | y := "y" | z := "z" | ind₀ := "ind₀" | ind₁ := "ind₁" | ind₂ := "ind₂" | break := "break" | output := "output"
 end⟩
@@ -81,7 +81,7 @@ theorem function.has_dframe.res {S} (h : function.has_dframe f S) (S') (hS' : S 
 
 theorem function.has_dheap.res {S} (h : function.has_dheap g S) (S') (hS' : S ⊆ S') :
   function.has_dheap g S' :=
-{ local_frame := λ c₁ c₂ c_eq y hy, 
+{ local_frame := λ c₁ c₂ c_eq y hy,
 begin
   by_cases H : y ∈ S,
   { exact h.local_frame c₁ c₂ (λ x hx, c_eq _ (hS' hx)) H, },
@@ -115,7 +115,7 @@ def Context (val_type : Types → Type) : Type :=
 variable {val_type : Types → Type}
 
 instance [∀ b, inhabited (val_type b)] : inhabited (Context val_type) :=
-⟨λ _, default⟩ 
+⟨λ _, default⟩
 
 def Context.get (ctx : Context val_type) {b : Types} (x : Ident b) : val_type b := ctx x
 
@@ -127,7 +127,7 @@ function.update ctx b (function.update (@ctx b) x v)
 Spec for context:
 
 -- (ctx.update x).get y when x = y and x ≠ y
--- 
+--
 
 -/
 
