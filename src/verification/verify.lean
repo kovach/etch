@@ -358,10 +358,11 @@ def range_rr (n : Expr nn) : BoundedStreamGen (Expr nn) (Expr rr) := sorry
 def contract (x : BoundedStreamGen ι α) : BoundedStreamGen unit α :=
 default <$₁> x
 
-lemma contract_tr [Evalable ι ι'] [Evalable α β] (x : BoundedStreamGen ι α) (ctx : EContext) :
-  Evalable.eval ctx (contract x) = (Evalable.eval ctx x).map contract_stream :=
+lemma contract_tr [Evalable ι ι'] [Evalable α β] (x : BoundedStreamGen ι α) (ctx : EContext) {y}
+  (h : (Evalable.eval ctx x).map contract_stream = some y) :
+  Evalable.eval ctx (contract x) = some y :=
 begin
-  sorry,
+  
 end
 
 
