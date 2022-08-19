@@ -42,6 +42,7 @@ end ExprVal
 inductive Op : Types → Type
 | nadd : Op nn | radd : Op rr
 | nmul : Op nn | rmul : Op rr
+| nsub : Op nn
 | and : Op nn
 | or : Op nn
 | not : Op nn
@@ -59,6 +60,7 @@ end⟩
 | nn := ⟨λ v, match v with
 | nadd := "add"
 | nmul := "mul"
+| nsub := "sub"
 | and := "and"
 | or := "or"
 | not := "not"
@@ -72,6 +74,7 @@ def arity : ∀ {b}, Op b → ℕ
 | _ radd := 2
 | _ nmul := 2
 | _ rmul := 2
+| _ nsub := 2
 | _ and := 2 | _ or := 2 | _ not := 1 | _ nat_eq := 2 | _ lt := 2
 | _ cast_r := 1
 
@@ -79,6 +82,7 @@ def arity : ∀ {b}, Op b → ℕ
 def signature : ∀ {b} (o : Op b), (fin o.arity → Types)
 | _ nadd := ![nn, nn] | _ radd := ![rr, rr]
 | _ nmul := ![nn, nn] | _ rmul := ![rr, rr]
+| _ nsub := ![nn, nn]
 | _ and := ![nn, nn] | _ or := ![nn, nn] | _ not := ![nn]
 | _ nat_eq := ![nn, nn] | _ lt := ![nn, nn]
 | _ cast_r := ![nn]
@@ -89,6 +93,7 @@ def eval : ∀ {b} (o : Op b), (Π (n : fin o.arity), ExprVal (o.signature n)) �
 | _ radd := λ args, ((+) : R → R → R) (args 0) (args 1)
 | _ nmul := λ args, ((*) : ℕ → ℕ → ℕ) (args 0) (args 1)
 | _ rmul := λ args, ((*) : R → R → R) (args 0) (args 1)
+| _ nsub := λ args, nat.sub (args 0) (args 1)
 | _ and := λ args, if args 0 = (0 : ℕ) then (0 : ℕ) else args 1
 | _ or := λ args, if args 0 = (0 : ℕ) then args 1 else args 0
 | _ not := λ args, if args 0 = (0 : ℕ) then 1 else 0
