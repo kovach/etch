@@ -362,7 +362,7 @@ lemma contract_tr [Evalable ι ι'] [Evalable α β] (x : BoundedStreamGen ι α
   (h : (Evalable.eval ctx x).map contract_stream = some y) :
   Evalable.eval ctx (contract x) = some y :=
 begin
-  
+  sorry,
 end
 
 
