@@ -270,13 +270,8 @@ local notation x ` ⟬ `:9000 i ` ⟭ ` := Expr.access x i
 class Evalable (α : Type) (β : out_param Type) :=
 (eval : EContext → α → option β)
 
-class Evalable' (α : Type) (σ : α → Type) (β : out_param Type) :=
-(eval : Π x, σ x → option β)
-
 instance eval_expr_nn : Evalable (Expr nn) ℕ :=
 { eval := λ ctx e, e.eval ctx }
-
-#check Expr.frame : Expr → Frame
 
 instance eval_expr_rr : Evalable (Expr rr) R :=
 { eval := λ ctx e, e.eval ctx }
@@ -296,16 +291,35 @@ structure BoundedStreamGen (ι α : Type) :=
 parameter {R}
 variables {ι α ι' β : Type}
 
+def BoundedStreamGen.valid_at (s : BoundedStreamGen ι α) (ctx : EContext) : Prop :=
+∃ ⦃n : ℕ⦄, s.valid.eval ctx = some n ∧ 0 < n
+
+def BoundedStreamGen.ready_at (s : BoundedStreamGen ι α) (ctx : EContext) : Prop :=
+∃ ⦃n₁ n₂ : ℕ⦄, s.valid.eval ctx = some n₁ ∧ s.ready.eval ctx = some n₂ ∧ 0 < n₁ ∧ 0 < n₂
+
 structure is_defined [Evalable ι ι'] [Evalable α β] (s : BoundedStreamGen ι α) (ctx : EContext) : Prop :=
 (hvalid : (s.valid.eval ctx).is_some)
-(hready : ∀ {n : ℕ}, s.valid.eval ctx = some n → 0 < n → (s.ready.eval ctx).is_some)
-(hnext : ∀ {n : ℕ}, s.valid.eval ctx = some n → 0 < n → (s.next.eval ctx).is_some)
+(hready : s.valid_at ctx → (s.ready.eval ctx).is_some)
+(hnext : s.valid_at ctx → (s.next.eval ctx).is_some)
 (hinit : (s.initialize.eval ctx).is_some)
-(hcurr : ∀ {n₁ n₂ : ℕ}, s.valid.eval ctx = some n₁ → s.ready.eval ctx = some n₂ → 0 < n₁ → 0 < n₂ → (Evalable.eval ctx s.current).is_some)
-(hval : ∀ {n₁ n₂ : ℕ}, s.valid.eval ctx = some n₁ → s.ready.eval ctx = some n₂ → 0 < n₁ → 0 < n₂ → (Evalable.eval ctx s.value).is_some)
+(hcurr : s.ready_at ctx → (Evalable.eval ctx s.current).is_some)
+(hval : s.ready_at ctx → (Evalable.eval ctx s.value).is_some)
 
+@[simps]
+def to_stream_of_is_defined_aux  [Evalable ι ι'] [Evalable α β] (s : BoundedStreamGen ι α)
+  (hs : ∀ ctx, is_defined s ctx) : Stream EContext ι' β :=
+{ valid := s.valid_at,
+  ready := s.ready_at,
+  next := λ ctx h, option.get ((hs ctx).hnext h),
+  index := λ ctx h, option.get ((hs ctx).hcurr h),
+  value := λ ctx h, option.get ((hs ctx).hval h) }
+
+@[simps]
 def BoundedStreamGen.to_stream_of_is_defined [Evalable ι ι'] [Evalable α β] (s : BoundedStreamGen ι α)
-  (hs : ∀ ctx, is_defined s ctx) (ctx : EContext) : StreamExec EContext ι' β := sorry
+  (hs : ∀ ctx, is_defined s ctx) (ctx₀ : EContext) : StreamExec EContext ι' β :=
+{ stream := to_stream_of_is_defined_aux s hs,
+  bound := s.bound ctx₀,
+  state := option.get (hs ctx₀).hinit }
 
 section
 local attribute [instance] classical.dec
@@ -323,16 +337,24 @@ def range_rr (n : Expr nn) : BoundedStreamGen (Expr nn) (Expr rr) := sorry
 
 def contract (x : BoundedStreamGen ι α) : BoundedStreamGen unit α := sorry
 
-structure tr {ι ι' σ α β} (x : BoundedStreamGen ι α) (y : Stream σ ι' β) :=
-(tr_ι : EContext → ι → ι')
-(tr_α : EContext → α → β)
-(tr_ctx : EContext → σ)
--- (hcurr : ∀ ctx : EContext, y.stream.valid (tr_ctx ctx) = tt → )
-(hvalid : ∀ ctx : EContext, ∃ n : ℕ, n ∈ x.valid.eval ctx ∧ (0 < n ↔ y.valid (tr_ctx ctx) = tt))
-(hready : ∀ ctx : EContext, ∃ n : ℕ, n ∈ x.ready.eval ctx ∧ (0 < n ↔ y.ready (tr_ctx ctx) = tt))
-(hnext : ∀ ctx : EContext, ∃ ctx' ∈ x.next.eval ctx, y.next (tr_ctx ctx) = tr_ctx ctx')
+
+
+
+-- Final theorem will be something like:
+-- ∀ (x : BoundedStreamGen ι α) [Evalable ι → ι'] [Evalable α → β] [FinsuppEval (StreamExec EContext ι' β)]
+--  (hind₁ : ι compiles correctly) (hind₂ : α compiles correctly) : BoundedStreamGen ι α compiles correctly
+
+
+-- structure tr {ι ι' σ α β} (x : BoundedStreamGen ι α) (y : Stream σ ι' β) :=
+-- (tr_ι : EContext → ι → ι')
+-- (tr_α : EContext → α → β)
+-- (tr_ctx : EContext → σ)
+-- -- (hcurr : ∀ ctx : EContext, y.stream.valid (tr_ctx ctx) = tt → )
+-- (hvalid : ∀ ctx : EContext, ∃ n : ℕ, n ∈ x.valid.eval ctx ∧ (0 < n ↔ y.valid (tr_ctx ctx) = tt))
+-- (hready : ∀ ctx : EContext, ∃ n : ℕ, n ∈ x.ready.eval ctx ∧ (0 < n ↔ y.ready (tr_ctx ctx) = tt))
+-- (hnext : ∀ ctx : EContext, ∃ ctx' ∈ x.next.eval ctx, y.next (tr_ctx ctx) = tr_ctx ctx')
 -- (hval : ∀ ctx : EContext, ∃ n : ℕ, )
--- etc.
+-- etc. ℕ
 
 
 
