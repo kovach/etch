@@ -291,6 +291,24 @@ structure BoundedStreamGen (ι α : Type) :=
 parameter {R}
 variables {ι α ι' β : Type}
 
+@[ext]
+lemma BoundedStreamGen.ext {s₁ s₂ : BoundedStreamGen ι α} (h₁ : s₁.current = s₂.current)
+  (h₂ : s₁.value = s₂.value) (h₃ : s₁.ready = s₂.ready) (h₄ : s₁.next = s₂.next) (h₅ : s₁.valid = s₂.valid)
+  (h₆ : s₁.bound = s₂.bound) (h₇ : s₁.initialize = s₂.initialize) : s₁ = s₂ :=
+by { cases s₁, cases s₂, dsimp only at *, subst_vars, }
+
+section functorality
+
+@[simps]
+instance : bifunctor BoundedStreamGen :=
+{ bimap := λ _ _ _ _ f g s, { s with current := f s.current, value := g s.value } }
+
+instance : is_lawful_bifunctor BoundedStreamGen :=
+{ id_bimap := by { intros, ext; simp, },
+  bimap_bimap := by { intros, ext; simp, } }
+
+end functorality
+
 def BoundedStreamGen.valid_at (s : BoundedStreamGen ι α) (ctx : EContext) : Prop :=
 ∃ ⦃n : ℕ⦄, s.valid.eval ctx = some n ∧ 0 < n
 
@@ -329,15 +347,22 @@ noncomputable instance eval_stream [Evalable ι ι'] [Evalable α β] : Evalable
 
 end
 
+instance eval_unit : Evalable unit unit := ⟨λ _, some⟩
+
 def singleton (x : α) : BoundedStreamGen unit α := sorry
 
 def range_nn (n : Expr nn) : BoundedStreamGen (Expr nn) (Expr nn) := sorry
 
 def range_rr (n : Expr nn) : BoundedStreamGen (Expr nn) (Expr rr) := sorry
 
-def contract (x : BoundedStreamGen ι α) : BoundedStreamGen unit α := sorry
+def contract (x : BoundedStreamGen ι α) : BoundedStreamGen unit α :=
+default <$₁> x
 
-
+lemma contract_tr [Evalable ι ι'] [Evalable α β] (x : BoundedStreamGen ι α) (ctx : EContext) :
+  Evalable.eval ctx (contract x) = (Evalable.eval ctx x).map contract_stream :=
+begin
+  sorry,
+end
 
 
 -- Final theorem will be something like:
