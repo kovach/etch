@@ -154,7 +154,7 @@ end
 by { simp [StreamExec.bound_valid], induction s.bound with n ih generalizing s; simp [*], refl, }
 
 def contract_stream (s : StreamExec σ ι α) : StreamExec σ unit α :=
-default <$₁> s 
+default <$₁> s
 
 @[simp] lemma contract_stream_spec [add_comm_monoid α] (s : StreamExec σ ι α) :
   (contract_stream s).eval () = finsupp.sum_range s.eval :=
@@ -166,5 +166,3 @@ by simp [contract_stream]
 
 
 end defs
-
-
