@@ -151,3 +151,6 @@ def iterate_while {α : Type*} (f : α → option α) (cond : α → option bool
 | (n+1) x := (cond x).bind (λ b, if b then (f x).bind (iterate_while n) else some x)
 
 end iterate
+
+theorem imp_iff_distrib {a b c : Prop} : ((a → b) ↔ (a → c)) ↔ (a → (b ↔ c)) :=
+⟨λ h ha, ⟨λ hb, h.mp (λ _, hb) ha, λ hc, h.mpr (λ _, hc) ha⟩, λ h, ⟨λ hb ha, (h ha).mp (hb ha), λ hc ha, (h ha).mpr (hc ha)⟩⟩ 

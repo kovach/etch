@@ -12,6 +12,7 @@ import frames
 import verification.vars
 import verification.misc
 import verification.stream
+import data.pfun
 
 section
 
@@ -268,7 +269,7 @@ local notation a ` ⟬ `:9000 i ` ⟭ ` ` ::= `:20 c := Prog.store_arr a i c
 local notation x ` ⟬ `:9000 i ` ⟭ ` := Expr.access x i 
 
 class Evalable (α : Type) (β : out_param Type) :=
-(eval : EContext → α → option β)
+(eval : EContext → α →. β)
 
 instance eval_expr_nn : Evalable (Expr nn) ℕ :=
 { eval := λ ctx e, e.eval ctx }
@@ -315,13 +316,19 @@ def BoundedStreamGen.valid_at (s : BoundedStreamGen ι α) (ctx : EContext) : Pr
 def BoundedStreamGen.ready_at (s : BoundedStreamGen ι α) (ctx : EContext) : Prop :=
 ∃ ⦃n₁ n₂ : ℕ⦄, s.valid.eval ctx = some n₁ ∧ s.ready.eval ctx = some n₂ ∧ 0 < n₁ ∧ 0 < n₂
 
+@[simp] lemma BoundedStreamGen.bimap_valid_at {s : BoundedStreamGen ι α} {ctx : EContext} (f : ι → ι') (g : α → β) :
+  (bimap f g s).valid_at ctx ↔ s.valid_at ctx := iff.rfl
+
+@[simp] lemma BoundedStreamGen.ready_valid_at {s : BoundedStreamGen ι α} {ctx : EContext} (f : ι → ι') (g : α → β) :
+  (bimap f g s).ready_at ctx ↔ s.ready_at ctx := iff.rfl
+
 structure is_defined [Evalable ι ι'] [Evalable α β] (s : BoundedStreamGen ι α) (ctx : EContext) : Prop :=
 (hvalid : (s.valid.eval ctx).is_some)
 (hready : s.valid_at ctx → (s.ready.eval ctx).is_some)
 (hnext : s.valid_at ctx → (s.next.eval ctx).is_some)
 (hinit : (s.initialize.eval ctx).is_some)
-(hcurr : s.ready_at ctx → (Evalable.eval ctx s.current).is_some)
-(hval : s.ready_at ctx → (Evalable.eval ctx s.value).is_some)
+(hcurr : s.ready_at ctx → (Evalable.eval ctx s.current).dom)
+(hval : s.ready_at ctx → (Evalable.eval ctx s.value).dom)
 
 @[simps]
 def to_stream_of_is_defined_aux  [Evalable ι ι'] [Evalable α β] (s : BoundedStreamGen ι α)
@@ -329,8 +336,8 @@ def to_stream_of_is_defined_aux  [Evalable ι ι'] [Evalable α β] (s : Bounded
 { valid := s.valid_at,
   ready := s.ready_at,
   next := λ ctx h, option.get ((hs ctx).hnext h),
-  index := λ ctx h, option.get ((hs ctx).hcurr h),
-  value := λ ctx h, option.get ((hs ctx).hval h) }
+  index := λ ctx h, part.get _ ((hs ctx).hcurr h),
+  value := λ ctx h, part.get _ ((hs ctx).hval h) }
 
 @[simps]
 def BoundedStreamGen.to_stream_of_is_defined [Evalable ι ι'] [Evalable α β] (s : BoundedStreamGen ι α)
@@ -339,15 +346,14 @@ def BoundedStreamGen.to_stream_of_is_defined [Evalable ι ι'] [Evalable α β] 
   bound := s.bound ctx₀,
   state := option.get (hs ctx₀).hinit }
 
-section
-local attribute [instance] classical.dec
+instance eval_stream [Evalable ι ι'] [Evalable α β] : Evalable (BoundedStreamGen ι α) (StreamExec EContext ι' β) :=
+{ eval := λ ctx s, ⟨∀ c, is_defined s c, λ H, (s.to_stream_of_is_defined H ctx)⟩ }
 
-noncomputable instance eval_stream [Evalable ι ι'] [Evalable α β] : Evalable (BoundedStreamGen ι α) (StreamExec EContext ι' β) :=
-{ eval := λ ctx s, if H : (∀ c, is_defined s c) then some (s.to_stream_of_is_defined H ctx) else none }
+@[simp] lemma eval_stream_is_some_iff [Evalable ι ι'] [Evalable α β] (s : BoundedStreamGen ι α) {c₀} :
+  (Evalable.eval c₀ s).dom ↔ (∀ c, is_defined s c) := iff.rfl
 
-end
-
-instance eval_unit : Evalable unit unit := ⟨λ _, some⟩
+instance eval_unit : Evalable unit unit := ⟨λ _, part.some⟩
+@[simp] lemma eval_unit_dom (c) : (Evalable.eval c ()).dom := trivial
 
 def singleton (x : α) : BoundedStreamGen unit α := sorry
 
@@ -358,11 +364,32 @@ def range_rr (n : Expr nn) : BoundedStreamGen (Expr nn) (Expr rr) := sorry
 def contract (x : BoundedStreamGen ι α) : BoundedStreamGen unit α :=
 default <$₁> x
 
-lemma contract_tr [Evalable ι ι'] [Evalable α β] (x : BoundedStreamGen ι α) (ctx : EContext) {y}
-  (h : (Evalable.eval ctx x).map contract_stream = some y) :
-  Evalable.eval ctx (contract x) = some y :=
+section functor_is_defined
+variables {ι₁ ι₁' ι₂ ι₂' α' β' : Type} [Evalable ι₁ ι₂] [Evalable α β]
+  {x : BoundedStreamGen ι₁ α} {c : EContext} (hx : is_defined x c)
+  (f : ι₁ → ι₁') (g : α → α')
+include hx
+
+@[simp] lemma bimap_is_defined [Evalable ι₁' ι₂'] [Evalable α' β'] :
+  is_defined (bifunctor.bimap f g x) c ↔ (x.ready_at c → (Evalable.eval c (f x.current)).dom ∧ (Evalable.eval c (g x.value)).dom) :=
+⟨λ ⟨hv, hr, hn, hi, hc, hl⟩ hr', ⟨hc hr', hl hr'⟩, λ H, ⟨hx.hvalid, hx.hready, hx.hnext, hx.hinit, λ h, (H h).1, λ h, (H h).2⟩⟩
+
+@[simp] lemma imap_is_defined [Evalable ι₁' ι₂'] :
+  is_defined (f <$₁> x) c ↔ (x.ready_at c → (Evalable.eval c (f x.current)).dom) :=
+by { rw bimap_is_defined hx, have := hx.hval, simp [imp_iff_distrib], tauto, }
+
+@[simp] lemma vmap_is_defined [Evalable α' β'] :
+  is_defined (g <$₂> x) c ↔ (x.ready_at c → (Evalable.eval c (g x.value)).dom) :=
+by { rw bimap_is_defined hx, have := hx.hcurr, simp [imp_iff_distrib], tauto, }
+
+end functor_is_defined
+
+lemma contract_tr [Evalable ι ι'] [Evalable α β] (x : BoundedStreamGen ι α) (ctx : EContext)
+  (h : ∀ c, is_defined x c) :
+  Evalable.eval ctx (contract x) = part.some (contract_stream ((Evalable.eval ctx x).get h)) :=
 begin
-  sorry,
+  rw ← part.get_eq_iff_eq_some, swap, { intro c, simp [contract, h], },
+  refl,
 end
 
 
