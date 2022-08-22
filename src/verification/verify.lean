@@ -356,8 +356,9 @@ structure is_defined [Evalable ι ι'] [Evalable α β] (s : BoundedStreamGen ι
 (hvalid : (s.valid.eval ctx).is_some)
 (hready : s.valid_at ctx → (s.ready.eval ctx).is_some)
 (hnext : s.valid_at ctx → (s.next.eval ctx).is_some)
+(hstep : s.valid_at ctx → ∀ ⦃c⦄, s.next.eval ctx = some c → s.ctx_inv c)
 (hinit : (s.initialize.eval ctx).is_some)
-(hcurr : s.ready_at ctx → (Evalable.eval ctx s.current).dom)
+(hcurr : s.valid_at ctx → (Evalable.eval ctx s.current).dom) -- why valid_at here?
 (hval : s.ready_at ctx → (Evalable.eval ctx s.value).dom)
 
 @[simps]
@@ -415,11 +416,11 @@ variables {ι₁ ι₁' ι₂ ι₂' α' β' : Type} [Evalable ι₁ ι₂] [Eva
 include hx
 
 @[simp] lemma bimap_is_defined [Evalable ι₁' ι₂'] [Evalable α' β'] :
-  is_defined (bifunctor.bimap f g x) c ↔ (x.ready_at c → (Evalable.eval c (f x.current)).dom ∧ (Evalable.eval c (g x.value)).dom) :=
-⟨λ ⟨hv, hr, hn, hi, hc, hl⟩ hr', ⟨hc hr', hl hr'⟩, λ H, ⟨hx.hvalid, hx.hready, hx.hnext, hx.hinit, λ h, (H h).1, λ h, (H h).2⟩⟩
+  is_defined (bifunctor.bimap f g x) c ↔ ((x.valid_at c → (Evalable.eval c (f x.current)).dom) ∧ (x.ready_at c → (Evalable.eval c (g x.value)).dom)) :=
+⟨λ ⟨hv, hr, hn, hs, hi, hc, hl⟩, ⟨hc, hl⟩, λ ⟨H₁, H₂⟩, ⟨hx.hvalid, hx.hready, hx.hnext, hx.hstep, hx.hinit, H₁, H₂⟩⟩
 
 @[simp] lemma imap_is_defined [Evalable ι₁' ι₂'] :
-  is_defined (f <$₁> x) c ↔ (x.ready_at c → (Evalable.eval c (f x.current)).dom) :=
+  is_defined (f <$₁> x) c ↔ (x.valid_at c → (Evalable.eval c (f x.current)).dom) :=
 by { rw bimap_is_defined hx, have := hx.hval, simp [imp_iff_distrib], tauto, }
 
 @[simp] lemma vmap_is_defined [Evalable α' β'] :
@@ -455,7 +456,8 @@ lemma externSparseVec_is_defined (scratch : NameSpace) (c : EContext) :
   hnext := _,
   hinit := _,
   hcurr := _,
-  hval := _ } 
+  hval := _,
+  hstep := _ } 
 
 def externSparseVec_spec [decidable_eq R] (ls : list R) (scratch : NameSpace) (hscratch : scratch ≠ NameSpace.reserved)
   (ctx : EContext) (h₁ : ctx.get (reserved∷len : Ident nn) = IdentVal.base ls.length)
