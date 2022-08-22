@@ -40,6 +40,7 @@ instance [has_to_string R] :
 
 end ExprVal
 
+@[derive decidable_eq]
 inductive Op : Types → Type
 | nadd : Op nn | radd : Op rr
 | nmul : Op nn | rmul : Op rr
@@ -54,19 +55,19 @@ inductive Op : Types → Type
 namespace Op
 instance : ∀ b, has_to_string (Op b)
 | rr := ⟨λ v, match v with
-| radd := "add"
-| rmul := "mul"
+| radd := "+"
+| rmul := "*"
 | cast_r := "cast"
 end⟩
 | nn := ⟨λ v, match v with
-| nadd := "add"
-| nmul := "mul"
-| nsub := "sub"
-| and := "and"
-| or := "or"
-| not := "not"
-| nat_eq := "eq"
-| lt := "lt"
+| nadd := "+"
+| nmul := "*"
+| nsub := "-"
+| and := "&&"
+| or := "||"
+| not := "!"
+| nat_eq := "="
+| lt := "<"
 end⟩
 
 @[reducible]
@@ -78,6 +79,19 @@ def arity : ∀ {b}, Op b → ℕ
 | _ nsub := 2
 | _ and := 2 | _ or := 2 | _ not := 1 | _ nat_eq := 2 | _ lt := 2
 | _ cast_r := 1
+
+def is_not_infix : finset (Σ b, Op b) :=
+{⟨_, Op.cast_r⟩}
+
+def to_str_with_args {b} (o : Op b) (args : list string) : string :=
+if H : (sigma.mk b o) ∈ is_not_infix ∨ 3 ≤ o.arity then
+  (to_string o) ++ "(" ++ ", ".intercalate args ++ ")"
+else match o.arity, (show ¬(3 ≤ o.arity), by tauto!) with
+  0, _ := (to_string o),
+  1, _ := (to_string o) ++ args.head,
+  2, _ := "(" ++ (args.inth 0) ++ " " ++ (to_string o) ++ " " ++ (args.inth 1) ++ ")",
+  (n + 3), h := by { exfalso, simpa using h, }
+end
 
 @[reducible]
 def signature : ∀ {b} (o : Op b), (fin o.arity → Types)
@@ -164,7 +178,7 @@ def expr_repr [has_to_string R] : ∀ {b : Types}, (Expr b) → string
 | _ (Expr.lit r) := to_string r
 | _ (Expr.ident x) := to_string x
 | _ (Expr.access x i) := (to_string x) ++ "[" ++ (expr_repr i) ++ "]"
-| _ (Expr.call o args) := (to_string o) ++ "(" ++ ", ".intercalate (vector.of_fn (λ i, expr_repr $ args i)).to_list ++ ")"
+| _ (Expr.call o args) := o.to_str_with_args (vector.of_fn (λ i, expr_repr $ args i)).to_list
 | _ (Expr.ternary c e₁ e₂) := (expr_repr c) ++ " ? " ++ (expr_repr e₁) ++ " : " ++ (expr_repr e₂)
 
 instance {b : Types} [has_to_string R] : has_to_string (Expr b) := ⟨expr_repr⟩
@@ -252,15 +266,15 @@ section Prog
 
 parameter {R}
 def prog_repr [has_to_string R] : Prog → list string
-| Prog.skip := [";"]
-| (Prog.store dst val) := [(to_string dst) ++ " := " ++ (to_string val) ++ ";"]
-| (Prog.store_arr dst ind val) := [(to_string dst) ++ ("[" ++ to_string ind ++ "]") ++ " := " ++ (to_string val) ++ ";"]
+| Prog.skip := ["pass"]
+| (Prog.store dst val) := [(to_string dst) ++ " := " ++ (to_string val)]
+| (Prog.store_arr dst ind val) := [(to_string dst) ++ ("[" ++ to_string ind ++ "]") ++ " := " ++ (to_string val)]
 | (Prog.seq a b) := (prog_repr a) ++ (prog_repr b)
-| (Prog.branch c a b) := ["if " ++ (to_string c)]
+| (Prog.branch c a b) := ["if " ++ (to_string c) ++ ":"]
     ++ (prog_repr a).map (λ s, "  " ++ s)
-    ++ ["else"]
+    ++ ["else:"]
     ++ (prog_repr b).map (λ s, "  " ++ s)
-| (Prog.loop n cond b) := ["while " ++ (to_string cond)]
+| (Prog.loop n cond b) := ["while " ++ (to_string cond) ++ ":"]
     ++ (prog_repr b).map (λ s, "  " ++ s)
 
 instance [has_to_string R] : has_to_string Prog :=
@@ -303,6 +317,7 @@ structure BoundedStreamGen (ι α : Type) :=
 (valid : Expr nn)
 (bound : LoopBound)
 (initialize : Prog)
+(ctx_inv : EContext → Prop)
 
 parameter {R}
 variables {ι α ι' β : Type}
@@ -310,7 +325,7 @@ variables {ι α ι' β : Type}
 @[ext]
 lemma BoundedStreamGen.ext {s₁ s₂ : BoundedStreamGen ι α} (h₁ : s₁.current = s₂.current)
   (h₂ : s₁.value = s₂.value) (h₃ : s₁.ready = s₂.ready) (h₄ : s₁.next = s₂.next) (h₅ : s₁.valid = s₂.valid)
-  (h₆ : s₁.bound = s₂.bound) (h₇ : s₁.initialize = s₂.initialize) : s₁ = s₂ :=
+  (h₆ : s₁.bound = s₂.bound) (h₇ : s₁.initialize = s₂.initialize) (h₈ : s₁.ctx_inv = s₂.ctx_inv) : s₁ = s₂ :=
 by { cases s₁, cases s₂, dsimp only at *, subst_vars, }
 
 section functorality
@@ -326,10 +341,10 @@ instance : is_lawful_bifunctor BoundedStreamGen :=
 end functorality
 
 def BoundedStreamGen.valid_at (s : BoundedStreamGen ι α) (ctx : EContext) : Prop :=
-∃ ⦃n : ℕ⦄, s.valid.eval ctx = some n ∧ 0 < n
+s.ctx_inv ctx ∧ ∃ ⦃n : ℕ⦄, s.valid.eval ctx = some n ∧ 0 < n
 
 def BoundedStreamGen.ready_at (s : BoundedStreamGen ι α) (ctx : EContext) : Prop :=
-∃ ⦃n₁ n₂ : ℕ⦄, s.valid.eval ctx = some n₁ ∧ s.ready.eval ctx = some n₂ ∧ 0 < n₁ ∧ 0 < n₂
+s.valid_at ctx ∧ ∃ ⦃n : ℕ⦄, s.ready.eval ctx = some n ∧ 0 < n
 
 @[simp] lemma BoundedStreamGen.bimap_valid_at {s : BoundedStreamGen ι α} {ctx : EContext} (f : ι → ι') (g : α → β) :
   (bimap f g s).valid_at ctx ↔ s.valid_at ctx := iff.rfl
@@ -376,18 +391,19 @@ def range_nn (n : Expr nn) : BoundedStreamGen (Expr nn) (Expr nn) := sorry
 
 def range_rr (n : Expr nn) : BoundedStreamGen (Expr nn) (Expr rr) := sorry
 
-def externSparseVec (inp_ns : NameSpace) (scratch : NameSpace) : BoundedStreamGen (Expr nn) (Expr rr) :=
+def externSparseVec (scratch : NameSpace) : BoundedStreamGen (Expr nn) (Expr rr) :=
 let i : Ident nn := scratch∷Vars.i,
-    len : Ident nn := inp_ns∷Vars.len,
-    inds : Ident nn := inp_ns∷Vars.ind₀,
-    vals : Ident rr := inp_ns∷Vars.vals in
+    len : Ident nn := NameSpace.reserved∷Vars.len,
+    inds : Ident nn := NameSpace.reserved∷Vars.ind₀,
+    vals : Ident rr := NameSpace.reserved∷Vars.vals in
 { current := inds⟬i⟭,
   value := vals⟬inds⟬i⟭⟭,
   ready := 1,
   next := i ::= i + 1,
   valid := i ⟪<⟫ len,
   bound := ⟨default, λ ctx, ((ctx.get len).get 0).iget, /- TODO: Frame -/ trivial⟩,
-  initialize := i ::= 0 }
+  initialize := i ::= 0,
+  ctx_inv := _ }
 
 def contract (x : BoundedStreamGen ι α) : BoundedStreamGen unit α :=
 default <$₁> x
@@ -420,8 +436,40 @@ begin
   refl,
 end
 
-def compile_scalar (x : BoundedStreamGen unit (Expr rr)) (out_ns : NameSpace) : Prog :=
-let out : Ident rr := out_ns∷Vars.output in
+section sparse_vectors
+open NameSpace (reserved) Vars (ind₀ vals len)
+
+def list_to_sparse_inds [decidable_eq R] (ls : list R) : list ℕ :=
+ls.find_indexes (≠0)
+
+def list_to_sparse_vals [decidable_eq R] (ls : list R) : list R :=
+ls.filter (≠0)
+
+def R_inhb : inhabited R := ⟨0⟩
+local attribute [instance] R_inhb
+
+lemma externSparseVec_is_defined (scratch : NameSpace) (c : EContext) :
+  is_defined (externSparseVec scratch) c :=
+{ hvalid := _,
+  hready := _,
+  hnext := _,
+  hinit := _,
+  hcurr := _,
+  hval := _ } 
+
+def externSparseVec_spec [decidable_eq R] (ls : list R) (scratch : NameSpace) (hscratch : scratch ≠ NameSpace.reserved)
+  (ctx : EContext) (h₁ : ctx.get (reserved∷len : Ident nn) = IdentVal.base ls.length)
+  (h₂ : ctx.get (reserved∷ind₀ : Ident nn) = IdentVal.arr (list_to_sparse_inds ls))
+  (h₃ : ctx.get (reserved∷vals : Ident rr) = IdentVal.arr (list_to_sparse_vals ls)) :
+  ∀ c, is_defined (externSparseVec scratch) c :=
+begin
+
+end  
+
+end sparse_vectors
+
+def compile_scalar (x : BoundedStreamGen unit (Expr rr)) : Prog :=
+let out : Ident rr := NameSpace.reserved∷Vars.output in
 x.initialize <;>
 Prog.loop x.bound x.valid $
   Prog.branch x.ready (out ::= out + x.value) Prog.skip
@@ -459,8 +507,8 @@ end
 section examples
 open Types
 
-def sum_vec : BoundedStreamGen ℤ unit (Expr ℤ rr) := contract (externSparseVec NameSpace.reserved (fresh ∅))
-def sum_vec_compiles : Prog ℤ := compile_scalar sum_vec NameSpace.reserved
+def sum_vec : BoundedStreamGen ℤ unit (Expr ℤ rr) := contract (externSparseVec (fresh ∅))
+def sum_vec_compiles : Prog ℤ := compile_scalar sum_vec
 
 #eval do io.print_ln sum_vec_compiles
 
