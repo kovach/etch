@@ -6,13 +6,13 @@ import data.fin.tuple
 section vars
 @[derive decidable_eq, derive fintype, derive inhabited]
 inductive Vars
-| i | j | k | w | x | y | z | ind₀ | ind₁ | ind₂ | break | output
+| i | j | k | w | x | y | z | ind₀ | ind₁ | ind₂ | break | output | len | vals
 
 open Vars
 instance : has_to_string Vars :=
 ⟨λ v, match v with
 -- S.split(" | ").map(s => s + ' := "' + s + '"')
-| i := "i" | j := "j" | k := "k" | w := "w" | x := "x" | y := "y" | z := "z" | ind₀ := "ind₀" | ind₁ := "ind₁" | ind₂ := "ind₂" | break := "break" | output := "output"
+| i := "i" | j := "j" | k := "k" | w := "w" | x := "x" | y := "y" | z := "z" | ind₀ := "ind₀" | ind₁ := "ind₁" | ind₂ := "ind₂" | break := "break" | output := "output" | len := "len" | vals := "vals"
 end⟩
 end vars
 
@@ -59,7 +59,7 @@ by { intro x, use ⟨x, default⟩, }
 @[simp] lemma Ident_ns_range {b : Types} : set.range (@Ident.ns b) = set.univ :=
 by simpa [set.surjective_iff_surj_on_univ, set.surj_on, set.univ_subset_iff] using Ident_ns_surjective
 
-local infix `∷`:9000 := Ident.mk
+infix `∷`:9000 := Ident.mk
 
 end Ident
 

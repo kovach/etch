@@ -146,7 +146,8 @@ inductive Expr : Types → Type
 parameter {R}
 
 abbreviation EContext := Context IdentVal
-def Frame := Π (b : Types), finset (Ident b)
+def Frame := finset (Σ b, Ident b)
+instance : inhabited Frame := ⟨(default : finset (Σ b, Ident b))⟩
 
 def Expr.eval (ctx : EContext) : ∀ {b}, Expr b → option (ExprVal b)
 | _ (Expr.lit r) := some r
@@ -154,6 +155,8 @@ def Expr.eval (ctx : EContext) : ∀ {b}, Expr b → option (ExprVal b)
 | b (Expr.access x i) := i.eval >>= λ i', (ctx.get x).get i' --(λ a : Ident b → IdentVal b, (a x).get i') (Context.get ctx)
 | _ (Expr.call o args) := fin.tuple_some (λ i, (args i).eval) >>= λ r, some (o.eval r)
 | _ (Expr.ternary cond e₁ e₂) := cond.eval >>= λ r, if r = 0 then e₂.eval else e₁.eval
+
+local notation a ` ⟪<⟫ ` b := Expr.call Op.lt (fin.cons (a : Expr nn) (fin.cons (b : Expr nn) default))
 
 section Expr
 
@@ -216,6 +219,10 @@ by { simp [mul_nn_mul, Expr.eval, fin.tuple_some] with functor_norm, refl, }
   (e₁ * e₂).eval ctx = (e₁.eval ctx) >>= λ n, e₂.eval ctx >>= λ m, some (n * m) :=
 by { simp [mul_rr_mul, Expr.eval, fin.tuple_some] with functor_norm, refl, }
 
+@[simp] lemma Expr.eval_lt (e₁ e₂ : Expr nn) (ctx : EContext) :
+  (e₁ ⟪<⟫ e₂).eval ctx = (e₁.eval ctx) >>= λ n, e₂.eval ctx >>= λ m, some (if n < m then 1 else 0) :=
+by { simp [Expr.eval, fin.tuple_some] with functor_norm, refl, }
+
 end Expr
 
 parameter (R)
@@ -255,6 +262,9 @@ def prog_repr [has_to_string R] : Prog → list string
     ++ (prog_repr b).map (λ s, "  " ++ s)
 | (Prog.loop n cond b) := ["while " ++ (to_string cond)]
     ++ (prog_repr b).map (λ s, "  " ++ s)
+
+instance [has_to_string R] : has_to_string Prog :=
+⟨λ p, "\n".intercalate (prog_repr p)⟩
 
 def Prog.eval : Prog → EContext → option EContext
 | Prog.skip ctx := ctx
@@ -366,6 +376,19 @@ def range_nn (n : Expr nn) : BoundedStreamGen (Expr nn) (Expr nn) := sorry
 
 def range_rr (n : Expr nn) : BoundedStreamGen (Expr nn) (Expr rr) := sorry
 
+def externSparseVec (inp_ns : NameSpace) (scratch : NameSpace) : BoundedStreamGen (Expr nn) (Expr rr) :=
+let i : Ident nn := scratch∷Vars.i,
+    len : Ident nn := inp_ns∷Vars.len,
+    inds : Ident nn := inp_ns∷Vars.ind₀,
+    vals : Ident rr := inp_ns∷Vars.vals in
+{ current := inds⟬i⟭,
+  value := vals⟬inds⟬i⟭⟭,
+  ready := 1,
+  next := i ::= i + 1,
+  valid := i ⟪<⟫ len,
+  bound := ⟨default, λ ctx, ((ctx.get len).get 0).iget, /- TODO: Frame -/ trivial⟩,
+  initialize := i ::= 0 }
+
 def contract (x : BoundedStreamGen ι α) : BoundedStreamGen unit α :=
 default <$₁> x
 
@@ -397,6 +420,11 @@ begin
   refl,
 end
 
+def compile_scalar (x : BoundedStreamGen unit (Expr rr)) (out_ns : NameSpace) : Prog :=
+let out : Ident rr := out_ns∷Vars.output in
+x.initialize <;>
+Prog.loop x.bound x.valid $
+  Prog.branch x.ready (out ::= out + x.value) Prog.skip
 
 -- Final theorem will be something like:
 -- ∀ (x : BoundedStreamGen ι α) [Evalable ι → ι'] [Evalable α → β] [FinsuppEval (StreamExec EContext ι' β)]
@@ -425,8 +453,18 @@ end
 
 end stream
 
+
 end
 
+section examples
+open Types
+
+def sum_vec : BoundedStreamGen ℤ unit (Expr ℤ rr) := contract (externSparseVec NameSpace.reserved (fresh ∅))
+def sum_vec_compiles : Prog ℤ := compile_scalar sum_vec NameSpace.reserved
+
+#eval do io.print_ln sum_vec_compiles
+
+end examples
 #exit
 
 @[simp]
@@ -634,7 +672,7 @@ def prog_repr [has_to_string R] : Prog → list string
 | (Prog.loop n b) := ["for at most some bounded # of times"]
     ++ (prog_repr b).map (λ s, "  " ++ s)
 
-instance [has_to_string R] : has_to_string Prog := ⟨λ p, "\n".intercalate (prog_repr p)⟩
+instance [has_to_string R] prog_to_string : has_to_string Prog := ⟨λ p, "\n".intercalate (prog_repr p)⟩
 
 
 
