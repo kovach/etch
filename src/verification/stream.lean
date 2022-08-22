@@ -9,7 +9,7 @@ structure Stream (σ ι α : Type) :=
 (valid : σ → Prop)
 (ready : σ → Prop)
 (next  : Π (x : σ), valid x → σ)
-(index : Π (x : σ), ready x → ι)
+(index : Π (x : σ), valid x → ι)
 (value : Π (x : σ), ready x → α)
 
 @[ext]
@@ -61,7 +61,7 @@ infixr ` <$₂> `:1 := bifunctor.snd
 @[simps]
 def Stream.now (s : Stream σ ι α) (x : σ) (h₁ : s.valid x) (h₂ : s.ready x) : status σ ι α :=
 { next  := s.next x h₁,
-  index := s.index x h₂,
+  index := s.index x h₁,
   value := s.value x h₂,
   ready := s.ready x,
   valid := s.valid x,
