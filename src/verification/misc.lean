@@ -37,3 +37,16 @@ by { simp [fin.tuple_sequence] with functor_norm, refl, }
 
 def fin.tuple_some {n : ℕ} {α : fin n → Type u} (x : Π i, option (α i)) : option (Π i, α i) :=
 fin.tuple_sequence x
+
+@[simp] lemma option.bind_is_some {α β} (x : option α) (y : α → option β):
+  (x >>= y).is_some ↔ (∃ (h : x.is_some), (y (option.get h)).is_some) :=
+by cases x; simp
+
+@[simp] lemma option.map_is_some {α β} (x : option α) (y : α → β) :
+  (y <$> x).is_some ↔ x.is_some := by cases x; simp
+
+def option.guard_prop {α} (p : Prop) [decidable p] (x : α) : option α :=
+  if p then some x else none
+@[simp] lemma option.guard_prop_is_some {α} {p : Prop} [decidable p] {x : α} :
+  (option.guard_prop p x).is_some ↔ p :=
+by { dsimp only [option.guard_prop], split_ifs; simpa }

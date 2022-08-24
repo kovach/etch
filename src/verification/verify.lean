@@ -129,15 +129,17 @@ namespace IdentVal
 
 instance {b : Types} : inhabited (IdentVal b) := ⟨IdentVal.arr []⟩
 
-def get {b : Types} : IdentVal b → ℕ → option (ExprVal b)
-| (IdentVal.base val) 0 := some val
+def get {b : Types} : IdentVal b → option (ExprVal b)
+| (IdentVal.base val) := some val
+| _ := none
+
+def get_arr {b : Types} : IdentVal b → ℕ → option (ExprVal b)
 | (IdentVal.arr val) i := val.nth i
 | _ _ := none
 
-
-@[simp] lemma get_zero {b : Types} (e : ExprVal b) : (IdentVal.base e).get 0 = e := rfl
-@[simp] lemma IdentVal.get_ind {b : Types} (a : list (ExprVal b)) (n : ℕ) :
-  (arr a).get n = a.nth n := rfl
+@[simp] lemma get_scalar {b : Types} (e : ExprVal b) : (IdentVal.base e).get = some e := rfl
+@[simp] lemma get_arr_val {b : Types} (a : list (ExprVal b)) (n : ℕ) :
+  (arr a).get_arr n = a.nth n := rfl
 
 def update_arr {b : Types} : IdentVal b → ℕ → ExprVal b → option (IdentVal b)
 | (IdentVal.arr val) i x := if i < val.length then some (IdentVal.arr (val.modify_nth (λ _, x) i)) else none
@@ -146,6 +148,24 @@ def update_arr {b : Types} : IdentVal b → ℕ → ExprVal b → option (IdentV
 lemma update_arr_def {b : Types} (x : list (ExprVal b)) {i : ℕ} (hi : i < x.length) (v : ExprVal b) :
   (IdentVal.arr x).update_arr i v = some (IdentVal.arr $ x.modify_nth (λ _, v) i) :=
 by simp [update_arr, hi]
+
+def is_scalar {b : Types} (x : IdentVal b) : Prop :=
+∃ n, x = IdentVal.base n
+
+
+@[simp] lemma base_is_scalar {b : Types} (x : ExprVal b) :
+  (IdentVal.base x).is_scalar := ⟨_, rfl⟩
+@[simp] lemma arr_is_not_scalar {b : Types} (x : list (ExprVal b)) :
+  ¬(IdentVal.arr x).is_scalar | ⟨x', h⟩ := by contradiction
+lemma not_is_scalar_iff {b : Types} (x : IdentVal b) :
+  ¬x.is_scalar ↔ ∃ n, x = IdentVal.arr n := by cases x; simp
+@[simp] lemma get_is_some_iff {b : Types} (x : IdentVal b) : x.get.is_some ↔ x.is_scalar :=
+by cases x; simp [get]
+
+
+instance {b : Types} : ∀ (x : IdentVal b), decidable (is_scalar x)
+| (IdentVal.base _) := is_true ⟨_, rfl⟩
+| (IdentVal.arr _) := is_false (by simp) 
 
 end IdentVal
 
@@ -163,10 +183,17 @@ abbreviation EContext := Context IdentVal
 def Frame := finset (Σ b, Ident b)
 instance : inhabited Frame := ⟨(default : finset (Σ b, Ident b))⟩
 
+def EContext.is_length {b : Types} (ctx : EContext) (arr : Ident b) (len : Ident nn) : Prop :=
+  ∃ {n : ℕ} {arr' : list (ExprVal b)}, ctx.get arr = IdentVal.arr arr' ∧ ctx.get len = IdentVal.base n ∧ arr'.length = n
+
+lemma of_is_len {b : Types} (ctx : EContext) (arr : Ident b) (len : Ident nn) :
+  ctx.is_length arr len → (ctx.get len).is_scalar
+| ⟨n, _, _, h, _⟩ := ⟨n, h⟩
+
 def Expr.eval (ctx : EContext) : ∀ {b}, Expr b → option (ExprVal b)
 | _ (Expr.lit r) := some r
-| b (Expr.ident x) := (ctx.get x).get 0
-| b (Expr.access x i) := i.eval >>= λ i', (ctx.get x).get i' --(λ a : Ident b → IdentVal b, (a x).get i') (Context.get ctx)
+| b (Expr.ident x) := (ctx.get x).get
+| b (Expr.access x i) := i.eval >>= λ i', (ctx.get x).get_arr i' --(λ a : Ident b → IdentVal b, (a x).get i') (Context.get ctx)
 | _ (Expr.call o args) := fin.tuple_some (λ i, (args i).eval) >>= λ r, some (o.eval r)
 | _ (Expr.ternary cond e₁ e₂) := cond.eval >>= λ r, if r = 0 then e₂.eval else e₁.eval
 
@@ -215,10 +242,16 @@ example : ((3 : ℕ) : Expr nn) = Expr.lit 3 := rfl
   (x : Expr nn).eval ctx = some x := rfl
 @[simp] lemma Expr.eval_lit_rr (x : R) (ctx : EContext) :
   (x : Expr rr).eval ctx = some x := rfl
+@[simp] lemma Expr.eval_zero_nn (ctx : EContext) : (0 : Expr nn).eval ctx = some 0 := rfl
+@[simp] lemma Expr.eval_zero_rr (ctx : EContext) : (0 : Expr rr).eval ctx = some 0 := rfl
+@[simp] lemma Expr.eval_one_nn (ctx : EContext) : (1 : Expr nn).eval ctx = some 1 := rfl
+@[simp] lemma Expr.eval_one_rr (ctx : EContext) : (1 : Expr rr).eval ctx = some 1 := rfl 
 @[simp] lemma Expr.eval_ident {b : Types} (x : Ident b) (ctx : EContext) :
-  (Expr.ident x).eval ctx = (ctx.get x).get 0 := rfl
+  (Expr.ident x).eval ctx = (ctx.get x).get := rfl
+@[simp] lemma Expr.eval_ident' {b : Types} (x : Ident b) (ctx : EContext) :
+  (x : Expr b).eval ctx = (ctx.get x).get := rfl
 @[simp] lemma Expr.eval_access {b : Types} (x : Ident b) (ind : Expr nn) (ctx : EContext) :
-  (Expr.access x ind).eval ctx = ind.eval ctx >>= λ i, (ctx.get x).get i := rfl
+  (Expr.access x ind).eval ctx = ind.eval ctx >>= λ i, (ctx.get x).get_arr i := rfl
 
 @[simp] lemma Expr.eval_nadd (e₁ e₂ : Expr nn) (ctx : EContext) :
   (e₁ + e₂).eval ctx = (e₁.eval ctx) >>= λ n, e₂.eval ctx >>= λ m, some (n + m) :=
@@ -236,6 +269,9 @@ by { simp [mul_rr_mul, Expr.eval, fin.tuple_some] with functor_norm, refl, }
 @[simp] lemma Expr.eval_lt (e₁ e₂ : Expr nn) (ctx : EContext) :
   (e₁ ⟪<⟫ e₂).eval ctx = (e₁.eval ctx) >>= λ n, e₂.eval ctx >>= λ m, some (if n < m then 1 else 0) :=
 by { simp [Expr.eval, fin.tuple_some] with functor_norm, refl, }
+
+@[simp] lemma Expr.eval_ident_is_some {b : Types} {ctx : EContext} (i : Ident b) :
+  (Expr.eval ctx (i : Expr b)).is_some ↔ (ctx.get i).is_scalar := by simp
 
 end Expr
 
@@ -281,14 +317,20 @@ instance [has_to_string R] : has_to_string Prog :=
 ⟨λ p, "\n".intercalate (prog_repr p)⟩
 
 def Prog.eval : Prog → EContext → option EContext
-| Prog.skip ctx := ctx
-| (Prog.store dst val) ctx := (val.eval ctx).map (λ r, ctx.update dst (IdentVal.base r)) --ctx.update dst _ sorry --((ctx dst).update (ind.map (λ i : Expr, (i.eval ctx).to_nat)) (val.eval ctx))
+| Prog.skip ctx := some ctx
+| (Prog.store dst val) ctx := (val.eval ctx) >>= λ r, option.guard_prop (ctx.get dst).is_scalar (ctx.update dst (IdentVal.base r))
 | (Prog.store_arr dst ind val) ctx := ind.eval ctx >>= λ i, val.eval ctx >>= λ v, ctx.try_modify dst (λ arr, arr.update_arr i v)
 | (Prog.seq a b) ctx := (a.eval ctx) >>= b.eval
 | (Prog.branch cond a b) ctx := (Expr.eval ctx cond) >>= λ c : ℕ, if 0 < c then a.eval ctx else b.eval ctx
 | (Prog.loop n c b) ctx := (iterate_while b.eval
       (λ ctx : EContext, (c.eval ctx).map (λ r, r ≠ 0))
       (n ctx)) ctx
+
+@[simp] lemma Prog.eval_skip_is_some (ctx : EContext) : (Prog.skip.eval ctx).is_some := by simp [Prog.eval]
+@[simp] lemma Prog.store_is_some_iff {b : Types} {ctx : EContext} {dst : Ident b} {val : Expr b} :
+  ((Prog.store dst val).eval ctx).is_some ↔ (val.eval ctx).is_some ∧ (ctx.get dst).is_scalar :=
+by simp [Prog.eval]
+
 
 end Prog
 
@@ -341,30 +383,33 @@ instance : is_lawful_bifunctor BoundedStreamGen :=
 end functorality
 
 def BoundedStreamGen.valid_at (s : BoundedStreamGen ι α) (ctx : EContext) : Prop :=
-s.ctx_inv ctx ∧ ∃ ⦃n : ℕ⦄, s.valid.eval ctx = some n ∧ 0 < n
+∃ ⦃n : ℕ⦄, s.valid.eval ctx = some n ∧ 0 < n
+
+def BoundedStreamGen.inv_valid_at (s : BoundedStreamGen ι α) (ctx : EContext) : Prop :=
+s.ctx_inv ctx ∧ s.valid_at ctx
 
 def BoundedStreamGen.ready_at (s : BoundedStreamGen ι α) (ctx : EContext) : Prop :=
-s.valid_at ctx ∧ ∃ ⦃n : ℕ⦄, s.ready.eval ctx = some n ∧ 0 < n
+s.inv_valid_at ctx ∧ ∃ ⦃n : ℕ⦄, s.ready.eval ctx = some n ∧ 0 < n
 
-@[simp] lemma BoundedStreamGen.bimap_valid_at {s : BoundedStreamGen ι α} {ctx : EContext} (f : ι → ι') (g : α → β) :
-  (bimap f g s).valid_at ctx ↔ s.valid_at ctx := iff.rfl
+@[simp] lemma BoundedStreamGen.bimap_inv_valid_at {s : BoundedStreamGen ι α} {ctx : EContext} (f : ι → ι') (g : α → β) :
+  (bimap f g s).inv_valid_at ctx ↔ s.inv_valid_at ctx := iff.rfl
 
-@[simp] lemma BoundedStreamGen.ready_valid_at {s : BoundedStreamGen ι α} {ctx : EContext} (f : ι → ι') (g : α → β) :
+@[simp] lemma BoundedStreamGen.ready_inv_valid_at {s : BoundedStreamGen ι α} {ctx : EContext} (f : ι → ι') (g : α → β) :
   (bimap f g s).ready_at ctx ↔ s.ready_at ctx := iff.rfl
 
 structure is_defined [Evalable ι ι'] [Evalable α β] (s : BoundedStreamGen ι α) (ctx : EContext) : Prop :=
-(hvalid : (s.valid.eval ctx).is_some)
-(hready : s.valid_at ctx → (s.ready.eval ctx).is_some)
-(hnext : s.valid_at ctx → (s.next.eval ctx).is_some)
-(hstep : s.valid_at ctx → ∀ ⦃c⦄, s.next.eval ctx = some c → s.ctx_inv c)
-(hinit : (s.initialize.eval ctx).is_some)
-(hcurr : s.valid_at ctx → (Evalable.eval ctx s.current).dom) -- why valid_at here?
+(hvalid : s.ctx_inv ctx → (s.valid.eval ctx).is_some)
+(hready : s.inv_valid_at ctx → (s.ready.eval ctx).is_some)
+(hnext : s.inv_valid_at ctx → (s.next.eval ctx).is_some)
+(hstep : s.inv_valid_at ctx → ∀ ⦃c⦄, s.next.eval ctx = some c → s.ctx_inv c)
+(hinit : s.ctx_inv ctx → (s.initialize.eval ctx).is_some)
+(hcurr : s.inv_valid_at ctx → (Evalable.eval ctx s.current).dom)
 (hval : s.ready_at ctx → (Evalable.eval ctx s.value).dom)
 
 @[simps]
 def to_stream_of_is_defined_aux  [Evalable ι ι'] [Evalable α β] (s : BoundedStreamGen ι α)
   (hs : ∀ ctx, is_defined s ctx) : Stream EContext ι' β :=
-{ valid := s.valid_at,
+{ valid := s.inv_valid_at,
   ready := s.ready_at,
   next := λ ctx h, option.get ((hs ctx).hnext h),
   index := λ ctx h, part.get _ ((hs ctx).hcurr h),
@@ -372,16 +417,16 @@ def to_stream_of_is_defined_aux  [Evalable ι ι'] [Evalable α β] (s : Bounded
 
 @[simps]
 def BoundedStreamGen.to_stream_of_is_defined [Evalable ι ι'] [Evalable α β] (s : BoundedStreamGen ι α)
-  (hs : ∀ ctx, is_defined s ctx) (ctx₀ : EContext) : StreamExec EContext ι' β :=
+  (hs : ∀ ctx, is_defined s ctx) (ctx₀ : EContext) (hctx₀ : s.ctx_inv ctx₀) : StreamExec EContext ι' β :=
 { stream := to_stream_of_is_defined_aux s hs,
   bound := s.bound ctx₀,
-  state := option.get (hs ctx₀).hinit }
+  state := option.get ((hs ctx₀).hinit hctx₀) }
 
 instance eval_stream [Evalable ι ι'] [Evalable α β] : Evalable (BoundedStreamGen ι α) (StreamExec EContext ι' β) :=
-{ eval := λ ctx s, ⟨∀ c, is_defined s c, λ H, (s.to_stream_of_is_defined H ctx)⟩ }
+{ eval := λ ctx s, ⟨s.ctx_inv ctx ∧ ∀ c, is_defined s c, λ H, (s.to_stream_of_is_defined H.2 ctx H.1)⟩ }
 
 @[simp] lemma eval_stream_is_some_iff [Evalable ι ι'] [Evalable α β] (s : BoundedStreamGen ι α) {c₀} :
-  (Evalable.eval c₀ s).dom ↔ (∀ c, is_defined s c) := iff.rfl
+  (Evalable.eval c₀ s).dom ↔ (s.ctx_inv c₀ ∧ ∀ c, is_defined s c) := iff.rfl
 
 instance eval_unit : Evalable unit unit := ⟨λ _, part.some⟩
 @[simp] lemma eval_unit_dom (c) : (Evalable.eval c ()).dom := trivial
@@ -402,9 +447,9 @@ let i : Ident nn := scratch∷Vars.i,
   ready := 1,
   next := i ::= i + 1,
   valid := i ⟪<⟫ len,
-  bound := ⟨default, λ ctx, ((ctx.get len).get 0).iget, /- TODO: Frame -/ trivial⟩,
+  bound := ⟨default, λ ctx, (ctx.get len).get.iget, /- TODO: Frame -/ trivial⟩,
   initialize := i ::= 0,
-  ctx_inv := _ }
+  ctx_inv := λ ctx, (ctx.get i).is_scalar ∧ ctx.is_length inds len ∧ ctx.is_length vals len }
 
 def contract (x : BoundedStreamGen ι α) : BoundedStreamGen unit α :=
 default <$₁> x
@@ -416,11 +461,11 @@ variables {ι₁ ι₁' ι₂ ι₂' α' β' : Type} [Evalable ι₁ ι₂] [Eva
 include hx
 
 @[simp] lemma bimap_is_defined [Evalable ι₁' ι₂'] [Evalable α' β'] :
-  is_defined (bifunctor.bimap f g x) c ↔ ((x.valid_at c → (Evalable.eval c (f x.current)).dom) ∧ (x.ready_at c → (Evalable.eval c (g x.value)).dom)) :=
+  is_defined (bifunctor.bimap f g x) c ↔ ((x.inv_valid_at c → (Evalable.eval c (f x.current)).dom) ∧ (x.ready_at c → (Evalable.eval c (g x.value)).dom)) :=
 ⟨λ ⟨hv, hr, hn, hs, hi, hc, hl⟩, ⟨hc, hl⟩, λ ⟨H₁, H₂⟩, ⟨hx.hvalid, hx.hready, hx.hnext, hx.hstep, hx.hinit, H₁, H₂⟩⟩
 
 @[simp] lemma imap_is_defined [Evalable ι₁' ι₂'] :
-  is_defined (f <$₁> x) c ↔ (x.valid_at c → (Evalable.eval c (f x.current)).dom) :=
+  is_defined (f <$₁> x) c ↔ (x.inv_valid_at c → (Evalable.eval c (f x.current)).dom) :=
 by { rw bimap_is_defined hx, have := hx.hval, simp [imp_iff_distrib], tauto, }
 
 @[simp] lemma vmap_is_defined [Evalable α' β'] :
@@ -429,11 +474,12 @@ by { rw bimap_is_defined hx, have := hx.hcurr, simp [imp_iff_distrib], tauto, }
 
 end functor_is_defined
 
-lemma contract_tr [Evalable ι ι'] [Evalable α β] (x : BoundedStreamGen ι α) (ctx : EContext)
+lemma contract_tr [Evalable ι ι'] [Evalable α β] (x : BoundedStreamGen ι α)
+  (ctx : EContext) (hctx : x.ctx_inv ctx)
   (h : ∀ c, is_defined x c) :
-  Evalable.eval ctx (contract x) = part.some (contract_stream ((Evalable.eval ctx x).get h)) :=
+  Evalable.eval ctx (contract x) = part.some (contract_stream ((Evalable.eval ctx x).get ⟨hctx, h⟩)) :=
 begin
-  rw ← part.get_eq_iff_eq_some, swap, { intro c, simp [contract, h], },
+  rw ← part.get_eq_iff_eq_some, swap, { simp [contract, h, hctx], },
   refl,
 end
 
@@ -451,13 +497,13 @@ local attribute [instance] R_inhb
 
 lemma externSparseVec_is_defined (scratch : NameSpace) (c : EContext) :
   is_defined (externSparseVec scratch) c :=
-{ hvalid := _,
-  hready := _,
-  hnext := _,
-  hinit := _,
-  hcurr := _,
+{ hvalid := by { simp [externSparseVec], have := of_is_len c, tauto, },
+  hready := λ _, by { simp [externSparseVec], },
+  hnext := by { rintros ⟨h₁, h₂⟩, simp [externSparseVec] at h₁ ⊢, exact h₁.1, },
+  hinit := by { simp [externSparseVec], tauto, },
+  hcurr := by { rintros ⟨⟨_, hl₁, hl₂⟩, ⟨v, hv⟩⟩, simp [externSparseVec] at hv ⊢, },
   hval := _,
-  hstep := _ } 
+  hstep := by {  } } 
 
 def externSparseVec_spec [decidable_eq R] (ls : list R) (scratch : NameSpace) (hscratch : scratch ≠ NameSpace.reserved)
   (ctx : EContext) (h₁ : ctx.get (reserved∷len : Ident nn) = IdentVal.base ls.length)
@@ -515,6 +561,7 @@ def sum_vec_compiles : Prog ℤ := compile_scalar sum_vec
 #eval do io.print_ln sum_vec_compiles
 
 end examples
+
 #exit
 
 @[simp]
@@ -666,8 +713,7 @@ example : Expr := (0 : R)
 
 @[simp] lemma Expr.eval_coe_ident (ctx : Ident → IdentVal) (i : Ident) :
   Expr.eval ctx i = (ctx i).get none := rfl
-
-
+  
 /-- Pretty print repr of indices; ignores [] (scalar), represents only
     vector indices -/
 -- def idcs_repr (idcs : list string) : string :=
