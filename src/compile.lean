@@ -15,16 +15,16 @@ class has_hmul (α β : Type*) (γ : out_param Type*) :=
 instance hmul_of_mul {α : Type*} [has_mul α] : has_hmul α α α := ⟨has_mul.mul⟩
 infix ` ⋆ `:71 := has_hmul.mul
 
-open Types (rr nn)
+open Types
 
 def Ident.access {b} : Ident b → Expr R nn → Expr R b := Expr.access
 def Ident.ident  {b} : Ident b → Expr R b := Expr.ident
 
 namespace Expr
-@[pattern] def false : Expr R nn := 0
-@[pattern] def true  : Expr R nn := 1
+@[pattern] def false : Expr R bb := lit ff
+@[pattern] def true  : Expr R bb := lit tt
 
-def neg : Expr R nn → Expr R nn
+def neg : Expr R bb → Expr R bb
 | (Expr.true)  := Expr.false
 | (Expr.false) := Expr.true
 | e := Expr.call Op.not $ fin.cons e default
@@ -34,13 +34,13 @@ infixr ` :: `:67 := fin.cons
 notation `nil` := default
 notation a ` ⟪*⟫ `:80 b := Expr.call Op.mul (a :: b :: nil)
 local notation a ` ⟪-⟫ `:80 b := Expr.call Op.nsub ((a : Expr R nn) :: (b : Expr R nn) :: nil)
-notation a ` ⟪&&⟫ `:80 b := Expr.call Op.and (a :: b :: nil)
-notation a ` ⟪||⟫ `:80 b := Expr.call Op.or (a :: b :: nil)
+notation a ` ⟪&&⟫ `:70 b := Expr.call Op.and (a :: b :: nil)
+notation a ` ⟪||⟫ `:65 b := Expr.call Op.or (a :: b :: nil)
 notation a ` ⟪<⟫ `:80 b := Expr.call Op.lt (a :: b :: nil)
 notation a ` ⟪=⟫ `:80 b := Expr.call Op.nat_eq (a :: b :: nil)
 notation a ` ⟪/=⟫ `:80 b := Expr.neg $ Expr.call Op.nat_eq (a :: b :: nil)
 infixr ` ⟪;⟫ `:1 := Prog.seq
-@[pattern] def Expr.le : Expr R nn → Expr R nn → Expr R nn := λ a b, (a ⟪<⟫ b) ⟪||⟫ (a ⟪=⟫ b)
+@[pattern] def Expr.le : Expr R nn → Expr R nn → Expr R bb := λ a b, (a ⟪<⟫ b) ⟪||⟫ (a ⟪=⟫ b)
 notation  a ` ⟪≤⟫ `:71 b := Expr.le a b
 infix `∷`:9000 := Ident.mk
 
@@ -55,8 +55,8 @@ def BoundedStreamGen.mul [has_hmul α β γ] (a : BoundedStreamGen R (Expr R nn)
 { current := max a.current b.current,
   value := a.value ⋆ b.value,
   ready := a.ready ⟪&&⟫ b.ready ⟪&&⟫ a.current ⟪=⟫ b.current,
-  next  := Prog.branch (a.current ⟪<⟫ b.current ⟪||⟫
-                   (a.current ⟪=⟫ b.current ⟪&&⟫ a.ready.neg))
+  next  := Prog.branch ((a.current ⟪<⟫ b.current) ⟪||⟫
+                   ((a.current ⟪=⟫ b.current) ⟪&&⟫ a.ready.neg))
                         a.next
                         b.next,
   valid := a.valid ⟪&&⟫ b.valid,
@@ -95,7 +95,7 @@ instance : functor (lvl R) := { map := λ _ _ f l, { l with pos := f ∘ l.pos }
 
 variables {R}
 
-def Prog.guard (a : Expr R nn) (b : Prog R) := Prog.branch a b Prog.skip
+def Prog.guard (a : Expr R bb) (b : Prog R) := Prog.branch a b Prog.skip
 
 def sparse_index (indices : Ident nn) (bounds : AccessExpr R nn × AccessExpr R nn) : il R :=
 let (lower, upper) := bounds, -- upper := uv.access ui, lower := lv.access li,
@@ -103,7 +103,7 @@ let (lower, upper) := bounds, -- upper := uv.access ui, lower := lv.access li,
 let loc := upper.expr ⟪-⟫ 1 in
 { crd  := indices.access,
   push := λ i init,
-    let prog := Prog.guard (lower.expr ⟪=⟫ upper.expr ⟪||⟫ i ⟪/=⟫ current)
+    let prog := Prog.guard ((lower.expr ⟪=⟫ upper.expr) ⟪||⟫ i ⟪/=⟫ current)
                       ((upper.accum 1) ⟪;⟫ init loc) ⟪;⟫
                 Prog.store_arr indices (upper.expr ⟪-⟫ 1) i
     in (prog, loc) }
@@ -116,8 +116,8 @@ def dense_index (dim : Expr R nn) (counter : Ident nn) (base : Expr R nn) : il R
 { crd  := id,
   push := λ i init,
     let l i  : loc R  := base * dim + i,
-        cond : Expr R nn := counter.ident ⟪≤⟫ i,
-        prog : Prog R := Prog.loop cond.to_loop_bound cond
+        cond : Expr R bb := counter.ident ⟪≤⟫ i,
+        prog : Prog R := Prog.loop i.to_loop_bound cond
                            (init (l counter) ⟪;⟫ counter.increment)
     in (prog, l i) }
 
@@ -167,12 +167,12 @@ instance expr.compile : Compile R (Ident rr) (Expr R rr) :=
 
 instance unit_compile [Compile R α β] : Compile R α (BoundedStreamGen R unit β) :=
 { compile := λ acc v,
-    v.initialize ⟪;⟫ Prog.loop (v.valid.to_loop_bound) v.valid
+    v.initialize ⟪;⟫ Prog.loop v.bound v.valid
       (Prog.guard v.ready (Compile.compile acc v.value) ⟪;⟫ v.next) }
 
 instance ind_compile [Compile R α β] : Compile R (lvl R α) (BoundedStreamGen R (Expr R nn) β) :=
 { compile := λ storage v,
     let (push_i, loc) := storage.push v.current storage.init in
     v.initialize ⟪;⟫
-    Prog.loop (v.valid.to_loop_bound) v.valid
+    Prog.loop v.bound v.valid
       (Prog.guard v.ready (Compile.compile (storage.pos loc) v.value) ⟪;⟫ v.next) }
