@@ -62,6 +62,7 @@ def BoundedStreamGen.mul [has_hmul α β γ] (a : BoundedStreamGen R (Expr R nn)
   valid := a.valid ⟪&&⟫ b.valid,
   initialize  := a.initialize ⟪;⟫ b.initialize,
   bound := sorry,
+  ctx_inv := λ _, true,
 }
 
 instance [has_hmul α β γ] : has_hmul
