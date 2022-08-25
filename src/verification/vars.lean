@@ -41,7 +41,7 @@ end NameSpace
 
 @[derive decidable_eq, derive fintype, derive inhabited]
 inductive Types
-| nn | rr
+| nn | rr | bb
 
 section Ident
 

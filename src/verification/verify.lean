@@ -19,12 +19,13 @@ section
 parameters (R : Type) [add_zero_class R] [has_one R] [has_mul R]
 
 
-open Types (nn rr)
+open Types (nn rr bb)
 
 @[reducible]
 def ExprVal : Types → Type
 | nn := ℕ
 | rr := R
+| bb := bool
 
 parameter {R}
 namespace ExprVal
@@ -32,11 +33,13 @@ namespace ExprVal
 instance : ∀ b, inhabited (ExprVal b)
 | nn := ⟨0⟩
 | rr := ⟨0⟩
+| bb := ⟨ff⟩
 
 instance [has_to_string R] :
   ∀ b, has_to_string (ExprVal b)
 | nn := infer_instance
 | rr := infer_instance
+| bb := infer_instance
 
 end ExprVal
 
@@ -45,11 +48,11 @@ inductive Op : Types → Type
 | nadd : Op nn | radd : Op rr
 | nmul : Op nn | rmul : Op rr
 | nsub : Op nn
-| and : Op nn
-| or : Op nn
-| not : Op nn
-| nat_eq : Op nn
-| lt : Op nn
+| and : Op bb
+| or : Op bb
+| not : Op bb
+| nat_eq : Op bb
+| lt : Op bb
 | cast_r : Op rr
 
 namespace Op
@@ -63,6 +66,8 @@ end⟩
 | nadd := "+"
 | nmul := "*"
 | nsub := "-"
+end⟩
+| bb := ⟨λ v, match v with
 | and := "&&"
 | or := "||"
 | not := "!"
@@ -98,7 +103,7 @@ def signature : ∀ {b} (o : Op b), (fin o.arity → Types)
 | _ nadd := ![nn, nn] | _ radd := ![rr, rr]
 | _ nmul := ![nn, nn] | _ rmul := ![rr, rr]
 | _ nsub := ![nn, nn]
-| _ and := ![nn, nn] | _ or := ![nn, nn] | _ not := ![nn]
+| _ and := ![bb, bb] | _ or := ![bb, bb] | _ not := ![bb]
 | _ nat_eq := ![nn, nn] | _ lt := ![nn, nn]
 | _ cast_r := ![nn]
 
@@ -109,11 +114,11 @@ def eval : ∀ {b} (o : Op b), (Π (n : fin o.arity), ExprVal (o.signature n)) �
 | _ nmul := λ args, ((*) : ℕ → ℕ → ℕ) (args 0) (args 1)
 | _ rmul := λ args, ((*) : R → R → R) (args 0) (args 1)
 | _ nsub := λ args, nat.sub (args 0) (args 1)
-| _ and := λ args, if args 0 = (0 : ℕ) then (0 : ℕ) else args 1
-| _ or := λ args, if args 0 = (0 : ℕ) then args 1 else args 0
-| _ not := λ args, if args 0 = (0 : ℕ) then 1 else 0
-| _ nat_eq := λ args, if args 0 = args 1 then 1 else 0
-| _ lt := λ args, if (show ℕ, from args 0) < args 1 then 1 else 0
+| _ and := λ args, (args 0 : bool) && (args 1 : bool)
+| _ or := λ args, (args 0 : bool) || (args 1 : bool)
+| _ not := λ args, bnot (args 0 : bool)
+| _ nat_eq := λ args, args 0 = args 1
+| _ lt := λ args, (show ℕ, from args 0) < args 1
 | _ cast_r := λ args, show ℕ, from args 0
 
 end Op
@@ -140,6 +145,8 @@ def get_arr {b : Types} : IdentVal b → ℕ → option (ExprVal b)
 @[simp] lemma get_scalar {b : Types} (e : ExprVal b) : (IdentVal.base e).get = some e := rfl
 @[simp] lemma get_arr_val {b : Types} (a : list (ExprVal b)) (n : ℕ) :
   (arr a).get_arr n = a.nth n := rfl
+@[simp] lemma get_eq_some_iff {b : Types} {e : IdentVal b} {n : ExprVal b} : e.get = some n ↔ e = IdentVal.base n :=
+by cases e; simp [get]
 
 def update_arr {b : Types} : IdentVal b → ℕ → ExprVal b → option (IdentVal b)
 | (IdentVal.arr val) i x := if i < val.length then some (IdentVal.arr (val.modify_nth (λ _, x) i)) else none
@@ -175,7 +182,7 @@ inductive Expr : Types → Type
 | ident {b} : Ident b → Expr b
 | access {b} : Ident b → Expr nn → Expr b
 | call {b} : ∀ o : Op b, (Π (n : fin o.arity), Expr (o.signature n)) → Expr b
-| ternary {b} : Expr nn → Expr b → Expr b → Expr b
+| ternary {b} : Expr bb → Expr b → Expr b → Expr b
 
 parameter {R}
 
@@ -183,19 +190,12 @@ abbreviation EContext := Context IdentVal
 def Frame := finset (Σ b, Ident b)
 instance : inhabited Frame := ⟨(default : finset (Σ b, Ident b))⟩
 
-def EContext.is_length {b : Types} (ctx : EContext) (arr : Ident b) (len : Ident nn) : Prop :=
-  ∃ {n : ℕ} {arr' : list (ExprVal b)}, ctx.get arr = IdentVal.arr arr' ∧ ctx.get len = IdentVal.base n ∧ arr'.length = n
-
-lemma of_is_len {b : Types} (ctx : EContext) (arr : Ident b) (len : Ident nn) :
-  ctx.is_length arr len → (ctx.get len).is_scalar
-| ⟨n, _, _, h, _⟩ := ⟨n, h⟩
-
 def Expr.eval (ctx : EContext) : ∀ {b}, Expr b → option (ExprVal b)
 | _ (Expr.lit r) := some r
 | b (Expr.ident x) := (ctx.get x).get
 | b (Expr.access x i) := i.eval >>= λ i', (ctx.get x).get_arr i' --(λ a : Ident b → IdentVal b, (a x).get i') (Context.get ctx)
 | _ (Expr.call o args) := fin.tuple_some (λ i, (args i).eval) >>= λ r, some (o.eval r)
-| _ (Expr.ternary cond e₁ e₂) := cond.eval >>= λ r, if r = 0 then e₂.eval else e₁.eval
+| _ (Expr.ternary c e₁ e₂) := c.eval >>= λ r, cond r e₁.eval e₂.eval
 
 local notation a ` ⟪<⟫ ` b := Expr.call Op.lt (fin.cons (a : Expr nn) (fin.cons (b : Expr nn) default))
 
@@ -267,11 +267,27 @@ by { simp [mul_nn_mul, Expr.eval, fin.tuple_some] with functor_norm, refl, }
 by { simp [mul_rr_mul, Expr.eval, fin.tuple_some] with functor_norm, refl, }
 
 @[simp] lemma Expr.eval_lt (e₁ e₂ : Expr nn) (ctx : EContext) :
-  (e₁ ⟪<⟫ e₂).eval ctx = (e₁.eval ctx) >>= λ n, e₂.eval ctx >>= λ m, some (if n < m then 1 else 0) :=
+  (e₁ ⟪<⟫ e₂).eval ctx = (e₁.eval ctx) >>= λ n, e₂.eval ctx >>= λ m, some (n < m : bool) :=
 by { simp [Expr.eval, fin.tuple_some] with functor_norm, refl, }
 
 @[simp] lemma Expr.eval_ident_is_some {b : Types} {ctx : EContext} (i : Ident b) :
   (Expr.eval ctx (i : Expr b)).is_some ↔ (ctx.get i).is_scalar := by simp
+
+def EContext.is_length {b : Types} (ctx : EContext) (arr : Ident b) (len : Expr nn) : Prop :=
+  ∃ {n : ℕ} {arr' : list (ExprVal b)}, ctx.get arr = IdentVal.arr arr' ∧ len.eval ctx = some n ∧ arr'.length = n
+
+lemma of_is_len_aux {b : Types} {ctx : EContext} {arr : Ident b} {len : Expr nn} :
+  ctx.is_length arr len → (len.eval ctx).is_some
+| ⟨n, _, _, h, _⟩ := by simp [h]
+
+lemma of_is_len {b : Types} {ctx : EContext} {arr : Ident b} {len : Ident nn}
+  (h : ctx.is_length arr len) : (ctx.get len).is_scalar :=
+by simpa using of_is_len_aux h
+
+lemma get_arr_some {b : Types} {ctx : EContext} {arr : Ident b} {len : Expr nn}
+  (h₁ : ctx.is_length arr len) {i : ℕ} (h₂ : ∀ n, len.eval ctx = some n → i < n) :
+  ((ctx.get arr).get_arr i).is_some :=
+by { rcases h₁ with ⟨n, arr', harr, hn, rfl⟩, simpa [harr] using h₂ _ hn, }
 
 end Expr
 
@@ -295,8 +311,8 @@ inductive Prog
 | store {b : Types} (dst : Ident b) (val : Expr b)
 | store_arr {b : Types} (dst : Ident b) (ind : Expr nn) (val : Expr b)
 | seq (a : Prog) (b : Prog)
-| branch (cond : Expr nn) (a : Prog) (b : Prog)
-| loop (n : LoopBound) (cond : Expr nn) (b : Prog)
+| branch (cond : Expr bb) (a : Prog) (b : Prog)
+| loop (n : LoopBound) (cond : Expr bb) (b : Prog)
 
 section Prog
 
@@ -321,9 +337,9 @@ def Prog.eval : Prog → EContext → option EContext
 | (Prog.store dst val) ctx := (val.eval ctx) >>= λ r, option.guard_prop (ctx.get dst).is_scalar (ctx.update dst (IdentVal.base r))
 | (Prog.store_arr dst ind val) ctx := ind.eval ctx >>= λ i, val.eval ctx >>= λ v, ctx.try_modify dst (λ arr, arr.update_arr i v)
 | (Prog.seq a b) ctx := (a.eval ctx) >>= b.eval
-| (Prog.branch cond a b) ctx := (Expr.eval ctx cond) >>= λ c : ℕ, if 0 < c then a.eval ctx else b.eval ctx
+| (Prog.branch condition a b) ctx := (Expr.eval ctx condition) >>= λ c : bool, cond c (a.eval ctx) (b.eval ctx)
 | (Prog.loop n c b) ctx := (iterate_while b.eval
-      (λ ctx : EContext, (c.eval ctx).map (λ r, r ≠ 0))
+      (λ ctx : EContext, c.eval ctx)
       (n ctx)) ctx
 
 @[simp] lemma Prog.eval_skip_is_some (ctx : EContext) : (Prog.skip.eval ctx).is_some := by simp [Prog.eval]
@@ -342,9 +358,11 @@ local notation x ` ⟬ `:9000 i ` ⟭ ` := Expr.access x i
 class Evalable (α : Type) (β : out_param Type) :=
 (eval : EContext → α →. β)
 
+@[simps]
 instance eval_expr_nn : Evalable (Expr nn) ℕ :=
 { eval := λ ctx e, e.eval ctx }
 
+@[simps]
 instance eval_expr_rr : Evalable (Expr rr) R :=
 { eval := λ ctx e, e.eval ctx }
 
@@ -354,9 +372,9 @@ parameter (R)
 structure BoundedStreamGen (ι α : Type) :=
 (current : ι)
 (value : α)
-(ready : Expr nn)
+(ready : Expr bb)
 (next : Prog)
-(valid : Expr nn)
+(valid : Expr bb)
 (bound : LoopBound)
 (initialize : Prog)
 (ctx_inv : EContext → Prop)
@@ -383,13 +401,13 @@ instance : is_lawful_bifunctor BoundedStreamGen :=
 end functorality
 
 def BoundedStreamGen.valid_at (s : BoundedStreamGen ι α) (ctx : EContext) : Prop :=
-∃ ⦃n : ℕ⦄, s.valid.eval ctx = some n ∧ 0 < n
+s.valid.eval ctx = some tt
 
 def BoundedStreamGen.inv_valid_at (s : BoundedStreamGen ι α) (ctx : EContext) : Prop :=
 s.ctx_inv ctx ∧ s.valid_at ctx
 
 def BoundedStreamGen.ready_at (s : BoundedStreamGen ι α) (ctx : EContext) : Prop :=
-s.inv_valid_at ctx ∧ ∃ ⦃n : ℕ⦄, s.ready.eval ctx = some n ∧ 0 < n
+s.inv_valid_at ctx ∧ s.ready.eval ctx = some tt
 
 @[simp] lemma BoundedStreamGen.bimap_inv_valid_at {s : BoundedStreamGen ι α} {ctx : EContext} (f : ι → ι') (g : α → β) :
   (bimap f g s).inv_valid_at ctx ↔ s.inv_valid_at ctx := iff.rfl
@@ -443,8 +461,8 @@ let i : Ident nn := scratch∷Vars.i,
     inds : Ident nn := NameSpace.reserved∷Vars.ind₀,
     vals : Ident rr := NameSpace.reserved∷Vars.vals in
 { current := inds⟬i⟭,
-  value := vals⟬inds⟬i⟭⟭,
-  ready := 1,
+  value := vals⟬i⟭,
+  ready := Expr.lit tt,
   next := i ::= i + 1,
   valid := i ⟪<⟫ len,
   bound := ⟨default, λ ctx, (ctx.get len).get.iget, /- TODO: Frame -/ trivial⟩,
@@ -497,12 +515,22 @@ local attribute [instance] R_inhb
 
 lemma externSparseVec_is_defined (scratch : NameSpace) (c : EContext) :
   is_defined (externSparseVec scratch) c :=
-{ hvalid := by { simp [externSparseVec], have := of_is_len c, tauto, },
+{ hvalid := by { simp [externSparseVec], have := @of_is_len _ c, tauto, },
   hready := λ _, by { simp [externSparseVec], },
   hnext := by { rintros ⟨h₁, h₂⟩, simp [externSparseVec] at h₁ ⊢, exact h₁.1, },
   hinit := by { simp [externSparseVec], tauto, },
-  hcurr := by { rintros ⟨⟨_, hl₁, hl₂⟩, ⟨v, hv⟩⟩, simp [externSparseVec] at hv ⊢, },
-  hval := _,
+  hcurr := 
+begin
+  rintros ⟨⟨_, hl₁, hl₂⟩, hv⟩,
+  simp [externSparseVec, BoundedStreamGen.valid_at, -option.bind_is_some] at hv ⊢,
+  rcases hv with ⟨i, hi, a, ha, H⟩, simp [hi], apply get_arr_some hl₁, simpa [ha],
+end,
+  hval := 
+begin
+  rintros ⟨⟨⟨_, hl₁, hl₂⟩, hv⟩, _⟩,
+  simp [externSparseVec, BoundedStreamGen.valid_at, -option.bind_is_some] at hv ⊢,
+  rcases hv with ⟨i, hi, a, ha, H⟩, simp [hi], apply get_arr_some hl₂, simpa [ha],
+end,
   hstep := by {  } } 
 
 def externSparseVec_spec [decidable_eq R] (ls : list R) (scratch : NameSpace) (hscratch : scratch ≠ NameSpace.reserved)
@@ -520,7 +548,8 @@ def compile_scalar (x : BoundedStreamGen unit (Expr rr)) : Prog :=
 let out : Ident rr := NameSpace.reserved∷Vars.output in
 x.initialize <;>
 Prog.loop x.bound x.valid $
-  Prog.branch x.ready (out ::= out + x.value) Prog.skip
+  Prog.branch x.ready (out ::= out + x.value) Prog.skip <;>
+  x.next
 
 -- Final theorem will be something like:
 -- ∀ (x : BoundedStreamGen ι α) [Evalable ι → ι'] [Evalable α → β] [FinsuppEval (StreamExec EContext ι' β)]
@@ -555,10 +584,15 @@ end
 section examples
 open Types
 
-def sum_vec : BoundedStreamGen ℤ unit (Expr ℤ rr) := contract (externSparseVec (fresh ∅))
-def sum_vec_compiles : Prog ℤ := compile_scalar sum_vec
+notation ` Σ_c ` := contract
+@[derive [add_comm_monoid, has_one, has_mul, has_to_string], irreducible]
+def R := ℤ
+abbreviation compile := @compile_scalar R
 
-#eval do io.print_ln sum_vec_compiles
+def sum_vec : BoundedStreamGen R unit (Expr R rr) :=
+Σ_c (externSparseVec (fresh ∅))
+
+#eval do io.print_ln (compile sum_vec)
 
 end examples
 

@@ -1,5 +1,7 @@
 import data.option.basic
 import data.fin.tuple.basic
+import data.pfun
+import data.list.basic
 
 
 lemma bool.coe_iff_eq_tt (b : bool) : b ↔ b = tt := iff.rfl
@@ -50,3 +52,11 @@ def option.guard_prop {α} (p : Prop) [decidable p] (x : α) : option α :=
 @[simp] lemma option.guard_prop_is_some {α} {p : Prop} [decidable p] {x : α} :
   (option.guard_prop p x).is_some ↔ p :=
 by { dsimp only [option.guard_prop], split_ifs; simpa }
+
+@[simp] lemma option.coe_part_dom {α} (x : option α) :
+  (x : part α).dom ↔ x.is_some := by cases x; simp
+
+@[simp] lemma list.nth_is_some_iff {α} {x : list α} {n : ℕ} :
+  (x.nth n).is_some ↔ n < x.length :=
+by { rw ← not_iff_not, simp [option.is_none_iff_eq_none], }
+
