@@ -172,7 +172,7 @@ by cases x; simp [get]
 
 instance {b : Types} : ∀ (x : IdentVal b), decidable (is_scalar x)
 | (IdentVal.base _) := is_true ⟨_, rfl⟩
-| (IdentVal.arr _) := is_false (by simp) 
+| (IdentVal.arr _) := is_false (by simp)
 
 end IdentVal
 
@@ -245,7 +245,7 @@ example : ((3 : ℕ) : Expr nn) = Expr.lit 3 := rfl
 @[simp] lemma Expr.eval_zero_nn (ctx : EContext) : (0 : Expr nn).eval ctx = some 0 := rfl
 @[simp] lemma Expr.eval_zero_rr (ctx : EContext) : (0 : Expr rr).eval ctx = some 0 := rfl
 @[simp] lemma Expr.eval_one_nn (ctx : EContext) : (1 : Expr nn).eval ctx = some 1 := rfl
-@[simp] lemma Expr.eval_one_rr (ctx : EContext) : (1 : Expr rr).eval ctx = some 1 := rfl 
+@[simp] lemma Expr.eval_one_rr (ctx : EContext) : (1 : Expr rr).eval ctx = some 1 := rfl
 @[simp] lemma Expr.eval_ident {b : Types} (x : Ident b) (ctx : EContext) :
   (Expr.ident x).eval ctx = (ctx.get x).get := rfl
 @[simp] lemma Expr.eval_ident' {b : Types} (x : Ident b) (ctx : EContext) :
@@ -519,19 +519,19 @@ lemma externSparseVec_is_defined (scratch : NameSpace) (c : EContext) :
   hready := λ _, by { simp [externSparseVec], },
   hnext := by { rintros ⟨h₁, h₂⟩, simp [externSparseVec] at h₁ ⊢, exact h₁.1, },
   hinit := by { simp [externSparseVec], tauto, },
-  hcurr := 
+  hcurr :=
 begin
   rintros ⟨⟨_, hl₁, hl₂⟩, hv⟩,
   simp [externSparseVec, BoundedStreamGen.valid_at, -option.bind_is_some] at hv ⊢,
   rcases hv with ⟨i, hi, a, ha, H⟩, simp [hi], apply get_arr_some hl₁, simpa [ha],
 end,
-  hval := 
+  hval :=
 begin
   rintros ⟨⟨⟨_, hl₁, hl₂⟩, hv⟩, _⟩,
   simp [externSparseVec, BoundedStreamGen.valid_at, -option.bind_is_some] at hv ⊢,
   rcases hv with ⟨i, hi, a, ha, H⟩, simp [hi], apply get_arr_some hl₂, simpa [ha],
 end,
-  hstep := by {  } } 
+  hstep := by { sorry, } }
 
 def externSparseVec_spec [decidable_eq R] (ls : list R) (scratch : NameSpace) (hscratch : scratch ≠ NameSpace.reserved)
   (ctx : EContext) (h₁ : ctx.get (reserved∷len : Ident nn) = IdentVal.base ls.length)
@@ -539,8 +539,8 @@ def externSparseVec_spec [decidable_eq R] (ls : list R) (scratch : NameSpace) (h
   (h₃ : ctx.get (reserved∷vals : Ident rr) = IdentVal.arr (list_to_sparse_vals ls)) :
   ∀ c, is_defined (externSparseVec scratch) c :=
 begin
-
-end  
+  sorry,
+end
 
 end sparse_vectors
 
@@ -747,7 +747,7 @@ example : Expr := (0 : R)
 
 @[simp] lemma Expr.eval_coe_ident (ctx : Ident → IdentVal) (i : Ident) :
   Expr.eval ctx i = (ctx i).get none := rfl
-  
+
 /-- Pretty print repr of indices; ignores [] (scalar), represents only
     vector indices -/
 -- def idcs_repr (idcs : list string) : string :=

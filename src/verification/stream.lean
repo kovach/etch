@@ -23,9 +23,12 @@ begin
 end
 
 @[ext]
-structure StreamExec (σ ι α : Type) :=
+structure StreamState (σ ι α : Type) :=
 (stream : Stream σ ι α)
 (state : σ)
+
+@[ext]
+structure StreamExec (σ ι α : Type) extends StreamState σ ι α:=
 (bound : ℕ)
 
 structure status (σ ι α : Type) :=
@@ -52,8 +55,8 @@ instance : bifunctor (StreamExec σ) :=
 
 
 instance : is_lawful_bifunctor (StreamExec σ) :=
-{ id_bimap := by { intros, ext : 1; simp with functor_norm, },
-  bimap_bimap := by { intros, ext : 1; simp with functor_norm, } }
+{ id_bimap := by { intros, ext : 2; simp with functor_norm, },
+  bimap_bimap := by { intros, ext : 2; simp with functor_norm, } }
 
 infixr ` <$₁> `:1 := bifunctor.fst
 infixr ` <$₂> `:1 := bifunctor.snd
@@ -80,7 +83,7 @@ s.stream.now s.state h₁ h₂
 @[simps] def StreamExec.δ (s : StreamExec σ ι α) (h : s.valid) : StreamExec σ ι α :=
 { stream := s.stream,
   state := s.stream.next s.state h,
-  bound := s.bound }
+  bound := s.bound.pred }
 
 
 section
@@ -166,3 +169,15 @@ by simp [contract_stream]
 
 
 end defs
+
+section primitives
+
+def range (n : ℕ) : Stream ℕ ℕ ℕ :=
+{ next  := λ k _, k+1,
+  index := λ k _, k,
+  value := λ k _, k,
+  ready := λ _, tt,
+  valid := λ k, k < n,
+}
+
+end primitives
