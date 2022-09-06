@@ -3,35 +3,13 @@ import data.finsupp.basic
 import control.bifunctor
 import verification.vars
 import verification.verify
+import verification.misc
 
 open_locale classical
 noncomputable theory
 
 variables {σ α ι γ β ρ : Type}
 variables (R : Type) [add_zero_class R] [has_one R] [has_mul R]
-
-noncomputable instance finsupp.has_mul [mul_zero_class α] : has_mul (ι →₀ α) :=
-⟨λ a b, finsupp.zip_with (*) (zero_mul _) a b⟩
-
-lemma finsupp.mul_apply [mul_zero_class α] (g₁ g₂ : ι →₀ α) (a : ι) : (g₁ * g₂) a = g₁ a * g₂ a := rfl
-
--- #check pi.distrib -- todo, tactic like this?
-noncomputable instance finsupp.non_unital_semiring [non_unital_semiring α] : non_unital_semiring (ι →₀ α) :=
-{
-  zero := 0,
-  add_assoc := λ a b c, fun_like.ext _ _ (by simp [finsupp.add_apply, add_assoc]),
-  zero_add  := λ a,     fun_like.ext _ _ (by simp [finsupp.add_apply]),
-  add_zero  := λ a,     fun_like.ext _ _ (by simp [finsupp.add_apply]),
-  add_comm  := λ a b,   fun_like.ext _ _ (by simp [finsupp.add_apply, add_comm] ),
-  zero_mul  := λ a,     fun_like.ext _ _ (by simp [finsupp.mul_apply]),
-  mul_zero  := λ a,     fun_like.ext _ _ (by simp [finsupp.mul_apply]),
-
-  left_distrib  := λ a b c, by simp [fun_like.ext_iff, finsupp.mul_apply, finsupp.add_apply, left_distrib],
-  right_distrib := λ a b c, by simp [fun_like.ext_iff, finsupp.mul_apply, finsupp.add_apply, right_distrib],
-
-  mul_assoc     := λ a b c, by simp [fun_like.ext_iff, finsupp.mul_apply, mul_assoc],
-
-  ..finsupp.has_mul, ..finsupp.has_add, } .
 
 variables
 [linear_order ι]
@@ -79,13 +57,14 @@ def StreamState.lag {σ₁ σ₂ ι α β} [linear_order ι] : StreamState σ₁
 def StreamState.lag_lt {α β} : StreamState σ₁ ι α → StreamState σ₂ ι β → Prop := λ a b, a.to_order_tuple < b.to_order_tuple
 def StreamExec.lag  {α β} : StreamExec σ₁ ι α → StreamExec σ₂ ι β → Prop := λ a b, a.to_order_tuple ≤ b.to_order_tuple
 def StreamExec.lag_lt  {α β} : StreamExec σ₁ ι α → StreamExec σ₂ ι β → Prop := λ a b, a.to_order_tuple < b.to_order_tuple
-local infix `⊑`:50    := StreamExec.lag
-local infix `⊏`:50    := StreamExec.lag_lt
 
 instance (σ ι α : Type) : has_coe (StreamExec σ ι α) (StreamState σ ι α) := ⟨StreamExec.to_StreamState⟩
 
---instance StreamState.preorder : preorder (StreamState σ ι α) := preorder.lift to_order_tuple
---instance StreamExec.preorder : preorder (StreamExec σ ι α) := preorder.lift StreamExec.to_order_tuple
+instance StreamState.preorder : preorder (StreamState σ ι α) := preorder.lift StreamState.to_order_tuple
+instance StreamExec.preorder : preorder (StreamExec σ ι α) := preorder.lift StreamExec.to_order_tuple
+
+local infix `⊑`:50    := StreamExec.lag
+local infix `⊏`:50    := StreamExec.lag_lt
 
 lemma StreamExec.le_total {α β : Type} (a : StreamExec σ₁ ι α) (b : StreamExec σ₂ ι β) : a.lag b ∨ b.lag a := le_total a.to_order_tuple b.to_order_tuple
 
@@ -102,7 +81,8 @@ variables
 (a : StreamExec σ₁ ι α)
 (b : StreamExec σ₂ ι α)
 (s₁ : σ₁) (s₂ : σ₂)
-[has_mul α]
+--[has_mul α]
+[non_unital_semiring α]
 
 -- no assumptions on value type
 variables (q : StreamExec σ ι ρ)
@@ -155,13 +135,13 @@ end
 def Stream.reduced' (q : Stream σ ι α) : Prop :=
 ∀ {s t} (hs : q.valid s) (ht : q.valid t), q.ready s → q.ready t → q.index s hs = q.index t ht → s = t
 
-class Stream.is_simple (q : Stream σ ι α) : Prop :=
+class Stream.is_simple (q : Stream σ ι ρ) : Prop :=
 (monotonic : ∀ {r} (h : q.valid r), StreamState.lag ⟨q, r⟩ ⟨q, q.next r h⟩)
 (reduced : ∀ {s t} (hs : q.valid s) (ht : q.valid t), q.ready s → q.ready t → q.index s hs = q.index t ht → s = t)
 
 #check @Stream.is_simple.monotonic
 --class StreamExec.is_simple (q : StreamExec σ ι α) : Prop := (is_simple : q.stream.is_simple)
-@[simp] def StreamExec.is_simple (q : StreamExec σ ι α) : Prop := q.stream.is_simple
+@[simp] def StreamExec.is_simple : Prop := q.stream.is_simple
 
 @[simps]
 def StreamExec.succ : StreamExec σ ι ρ :=
@@ -187,6 +167,9 @@ end
 variables {a b}
 lemma invalid_succ_invalid : ¬ a.valid → ¬ a.succ.valid :=
 λ h v, begin simp only [succ] at v, split_ifs at v, exact h v end
+
+@[simp] lemma invalid_succ_eq : ¬ a.valid → a.succ.valid = ff :=
+λ h, begin simp [succ], split_ifs, simp [StreamExec.valid], simpa using h end
 
 lemma succ_bound_valid : a.bound_valid → a.succ.bound_valid :=
 begin
@@ -305,7 +288,6 @@ instance hmul.is_simple
 }
 
 variables
-[non_unital_semiring α]
 (a_simple : a.is_simple)
 (b_simple : b.is_simple)
 
@@ -322,6 +304,26 @@ def StreamExec.eval' [add_zero_class α] (s : StreamExec σ ι α) : ι →₀ �
 s.eval_steps' s.bound
 
 open StreamExec
+
+@[simp] lemma not_ready_eval₀_zero : ¬ s.ready → s.eval₀' = 0 :=
+begin
+  intro n,
+  simp [eval₀', n],
+end
+
+@[simp] lemma not_ready_mul_eval₀_zero_l : ¬ a.ready → (a ⋆ b).eval₀' = 0 :=
+begin
+  intro n,
+  simp [eval₀'],
+  rintro ⟨_, ⟨_, ⟨_,_⟩, _⟩⟩, contradiction,
+end
+
+@[simp] lemma not_ready_mul_eval₀_zero_r : ¬ b.ready → (a ⋆ b).eval₀' = 0 :=
+begin
+  intro n,
+  simp [eval₀'],
+  rintro ⟨_, ⟨_, ⟨_,_⟩, _⟩⟩, contradiction,
+end
 
 @[simp] lemma invalid_eval₀_zero : ¬ a.valid → a.eval₀' = 0 := begin simp [eval₀'], rintro _ ⟨_, _⟩, contradiction end
 
@@ -365,14 +367,6 @@ begin
   contradiction,
 end
 
-@[simp] lemma reduced_mul_eval_l (ha : a.is_simple) (hb : b.is_simple) :
-a ⊑ b → (a ⋆ b).eval₀'  = a.eval₀' * b.eval' :=
-begin
-  intros le,
-  sorry,
-end
-
-@[simp] lemma reduced_mul_eval_r : b ⊑ a → (a ⋆ b).eval₀' = a.eval' * b.eval₀' := sorry
 @[simp] lemma eval_steps_zero' : eval_steps' 0 a = 0 := rfl
 
 @[simp] lemma not_bool_eq : ∀ {a b : bool}, !a = !b ↔ a = b := by { intros, cases a; cases b; dec_trivial }
@@ -387,7 +381,6 @@ by { simp [StreamState.to_order_tuple, StreamState.now'], }
 -- a.valid = b.valid ∧ a.now'.index = b.now'.index ∧ a.ready = b.ready :=
 -- by { simp [StreamState.to_order_tuple] }
 
-#check StreamState.ext
 @[simp] lemma StreamState.simp_ext : ({stream := a.to_StreamState.stream, state := a.to_StreamState.state} : StreamState σ₁ ι α) = a.to_StreamState := StreamState.ext _ a.to_StreamState rfl rfl
 
 variable
@@ -436,6 +429,148 @@ begin
         simpa using eqi } } },
   { simp [StreamExec.to_order_tuple, StreamExec.lag_lt, succ, *] },
 end
+
+-- @[simp] lemma mul_support_disjoint [decidable_eq α] (a b : ι →₀ α) : disjoint a.support b.support → a * b = 0 :=
+-- begin
+-- end
+
+@[simp] lemma is_simple_succ_is_simple : q.succ.is_simple ↔ q.is_simple := iff.rfl
+
+section algebra
+open StreamState
+
+@[simp] lemma reduced_mul_1 : a ⊏ b → a.eval₀' * b.eval₀' = 0 :=
+begin
+intro lt,
+simp [eval₀'],
+split_ifs with ha hb,
+{ suffices : a.to_StreamState.stream.index a.to_StreamState.state ha.1 ≠ b.to_StreamState.stream.index b.to_StreamState.state hb.1,
+  { ext,
+    rw finsupp.mul_apply,
+    simp [finsupp.single],
+    intros e1 e2, simp [e1, e2] at this,
+    contradiction },
+  {
+    intro eq,
+    have := ha.1,
+    have := ha.2,
+    have := hb.1,
+    have := hb.2,
+    simp [StreamExec.valid, StreamExec.ready] at *,
+    simp [StreamExec.lag_lt, StreamExec.to_order_tuple, StreamState.to_order_tuple, StreamState.now'] at lt,
+    simp [to_bool_tt, *] at lt,
+    exact lt
+  }
+},
+{ simp },
+{ simp },
+{ simp },
+end
+
+@[simp] lemma reduced_mul_succ' {n} (ha : a.is_simple) (hb : b.is_simple) (bv : b.bound_valid) :
+a ⊑ b → a.eval₀' * b.succ.eval_steps' n = 0 := sorry
+
+variables {a}
+lemma succ_squb : a.is_simple → a ⊑ a.succ := begin
+intro h,
+cases h with mono _,
+cases em a.valid with h h,
+{ simp only [*, succ],
+  exact mono h },
+{ simp only [*, succ],
+  change a≤a,
+  refl }
+end
+variables (a)
+
+@[simp] lemma reduced_mul_succ2 (hb : b.is_simple) (bv : b.bound_valid) :
+a ⊑ b → a.eval₀' * b.succ.eval' = 0 :=
+begin
+  intro le,
+  cases em a.ready,
+  { sorry, },
+  { simp [*], },
+end.
+@[simp] lemma reduced_mul_succ (hb : b.is_simple) (bv : b.bound_valid) :
+a ⊑ b → a.eval₀' * b.succ.eval' = 0 :=
+begin
+  intros le,
+  simp [eval'],
+  unfreezingI { induction b.bound.pred generalizing hb b },
+
+  { simp },
+
+  cases em b.valid; cases em b.ready,
+
+  { have lt := reduced_ready_progress _ h bv hb h_1,
+    suffices : a ⊏ b.succ,
+    { simp only [eval_steps'], simp [left_distrib], simp [*],
+      apply ih,
+      { simpa using hb },
+      { apply succ_bound_valid , assumption },
+      { simp [StreamExec.lag, StreamExec.lag_lt] at le lt |-, exact le_trans le (le_of_lt lt) },
+    },
+
+    { simp [StreamExec.lag, StreamExec.lag_lt] at le lt |-, exact lt_of_le_of_lt le lt },
+  },
+--   { cases em b.valid, { simp [*, succ],  },
+--     { have : ¬ b.succ.valid, { simp [succ, *] }, simp [*] },
+-- },
+  { simp [eval_steps', *, left_distrib],  sorry, },
+
+
+end
+
+-- i know, bad
+@[simp] lemma mul_eval₀ :
+(a ⋆ b).eval₀'  = a.eval₀' * b.eval₀' :=
+begin
+cases em a.valid with ha; cases em b.valid with hb; cases em a.ready; cases em b.ready,
+{ cases em (a.stream.index a.state ha = b.stream.index b.state hb),
+  { have : (a ⋆ b).ready := ⟨⟨ha, hb⟩, ⟨h, h_1⟩, h_2⟩,
+    simp [*, eval₀'],
+    { ext,
+      simp [finsupp.mul_apply, finsupp.single],
+      split_ifs,
+      refl,
+      refl,
+    },
+  },
+  { suffices : ¬ (a ⋆ b).ready,
+    { have : (a ⋆ b).valid := ⟨ha, hb⟩,
+      simp only [*, eval₀'],
+      ext,
+      rw finsupp.mul_apply,
+      simp [finsupp.single],
+      split_ifs with h_3 h_4,
+      rw h_3 at h_2, rw h_4 at h_2, contradiction,
+      refl, refl },
+    rintro ⟨_, _, h⟩, simp [(⋆)] at h, rw h at h_2, contradiction,
+} },
+
+all_goals { simp [*] },
+end
+
+end algebra
+
+
+@[simp] lemma reduced_mul_eval_l (ha : a.is_simple) (hb : b.is_simple) (vb : b.bound_valid) :
+a ⊑ b → (a ⋆ b).eval₀'  = a.eval₀' * b.eval' :=
+begin
+  intros le,
+  simp,
+  generalize h : b.bound = n,
+  unfreezingI { induction n generalizing b },
+  { simp at h, suffices : ¬ b.valid,
+    { simp [this] },
+    { simpa [bound_valid, h] using vb } },
+  { simp [eval_steps', left_distrib], suffices : a ⊑ b.succ, simp [*],
+    have := succ_squb hb,
+    simp [StreamExec.lag, StreamExec.lag_lt] at le this |-,
+    exact le_trans le this }
+end
+
+@[simp] lemma reduced_mul_eval_r : b ⊑ a → (a ⋆ b).eval₀' = a.eval' * b.eval₀' := sorry
 
 theorem mul_spec : a.bound_valid → b.bound_valid → a.is_simple → b.is_simple → (a ⋆ b).eval' = a.eval' * b.eval' :=
 begin
