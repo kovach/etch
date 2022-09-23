@@ -16,7 +16,8 @@ import data.pfun
 
 section
 
-parameters (R : Type) [add_zero_class R] [has_one R] [has_mul R]
+parameters (R : Type)
+[add_zero_class R] [has_one R] [has_mul R]
 
 
 open Types (nn rr bb)
@@ -36,7 +37,7 @@ instance : ∀ b, inhabited (ExprVal b)
 | bb := ⟨ff⟩
 
 instance [has_to_string R] :
-  ∀ b, has_to_string (ExprVal b)
+∀ b, has_to_string (ExprVal b)
 | nn := infer_instance
 | rr := infer_instance
 | bb := infer_instance
@@ -184,11 +185,12 @@ inductive Expr : Types → Type
 | call {b} : ∀ o : Op b, (Π (n : fin o.arity), Expr (o.signature n)) → Expr b
 | ternary {b} : Expr bb → Expr b → Expr b → Expr b
 
-parameter {R}
 
 abbreviation EContext := Context IdentVal
 def Frame := finset (Σ b, Ident b)
 instance : inhabited Frame := ⟨(default : finset (Σ b, Ident b))⟩
+
+parameter {R}
 
 def Expr.eval (ctx : EContext) : ∀ {b}, Expr b → option (ExprVal b)
 | _ (Expr.lit r) := some r
@@ -215,8 +217,8 @@ instance Expr.one_nn : has_one (Expr nn) := ⟨Expr.lit (1 : ℕ)⟩
 instance Expr.zero_rr : has_zero (Expr rr) := ⟨Expr.lit (0 : R)⟩
 instance Expr.one_rr : has_one (Expr rr) := ⟨Expr.lit (1 : R)⟩
 
-instance has_coe_from_nat : has_coe ℕ (Expr nn) := ⟨λ n, Expr.lit n⟩
-instance has_coe_From_R : has_coe R (Expr rr) := ⟨λ r, Expr.lit r⟩
+instance Expr.has_coe_from_nat : has_coe ℕ (Expr nn) := ⟨λ n, Expr.lit n⟩
+instance Expr.has_coe_from_R : has_coe R (Expr rr) := ⟨λ r, Expr.lit r⟩
 
 @[simps { attrs := [] }] instance add_nn : has_add (Expr nn) :=
 ⟨λ a b, Expr.call Op.nadd (fin.cons a (fin.cons b default))⟩
@@ -226,8 +228,12 @@ instance has_coe_From_R : has_coe R (Expr rr) := ⟨λ r, Expr.lit r⟩
 ⟨λ a b, Expr.call Op.nmul (fin.cons a (fin.cons b default))⟩
 @[simps { attrs := [] }] instance mul_rr : has_mul (Expr rr) :=
 ⟨λ a b, Expr.call Op.rmul (fin.cons a (fin.cons b default))⟩
+@[simps { attrs := [] }] instance sub_nn : has_sub (Expr nn) :=
+⟨λ a b, Expr.call Op.nsub (fin.cons a (fin.cons b default))⟩
 
-instance has_coe_from_expr {b : Types} : has_coe (Ident b) (Expr b) := ⟨Expr.ident⟩
+instance has_coe_to_expr {b : Types} : has_coe (Ident b) (Expr b) := ⟨Expr.ident⟩
+
+def Ident.to_expr {b} : Ident b → Expr b := Expr.ident
 
 /- Warning! Lean 3 uses zero, add, one instead of coe from ℕ for numerals -/
 example : (3 : Expr nn) = 1 + 1 + 1 := rfl
@@ -301,7 +307,7 @@ section LoopBound
 
 instance : has_coe_to_fun LoopBound (λ _, EContext → ℕ) :=
 ⟨LoopBound.to_fun⟩
-
+instance has_coe_from_nat : has_coe ℕ LoopBound := ⟨λ n, ⟨finset.empty, (λ _, n), true.intro⟩⟩
 
 end LoopBound
 
@@ -733,8 +739,8 @@ def Expr.eval  (ctx : Ident → IdentVal) : Expr → ExprVal
 | (Expr.call o args) := o.eval (λ i, (args i).eval)
 
 instance has_coe_from_nat : has_coe ℕ Expr := ⟨λ n, Expr.lit $ ExprVal.nat n⟩
-instance has_coe_From_R : has_coe R Expr := ⟨λ r, Expr.lit $ ExprVal.rval r⟩
-instance has_coe_from_expr : has_coe Ident Expr := ⟨Expr.ident⟩
+instance has_coe_from_R : has_coe R Expr := ⟨λ r, Expr.lit $ ExprVal.rval r⟩
+instance has_coe_from_Ident : has_coe Ident Expr := ⟨Expr.ident⟩
 
 example : Expr := (0 : ℕ)
 example : Expr := (0 : R)

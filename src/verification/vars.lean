@@ -107,29 +107,28 @@ end
 
 end frames
 
-section context
-
 def Context (val_type : Types → Type) : Type :=
 ∀ ⦃b : Types⦄, Ident b → val_type b
+
+namespace Context
 
 variable {val_type : Types → Type}
 
 instance [∀ b, inhabited (val_type b)] : inhabited (Context val_type) :=
 ⟨λ _, default⟩
 
-def Context.get (ctx : Context val_type) {b : Types} (x : Ident b) : val_type b := ctx x
+def get (ctx : Context val_type) {b : Types} (x : Ident b) : val_type b := ctx x
 
-def Context.update (ctx : Context val_type) {b : Types} (x : Ident b) (v : val_type b) :
+def update (ctx : Context val_type) {b : Types} (x : Ident b) (v : val_type b) :
   Context val_type :=
 function.update ctx b (function.update (@ctx b) x v)
 
-/-
-Spec for context:
+/- Spec for context -/
+lemma update_sound (ctx : Context val_type) {b : Types} (x : Ident b) (v : val_type b) :
+  (ctx.update x v).get x = v := by simp [update, get]
 
--- (ctx.update x).get y when x = y and x ≠ y
---
-
--/
+lemma update_frame (ctx : Context val_type) {b : Types} (x y : Ident b) (vx vy : val_type b)
+  (neq : y ≠ x) (hy : ctx.get y = vy) : (ctx.update x vx).get y = vy := by simpa [get, update, function.update, neq]
 
 /- TODO: Add simp lemmas -/
 
@@ -137,11 +136,11 @@ Spec for context:
 -- attribute [irreducible] Context
 
 @[simp]
-def Context.try_modify (ctx : Context val_type) {b : Types} (x : Ident b) (f : val_type b → option (val_type b)) :
+def try_modify (ctx : Context val_type) {b : Types} (x : Ident b) (f : val_type b → option (val_type b)) :
   option (Context val_type) :=
 (f (ctx.get x)).map (ctx.update x)
 
-end context
+end Context
 
 section iterate
 
@@ -153,4 +152,4 @@ def iterate_while {α : Type*} (f : α → option α) (cond : α → option bool
 end iterate
 
 theorem imp_iff_distrib {a b c : Prop} : ((a → b) ↔ (a → c)) ↔ (a → (b ↔ c)) :=
-⟨λ h ha, ⟨λ hb, h.mp (λ _, hb) ha, λ hc, h.mpr (λ _, hc) ha⟩, λ h, ⟨λ hb ha, (h ha).mp (hb ha), λ hc ha, (h ha).mpr (hc ha)⟩⟩ 
+⟨λ h ha, ⟨λ hb, h.mp (λ _, hb) ha, λ hc, h.mpr (λ _, hc) ha⟩, λ h, ⟨λ hb ha, (h ha).mp (hb ha), λ hc ha, (h ha).mpr (hc ha)⟩⟩
