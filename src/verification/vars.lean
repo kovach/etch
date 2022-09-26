@@ -124,10 +124,10 @@ def update (ctx : Context val_type) {b : Types} (x : Ident b) (v : val_type b) :
 function.update ctx b (function.update (@ctx b) x v)
 
 /- Spec for context -/
-lemma update_sound (ctx : Context val_type) {b : Types} (x : Ident b) (v : val_type b) :
+@[simp] lemma update_sound (ctx : Context val_type) {b : Types} (x : Ident b) (v : val_type b) :
   (ctx.update x v).get x = v := by simp [update, get]
 
-lemma update_frame (ctx : Context val_type) {b : Types} (x y : Ident b) (vx vy : val_type b)
+@[simp] lemma update_frame (ctx : Context val_type) {b : Types} (x y : Ident b) (vx vy : val_type b)
   (neq : y ≠ x) (hy : ctx.get y = vy) : (ctx.update x vx).get y = vy := by simpa [get, update, function.update, neq]
 
 /- TODO: Add simp lemmas -/

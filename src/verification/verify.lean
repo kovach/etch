@@ -54,6 +54,7 @@ inductive Op : Types → Type
 | not : Op bb
 | nat_eq : Op bb
 | lt : Op bb
+| le : Op bb
 | cast_r : Op rr
 
 namespace Op
@@ -74,6 +75,7 @@ end⟩
 | not := "!"
 | nat_eq := "="
 | lt := "<"
+| le := "<="
 end⟩
 
 @[reducible]
@@ -83,7 +85,7 @@ def arity : ∀ {b}, Op b → ℕ
 | _ nmul := 2
 | _ rmul := 2
 | _ nsub := 2
-| _ and := 2 | _ or := 2 | _ not := 1 | _ nat_eq := 2 | _ lt := 2
+| _ and := 2 | _ or := 2 | _ not := 1 | _ nat_eq := 2 | _ lt := 2 | _ le := 2
 | _ cast_r := 1
 
 def is_not_infix : finset (Σ b, Op b) :=
@@ -105,7 +107,7 @@ def signature : ∀ {b} (o : Op b), (fin o.arity → Types)
 | _ nmul := ![nn, nn] | _ rmul := ![rr, rr]
 | _ nsub := ![nn, nn]
 | _ and := ![bb, bb] | _ or := ![bb, bb] | _ not := ![bb]
-| _ nat_eq := ![nn, nn] | _ lt := ![nn, nn]
+| _ nat_eq := ![nn, nn] | _ lt := ![nn, nn] | _ le := ![nn, nn]
 | _ cast_r := ![nn]
 
 @[simp]
@@ -117,9 +119,10 @@ def eval : ∀ {b} (o : Op b), (Π (n : fin o.arity), ExprVal (o.signature n)) �
 | _ nsub := λ args, nat.sub (args 0) (args 1)
 | _ and := λ args, (args 0 : bool) && (args 1 : bool)
 | _ or := λ args, (args 0 : bool) || (args 1 : bool)
-| _ not := λ args, bnot (args 0 : bool)
+| _ not := λ args, bnot (args 0)
 | _ nat_eq := λ args, args 0 = args 1
 | _ lt := λ args, (show ℕ, from args 0) < args 1
+| _ le := λ args, (show ℕ, from args 0) ≤ args 1
 | _ cast_r := λ args, show ℕ, from args 0
 
 end Op
@@ -199,7 +202,27 @@ def Expr.eval (ctx : EContext) : ∀ {b}, Expr b → option (ExprVal b)
 | _ (Expr.call o args) := fin.tuple_some (λ i, (args i).eval) >>= λ r, some (o.eval r)
 | _ (Expr.ternary c e₁ e₂) := c.eval >>= λ r, cond r e₁.eval e₂.eval
 
-local notation a ` ⟪<⟫ ` b := Expr.call Op.lt (fin.cons (a : Expr nn) (fin.cons (b : Expr nn) default))
+-- local notation a ` ⟪<⟫ ` b := Expr.call Op.lt (fin.cons (a : Expr nn) (fin.cons (b : Expr nn) default))
+
+class has_comp (α : Type*) (β : out_param Type*) :=
+(eq : α → α → β)
+(le : α → α → β)
+(lt : α → α → β)
+(ge : α → α → β)
+(gt : α → α → β)
+
+infix ` ⟪≤⟫ `:50   := has_comp.le
+infix ` ⟪<⟫ `:50   := has_comp.lt
+infix ` ⟪≥⟫ `:50   := has_comp.ge
+infix ` ⟪>⟫ `:50   := has_comp.gt
+infix ` ⟪=⟫ `:50   := has_comp.eq
+
+@[simps { attrs := [] }] instance Expr.has_comp : has_comp (Expr nn) (Expr bb) :=
+{ eq := λ a b, Expr.call Op.nat_eq $ fin.cons a $ fin.cons b default,
+  lt := λ a b, Expr.call Op.lt $ fin.cons a $ fin.cons b default,
+  le := λ a b, Expr.call Op.le $ fin.cons a $ fin.cons b default,
+  ge := λ a b, Expr.call Op.le $ fin.cons b $ fin.cons a default,
+  gt := λ a b, Expr.call Op.lt $ fin.cons b $ fin.cons a default }
 
 section Expr
 
@@ -231,9 +254,17 @@ instance Expr.has_coe_from_R : has_coe R (Expr rr) := ⟨λ r, Expr.lit r⟩
 @[simps { attrs := [] }] instance sub_nn : has_sub (Expr nn) :=
 ⟨λ a b, Expr.call Op.nsub (fin.cons a (fin.cons b default))⟩
 
+instance inf_bb : has_inf (Expr bb) :=
+⟨λ a b, Expr.call Op.and (fin.cons a (fin.cons b default))⟩
+
+instance sup_bb : has_sup (Expr bb) :=
+⟨λ a b, Expr.call Op.or (fin.cons a (fin.cons b default))⟩
+
+def Expr.not : Expr bb → Expr bb := λ e, Expr.call Op.not (fin.cons e default)
+
 instance has_coe_to_expr {b : Types} : has_coe (Ident b) (Expr b) := ⟨Expr.ident⟩
 
-def Ident.to_expr {b} : Ident b → Expr b := Expr.ident
+@[reducible] def Ident.to_expr {b} : Ident b → Expr b := Expr.ident
 
 /- Warning! Lean 3 uses zero, add, one instead of coe from ℕ for numerals -/
 example : (3 : Expr nn) = 1 + 1 + 1 := rfl
@@ -273,11 +304,36 @@ by { simp [mul_nn_mul, Expr.eval, fin.tuple_some] with functor_norm, refl, }
 by { simp [mul_rr_mul, Expr.eval, fin.tuple_some] with functor_norm, refl, }
 
 @[simp] lemma Expr.eval_lt (e₁ e₂ : Expr nn) (ctx : EContext) :
-  (e₁ ⟪<⟫ e₂).eval ctx = (e₁.eval ctx) >>= λ n, e₂.eval ctx >>= λ m, some (n < m : bool) :=
-by { simp [Expr.eval, fin.tuple_some] with functor_norm, refl, }
+  Expr.eval ctx (e₁ ⟪<⟫ e₂) = (e₁.eval ctx) >>= λ n, e₂.eval ctx >>= λ m, some (n < m : bool) :=
+by { simp [(⟪<⟫), Expr.eval, fin.tuple_some] with functor_norm, refl, }
+@[simp] lemma Expr.eval_le (e₁ e₂ : Expr nn) (ctx : EContext) :
+  Expr.eval ctx (e₁ ⟪≤⟫ e₂) = (e₁.eval ctx) >>= λ n, e₂.eval ctx >>= λ m, some (n ≤ m : bool) :=
+by { simp [(⟪≤⟫), Expr.eval, fin.tuple_some] with functor_norm, refl, }
+-- todo: consider less surprising evaluation order
+@[simp] lemma Expr.eval_gt (e₁ e₂ : Expr nn) (ctx : EContext) :
+  Expr.eval ctx (e₁ ⟪>⟫ e₂) = (e₂.eval ctx) >>= λ n, e₁.eval ctx >>= λ m, some (n < m : bool) :=
+by { simp [(⟪>⟫), Expr.eval, fin.tuple_some] with functor_norm, refl, }
+@[simp] lemma Expr.eval_ge (e₁ e₂ : Expr nn) (ctx : EContext) :
+  Expr.eval ctx (e₁ ⟪≥⟫ e₂) = (e₂.eval ctx) >>= λ n, e₁.eval ctx >>= λ m, some (m ≥ n : bool) :=
+by { simp [(⟪≥⟫), Expr.eval, fin.tuple_some] with functor_norm, refl, }
+
+@[simp] lemma Expr.eval_eq (e₁ e₂ : Expr nn) (ctx : EContext) :
+  Expr.eval ctx (e₁ ⟪=⟫ e₂) = (e₁.eval ctx) >>= λ n, e₂.eval ctx >>= λ m, some (n = m : bool) :=
+by { simp [(⟪=⟫), Expr.eval, fin.tuple_some] with functor_norm, refl, }
+
+@[simp] lemma Expr.eval_and (e₁ e₂ : Expr bb) (ctx : EContext) :
+  (e₁ ⊓ e₂).eval ctx = (e₁.eval ctx) >>= λ n, e₂.eval ctx >>= λ m, some (n && m : bool) :=
+by { simp [has_inf.inf, Expr.eval, fin.tuple_some] with functor_norm, refl }
+@[simp] lemma Expr.eval_or  (e₁ e₂ : Expr bb) (ctx : EContext) :
+  (e₁ ⊔ e₂).eval ctx = (e₁.eval ctx) >>= λ n, e₂.eval ctx >>= λ m, some (n || m : bool) :=
+by { simp [has_sup.sup, Expr.eval, fin.tuple_some] with functor_norm, refl }
 
 @[simp] lemma Expr.eval_ident_is_some {b : Types} {ctx : EContext} (i : Ident b) :
   (Expr.eval ctx (i : Expr b)).is_some ↔ (ctx.get i).is_scalar := by simp
+
+@[simp] lemma Expr.eval_not (e : Expr bb) (ctx : EContext) :
+  e.not.eval ctx = (e.eval ctx) >>= λ v, some (bnot v) :=
+by { simp [Expr.not, Expr.eval, fin.tuple_some] with functor_norm, refl, }
 
 def EContext.is_length {b : Types} (ctx : EContext) (arr : Ident b) (len : Expr nn) : Prop :=
   ∃ {n : ℕ} {arr' : list (ExprVal b)}, ctx.get arr = IdentVal.arr arr' ∧ len.eval ctx = some n ∧ arr'.length = n
