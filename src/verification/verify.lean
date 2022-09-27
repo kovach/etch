@@ -347,6 +347,12 @@ def Prog.eval : Prog → EContext → option EContext
   ((Prog.store dst val).eval ctx).is_some ↔ (val.eval ctx).is_some ∧ (ctx.get dst).is_scalar :=
 by simp [Prog.eval]
 
+lemma Prog.eval_is_scalar_iff {b : Types} {v : Ident b} {ctx ctx' : EContext} (p : Prog) (hp : p.eval ctx = some ctx') :
+  (ctx'.get v).is_scalar ↔ (ctx.get v).is_scalar :=
+begin
+  sorry,
+  -- induction p; simp [Prog.eval] at hp, { rw hp, }, { sorry, }, { }
+end
 
 end Prog
 
@@ -356,7 +362,7 @@ local notation a ` ⟬ `:9000 i ` ⟭ ` ` ::= `:20 c := Prog.store_arr a i c
 local notation x ` ⟬ `:9000 i ` ⟭ ` := Expr.access x i
 
 class Evalable (α : Type) (β : out_param Type) :=
-(eval : EContext → α →. β)
+(eval : EContext → α →. /- partial function -/ β)
 
 @[simps]
 instance eval_expr_nn : Evalable (Expr nn) ℕ :=
@@ -414,6 +420,19 @@ s.inv_valid_at ctx ∧ s.ready.eval ctx = some tt
 
 @[simp] lemma BoundedStreamGen.ready_inv_valid_at {s : BoundedStreamGen ι α} {ctx : EContext} (f : ι → ι') (g : α → β) :
   (bimap f g s).ready_at ctx ↔ s.ready_at ctx := iff.rfl
+
+def preserves (s : BoundedStreamGen ι α) (ctx : EContext) (p : EContext → Prop) : Prop :=
+p ctx → ∀ {c}, s.next.eval ctx = some c → p c
+
+section preserves
+variables {s : BoundedStreamGen ι α} {ctx : EContext} {p₁ p₂ : EContext → Prop}
+lemma preserves.and (h₀ : preserves s ctx p₁) (h₁ : preserves s ctx p₂) : (preserves s ctx (λ c, p₁ c ∧ p₂ c)) :=
+by { simp only [preserves] at *, tauto, }
+
+lemma preserves.is_scalar {b : Types} (v : Ident b) : preserves s ctx (λ c, (c.get v).is_scalar) :=
+λ _ _ h, by rwa Prog.eval_is_scalar_iff _ h
+
+end preserves
 
 structure is_defined [Evalable ι ι'] [Evalable α β] (s : BoundedStreamGen ι α) (ctx : EContext) : Prop :=
 (hvalid : s.ctx_inv ctx → (s.valid.eval ctx).is_some)
@@ -510,9 +529,8 @@ ls.find_indexes (≠0)
 def list_to_sparse_vals [decidable_eq R] (ls : list R) : list R :=
 ls.filter (≠0)
 
-def R_inhb : inhabited R := ⟨0⟩
-local attribute [instance] R_inhb
-
+-- def R_inhb : inhabited R := ⟨0⟩
+-- local attribute [instance] R_inhb
 lemma externSparseVec_is_defined (scratch : NameSpace) (c : EContext) :
   is_defined (externSparseVec scratch) c :=
 { hvalid := by { simp [externSparseVec], have := @of_is_len _ c, tauto, },
