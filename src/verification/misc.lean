@@ -2,7 +2,7 @@ import data.option.basic
 import data.fin.tuple.basic
 import data.pfun
 import data.list.basic
-
+import data.finsupp.basic
 
 lemma bool.coe_iff_eq_tt (b : bool) : b ↔ b = tt := iff.rfl
 @[simp] lemma option.bind_const_none {α β} (x : option α) :
@@ -60,3 +60,27 @@ by { dsimp only [option.guard_prop], split_ifs; simpa }
   (x.nth n).is_some ↔ n < x.length :=
 by { rw ← not_iff_not, simp [option.is_none_iff_eq_none], }
 
+variables {ι α : Type}
+
+noncomputable instance finsupp.has_mul [mul_zero_class α] : has_mul (ι →₀ α) :=
+⟨λ a b, finsupp.zip_with (*) (zero_mul _) a b⟩
+
+lemma finsupp.mul_apply [mul_zero_class α] (g₁ g₂ : ι →₀ α) (a : ι) : (g₁ * g₂) a = g₁ a * g₂ a := rfl
+
+-- #check pi.distrib -- todo, tactic like this?
+noncomputable instance finsupp.non_unital_semiring [non_unital_semiring α] : non_unital_semiring (ι →₀ α) :=
+{
+  zero := 0,
+  add_assoc := λ a b c, fun_like.ext _ _ (by simp [finsupp.add_apply, add_assoc]),
+  zero_add  := λ a,     fun_like.ext _ _ (by simp [finsupp.add_apply]),
+  add_zero  := λ a,     fun_like.ext _ _ (by simp [finsupp.add_apply]),
+  add_comm  := λ a b,   fun_like.ext _ _ (by simp [finsupp.add_apply, add_comm] ),
+  zero_mul  := λ a,     fun_like.ext _ _ (by simp [finsupp.mul_apply]),
+  mul_zero  := λ a,     fun_like.ext _ _ (by simp [finsupp.mul_apply]),
+
+  left_distrib  := λ a b c, by simp [fun_like.ext_iff, finsupp.mul_apply, finsupp.add_apply, left_distrib],
+  right_distrib := λ a b c, by simp [fun_like.ext_iff, finsupp.mul_apply, finsupp.add_apply, right_distrib],
+
+  mul_assoc     := λ a b c, by simp [fun_like.ext_iff, finsupp.mul_apply, mul_assoc],
+
+  ..finsupp.has_mul, ..finsupp.has_add, }
