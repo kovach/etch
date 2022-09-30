@@ -188,7 +188,6 @@ inductive Expr : Types → Type
 | call {b} : ∀ o : Op b, (Π (n : fin o.arity), Expr (o.signature n)) → Expr b
 | ternary {b} : Expr bb → Expr b → Expr b → Expr b
 
-
 abbreviation EContext := Context IdentVal
 def Frame := finset (Σ b, Ident b)
 instance : inhabited Frame := ⟨(default : finset (Σ b, Ident b))⟩
@@ -526,7 +525,7 @@ let i : Ident nn := scratch∷Vars.i,
   value := vals⟬i⟭,
   ready := Expr.lit tt,
   next := i ::= i + 1,
-  valid := i ⟪<⟫ len,
+  valid := (i : Expr nn) ⟪<⟫ len,
   bound := ⟨default, λ ctx, (ctx.get len).get.iget, /- TODO: Frame -/ trivial⟩,
   initialize := i ::= 0,
   ctx_inv := λ ctx, (ctx.get i).is_scalar ∧ ctx.is_length inds len ∧ ctx.is_length vals len }
