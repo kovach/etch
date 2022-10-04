@@ -110,12 +110,16 @@ end frames
 def Context (val_type : Types → Type) : Type :=
 ∀ ⦃b : Types⦄, Ident b → val_type b
 
+structure HeapContext (val_type : Types → Type) : Type :=
+(store : Context val_type)
+(heap : Context (list ∘ val_type))
+
 namespace Context
 
 variable {val_type : Types → Type}
 
 instance [∀ b, inhabited (val_type b)] : inhabited (Context val_type) :=
-⟨λ _, default⟩
+⟨λ _ _, default⟩
 
 def get (ctx : Context val_type) {b : Types} (x : Ident b) : val_type b := ctx x
 
@@ -135,12 +139,27 @@ function.update ctx b (function.update (@ctx b) x v)
 /- For some reason doesn't play well with equation compiler -/
 -- attribute [irreducible] Context
 
-@[simp]
-def try_modify (ctx : Context val_type) {b : Types} (x : Ident b) (f : val_type b → option (val_type b)) :
-  option (Context val_type) :=
-(f (ctx.get x)).map (ctx.update x)
+-- @[simp]
+-- def try_modify (ctx : Context val_type) {b : Types} (x : Ident b) (f : val_type b → option (val_type b)) :
+--   option (Context val_type) :=
+-- (f (ctx.get x)).map (ctx.update x)
 
 end Context
+
+namespace HeapContext
+variable {val_type : Types → Type}
+
+@[simps] def update (ctx : HeapContext val_type) {b : Types} (x : Ident b) (v : val_type b) :
+  HeapContext val_type :=
+{ store := ctx.store.update x v,
+  heap := ctx.heap }
+
+@[simps] def update_arr (ctx : HeapContext val_type) {b : Types} (x : Ident b) 
+  (n : ℕ) (v : val_type b) : HeapContext val_type :=
+{ store := ctx.store,
+  heap := ctx.heap.update x ((ctx.heap.get x).update_nth n v) }
+
+end HeapContext
 
 section iterate
 
