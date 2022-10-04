@@ -8,12 +8,11 @@ import verification.misc
 open_locale classical
 noncomputable theory
 
-variables {σ α ι γ β ρ : Type}
+variables {σ α ι β ρ : Type}
 variables (R : Type) [add_zero_class R] [has_one R] [has_mul R]
 
 variables
 [linear_order ι]
-[non_unital_semiring γ]
 
 structure partial_status (σ ι α : Type) :=
 (index : with_top ι)
@@ -77,11 +76,10 @@ def Stream.reduced (q : Stream σ ι α) : Prop :=
 variables {σ ι α}
 
 variables
-(s : StreamExec σ ι γ)
+(s : StreamExec σ ι α)
 (a : StreamExec σ₁ ι α)
 (b : StreamExec σ₂ ι α)
 (s₁ : σ₁) (s₂ : σ₂)
---[has_mul α]
 [non_unital_semiring α]
 
 -- no assumptions on value type
@@ -269,7 +267,7 @@ end
 instance hmul.is_simple
 (a : Stream σ₁ ι α) (b : Stream σ₂ ι α)
 (ha : a.is_simple) (hb : b.is_simple) : (a.mul b).is_simple :=
-{ monotonic := sorry,
+{ monotonic := begin sorry, end,
   reduced :=
   begin
     intros s t hs ht ready_s ready_t eq,
@@ -277,7 +275,7 @@ instance hmul.is_simple
     cases ready_t,
 
     simp only [(*), Stream.mul] at hs ht,
-    simp [(*), Stream.mul, *, max_idem.idempotent] at eq,
+    simp [Stream.mul, *, max_idem.idempotent] at eq,
 
     ext,
     { apply @is_simple.reduced _ _ _ _ _ ha; simp [*] },
