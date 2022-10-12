@@ -177,7 +177,6 @@ def range (n : ℕ) : Stream ℕ ℕ ℕ :=
   index := λ k _, k,
   value := λ k _, k,
   ready := λ _, tt,
-  valid := λ k, k < n,
-}
+  valid := λ k, k < n, }
 
 end primitives

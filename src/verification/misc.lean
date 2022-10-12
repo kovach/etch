@@ -45,7 +45,7 @@ fin.tuple_sequence x
 by cases x; simp
 
 @[simp] lemma option.map_is_some {α β} (x : option α) (y : α → β) :
-  (y <$> x).is_some ↔ x.is_some := by cases x; simp
+  (y <$> x).is_some = x.is_some := by cases x; simp
 
 def option.guard_prop {α} (p : Prop) [decidable p] (x : α) : option α :=
   if p then some x else none
@@ -59,6 +59,10 @@ by { dsimp only [option.guard_prop], split_ifs; simpa }
 @[simp] lemma list.nth_is_some_iff {α} {x : list α} {n : ℕ} :
   (x.nth n).is_some ↔ n < x.length :=
 by { rw ← not_iff_not, simp [option.is_none_iff_eq_none], }
+
+@[simp] lemma option.map_is_some' {α β} (x : option α) (f : α → β) :
+  (x.map f).is_some = x.is_some := by cases x; simp
+
 
 variables {ι α : Type}
 
