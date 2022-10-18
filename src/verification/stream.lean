@@ -31,6 +31,8 @@ structure StreamState (σ ι α : Type) :=
 structure StreamExec (σ ι α : Type) extends StreamState σ ι α:=
 (bound : ℕ)
 
+notation `↑ₛ`s := StreamExec.to_StreamState s
+
 structure status (σ ι α : Type) :=
 (next  : σ)
 (index : ι)
@@ -52,7 +54,6 @@ instance : is_lawful_bifunctor (Stream σ) :=
 @[simps]
 instance : bifunctor (StreamExec σ) :=
 { bimap := λ _ _ _ _ f g s, { s with stream := bifunctor.bimap f g s.stream } }
-
 
 instance : is_lawful_bifunctor (StreamExec σ) :=
 { id_bimap := by { intros, ext : 2; simp with functor_norm, },
@@ -100,7 +101,7 @@ variables {ι' β : Type} (f : ι → ι') (g : α → β)
 end
 
 def StreamExec.eval₀ [has_zero α] (s : StreamExec σ ι α) (h₁ : s.valid) : ι →₀ α :=
-if h₂ : s.ready then finsupp.single (s.now h₁ h₂).index (s.now h₁ h₂).value else 0
+if h₂ : s.ready then finsupp.single (s.stream.index _ h₁) (s.stream.value _ h₂) else 0
 
 @[simp]
 noncomputable def StreamExec.eval_steps [add_zero_class α] :

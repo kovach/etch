@@ -507,9 +507,19 @@ lemma tr_to.is_def {σ'} [Evalable ι ι'] [Evalable α β] {s : BoundedStreamGe
   hval := λ H, by { rw h.hval H (by simpa [H.2] using h.hready H.1), trivial, },
   hstep := h.hstep }
 
-lemma tr_to.eval_finsupp_eq {β σ'} [add_zero_class β] [Evalable ι ι'] [Evalable α β] {s : BoundedStreamGen ι α}
+variables {σ' : Type} [add_zero_class β] [Evalable ι ι'] [Evalable α β] {s : BoundedStreamGen ι α}
   {t : StreamExec σ' ι' β} {f : EContext → σ'} (h : ∀ ctx, tr_to s t f ctx) (ctx : EContext) 
-  (hctx : s.ctx_inv ctx) :
+  (hctx : s.ctx_inv ctx)
+
+lemma tr_to.eval₀ (h₁ h₂) : ((Evalable.eval ctx s).get ⟨hctx, λ c, (h c).is_def⟩).eval₀ h₁ = 
+  t.eval₀ h₂ :=
+begin
+  simp [StreamExec.eval₀, StreamExec.valid, StreamExec.ready],
+  split_ifs with H₁ H₂,
+  { congr' 1, simp [Evalable.eval], }
+end
+
+lemma tr_to.eval_finsupp_eq  :
   ((Evalable.eval ctx s).get ⟨hctx, λ c, (h c).is_def⟩).eval = t.eval :=
 sorry
 
