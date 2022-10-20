@@ -100,14 +100,14 @@ variables {ι' β : Type} (f : ι → ι') (g : α → β)
 
 end
 
-def StreamExec.eval₀ [has_zero α] (s : StreamExec σ ι α) (h₁ : s.valid) : ι →₀ α :=
-if h₂ : s.ready then finsupp.single (s.stream.index _ h₁) (s.stream.value _ h₂) else 0
+def Stream.eval₀ [has_zero α] (s : Stream σ ι α) (σ₀ : σ) (h₁ : s.valid σ₀) : ι →₀ α :=
+if h₂ : s.ready σ₀ then finsupp.single (s.index _ h₁) (s.value _ h₂) else 0
 
 @[simp]
-noncomputable def StreamExec.eval_steps [add_zero_class α] :
-  ℕ → (StreamExec σ ι α) → ι →₀ α
-| 0 s := 0
-| (n + 1) s := if h₁ : s.valid then (StreamExec.eval_steps n (s.δ h₁)) + (s.eval₀ h₁) else 0
+noncomputable def Stream.eval_steps [add_zero_class α] (s : Stream σ ι α) :
+  ℕ → σ → ι →₀ α
+| 0 _ := 0
+| (n + 1) σ₀ := if h₁ : s.valid σ₀ then (Stream.eval_steps n (s.next σ₀ h₁)) + (s.eval₀ _ h₁) else 0
 
 inductive StreamExec.bound_valid_aux : ℕ → StreamExec σ ι α → Prop
 | invalid (n : ℕ) {s : StreamExec σ ι α} : ¬s.valid → StreamExec.bound_valid_aux n s
@@ -127,7 +127,7 @@ def StreamExec.bound_valid (s : StreamExec σ ι α) : Prop := s.bound_valid_aux
 
 @[simp]
 def StreamExec.eval [add_zero_class α] (s : StreamExec σ ι α) : ι →₀ α :=
-s.eval_steps s.bound
+s.stream.eval_steps s.bound s.state
 
 class FinsuppEval (x : Type) (y : out_param Type) :=
 (eval : x → y)
@@ -142,15 +142,15 @@ instance : FinsuppEval ℤ ℤ := ⟨id⟩
 section defs
 variables {ι' β : Type}
 
-@[simp] lemma imap_eval₀_spec [add_comm_monoid α] (f : ι → ι') (s : StreamExec σ ι α) (h : s.valid) :
-  (f <$₁> s).eval₀ h = (s.eval₀ h).map_domain f :=
-by { simp only [StreamExec.eval₀], split_ifs; simp, refl, }
+@[simp] lemma imap_eval₀_spec [add_comm_monoid α] (f : ι → ι') (s : Stream σ ι α) (σ₀ : σ) (h : s.valid σ₀) :
+  (f <$₁> s).eval₀ _ h = (s.eval₀ _ h).map_domain f :=
+by { simp only [Stream.eval₀], split_ifs; simp, }
 
-@[simp] lemma imap_stream_spec [add_comm_monoid α] (f : ι → ι') (s : StreamExec σ ι α) :
-  (f <$₁> s).eval = s.eval.map_domain f :=
+@[simp] lemma imap_eval_steps_spec [add_comm_monoid α] (f : ι → ι') (s : Stream σ ι α) (σ₀ : σ) (n : ℕ) :
+  (f <$₁> s).eval_steps n σ₀ = (s.eval_steps n σ₀).map_domain f :=
 begin
-  simp, induction s.bound with n ih generalizing s; simp,
-  split_ifs with H; simp [finsupp.map_domain_add, ih], refl,
+  induction n with n ih generalizing s σ₀; simp,
+  split_ifs; simp [ih, finsupp.map_domain_add], refl,
 end
 
 @[simp] lemma bimap_bound_valid_iff (f : ι → ι') (g : α → β) (s : StreamExec σ ι α) :

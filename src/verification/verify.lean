@@ -461,7 +461,7 @@ structure is_defined [Evalable ι ι'] [Evalable α β] (s : BoundedStreamGen ι
 (hstep : preserves s ctx s.ctx_inv)
 
 @[simps]
-def to_stream_of_is_defined_aux  [Evalable ι ι'] [Evalable α β] (s : BoundedStreamGen ι α)
+def BoundedStreamGen.to_stream_of_is_defined_aux  [Evalable ι ι'] [Evalable α β] (s : BoundedStreamGen ι α)
   (hs : ∀ ctx, is_defined s ctx) : Stream EContext ι' β :=
 { valid := s.inv_valid_at,
   ready := s.ready_at,
@@ -472,7 +472,7 @@ def to_stream_of_is_defined_aux  [Evalable ι ι'] [Evalable α β] (s : Bounded
 @[simps]
 def BoundedStreamGen.to_stream_of_is_defined [Evalable ι ι'] [Evalable α β] (s : BoundedStreamGen ι α)
   (hs : ∀ ctx, is_defined s ctx) (ctx₀ : EContext) (hctx₀ : s.ctx_inv ctx₀) : StreamExec EContext ι' β :=
-{ stream := to_stream_of_is_defined_aux s hs,
+{ stream := s.to_stream_of_is_defined_aux hs,
   bound := s.bound ctx₀,
   state := option.get ((hs ctx₀).hinit hctx₀) }
 
@@ -507,25 +507,66 @@ lemma tr_to.is_def {σ'} [Evalable ι ι'] [Evalable α β] {s : BoundedStreamGe
   hval := λ H, by { rw h.hval H (by simpa [H.2] using h.hready H.1), trivial, },
   hstep := h.hstep }
 
-variables {σ' : Type} [add_zero_class β] [Evalable ι ι'] [Evalable α β] {s : BoundedStreamGen ι α}
-  {t : StreamExec σ' ι' β} {f : EContext → σ'} (h : ∀ ctx, tr_to s t f ctx) (ctx : EContext) 
-  (hctx : s.ctx_inv ctx)
+variables {σ' : Type} [Evalable ι ι'] [Evalable α β] {s : BoundedStreamGen ι α} {t : StreamExec σ' ι' β} {f : EContext → σ'} {ctx : EContext}
 
-lemma tr_to.eval₀ (h₁ h₂) : ((Evalable.eval ctx s).get ⟨hctx, λ c, (h c).is_def⟩).eval₀ h₁ = 
-  t.eval₀ h₂ :=
+lemma tr_to.inv_valid_at_iff (h : tr_to s t f ctx) (hctx : s.ctx_inv ctx) : s.inv_valid_at ctx ↔ t.stream.valid (f ctx) :=
+by simp [BoundedStreamGen.inv_valid_at, hctx, h.hvalid hctx]
+
+lemma tr_to.ready_at_iff (h : tr_to s t f ctx) (hctx : s.ctx_inv ctx) : 
+  s.ready_at ctx ↔ t.stream.valid (f ctx) ∧ t.stream.ready (f ctx) :=
+by { simp [BoundedStreamGen.ready_at, h.inv_valid_at_iff hctx], intro hv, simp [h.hready (by rwa h.inv_valid_at_iff hctx)], }
+
+variables [add_zero_class β] (h : ∀ ctx, tr_to s t f ctx)
+
+lemma tr_to.eval₀ (hctx : s.ctx_inv ctx) (h₀ h₁) : 
+  (s.to_stream_of_is_defined_aux (λ c, (h c).is_def)).eval₀ ctx h₀ =
+  t.stream.eval₀ (f ctx) h₁ :=
 begin
-  simp [StreamExec.eval₀, StreamExec.valid, StreamExec.ready],
-  split_ifs with H₁ H₂,
-  { congr' 1, simp [Evalable.eval], }
+  simp [Stream.eval₀, (h ctx).ready_at_iff hctx, h₁],
+  split_ifs with h₂, swap, { /- If both are not ready -/ refl, },
+  congr; rw part.get_eq_iff_eq_some,
+  -- Show that index = index
+  { rw (h ctx).hcurr (by rwa [(h ctx).inv_valid_at_iff hctx]) h₁, },
+  -- Show that value = value
+  { rw (h ctx).hval (by simp [(h ctx).ready_at_iff hctx, h₁, h₂]) h₂, },
+
+  -- Old code:
+  -- simp [StreamExec.eval₀, StreamExec.valid, StreamExec.ready],
+  -- have := (h ctx).hinit hctx, simp at this,
+  -- obtain ⟨cinit, hc₁, hc₂⟩ := this,
+  -- change t.stream.valid t.state at h₂,
+  -- have : s.ctx_inv cinit := sorry, -- TODO: Initialize preserves ctx_inv
+  -- simp [hc₁, (h cinit).ready_at_iff this, hc₂, h₂],
+  -- split_ifs with h₃, swap, { /- If both are not ready -/ refl, },
+  -- congr' 1; rw part.get_eq_iff_eq_some,
+  -- -- Show that index = index
+  -- { rw (h cinit).hcurr (by rwa [(h cinit).inv_valid_at_iff this, hc₂]) (by rwa hc₂), simp [hc₂], },
+  -- -- Show that value = value
+  -- { rw (h cinit).hval (by simp [(h cinit).ready_at_iff this, hc₂, h₂, h₃]) (by rwa hc₂), simp [hc₂], },
 end
 
-lemma tr_to.eval_finsupp_eq  :
+lemma tr_to.eval_steps_eq (hctx : s.ctx_inv ctx) (n : ℕ) : (s.to_stream_of_is_defined_aux (λ c, (h c).is_def)).eval_steps n ctx = 
+  t.stream.eval_steps n (f ctx) :=
+begin
+  induction n with n ih generalizing ctx, { refl, },
+  simp [StreamExec.valid, (h ctx).inv_valid_at_iff hctx],
+  split_ifs, swap, { refl, },
+  congr' 1, swap, { rw tr_to.eval₀ h hctx, },
+  rw ih ((h ctx).hstep hctx (option.some_get _).symm),
+  have := (h ctx).hnext (by rwa (h ctx).inv_valid_at_iff hctx) (by assumption),
+  simp at this, obtain ⟨a, ha₁, ha₂⟩ := this, simp [ha₁, ha₂],
+end
+
+lemma tr_to.eval_finsupp_eq (hctx : s.ctx_inv ctx) :
   ((Evalable.eval ctx s).get ⟨hctx, λ c, (h c).is_def⟩).eval = t.eval :=
-sorry
+begin
+  have := (h ctx).hinit hctx, simp at this,
+  obtain ⟨cinit, hc₁, hc₂⟩ := this, 
+  have : s.ctx_inv cinit := sorry, -- TODO: Initialize preserves ctx_inv
+  simp [Evalable.eval, (h ctx).hbound, hc₁, hc₂, tr_to.eval_steps_eq h this],
+end
 
 end translate
-#exit
-
 
 instance eval_unit : Evalable unit unit := ⟨λ _, part.some⟩
 @[simp] lemma eval_unit_dom (c) : (Evalable.eval c ()).dom := trivial
@@ -594,16 +635,11 @@ begin
   split,
   iterate 4 { simp [externSparseVec], }, -- hvalid to hinit
   focus { rintros ⟨⟨hl₁, hl₂⟩, hv⟩, }, swap, focus { rintros ⟨⟨⟨hl₁, hl₂⟩, hv⟩, _⟩, },
-  iterate 2 { simp at hl₁ hl₂, simpa [externSparseVec, BoundedStreamGen.valid_at, hl₁, hl₂] using hv, },
+  iterate 2 { simp at hl₁ hl₂, simpa [externSparseVec, hl₁, hl₂] using hv, },
   apply preserves.and;
   apply preserves.is_length;
   simp [externSparseVec, has_add.add, fin.forall_fin_two],
 end
-
-#check λ (scratch : NameSpace) (ctx), (Evalable.eval ctx (externSparseVec scratch)).get ⟨_, externSparseVec_is_defined _⟩
-
--- lemma externSparseVec_tr (scratch : NameSpace) :
-
 
 end sparse_vectors
 
