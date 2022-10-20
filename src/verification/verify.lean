@@ -389,6 +389,9 @@ instance eval_expr_nn : Evalable (Expr nn) ℕ :=
 { eval := λ ctx e, e.eval ctx }
 
 @[simps]
+instance eval_expr_nn' : Evalable (Expr nn) (ExprVal nn) := eval_expr_nn
+
+@[simps]
 instance eval_expr_rr : Evalable (Expr rr) R :=
 { eval := λ ctx e, e.eval ctx }
 
@@ -529,20 +532,6 @@ begin
   { rw (h ctx).hcurr (by rwa [(h ctx).inv_valid_at_iff hctx]) h₁, },
   -- Show that value = value
   { rw (h ctx).hval (by simp [(h ctx).ready_at_iff hctx, h₁, h₂]) h₂, },
-
-  -- Old code:
-  -- simp [StreamExec.eval₀, StreamExec.valid, StreamExec.ready],
-  -- have := (h ctx).hinit hctx, simp at this,
-  -- obtain ⟨cinit, hc₁, hc₂⟩ := this,
-  -- change t.stream.valid t.state at h₂,
-  -- have : s.ctx_inv cinit := sorry, -- TODO: Initialize preserves ctx_inv
-  -- simp [hc₁, (h cinit).ready_at_iff this, hc₂, h₂],
-  -- split_ifs with h₃, swap, { /- If both are not ready -/ refl, },
-  -- congr' 1; rw part.get_eq_iff_eq_some,
-  -- -- Show that index = index
-  -- { rw (h cinit).hcurr (by rwa [(h cinit).inv_valid_at_iff this, hc₂]) (by rwa hc₂), simp [hc₂], },
-  -- -- Show that value = value
-  -- { rw (h cinit).hval (by simp [(h cinit).ready_at_iff this, hc₂, h₂, h₃]) (by rwa hc₂), simp [hc₂], },
 end
 
 lemma tr_to.eval_steps_eq (hctx : s.ctx_inv ctx) (n : ℕ) : (s.to_stream_of_is_defined_aux (λ c, (h c).is_def)).eval_steps n ctx = 
@@ -629,17 +618,21 @@ ls.find_indexes (≠0)
 def list_to_sparse_vals [decidable_eq R] (ls : list R) : list R :=
 ls.filter (≠0)
 
+lemma externSparseVec_has_tr (scratch : NameSpace) (c : EContext) :
+  tr_to (externSparseVec scratch) (primitives.externSparseVec 
+    (c.heap.get (NameSpace.reserved∷Vars.ind₀ : Ident nn))
+    (c.heap.get (NameSpace.reserved∷Vars.vals : Ident rr))) (λ ctx, ctx.store.get (scratch∷Vars.i : Ident nn)) c :=
+{ hvalid := by { simp [externSparseVec, primitives.externSparseVec], intros a b, simp [a], },
+  hready := by { simp [externSparseVec, primitives.externSparseVec, BoundedStreamGen.inv_valid_at], intros a b, simp [b], },
+  hnext := λ _ _, by { simp [externSparseVec, primitives.externSparseVec, Prog.eval], },
+  hinit := λ _, by { simp [externSparseVec, primitives.externSparseVec, Prog.eval], },
+  hcurr := λ _ _, by { simp [externSparseVec, primitives.externSparseVec, list.some_nth_le_eq], },
+  hval := λ _ _, by { simp [externSparseVec, primitives.externSparseVec, list.some_nth_le_eq], },
+  hstep := by { apply preserves.and; apply preserves.is_length; simp [externSparseVec, has_add.add, fin.forall_fin_two], },
+  hbound := sorry /- TODO: Add `ctx_inv` hyptohesis to hbound -/ }
+
 lemma externSparseVec_is_defined (scratch : NameSpace) (c : EContext) :
-  is_defined (externSparseVec scratch) c :=
-begin
-  split,
-  iterate 4 { simp [externSparseVec], }, -- hvalid to hinit
-  focus { rintros ⟨⟨hl₁, hl₂⟩, hv⟩, }, swap, focus { rintros ⟨⟨⟨hl₁, hl₂⟩, hv⟩, _⟩, },
-  iterate 2 { simp at hl₁ hl₂, simpa [externSparseVec, hl₁, hl₂] using hv, },
-  apply preserves.and;
-  apply preserves.is_length;
-  simp [externSparseVec, has_add.add, fin.forall_fin_two],
-end
+  is_defined (externSparseVec scratch) c := (externSparseVec_has_tr scratch c).is_def
 
 end sparse_vectors
 

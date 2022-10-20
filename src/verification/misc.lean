@@ -56,12 +56,20 @@ by { dsimp only [option.guard_prop], split_ifs; simpa }
 @[simp] lemma option.coe_part_dom {α} (x : option α) :
   (x : part α).dom ↔ x.is_some := by cases x; simp
 
+@[simp] lemma option.coe_part_eq_some {α} (x : option α) (y : α) :
+  (x : part α) = part.some y ↔ x = some y :=
+by simp [part.eq_some_iff]
+
 @[simp] lemma list.nth_is_some_iff {α} {x : list α} {n : ℕ} :
   (x.nth n).is_some ↔ n < x.length :=
 by { rw ← not_iff_not, simp [option.is_none_iff_eq_none], }
 
 @[simp] lemma option.map_is_some' {α β} (x : option α) (f : α → β) :
   (x.map f).is_some = x.is_some := by cases x; simp
+
+/-- This lemma is in updated version of mathlib -/
+lemma list.some_nth_le_eq {α} {l : list α} {n : ℕ} {h} : some (l.nth_le n h) = l.nth n :=
+by { symmetry, rw list.nth_eq_some, exact ⟨_, rfl⟩, }
 
 
 variables {ι α : Type}

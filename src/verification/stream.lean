@@ -171,7 +171,18 @@ by simp [contract_stream]
 
 end defs
 
-section primitives
+namespace primitives
+
+def externSparseVec {ι β : Type*} (inds : list ι) (vals : list β) :
+  StreamExec ℕ ι β :=
+{ stream := 
+  { valid := λ i, i < inds.length,
+    ready := λ i, i < vals.length,
+    next := λ i _, i + 1,
+    index := λ i hi, inds.nth_le i hi,
+    value := λ i hi, vals.nth_le i hi },
+  state := 0,
+  bound := inds.length }
 
 def range (n : ℕ) : Stream ℕ ℕ ℕ :=
 { next  := λ k _, k+1,
