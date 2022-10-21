@@ -125,7 +125,6 @@ def StreamExec.bound_valid (s : StreamExec σ ι α) : Prop := s.bound_valid_aux
   s.bound_valid_aux (n + 1) ↔ (∀ (h : s.valid), (s.δ h).bound_valid_aux n) :=
 ⟨λ h, by { cases h, { intro, contradiction, }, intro, assumption, }, λ h, if H : s.valid then next_bound_valid H (h H) else invalid _ H⟩
 
-@[simp]
 def StreamExec.eval [add_zero_class α] (s : StreamExec σ ι α) : ι →₀ α :=
 s.stream.eval_steps s.bound s.state
 
@@ -162,7 +161,7 @@ default <$₁> s
 
 @[simp] lemma contract_stream_spec [add_comm_monoid α] (s : StreamExec σ ι α) :
   (contract_stream s).eval () = finsupp.sum_range s.eval :=
-by simp [finsupp.sum_range, contract_stream]
+by simp [finsupp.sum_range, contract_stream, StreamExec.eval]
 
 @[simp] lemma contract_stream_bound_valid_iff (s : StreamExec σ ι α) :
   (contract_stream s).bound_valid ↔ s.bound_valid :=
@@ -183,6 +182,10 @@ def externSparseVec {ι β : Type*} (inds : list ι) (vals : list β) :
     value := λ i hi, vals.nth_le i hi },
   state := 0,
   bound := inds.length }
+
+lemma externSparseVec.spec [add_comm_monoid α] (inds : list ι) (vals : list α) :
+  (externSparseVec inds vals).eval = (list.map₂ (λ i x, finsupp.single i x) inds vals).sum :=
+sorry
 
 def range (n : ℕ) : Stream ℕ ℕ ℕ :=
 { next  := λ k _, k+1,
