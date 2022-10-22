@@ -60,6 +60,8 @@ by { intro x, use ⟨x, default⟩, }
 by simpa [set.surjective_iff_surj_on_univ, set.surj_on, set.univ_subset_iff] using Ident_ns_surjective
 
 infix `∷`:9000 := Ident.mk
+infix `∷ₙ`:9000 := @Ident.mk Types.nn
+infix `∷ᵣ`:9000 := @Ident.mk Types.rr
 
 end Ident
 
