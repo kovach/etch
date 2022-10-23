@@ -186,7 +186,7 @@ def externSparseVec (inds : list ι) (vals : list α) :
   bound := inds.length }
 
 @[simp] lemma externSparseVec.spec [add_comm_monoid α] (inds : list ι) (vals : list α) :
-  (externSparseVec inds vals).eval = (list.map₂ finsupp.single inds vals).sum :=
+  (externSparseVec inds vals).eval = (list.zip_with finsupp.single inds vals).sum :=
 sorry
 
 def range (n : ℕ) : Stream ℕ ℕ ℕ :=

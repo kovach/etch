@@ -673,7 +673,7 @@ lemma externSparseVec_is_defined_at (scratch : NameSpace) (c : EContext) (hc : (
 lemma externSparseVec_spec (scratch : NameSpace) (c : EContext)
   (hc : (externSparseVec scratch).ctx_inv c) :
   ∃ c' : StreamExec EContext ℕ R, c' ∈ Evalable.eval c (externSparseVec scratch) ∧ 
-  c'.eval = (list.map₂ finsupp.single (c.heap.get reserved∷ₙind₀) (c.heap.get reserved∷ᵣvals)).sum :=
+  c'.eval = (list.zip_with finsupp.single (c.heap.get reserved∷ₙind₀) (c.heap.get reserved∷ᵣvals)).sum :=
 begin
   obtain ⟨c', hc₁, hc₂⟩ := (externSparseVec_has_tr scratch c hc).eval_finsupp_eq',
   exact ⟨c', hc₁, by simp [hc₂]⟩,
@@ -713,6 +713,12 @@ lemma sum_vec_spec (scratch : NameSpace) (ctx : EContext) (hctx : (externSparseV
   s.eval () = (ctx.heap.get (NameSpace.reserved∷Vars.vals : Ident rr)).sum :=
 begin
   apply contract_spec' _ hctx,
+  simp,
+  obtain ⟨c, hc₁, hc₂⟩ := externSparseVec_spec scratch _ hctx, refine ⟨c, hc₁, _⟩, rw hc₂,
+  -- TODO: Up to here should be automated
+  have : (ctx.heap.get reserved∷ₙind₀).length = (ctx.heap.get reserved∷ᵣvals).length,
+  { simp [externSparseVec] at hctx, rw [hctx.1, hctx.2], },
+  simp [← list.sum_hom, list.map_zip_with], rw list.zip_with_snd this.symm.le,
 end
 
 end examples

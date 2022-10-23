@@ -71,6 +71,14 @@ by { rw ← not_iff_not, simp [option.is_none_iff_eq_none], }
 lemma list.some_nth_le_eq {α} {l : list α} {n : ℕ} {h} : some (l.nth_le n h) = l.nth n :=
 by { symmetry, rw list.nth_eq_some, exact ⟨_, rfl⟩, }
 
+lemma list.zip_with_fst {α β} {l₁ : list α} {l₂ : list β} (hl : l₁.length ≤ l₂.length) :
+  list.zip_with (λ a b, a) l₁ l₂ = l₁ :=
+by { erw [← list.map_uncurry_zip_eq_zip_with, list.map_fst_zip], exact hl, }
+
+lemma list.zip_with_snd {α β} {l₁ : list α} {l₂ : list β} (hl : l₂.length ≤ l₁.length) :
+  list.zip_with (λ a b, b) l₁ l₂ = l₂ :=
+by { erw [← list.map_uncurry_zip_eq_zip_with, list.map_snd_zip], exact hl, }
+
 
 variables {ι α : Type}
 
