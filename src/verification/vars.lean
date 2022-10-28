@@ -170,6 +170,18 @@ def iterate_while {α : Type*} (f : α → option α) (cond : α → option bool
 | 0 x := none
 | (n+1) x := (cond x).bind (λ b, if b then (f x).bind (iterate_while n) else some x)
 
+theorem iterate_while_eq_of_invariant {α : Type*} (inv : α → ℕ → Prop)
+  (f : α → option α) (cond : α → option bool) (n : ℕ) (x : α)
+  (hcond : ∀ x i, inv x i → (cond x).is_some)
+  (h₀ : inv x 0) (hind : ∀ x i, cond x = some tt → inv x i → ∃ x' ∈ f x, inv x' (i + 1))
+  (hₜ : ∀ {x}, inv x n → cond x = some ff) :
+  ∃ r ∈ iterate_while f cond (n + 1) x, inv r n :=
+begin
+  induction n with n ih generalizing x,
+  { simpa [hₜ h₀], },
+  simp,
+end
+
 end iterate
 
 theorem imp_iff_distrib {a b c : Prop} : ((a → b) ↔ (a → c)) ↔ (a → (b ↔ c)) :=

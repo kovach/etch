@@ -109,21 +109,21 @@ noncomputable def Stream.eval_steps [add_zero_class α] (s : Stream σ ι α) :
 | 0 _ := 0
 | (n + 1) σ₀ := if h₁ : s.valid σ₀ then (Stream.eval_steps n (s.next σ₀ h₁)) + (s.eval₀ _ h₁) else 0
 
-inductive StreamExec.bound_valid_aux : ℕ → StreamExec σ ι α → Prop
-| invalid (n : ℕ) {s : StreamExec σ ι α} : ¬s.valid → StreamExec.bound_valid_aux n s
-| next_bound_valid {n : ℕ} {s : StreamExec σ ι α} : ∀ (h : s.valid), StreamExec.bound_valid_aux n (s.δ h) → StreamExec.bound_valid_aux (n + 1) s
+inductive Stream.bound_valid_aux : ℕ → σ → Stream σ ι α → Prop
+| start (n : ℕ) {σ₀ : σ} {s : Stream σ ι α} : ¬s.valid σ₀ → Stream.bound_valid_aux n σ₀ s
+| step {n : ℕ} {σ₀ : σ} {s : Stream σ ι α} : ∀ (h : s.valid σ₀), Stream.bound_valid_aux n (s.next σ₀ h) s → Stream.bound_valid_aux (n + 1) σ₀ s
 
-open StreamExec.bound_valid_aux (invalid next_bound_valid)
+open Stream.bound_valid_aux (start step)
 
-def StreamExec.bound_valid (s : StreamExec σ ι α) : Prop := s.bound_valid_aux s.bound
+def StreamExec.bound_valid (s : StreamExec σ ι α) : Prop := s.stream.bound_valid_aux s.bound s.state
 
-@[simp] lemma StreamExec.bound_valid_zero {s : StreamExec σ ι α} :
-  s.bound_valid_aux 0 ↔ ¬s.valid :=
-⟨λ h, by { cases h, assumption, }, λ h, invalid _ h⟩
+@[simp] lemma StreamExec.bound_valid_zero {s : Stream σ ι α} {σ₀ : σ} :
+  s.bound_valid_aux 0 σ₀ ↔ ¬s.valid σ₀ :=
+⟨λ h, by { cases h, assumption, }, λ h, start _ h⟩
 
-@[simp] lemma StreamExec.bound_valid_succ {s : StreamExec σ ι α} {n : ℕ} :
-  s.bound_valid_aux (n + 1) ↔ (∀ (h : s.valid), (s.δ h).bound_valid_aux n) :=
-⟨λ h, by { cases h, { intro, contradiction, }, intro, assumption, }, λ h, if H : s.valid then next_bound_valid H (h H) else invalid _ H⟩
+@[simp] lemma StreamExec.bound_valid_succ {s : Stream σ ι α} {n : ℕ} {σ₀ : σ} :
+  s.bound_valid_aux (n + 1) σ₀ ↔ (∀ (h : s.valid σ₀), s.bound_valid_aux n (s.next σ₀ h)) :=
+⟨λ h, by { cases h, { intro, contradiction, }, intro, assumption, }, λ h, if H : s.valid σ₀ then step H (h H) else start _ H⟩
 
 def StreamExec.eval [add_zero_class α] (s : StreamExec σ ι α) : ι →₀ α :=
 s.stream.eval_steps s.bound s.state
@@ -154,14 +154,14 @@ end
 
 @[simp] lemma bimap_bound_valid_iff (f : ι → ι') (g : α → β) (s : StreamExec σ ι α) :
   (bimap f g s).bound_valid ↔ s.bound_valid :=
-by { simp [StreamExec.bound_valid], induction s.bound with n ih generalizing s; simp [*], refl, }
+by { simp [StreamExec.bound_valid], generalize : s.state = σ₀, induction s.bound with n ih generalizing σ₀; simp [*], refl, }
 
 def contract_stream (s : StreamExec σ ι α) : StreamExec σ unit α :=
 default <$₁> s
 
 @[simp] lemma contract_stream_spec [add_comm_monoid α] (s : StreamExec σ ι α) :
-  (contract_stream s).eval () = finsupp.sum_range s.eval :=
-by simp [finsupp.sum_range, contract_stream, StreamExec.eval]
+  (contract_stream s).eval = finsupp.single () (finsupp.sum_range s.eval) :=
+by ext; simp [finsupp.sum_range, contract_stream, StreamExec.eval]
 
 @[simp] lemma contract_stream_bound_valid_iff (s : StreamExec σ ι α) :
   (contract_stream s).bound_valid ↔ s.bound_valid :=

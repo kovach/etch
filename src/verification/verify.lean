@@ -19,7 +19,7 @@ section
 parameters (R : Type)
 open Types (nn rr bb)
 open NameSpace (reserved)
-open Vars (ind₀ vals len)
+open Vars (ind₀ vals len output)
 
 section compiler
 
@@ -386,19 +386,21 @@ local notation a ` ::= `:20 c := Prog.store a c
 local notation a ` ⟬ `:9000 i ` ⟭ ` ` ::= `:20 c := Prog.store_arr a i c
 local notation x ` ⟬ `:9000 i ` ⟭ ` := Expr.access x i
 
-class Evalable (α : Type) (β : out_param Type) :=
-(eval : EContext → α →. /- partial function -/ β)
+class TRAble (α : Type) (β : out_param Type) :=
+(tr : EContext → α →. /- partial function -/ β)
+
+open TRAble (tr)
 
 @[simps]
-instance eval_expr_nn : Evalable (Expr nn) ℕ :=
-{ eval := λ ctx e, e.eval ctx }
+instance tr_expr_nn : TRAble (Expr nn) ℕ :=
+{ tr := λ ctx e, e.eval ctx }
 
 @[simps]
-instance eval_expr_nn' : Evalable (Expr nn) (ExprVal nn) := eval_expr_nn
+instance tr_expr_nn' : TRAble (Expr nn) (ExprVal nn) := tr_expr_nn
 
 @[simps]
-instance eval_expr_rr : Evalable (Expr rr) R :=
-{ eval := λ ctx e, e.eval ctx }
+instance tr_expr_rr : TRAble (Expr rr) R :=
+{ tr := λ ctx e, e.eval ctx }
 
 section stream
 
@@ -459,21 +461,21 @@ lemma preserves.is_length {b : Types} (v : Ident b) (e : Ident nn)  (h : (sigma.
 
 end preserves
 
-structure is_defined [Evalable ι ι'] [Evalable α β] (s : BoundedStreamGen ι α) (ctx : EContext) : Prop :=
+structure is_defined [TRAble ι ι'] [TRAble α β] (s : BoundedStreamGen ι α) (ctx : EContext) : Prop :=
 (hvalid : s.ctx_inv ctx → (s.valid.eval ctx).is_some)
 (hready : s.inv_valid_at ctx → (s.ready.eval ctx).is_some)
 (hnext : s.inv_valid_at ctx → (s.next.eval ctx).is_some)
-(hcurr : s.inv_valid_at ctx → (Evalable.eval ctx s.current).dom)
-(hval : s.ready_at ctx → (Evalable.eval ctx s.value).dom)
+(hcurr : s.inv_valid_at ctx → (tr ctx s.current).dom)
+(hval : s.ready_at ctx → (tr ctx s.value).dom)
 (hstep : preserves s ctx s.ctx_inv)
 
-structure is_defined_at [Evalable ι ι'] [Evalable α β] (s : BoundedStreamGen ι α) (ctx : EContext) : Prop :=
+structure is_defined_at [TRAble ι ι'] [TRAble α β] (s : BoundedStreamGen ι α) (ctx : EContext) : Prop :=
 (to_is_def : ∀ c, is_defined s c)
 (inv : s.ctx_inv ctx)
 (hinit : (s.initialize.eval ctx).is_some)
 
 @[simps]
-def BoundedStreamGen.to_stream_of_is_defined_aux  [Evalable ι ι'] [Evalable α β] (s : BoundedStreamGen ι α)
+def BoundedStreamGen.to_stream_of_is_defined_aux  [TRAble ι ι'] [TRAble α β] (s : BoundedStreamGen ι α)
   (hs : ∀ ctx, is_defined s ctx) : Stream EContext ι' β :=
 { valid := s.inv_valid_at,
   ready := s.ready_at,
@@ -482,38 +484,38 @@ def BoundedStreamGen.to_stream_of_is_defined_aux  [Evalable ι ι'] [Evalable α
   value := λ ctx h, part.get _ ((hs ctx).hval h) }
 
 @[simps]
-def BoundedStreamGen.to_stream_of_is_defined [Evalable ι ι'] [Evalable α β] (s : BoundedStreamGen ι α)
+def BoundedStreamGen.to_stream_of_is_defined [TRAble ι ι'] [TRAble α β] (s : BoundedStreamGen ι α)
    (ctx₀ : EContext) (hs : is_defined_at s ctx₀) : StreamExec EContext ι' β :=
 { stream := s.to_stream_of_is_defined_aux hs.to_is_def,
   bound := s.bound ctx₀,
   state := option.get hs.hinit }
 
-instance eval_stream [Evalable ι ι'] [Evalable α β] : Evalable (BoundedStreamGen ι α) (StreamExec EContext ι' β) :=
-{ eval := λ ctx s, ⟨_, s.to_stream_of_is_defined ctx⟩ }
+instance eval_stream [TRAble ι ι'] [TRAble α β] : TRAble (BoundedStreamGen ι α) (StreamExec EContext ι' β) :=
+{ tr := λ ctx s, ⟨_, s.to_stream_of_is_defined ctx⟩ }
 
-@[simp] lemma eval_stream_is_some_iff [Evalable ι ι'] [Evalable α β] (s : BoundedStreamGen ι α) {c₀} :
-  (Evalable.eval c₀ s).dom ↔ is_defined_at s c₀ := iff.rfl
+@[simp] lemma eval_stream_is_some_iff [TRAble ι ι'] [TRAble α β] (s : BoundedStreamGen ι α) {c₀} :
+  (tr c₀ s).dom ↔ is_defined_at s c₀ := iff.rfl
 
 section translate
 open_locale classical
 
-structure tr_to_stream {σ'} [Evalable ι ι'] [Evalable α β] (s : BoundedStreamGen ι α)
+structure tr_to_stream {σ'} [TRAble ι ι'] [TRAble α β] (s : BoundedStreamGen ι α)
   (t : Stream σ' ι' β) (f : EContext → σ') (ctx : EContext) : Prop :=
 (hvalid : s.ctx_inv ctx → s.valid.eval ctx = some (t.valid (f ctx)))
 (hready : s.inv_valid_at ctx → s.ready.eval ctx = some (t.ready (f ctx)))
 (hnext : s.inv_valid_at ctx → ∀ h, (f <$> s.next.eval ctx) = some (t.next (f ctx) h))
-(hcurr : s.inv_valid_at ctx → ∀ h, Evalable.eval ctx s.current = part.some (t.index (f ctx) h))
-(hval : s.ready_at ctx → ∀ h, Evalable.eval ctx s.value = part.some (t.value (f ctx) h))
+(hcurr : s.inv_valid_at ctx → ∀ h, tr ctx s.current = part.some (t.index (f ctx) h))
+(hval : s.ready_at ctx → ∀ h, tr ctx s.value = part.some (t.value (f ctx) h))
 (hstep : preserves s ctx s.ctx_inv)
 
-structure tr_to {σ'} [Evalable ι ι'] [Evalable α β] (s : BoundedStreamGen ι α)
+structure tr_to {σ'} [TRAble ι ι'] [TRAble α β] (s : BoundedStreamGen ι α)
   (t : StreamExec σ' ι' β) (f : EContext → σ') (ctx : EContext) : Prop :=
 (to_stream : ∀ c, tr_to_stream s t.stream f c)
 (inv : s.ctx_inv ctx)
 (hinit : (f <$> s.initialize.eval ctx) = some t.state)
 (hbound : s.bound ctx = t.bound)
 
-lemma tr_to_stream.is_def {σ'} [Evalable ι ι'] [Evalable α β] {s : BoundedStreamGen ι α}
+lemma tr_to_stream.is_def {σ'} [TRAble ι ι'] [TRAble α β] {s : BoundedStreamGen ι α}
   {t : Stream σ' ι' β} {f : EContext → σ'} {c : EContext} (h : tr_to_stream s t f c) :
   is_defined s c :=
 { hvalid := λ H, by simp [h.hvalid H],
@@ -523,14 +525,14 @@ lemma tr_to_stream.is_def {σ'} [Evalable ι ι'] [Evalable α β] {s : BoundedS
   hval := λ H, by { rw h.hval H (by simpa [H.2] using h.hready H.1), trivial, },
   hstep := h.hstep }
 
-lemma tr_to.is_def_at {σ'} [Evalable ι ι'] [Evalable α β] {s : BoundedStreamGen ι α}
+lemma tr_to.is_def_at {σ'} [TRAble ι ι'] [TRAble α β] {s : BoundedStreamGen ι α}
   {t : StreamExec σ' ι' β} {f : EContext → σ'} {c : EContext} (h : tr_to s t f c) :
   is_defined_at s c :=
 { to_is_def := λ c, (h.to_stream c).is_def,
   inv := h.inv,
   hinit := by simpa using congr_arg option.is_some h.hinit }
 
-variables {σ' : Type} [Evalable ι ι'] [Evalable α β] {s : BoundedStreamGen ι α}
+variables {σ' : Type} [TRAble ι ι'] [TRAble α β] {s : BoundedStreamGen ι α}
   {t : Stream σ' ι' β} {f : EContext → σ'} {ctx : EContext}
 
 lemma tr_to_stream.inv_valid_at_iff (h : tr_to_stream s t f ctx) (hctx : s.ctx_inv ctx) : s.inv_valid_at ctx ↔ t.valid (f ctx) :=
@@ -569,22 +571,22 @@ begin
 end
 
 lemma tr_to.eval_finsupp_eq {t : StreamExec σ' ι' β} (h : tr_to s t f ctx) :
-  ((Evalable.eval ctx s).get h.is_def_at).eval = t.eval :=
+  ((tr ctx s).get h.is_def_at).eval = t.eval :=
 begin
   have := h.hinit, simp at this,
   obtain ⟨cinit, hc₁, hc₂⟩ := this, 
   have : s.ctx_inv cinit := sorry, -- TODO: Initialize preserves ctx_inv
-  simp [StreamExec.eval, Evalable.eval, h.hbound, hc₁, hc₂, tr_to_stream.eval_steps_eq h.to_stream this],
+  simp [StreamExec.eval, tr, h.hbound, hc₁, hc₂, tr_to_stream.eval_steps_eq h.to_stream this],
 end
 
 lemma tr_to.eval_finsupp_eq' {t : StreamExec σ' ι' β} (h : tr_to s t f ctx) :
-  ∃ s' : StreamExec _ _ _, s' ∈ Evalable.eval ctx s ∧ s'.eval = t.eval :=
-⟨(Evalable.eval ctx s).get h.is_def_at, part.get_mem _, h.eval_finsupp_eq⟩
+  ∃ s' : StreamExec _ _ _, s' ∈ tr ctx s ∧ s'.eval = t.eval :=
+⟨(tr ctx s).get h.is_def_at, part.get_mem _, h.eval_finsupp_eq⟩
 
 end translate
 
-instance eval_unit : Evalable unit unit := ⟨λ _, part.some⟩
-@[simp] lemma eval_unit_dom (c) : (Evalable.eval c ()).dom := trivial
+instance eval_unit : TRAble unit unit := ⟨λ _, part.some⟩
+@[simp] lemma eval_unit_dom (c) : (tr c ()).dom := trivial
 
 def singleton (x : α) : BoundedStreamGen unit α := sorry
 
@@ -610,34 +612,34 @@ def contract (x : BoundedStreamGen ι α) : BoundedStreamGen unit α :=
 default <$₁> x
 
 section functor_is_defined
-variables {ι₁ ι₁' ι₂ ι₂' α' β' : Type} [Evalable ι₁ ι₂] [Evalable α β]
+variables {ι₁ ι₁' ι₂ ι₂' α' β' : Type} [TRAble ι₁ ι₂] [TRAble α β]
   {x : BoundedStreamGen ι₁ α} {c : EContext} (hx : is_defined x c)
   (f : ι₁ → ι₁') (g : α → α')
 include hx
 
-@[simp] lemma bimap_is_defined [Evalable ι₁' ι₂'] [Evalable α' β'] :
-  is_defined (bifunctor.bimap f g x) c ↔ ((x.inv_valid_at c → (Evalable.eval c (f x.current)).dom) ∧ (x.ready_at c → (Evalable.eval c (g x.value)).dom)) :=
+@[simp] lemma bimap_is_defined [TRAble ι₁' ι₂'] [TRAble α' β'] :
+  is_defined (bifunctor.bimap f g x) c ↔ ((x.inv_valid_at c → (tr c (f x.current)).dom) ∧ (x.ready_at c → (tr c (g x.value)).dom)) :=
 ⟨λ ⟨hv, hr, hn, hc, hl, hs⟩, ⟨hc, hl⟩, λ ⟨H₁, H₂⟩, ⟨hx.hvalid, hx.hready, hx.hnext, H₁, H₂, hx.hstep⟩⟩
 
-@[simp] lemma imap_is_defined [Evalable ι₁' ι₂'] :
-  is_defined (f <$₁> x) c ↔ (x.inv_valid_at c → (Evalable.eval c (f x.current)).dom) :=
+@[simp] lemma imap_is_defined [TRAble ι₁' ι₂'] :
+  is_defined (f <$₁> x) c ↔ (x.inv_valid_at c → (tr c (f x.current)).dom) :=
 by { rw bimap_is_defined hx, have := hx.hval, simp [imp_iff_distrib], tauto, }
 
-@[simp] lemma vmap_is_defined [Evalable α' β'] :
-  is_defined (g <$₂> x) c ↔ (x.ready_at c → (Evalable.eval c (g x.value)).dom) :=
+@[simp] lemma vmap_is_defined [TRAble α' β'] :
+  is_defined (g <$₂> x) c ↔ (x.ready_at c → (tr c (g x.value)).dom) :=
 by { rw bimap_is_defined hx, have := hx.hcurr, simp [imp_iff_distrib], tauto, }
 
 end functor_is_defined
 
-lemma contract_spec [Evalable ι ι'] [Evalable α β] (x : BoundedStreamGen ι α)
+lemma contract_spec [TRAble ι ι'] [TRAble α β] (x : BoundedStreamGen ι α)
   (ctx : EContext) (h : is_defined_at x ctx) :
-  Evalable.eval ctx (contract x) = part.some (contract_stream ((Evalable.eval ctx x).get h)) :=
+  tr ctx (contract x) = part.some (contract_stream ((tr ctx x).get h)) :=
 by { rw ← part.get_eq_iff_eq_some, swap, { refine ⟨_, h.inv, h.hinit⟩, simp [contract, h.to_is_def], }, refl, }
 
-lemma contract_spec' [Evalable ι ι'] [Evalable α β] {ctx : EContext} (x : BoundedStreamGen ι α) 
+lemma contract_spec' [TRAble ι ι'] [TRAble α β] {ctx : EContext} (x : BoundedStreamGen ι α) 
   (hctx : x.ctx_inv ctx) (motive : StreamExec EContext unit β → Prop)
-  (hyp : ∃ c, c ∈ Evalable.eval ctx x ∧ motive (contract_stream c)) :
-  ∃ c, c ∈ Evalable.eval ctx (contract x) ∧ motive c :=
+  (hyp : ∃ c, c ∈ tr ctx x ∧ motive (contract_stream c)) :
+  ∃ c, c ∈ tr ctx (contract x) ∧ motive c :=
 begin
   rcases hyp with ⟨c, hc₁, hc₂⟩,
   refine ⟨_, _, hc₂⟩,
@@ -672,7 +674,7 @@ lemma externSparseVec_is_defined_at (scratch : NameSpace) (c : EContext) (hc : (
 
 lemma externSparseVec_spec (scratch : NameSpace) (c : EContext)
   (hc : (externSparseVec scratch).ctx_inv c) :
-  ∃ c' : StreamExec EContext ℕ R, c' ∈ Evalable.eval c (externSparseVec scratch) ∧ 
+  ∃ c' : StreamExec EContext ℕ R, c' ∈ tr c (externSparseVec scratch) ∧ 
   c'.eval = (list.zip_with finsupp.single (c.heap.get reserved∷ₙind₀) (c.heap.get reserved∷ᵣvals)).sum :=
 begin
   obtain ⟨c', hc₁, hc₂⟩ := (externSparseVec_has_tr scratch c hc).eval_finsupp_eq',
@@ -682,35 +684,62 @@ end
 end sparse_vectors
 
 def compile_scalar (x : BoundedStreamGen unit (Expr rr)) : Prog :=
-let out : Ident rr := NameSpace.reserved∷Vars.output in
+let out : Ident rr := reserved∷output in
+out ::= 0 <;>
 x.initialize <;>
 Prog.loop x.bound x.valid $
-  Prog.branch x.ready (out ::= out + x.value) Prog.skip <;>
+  Prog.branch x.ready 
+    (out ::= out + x.value) 
+    Prog.skip <;>
   x.next
+
+
+section compile_sound
+
+def BoundedStreamGen.body (x : BoundedStreamGen unit (Expr rr)) : Prog :=
+Prog.branch x.ready (reserved∷ᵣoutput ::= reserved∷ᵣoutput + x.value) Prog.skip <;> 
+x.next
+
+structure BoundedStreamGen.compile_invariant (x : BoundedStreamGen unit (Expr rr)) 
+  (s : Stream EContext unit R) (ctx₀ : EContext) (ctx : EContext) (i : ℕ) : Prop :=
+(hout : ctx.store.get reserved∷ᵣoutput = s.eval_steps i ctx₀ ())
+(hi : i ≤ x.bound ctx₀)
+(hleft : s.bound_valid_aux ((x.bound ctx₀) - i) ctx)
+
 
 lemma compile_scalar_sound (x : BoundedStreamGen unit (Expr rr)) (ctx : EContext)
   (h : is_defined_at x ctx) :
   ∃ (c' : EContext), 
     (compile_scalar x).eval ctx = some c' ∧
-    c'.store.get (NameSpace.reserved∷Vars.output : Ident rr) = ((Evalable.eval ctx x).get h).eval () :=
+    c'.store.get (NameSpace.reserved∷Vars.output : Ident rr) = ((tr ctx x).get h).eval () :=
 begin
   simp [compile_scalar, Prog.eval],
+  set ctx' := ctx.update reserved∷ᵣoutput 0,
+  obtain ⟨ci, hci⟩ := option.is_some_iff_exists.mp h.hinit, 
+  -- simp only [hci, exists_eq_left'],
+
   sorry,
 end
+
+
+
+end compile_sound
 
 end stream
 
 end compiler
 
 section examples
+open TRAble (tr)
+
 parameters [add_comm_monoid R] [has_one R] [has_mul R]
 
 def sum_vec (scratch : NameSpace) : BoundedStreamGen unit (Expr rr) :=
 contract (externSparseVec scratch)
 
 lemma sum_vec_spec (scratch : NameSpace) (ctx : EContext) (hctx : (externSparseVec scratch).ctx_inv ctx) :
-  ∃ (s : StreamExec EContext unit R), s ∈ Evalable.eval ctx (sum_vec scratch) ∧
-  s.eval () = (ctx.heap.get (NameSpace.reserved∷Vars.vals : Ident rr)).sum :=
+  ∃ (s : StreamExec EContext unit R), s ∈ tr ctx (sum_vec scratch) ∧
+  s.eval = finsupp.single () (ctx.heap.get (NameSpace.reserved∷Vars.vals : Ident rr)).sum :=
 begin
   apply contract_spec' _ hctx,
   simp,
@@ -725,7 +754,7 @@ end examples
 
 
 -- Final theorem will be something like:
--- ∀ (x : BoundedStreamGen ι α) [Evalable ι → ι'] [Evalable α → β] [FinsuppEval (StreamExec EContext ι' β)]
+-- ∀ (x : BoundedStreamGen ι α) [TRAble ι → ι'] [TRAble α → β] [FinsuppEval (StreamExec EContext ι' β)]
 --  (hind₁ : ι compiles correctly) (hind₂ : α compiles correctly) : BoundedStreamGen ι α compiles correctly
 
 
