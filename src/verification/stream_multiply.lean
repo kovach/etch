@@ -283,7 +283,7 @@ end
 
 instance hmul.is_simple
 (a : Stream σ₁ ι α) (b : Stream σ₂ ι α)
-(ha : a.is_simple) (hb : b.is_simple) : (a.mul b).is_simple :=
+[ha : a.is_simple] [hb : b.is_simple] : (a.mul b).is_simple :=
 { monotonic := begin
     intros r h,
     cases h with ha_valid hb_valid,
@@ -556,6 +556,41 @@ instance hmul.is_simple
     { apply @is_simple.reduced _ _ _ _ _ hb; simp [*] },
   end
 }
+
+#check primitives.range 2
+
+instance primitives.range.is_simple (n : ℕ) : (primitives.range n).is_simple := {
+  monotonic := begin
+    intros ctr h_valid,
+    simp only [StreamState.lag, StreamState.to_order_tuple, StreamState.now', prod_le_iff],
+    cases em (n ≤ ctr + 1),
+    { left,
+      simp only [primitives.range] at ⊢ h_valid,
+      simp only [bool.lt_iff],
+      split; simpa },
+    { right, split,
+      { simp only [primitives.range] at ⊢ h_valid,
+        simp [h_valid, lt_of_not_le h] },
+      { left, split_ifs,
+        { simp [with_top.coe_lt_coe, primitives.range] },
+        { apply with_top.coe_lt_top },
+        { contradiction },
+        { apply with_top.coe_lt_top } } }
+  end,
+
+  reduced := begin
+    intros s t hs ht ready_s ready_t eq,
+    cases ready_s,
+    cases ready_t,
+
+    simp only [primitives.range] at eq,
+    assumption
+  end,
+}
+
+example : (primitives.range 2).is_simple := by apply_instance
+example : ((primitives.range 2).mul (primitives.range 3)).is_simple := by apply_instance
+example : (((primitives.range 2).mul (primitives.range 3)).mul (primitives.range 4)).is_simple := by apply_instance
 
 variables
 (a_simple : a.is_simple)
