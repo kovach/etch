@@ -297,7 +297,7 @@ end
 
 lemma bool_not_iff (a b : bool) : !a = !b ↔ a = b := begin
   split,
-  { intro h, cases a; cases b, refl, contradiction, contradiction, refl },
+  { cases a; cases b; { intros _, refl } <|> simp },
   { intro h, rw h }
 end
 
@@ -307,167 +307,261 @@ instance hmul.is_simple
 { monotonic := begin
     intros r h,
     cases h with ha_valid hb_valid,
-    simp,
-    have a_mono := is_simple.monotonic ha_valid,
-    have b_mono := is_simple.monotonic hb_valid,
+    simp only [Stream.mul_next],
 
-    simp [StreamState.lag] at *,
+    simp only [StreamState.lag] at *,
 
     split_ifs with a_lags b_lags,
     { -- a lags b; we increase a
-      rw prod_le_iff at *,
-      simp [StreamState.to_order_tuple, StreamState.now', bool_not_iff] at *,
+      let r' := (a.next r.fst _, r.snd),
+      have a_mono := is_simple.monotonic ha_valid,
+      simp only [StreamState.lag, StreamState.to_order_tuple, StreamState.now', bool_not_iff] at ⊢ a_mono a_lags,
 
-      cases a_mono with valid_lt hh,
-      { -- a went from valid to invalid
-        simp [bool.lt_iff] at *,
-        left, simp [valid_lt], assumption },
-
-      cases hh with valid_eq hh,
-      have ha_valid_post := valid_eq.mp ha_valid,
-      rw prod_le_iff at hh,
-      right, rw prod_le_iff,
-      cases hh with idx_lt hh,
-      { -- a's index increased
-        simp [bool_not_iff] at *,
-        simp [ha_valid, hb_valid] at a_lags,
-        rw prod_le_iff at a_lags,
-        simp [valid_eq],
-        split_ifs at idx_lt,
-        split_ifs,
-        { simp,
-          rw with_top.coe_lt_coe at idx_lt,
-          cases a_lags,
-          { -- a's index < b's
-            simp at a_lags,
-            cases em (b.index r.snd _ < a.index (a.next r.fst _) _) with idx'_gt idx'_le,
-            { -- a's new index > b's
-              left, simp [idx_lt, idx'_gt]
-            },
-            { -- a's new index ≤ b's
-              right, simp at idx'_le,
-              simp [le_of_lt a_lags, idx_lt, idx'_le],
-              simp [bool.le_iff_imp],
-              -- Now prove that previously the stream could not have been ready
-              intro prev_mul_ready,
-              cases prev_mul_ready,
-              have := ne_of_lt a_lags,
-              contradiction
-            },
-            assumption' },
-          { -- a's ready lagged b's
-            cases a_lags with ab_idx_eq ab_ready_le,
-            simp [bool.le_iff_imp, with_top.coe_eq_coe] at ab_idx_eq ab_ready_le,
-            left,
-            simp [idx_lt, ←ab_idx_eq] } },
-        { simp at h_1, have := h_1 ha_valid_post, contradiction },
-        { simp at h, contradiction }
+      rw prod_le_iff at a_lags,
+      cases a_lags with ab_valid_lt a_lags,
+      { -- a is valid but b is invalid (impossible case)
+        revert ab_valid_lt,
+        simp only [bool.lt_iff, bool.of_to_bool_iff, to_bool_iff, and_imp],
+        intros _ hb_invalid, from absurd hb_valid hb_invalid
       },
 
+      rw prod_le_iff at a_mono,
+      cases a_mono with valid_lt hh,
+      { -- a went from valid to invalid
+        left, simpa only [hb_valid, Stream.mul_valid, and_true] using valid_lt
+      },
+
+      cases hh with valid_eq hh,
+      replace valid_eq : a.valid r.fst ↔ a.valid (a.next r.fst ha_valid) :=
+        by simpa only [bool_not_iff, bool.of_to_bool_iff, bool.to_bool_not, bool.to_bool_eq] using valid_eq,
+
+      have ha_valid_post : a.valid (a.next r.fst _) := valid_eq.mp ha_valid,
+
+      rw prod_le_iff at |- hh,
+      right, rw prod_le_iff,
+
+      split,
+      { -- Since a's validity did not change,
+        -- (a.mul b)'s validity must not change either.
+        simp only [bool.of_to_bool_iff, bool.to_bool_eq, not_iff_not],
+        show (a.mul b).valid r ↔ (a.mul b).valid r',
+          simp only [Stream.mul_valid],
+          split; rw and_imp; intros _ h; split; assumption'
+      },
+
+      cases hh with idx_lt hh,
+      { -- a's index increased
+        rw prod_le_iff at a_lags,
+        split_ifs at ⊢ idx_lt,
+        { -- a and b remain valid.
+          rw with_top.coe_eq_coe at ⊢,
+          rw with_top.coe_lt_coe at ⊢ idx_lt,
+          cases a_lags,
+          { -- a's index < b's
+            cases em (b.index r.snd _ < a.index (a.next r.fst _) _) with idx'_gt idx'_le,
+            { -- a's new index > b's
+              left,
+              show (a.mul b).index r _ < (a.mul b).index r' _,
+                simp only [Stream.mul_index, with_top.coe_lt_coe, max_lt_iff],
+                split; apply lt_max_iff.mpr; left; assumption
+            },
+            { -- a's new index ≤ b's
+              right,
+              simp only [not_lt] at idx'_le,
+              simp only [bool.le_iff_imp, bool.of_to_bool_iff],
+              split,
+
+              show (a.mul b).index r _ = (a.mul b).index r' _,
+                simp only [Stream.mul_index, with_top.coe_eq_coe],
+                rw max_eq_right idx'_le,
+                rw max_eq_right (has_le.le.trans (le_of_lt idx_lt) idx'_le),
+
+              show (a.mul b).ready r → (a.mul b).ready r',
+                suffices : ¬(a.mul b).ready r,
+                  intro h, from absurd h this,
+                simp only [Stream.mul_ready],
+                have : a.index r.fst _ < b.index r.snd _ :=
+                  has_lt.lt.trans_le idx_lt idx'_le,
+                intro h, from absurd h.index (ne_of_lt this),
+            }
+          }
+        },
+
+        -- Various impossible cases (either a or b is invalid).
+        all_goals {
+          { simp only [Stream.mul_index, Stream.mul_valid, not_and] at h_1,
+            from absurd hb_valid (h_1 ha_valid_post) }
+          <|>
+          { simp only [Stream.mul_index, Stream.mul_valid, not_and] at h,
+            from absurd hb_valid (h ha_valid) }
+          <|>
+          contradiction
+        }
+      },
+
+      right,
       cases hh with idx_eq ready_le,
       { -- a became ready or stayed the same
-        simp [StreamState.to_order_tuple, StreamState.now', bool_not_iff, bool.le_iff_imp] at *,
-        simp [valid_eq],
-        right,
-        split_ifs at idx_eq,
-        split_ifs,
-        { simp [idx_eq],
-          intro prev_mul_ready,
-          simp [with_top.coe_eq_coe] at idx_eq,
-          cases prev_mul_ready.ready with ha_ready hb_ready,
-          have ha_ready_post := ready_le ha_ready,
-          exact {
-            valid := and.intro ha_valid_post hb_valid,
-            ready := and.intro ha_ready_post hb_ready,
-            index := _,
-          },
-          have := prev_mul_ready.index,
-          simp,
-          transitivity, assumption',
-          symmetry, assumption },
-        { simp at h_1, have := h_1 ha_valid_post, contradiction },
-        { simp at h, contradiction }
+        simp only [bool_not_iff, bool.le_iff_imp, bool.of_to_bool_iff] at ⊢ idx_eq ready_le,
+        split_ifs at ⊢ idx_eq ready_le,
+        { -- a and b remain valid
+          rw with_top.coe_eq_coe at ⊢ idx_eq,
+          split,
+          show (a.mul b).index r _ = (a.mul b).index r' _,
+            simp only [Stream.mul_index, idx_eq],
+
+          show (a.mul b).ready r → (a.mul b).ready r',
+            simp only [Stream.mul_ready],
+            intro prev_mul_ready,
+            cases prev_mul_ready.ready with ha_ready hb_ready,
+            have ha_ready_post := ready_le ha_ready,
+            exact {
+              valid := and.intro ha_valid_post hb_valid,
+              ready := and.intro ha_ready_post hb_ready,
+              index := _,
+            },
+            have := prev_mul_ready.index,
+            transitivity; { symmetry, assumption } <|> assumption
+        },
+
+        -- Various impossible cases (either a or b is invalid).
+        all_goals {
+          { simp only [Stream.mul_index, Stream.mul_valid, not_and] at h_1,
+            from absurd hb_valid (h_1 ha_valid_post) }
+          <|>
+          { simp only [Stream.mul_index, Stream.mul_valid, not_and] at h,
+            from absurd hb_valid (h ha_valid) }
+          <|>
+          contradiction
+        }
       }
     },
 
     { -- b (strictly) lags a; we increase b
+      let r' := (r.fst, b.next r.snd _),
+      have b_mono := is_simple.monotonic hb_valid,
+      simp only [StreamState.lag, StreamState.to_order_tuple, StreamState.now', bool_not_iff] at ⊢ b_mono a_lags,
 
       -- Weaken the hypothesis from b < a to b ≤ a to reuse the proof for a ≤ b
-      simp at a_lags, have b_lags := le_of_lt a_lags, clear a_lags,
+      have b_lags := le_of_lt (not_le.mp a_lags), clear a_lags,
 
-      rw prod_le_iff at *,
-      simp [StreamState.to_order_tuple, StreamState.now', bool_not_iff] at *,
-
-      cases b_mono with valid_lt hh,
-      { -- b went from valid to invalid
-        simp [bool.lt_iff] at *,
-        left, simp [valid_lt], assumption },
-
-      cases hh with valid_eq hh,
-      have hb_valid_post := valid_eq.mp hb_valid,
-      rw prod_le_iff at hh,
-      right, rw prod_le_iff,
-      cases hh with idx_lt hh,
-      { -- b's index increased
-        simp [bool_not_iff] at *,
-        simp [ha_valid, hb_valid] at b_lags,
-        rw prod_le_iff at b_lags,
-        simp [valid_eq],
-        split_ifs at idx_lt,
-        split_ifs,
-        { simp,
-          rw with_top.coe_lt_coe at idx_lt,
-          cases b_lags,
-          { -- b's index < a's
-            simp at b_lags,
-            cases em (a.index r.fst _ < b.index (b.next r.snd _) _) with idx'_gt idx'_le,
-            { -- b's new index > a's
-              left, simp [idx_lt, idx'_gt]
-            },
-            { -- b's new index ≤ a's
-              right, simp at idx'_le,
-              simp [le_of_lt b_lags, idx_lt, idx'_le],
-              simp [bool.le_iff_imp],
-              -- Now prove that previously the stream could not have been ready
-              intro prev_mul_ready,
-              cases prev_mul_ready,
-              have := ne.symm (ne_of_lt b_lags),
-              contradiction
-            },
-            assumption'
-          },
-          { -- b's ready lagged a's
-            cases b_lags with ab_idx_eq ab_ready_le,
-            simp [bool.le_iff_imp, with_top.coe_eq_coe] at ab_idx_eq ab_ready_le,
-            left,
-            simp [idx_lt, ←ab_idx_eq] }
-        },
-        { simp at h_1, have := h_1 ha_valid, contradiction },
-        { simp at h, contradiction }
+      rw prod_le_iff at b_lags,
+      cases b_lags with ab_valid_lt b_lags,
+      { -- b is valid but a is invalid (impossible case)
+        revert ab_valid_lt,
+        simp only [bool.lt_iff, bool.of_to_bool_iff, to_bool_iff, and_imp],
+        intros _ ha_invalid, from absurd ha_valid ha_invalid
       },
 
+      rw prod_le_iff at b_mono,
+      cases b_mono with valid_lt hh,
+      { -- b went from valid to invalid
+        left, simpa only [ha_valid, Stream.mul_valid, true_and] using valid_lt
+      },
+
+      cases hh with valid_eq hh,
+      replace valid_eq : b.valid r.snd ↔ b.valid (b.next r.snd hb_valid) :=
+        by simpa only [bool_not_iff, bool.of_to_bool_iff, bool.to_bool_not, bool.to_bool_eq] using valid_eq,
+
+      have hb_valid_post : b.valid (b.next r.snd _) := valid_eq.mp hb_valid,
+
+      rw prod_le_iff at |- hh,
+      right, rw prod_le_iff,
+
+      split,
+      { -- Since b's validity did not change,
+        -- (a.mul b)'s validity must not change either.
+        simp only [bool.of_to_bool_iff, bool.to_bool_eq, not_iff_not],
+        show (a.mul b).valid r ↔ (a.mul b).valid r',
+          simp only [Stream.mul_valid],
+          split; rw and_imp; intros _ h; split; assumption'
+      },
+
+      cases hh with idx_lt hh,
+      { -- b's index increased
+        rw prod_le_iff at b_lags,
+        split_ifs at ⊢ idx_lt,
+        { -- a and b remain valid.
+          rw with_top.coe_eq_coe at ⊢,
+          rw with_top.coe_lt_coe at ⊢ idx_lt,
+          cases b_lags,
+          { -- b's index < a's
+            cases em (a.index r.fst _ < b.index (b.next r.snd _) _) with idx'_gt idx'_le,
+            { -- b's new index > a's
+              left,
+              show (a.mul b).index r _ < (a.mul b).index r' _,
+                simp only [Stream.mul_index, with_top.coe_lt_coe, max_lt_iff],
+                split; apply lt_max_iff.mpr; right; assumption
+            },
+            { -- b's new index ≤ a's
+              right,
+              simp only [not_lt] at idx'_le,
+              simp only [bool.le_iff_imp, bool.of_to_bool_iff],
+              split,
+
+              show (a.mul b).index r _ = (a.mul b).index r' _,
+                simp only [Stream.mul_index, with_top.coe_eq_coe],
+                rw max_eq_left idx'_le,
+                rw max_eq_left (has_le.le.trans (le_of_lt idx_lt) idx'_le),
+
+              show (a.mul b).ready r → (a.mul b).ready r',
+                suffices : ¬(a.mul b).ready r,
+                  intro h, from absurd h this,
+                simp only [Stream.mul_ready],
+                have : b.index r.snd _ < a.index r.fst _ :=
+                  has_lt.lt.trans_le idx_lt idx'_le,
+                intro h, from absurd h.index (ne.symm (ne_of_lt this)),
+            }
+          }
+        },
+
+        -- Various impossible cases (either a or b is invalid).
+        all_goals {
+          { simp only [Stream.mul_index, Stream.mul_valid, not_and] at h_1,
+            from absurd hb_valid_post (h_1 ha_valid) }
+          <|>
+          { simp only [Stream.mul_index, Stream.mul_valid, not_and] at h,
+            from absurd hb_valid (h ha_valid) }
+          <|>
+          contradiction
+        }
+      },
+
+      right,
       cases hh with idx_eq ready_le,
-      { -- b became ready or stayed the same
-        simp [bool_not_iff, bool.le_iff_imp] at *,
-        simp [valid_eq],
-        right,
-        split_ifs at idx_eq,
-        split_ifs,
-        { simp [idx_eq],
-          intro prev_mul_ready,
-          simp [with_top.coe_eq_coe] at idx_eq,
-          cases prev_mul_ready.ready with ha_ready hb_ready,
-          have hb_ready_post := ready_le hb_ready,
-          exact {
-            valid := and.intro ha_valid hb_valid_post,
-            ready := and.intro ha_ready hb_ready_post,
-            index := _,
-          },
-          have := prev_mul_ready.index,
-          simp,
-          transitivity, assumption' },
-        { simp at h_1, have := h_1 ha_valid, contradiction },
-        { simp at h, contradiction }
+      { -- a became ready or stayed the same
+        simp only [bool_not_iff, bool.le_iff_imp, bool.of_to_bool_iff] at ⊢ idx_eq ready_le,
+        split_ifs at ⊢ idx_eq ready_le,
+        { -- a and b remain valid
+          rw with_top.coe_eq_coe at ⊢ idx_eq,
+          split,
+          show (a.mul b).index r _ = (a.mul b).index r' _,
+            simp only [Stream.mul_index, idx_eq],
+
+          show (a.mul b).ready r → (a.mul b).ready r',
+            simp only [Stream.mul_ready],
+            intro prev_mul_ready,
+            cases prev_mul_ready.ready with ha_ready hb_ready,
+            have hb_ready_post := ready_le hb_ready,
+            exact {
+              valid := and.intro ha_valid hb_valid_post,
+              ready := and.intro ha_ready hb_ready_post,
+              index := _,
+            },
+            have := prev_mul_ready.index,
+            transitivity; { symmetry, assumption } <|> assumption
+        },
+
+        -- Various impossible cases (either a or b is invalid).
+        all_goals {
+          { simp only [Stream.mul_index, Stream.mul_valid, not_and] at h_1,
+            from absurd hb_valid_post (h_1 ha_valid) }
+          <|>
+          { simp only [Stream.mul_index, Stream.mul_valid, not_and] at h,
+            from absurd hb_valid (h ha_valid) }
+          <|>
+          contradiction
+        }
       }
     }
   end,
