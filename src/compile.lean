@@ -1,4 +1,5 @@
 import verification.verify
+import code_gen
 
 variables {α ι γ β : Type}
 variables (R : Type) [add_zero_class R] [has_one R] [has_mul R]
@@ -32,16 +33,11 @@ end Expr
 
 infixr ` :: `:67 := fin.cons
 notation `nil` := default
-notation a ` ⟪*⟫ `:80 b := Expr.call Op.mul (a :: b :: nil)
-local notation a ` ⟪-⟫ `:80 b := Expr.call Op.nsub ((a : Expr R nn) :: (b : Expr R nn) :: nil)
-notation a ` ⟪&&⟫ `:70 b := Expr.call Op.and (a :: b :: nil)
-notation a ` ⟪||⟫ `:65 b := Expr.call Op.or (a :: b :: nil)
-notation a ` ⟪<⟫ `:80 b := Expr.call Op.lt (a :: b :: nil)
-notation a ` ⟪=⟫ `:80 b := Expr.call Op.nat_eq (a :: b :: nil)
+-- notation a ` ⟪&&⟫ `:70 b := Expr.call Op.and (a :: b :: nil)
+-- notation a ` ⟪||⟫ `:65 b := Expr.call Op.or (a :: b :: nil)
 notation a ` ⟪/=⟫ `:80 b := Expr.neg $ Expr.call Op.nat_eq (a :: b :: nil)
 infixr ` ⟪;⟫ `:1 := Prog.seq
-@[pattern] def Expr.le : Expr R nn → Expr R nn → Expr R bb := λ a b, (a ⟪<⟫ b) ⟪||⟫ (a ⟪=⟫ b)
-notation  a ` ⟪≤⟫ `:71 b := Expr.le a b
+--@[pattern] def Expr.le : Expr R nn → Expr R nn → Expr R bb := λ a b, (a ⟪<⟫ b) ⟪||⟫ (a ⟪=⟫ b)
 infix `∷`:9000 := Ident.mk
 
 def Prog.accum : Ident rr → Expr R rr → Prog R := λ name v, Prog.store name (v + name.ident)
@@ -54,12 +50,12 @@ def max : Expr R nn → Expr R nn → Expr R nn := λ a b, Expr.ternary (Expr.ca
 def BoundedStreamGen.mul [has_hmul α β γ] (a : BoundedStreamGen R (Expr R nn) α) (b : BoundedStreamGen R (Expr R nn) β) : BoundedStreamGen R (Expr R nn) γ :=
 { current := max a.current b.current,
   value := a.value ⋆ b.value,
-  ready := a.ready ⟪&&⟫ b.ready ⟪&&⟫ a.current ⟪=⟫ b.current,
-  next  := Prog.branch ((a.current ⟪<⟫ b.current) ⟪||⟫
-                   ((a.current ⟪=⟫ b.current) ⟪&&⟫ a.ready.neg))
+  ready := a.ready ⊓ b.ready ⊓ (a.current ⟪=⟫ b.current),
+  next  := Prog.branch ((a.current ⟪<⟫ b.current) ⊔
+                   ((a.current ⟪=⟫ b.current) ⊓ a.ready.neg))
                         a.next
                         b.next,
-  valid := a.valid ⟪&&⟫ b.valid,
+  valid := a.valid ⊓ b.valid,
   initialize  := a.initialize ⟪;⟫ b.initialize,
   bound := sorry,
   ctx_inv := λ _, true,
@@ -99,13 +95,13 @@ def Prog.guard (a : Expr R bb) (b : Prog R) := Prog.branch a b Prog.skip
 
 def sparse_index (indices : Ident nn) (bounds : AccessExpr R nn × AccessExpr R nn) : il R :=
 let (lower, upper) := bounds, -- upper := uv.access ui, lower := lv.access li,
-     current := indices.access (upper.expr ⟪-⟫ 1) in
-let loc := upper.expr ⟪-⟫ 1 in
+     current := indices.access (upper.expr - 1) in
+let loc := upper.expr - 1 in
 { crd  := indices.access,
   push := λ i init,
-    let prog := Prog.guard ((lower.expr ⟪=⟫ upper.expr) ⟪||⟫ i ⟪/=⟫ current)
+    let prog := Prog.guard ((lower.expr ⟪=⟫ upper.expr) ⊔ (i ⟪/=⟫ current))
                       ((upper.accum 1) ⟪;⟫ init loc) ⟪;⟫
-                Prog.store_arr indices (upper.expr ⟪-⟫ 1) i
+                Prog.store_arr indices (upper.expr - 1) i
     in (prog, loc) }
 
 variable {R}
@@ -116,10 +112,10 @@ def dense_index (dim : Expr R nn) (counter : Ident nn) (base : Expr R nn) : il R
 { crd  := id,
   push := λ i init,
     let l i  : loc R  := base * dim + i,
-        cond : Expr R bb := counter.ident ⟪≤⟫ i,
-        prog : Prog R := Prog.loop i.to_loop_bound cond
+        prog : Prog R := Prog.loop i.to_loop_bound (counter.to_expr ⟪≤⟫ i)
                            (init (l counter) ⟪;⟫ counter.increment)
     in (prog, l i) }
+
 
 def interval_vl (array : Ident nn) : vl R (AccessExpr R nn × AccessExpr R nn) :=
 { pos  := λ loc, (⟨array, loc⟩, ⟨array, loc + 1⟩),
@@ -175,4 +171,33 @@ instance ind_compile [Compile R α β] : Compile R (lvl R α) (BoundedStreamGen 
     let (push_i, loc) := storage.push v.current storage.init in
     v.initialize ⟪;⟫
     Prog.loop v.bound v.valid
-      (Prog.guard v.ready (Compile.compile (storage.pos loc) v.value) ⟪;⟫ v.next) }
+      (Prog.guard v.ready (push_i ⟪;⟫ Compile.compile (storage.pos loc) v.value) ⟪;⟫ v.next) }
+
+section output
+variables {R}
+def Ident.to_c : ∀ {b}, Ident b → codegen.Ident
+| _ i := to_string i
+
+def Op.to_c : ∀ {b}, Op b → codegen.E
+| _ op := codegen.E.ident (to_string op)
+
+def Expr.to_c : ∀ {b}, Expr R b → codegen.E
+| rr (Expr.lit v) := default -- todo
+| nn (Expr.lit v) := codegen.E.lit v
+| bb (Expr.lit v) := codegen.E.lit (if v then 1 else 0)
+| _ (Expr.ident i) := to_string i
+| _ (Expr.access base i) := codegen.E.access base.to_c i.to_c
+| _ (Expr.call op args) := codegen.E.call op.to_c $ list.of_fn (λ i, (args i).to_c)
+| _ (Expr.ternary b c a) := codegen.E.ternary b.to_c c.to_c a.to_c
+
+def Prog.to_c : Prog R → codegen.Prog
+| (Prog.skip) := codegen.Prog.skip
+| (Prog.store dst val) := codegen.Prog.store (to_string dst) val.to_c
+| (Prog.store_arr dst i val) := codegen.Prog.store (Expr.access dst i).to_c val.to_c
+| (Prog.seq a b) := codegen.Prog.seq a.to_c b.to_c
+| (Prog.branch cond a b) := codegen.Prog.if cond.to_c a.to_c b.to_c
+| (Prog.loop _ cond body) := codegen.Prog.while cond.to_c body.to_c
+
+-- here. scalar types and declarations. update front end? finish chk and demo
+
+end output
