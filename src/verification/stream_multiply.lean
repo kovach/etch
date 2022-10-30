@@ -273,27 +273,7 @@ end
 lemma prod_le_iff {α₁ β₁} [has_lt α₁] [has_le β₁] (a b : α₁ ×ₗ β₁) :
   a ≤ b ↔
     a.1 < b.1 ∨
-    a.1 = b.1 ∧ a.2 ≤ b.2 := begin
-
-  split,
-  {
-    intro h,
-    cases iff.mp (prod.lex_def _ _) h,
-    { left, assumption },
-    { cases h_1 with fst_eq snd_le,
-      right,
-      exact and.intro fst_eq snd_le }
-  },
-  {
-    intro h,
-    apply iff.mpr (prod.lex_def _ _),
-    cases h,
-    { left, assumption },
-    { cases h with fst_eq snd_le,
-      right,
-      exact and.intro fst_eq snd_le }
-  }
-end
+    a.1 = b.1 ∧ a.2 ≤ b.2 := prod.lex_def _ _
 
 lemma bool_not_iff (a b : bool) : !a = !b ↔ a = b := begin
   split,
