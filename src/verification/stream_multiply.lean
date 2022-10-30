@@ -225,14 +225,14 @@ begin
   generalize hb : b.bound = n₂,
   induction n₁ with _ _ c d e f g h generalizing a n₂ b;
   induction n₂ with _ _ k l m n o p generalizing b,
-  { apply bound_valid_aux.invalid, simp [*] at * },
-  { apply bound_valid_aux.invalid, simp [*] at * },
-  { apply bound_valid_aux.invalid, simp [*] at * },
+  { apply bound_valid_aux.start, simp [bound_valid, *] at * },
+  { apply bound_valid_aux.start, simp [bound_valid, *] at * },
+  { apply bound_valid_aux.start, simp [bound_valid, *] at * },
   {
     cases em a.valid; cases em b.valid,
     { simp only [StreamExec.mul_bound, bound_valid, *],
       have : (a ⋆ b).valid, { simp, split; assumption },
-      apply bound_valid_aux.next_bound_valid this,
+      apply bound_valid_aux.step this,
       simp only [delta_succ],
       cases em (a ⊑ b) with ale nale,
       { rw le_succ_left,
@@ -259,9 +259,9 @@ begin
         { assumption }
       },
     },
-    { apply bound_valid_aux.invalid, simp [*] },
-    { apply bound_valid_aux.invalid, simp [*] },
-    { apply bound_valid_aux.invalid, simp [*] } }
+    { apply bound_valid_aux.start, simp [StreamExec.valid, *] at * },
+    { apply bound_valid_aux.start, simp [StreamExec.valid, *] at * },
+    { apply bound_valid_aux.start, simp [StreamExec.valid, *] at * } }
 end
 
 #check prod.lex_def
