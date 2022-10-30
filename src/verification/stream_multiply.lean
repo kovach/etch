@@ -313,7 +313,7 @@ instance hmul.is_simple
       replace valid_eq : a.valid r.fst ↔ a.valid (a.next r.fst ha_valid) :=
         by simpa only [bool_not_iff, bool.of_to_bool_iff, bool.to_bool_not, bool.to_bool_eq] using valid_eq,
 
-      have ha_valid_post : a.valid (a.next r.fst _) := valid_eq.mp ha_valid,
+      have ha_valid' : a.valid (a.next r.fst _) := valid_eq.mp ha_valid,
 
       rw prod_le_iff at |- hh,
       right, rw prod_le_iff,
@@ -368,7 +368,7 @@ instance hmul.is_simple
         -- Various impossible cases (either a or b is invalid).
         all_goals {
           { simp only [Stream.mul_index, Stream.mul_valid, not_and] at h_1,
-            from absurd hb_valid (h_1 ha_valid_post) }
+            from absurd hb_valid (h_1 ha_valid') }
           <|>
           { simp only [Stream.mul_index, Stream.mul_valid, not_and] at h,
             from absurd hb_valid (h ha_valid) }
@@ -392,10 +392,10 @@ instance hmul.is_simple
             simp only [Stream.mul_ready],
             intro prev_mul_ready,
             cases prev_mul_ready.ready with ha_ready hb_ready,
-            have ha_ready_post := ready_le ha_ready,
+            have ha_ready' := ready_le ha_ready,
             exact {
-              valid := and.intro ha_valid_post hb_valid,
-              ready := and.intro ha_ready_post hb_ready,
+              valid := and.intro ha_valid' hb_valid,
+              ready := and.intro ha_ready' hb_ready,
               index := _,
             },
             have := prev_mul_ready.index,
@@ -405,7 +405,7 @@ instance hmul.is_simple
         -- Various impossible cases (either a or b is invalid).
         all_goals {
           { simp only [Stream.mul_index, Stream.mul_valid, not_and] at h_1,
-            from absurd hb_valid (h_1 ha_valid_post) }
+            from absurd hb_valid (h_1 ha_valid') }
           <|>
           { simp only [Stream.mul_index, Stream.mul_valid, not_and] at h,
             from absurd hb_valid (h ha_valid) }
@@ -441,7 +441,7 @@ instance hmul.is_simple
       replace valid_eq : b.valid r.snd ↔ b.valid (b.next r.snd hb_valid) :=
         by simpa only [bool_not_iff, bool.of_to_bool_iff, bool.to_bool_not, bool.to_bool_eq] using valid_eq,
 
-      have hb_valid_post : b.valid (b.next r.snd _) := valid_eq.mp hb_valid,
+      have hb_valid' : b.valid (b.next r.snd _) := valid_eq.mp hb_valid,
 
       rw prod_le_iff at |- hh,
       right, rw prod_le_iff,
@@ -496,7 +496,7 @@ instance hmul.is_simple
         -- Various impossible cases (either a or b is invalid).
         all_goals {
           { simp only [Stream.mul_index, Stream.mul_valid, not_and] at h_1,
-            from absurd hb_valid_post (h_1 ha_valid) }
+            from absurd hb_valid' (h_1 ha_valid) }
           <|>
           { simp only [Stream.mul_index, Stream.mul_valid, not_and] at h,
             from absurd hb_valid (h ha_valid) }
@@ -520,10 +520,10 @@ instance hmul.is_simple
             simp only [Stream.mul_ready],
             intro prev_mul_ready,
             cases prev_mul_ready.ready with ha_ready hb_ready,
-            have hb_ready_post := ready_le hb_ready,
+            have hb_ready' := ready_le hb_ready,
             exact {
-              valid := and.intro ha_valid hb_valid_post,
-              ready := and.intro ha_ready hb_ready_post,
+              valid := and.intro ha_valid hb_valid',
+              ready := and.intro ha_ready hb_ready',
               index := _,
             },
             have := prev_mul_ready.index,
@@ -533,7 +533,7 @@ instance hmul.is_simple
         -- Various impossible cases (either a or b is invalid).
         all_goals {
           { simp only [Stream.mul_index, Stream.mul_valid, not_and] at h_1,
-            from absurd hb_valid_post (h_1 ha_valid) }
+            from absurd hb_valid' (h_1 ha_valid) }
           <|>
           { simp only [Stream.mul_index, Stream.mul_valid, not_and] at h,
             from absurd hb_valid (h ha_valid) }
