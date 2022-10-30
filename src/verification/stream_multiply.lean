@@ -287,9 +287,7 @@ instance hmul.is_simple
 { monotonic := begin
     intros r h,
     cases h with ha_valid hb_valid,
-    simp only [Stream.mul_next],
-
-    simp only [StreamState.lag] at *,
+    simp only [Stream.mul_next, StreamState.lag],
 
     split_ifs with a_lags b_lags,
     { -- a lags b; we increase a
