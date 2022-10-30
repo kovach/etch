@@ -334,34 +334,31 @@ instance hmul.is_simple
         { -- a and b remain valid.
           rw with_top.coe_eq_coe at ⊢,
           rw with_top.coe_lt_coe at ⊢ idx_lt,
-          cases a_lags,
-          { -- a's index < b's
-            cases em (b.index r.snd _ < a.index (a.next r.fst _) _) with idx'_gt idx'_le,
-            { -- a's new index > b's
-              left,
-              show (a.mul b).index r _ < (a.mul b).index r' _,
-                simp only [Stream.mul_index, with_top.coe_lt_coe, max_lt_iff],
-                split; apply lt_max_iff.mpr; left; assumption
-            },
-            { -- a's new index ≤ b's
-              right,
-              simp only [not_lt] at idx'_le,
-              simp only [bool.le_iff_imp, bool.of_to_bool_iff],
-              split,
+          cases em (b.index r.snd _ < a.index (a.next r.fst _) _) with idx'_gt idx'_le,
+          { -- a's new index > b's
+            left,
+            show (a.mul b).index r _ < (a.mul b).index r' _,
+              simp only [Stream.mul_index, with_top.coe_lt_coe, max_lt_iff],
+              split; apply lt_max_iff.mpr; left; assumption
+          },
+          { -- a's new index ≤ b's
+            right,
+            simp only [not_lt] at idx'_le,
+            simp only [bool.le_iff_imp, bool.of_to_bool_iff],
+            split,
 
-              show (a.mul b).index r _ = (a.mul b).index r' _,
-                simp only [Stream.mul_index, with_top.coe_eq_coe],
-                rw max_eq_right idx'_le,
-                rw max_eq_right (has_le.le.trans (le_of_lt idx_lt) idx'_le),
+            show (a.mul b).index r _ = (a.mul b).index r' _,
+              simp only [Stream.mul_index, with_top.coe_eq_coe],
+              rw max_eq_right idx'_le,
+              rw max_eq_right (has_le.le.trans (le_of_lt idx_lt) idx'_le),
 
-              show (a.mul b).ready r → (a.mul b).ready r',
-                suffices : ¬(a.mul b).ready r,
-                  intro h, from absurd h this,
-                simp only [Stream.mul_ready],
-                have : a.index r.fst _ < b.index r.snd _ :=
-                  has_lt.lt.trans_le idx_lt idx'_le,
-                intro h, from absurd h.index (ne_of_lt this),
-            }
+            show (a.mul b).ready r → (a.mul b).ready r',
+              suffices : ¬(a.mul b).ready r,
+                intro h, from absurd h this,
+              simp only [Stream.mul_ready],
+              have : a.index r.fst _ < b.index r.snd _ :=
+                has_lt.lt.trans_le idx_lt idx'_le,
+              intro h, from absurd h.index (ne_of_lt this),
           }
         },
 
@@ -392,14 +389,16 @@ instance hmul.is_simple
             simp only [Stream.mul_ready],
             intro prev_mul_ready,
             cases prev_mul_ready.ready with ha_ready hb_ready,
-            have ha_ready' := ready_le ha_ready,
+
+            have ha_ready' : a.ready (a.next r.fst _) := ready_le ha_ready,
             exact {
-              valid := and.intro ha_valid' hb_valid,
-              ready := and.intro ha_ready' hb_ready,
-              index := _,
-            },
-            have := prev_mul_ready.index,
-            transitivity; { symmetry, assumption } <|> assumption
+              valid := ⟨ha_valid', hb_valid⟩,
+              ready := ⟨ha_ready', hb_ready⟩,
+              index := begin
+                have := prev_mul_ready.index,
+                transitivity; { symmetry, assumption } <|> assumption
+              end,
+            }
         },
 
         -- Various impossible cases (either a or b is invalid).
@@ -462,34 +461,31 @@ instance hmul.is_simple
         { -- a and b remain valid.
           rw with_top.coe_eq_coe at ⊢,
           rw with_top.coe_lt_coe at ⊢ idx_lt,
-          cases b_lags,
-          { -- b's index < a's
-            cases em (a.index r.fst _ < b.index (b.next r.snd _) _) with idx'_gt idx'_le,
-            { -- b's new index > a's
-              left,
-              show (a.mul b).index r _ < (a.mul b).index r' _,
-                simp only [Stream.mul_index, with_top.coe_lt_coe, max_lt_iff],
-                split; apply lt_max_iff.mpr; right; assumption
-            },
-            { -- b's new index ≤ a's
-              right,
-              simp only [not_lt] at idx'_le,
-              simp only [bool.le_iff_imp, bool.of_to_bool_iff],
-              split,
+          cases em (a.index r.fst _ < b.index (b.next r.snd _) _) with idx'_gt idx'_le,
+          { -- b's new index > a's
+            left,
+            show (a.mul b).index r _ < (a.mul b).index r' _,
+              simp only [Stream.mul_index, with_top.coe_lt_coe, max_lt_iff],
+              split; apply lt_max_iff.mpr; right; assumption
+          },
+          { -- b's new index ≤ a's
+            right,
+            simp only [not_lt] at idx'_le,
+            simp only [bool.le_iff_imp, bool.of_to_bool_iff],
+            split,
 
-              show (a.mul b).index r _ = (a.mul b).index r' _,
-                simp only [Stream.mul_index, with_top.coe_eq_coe],
-                rw max_eq_left idx'_le,
-                rw max_eq_left (has_le.le.trans (le_of_lt idx_lt) idx'_le),
+            show (a.mul b).index r _ = (a.mul b).index r' _,
+              simp only [Stream.mul_index, with_top.coe_eq_coe],
+              rw max_eq_left idx'_le,
+              rw max_eq_left (has_le.le.trans (le_of_lt idx_lt) idx'_le),
 
-              show (a.mul b).ready r → (a.mul b).ready r',
-                suffices : ¬(a.mul b).ready r,
-                  intro h, from absurd h this,
-                simp only [Stream.mul_ready],
-                have : b.index r.snd _ < a.index r.fst _ :=
-                  has_lt.lt.trans_le idx_lt idx'_le,
-                intro h, from absurd h.index (ne.symm (ne_of_lt this)),
-            }
+            show (a.mul b).ready r → (a.mul b).ready r',
+              suffices : ¬(a.mul b).ready r,
+                intro h, from absurd h this,
+              simp only [Stream.mul_ready],
+              have : b.index r.snd _ < a.index r.fst _ :=
+                has_lt.lt.trans_le idx_lt idx'_le,
+              intro h, from absurd h.index (ne.symm (ne_of_lt this)),
           }
         },
 
@@ -520,14 +516,16 @@ instance hmul.is_simple
             simp only [Stream.mul_ready],
             intro prev_mul_ready,
             cases prev_mul_ready.ready with ha_ready hb_ready,
-            have hb_ready' := ready_le hb_ready,
+
+            have hb_ready' : b.ready (b.next r.snd _) := ready_le hb_ready,
             exact {
-              valid := and.intro ha_valid hb_valid',
-              ready := and.intro ha_ready hb_ready',
-              index := _,
-            },
-            have := prev_mul_ready.index,
-            transitivity; { symmetry, assumption } <|> assumption
+              valid := ⟨ha_valid, hb_valid'⟩,
+              ready := ⟨ha_ready, hb_ready'⟩,
+              index := begin
+                have := prev_mul_ready.index,
+                transitivity; { symmetry, assumption } <|> assumption
+              end,
+            }
         },
 
         -- Various impossible cases (either a or b is invalid).
