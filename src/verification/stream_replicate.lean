@@ -6,16 +6,15 @@ variables {ι α β σ : Type}
 [add_zero_class α]
 [linear_order ι]
 [fintype ι]
-[nonempty ι]
 
-def replicate_stream (n : ℕ) (v : α) : StreamExec (fin n.succ) (fin n.succ) α :=
+def replicate_stream (n : ℕ) (v : α) : StreamExec (fin n.succ) (fin n) α :=
 { bound := n.succ,
   state := 0,
   stream := {
     valid := λ i, i.val < n,
     ready := λ _, true,
     next := λ ⟨i, _⟩ h, ⟨i+1, nat.succ_lt_succ h⟩,
-    index := λ i _, i,
+    index := λ i h, ⟨i.val, h⟩,
     value := λ _ _, v,
   },
 }
