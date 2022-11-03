@@ -286,11 +286,6 @@ section G
 
 variables {α ι γ β : Type}
 
-def rev_fmap_comp {f} [functor f] (x : α → f β) (y : β → f γ) := functor.map y ∘ x
-infixr ` ⊚ `:90 := rev_fmap_comp
-def rev_app : α → (α → β) → β := function.swap ($)
-infixr ` & `:9 := rev_app
-
 local infixl ` && `:70 := BinOp.and
 local infixl ` || `:65 := BinOp.or
 local infix  ` < `:71  := BinOp.lt
@@ -464,6 +459,11 @@ def dense_vl    (array : E) : vl E :=
 def implicit_vl : vl E := { pos := id, init := λ _, Prog.skip }
 
 -- def base (array : E) : lvl E := { i_shift := λ _ i, array.access i,  }
+
+def rev_fmap_comp {f} [functor f] (x : α → f β) (y : β → f γ) := functor.map y ∘ x
+infixr ` ⊚ `:90 := rev_fmap_comp
+def rev_app : α → (α → β) → β := function.swap ($)
+infixr ` & `:9 := rev_app
 
 -- this combinator combines an il with a vl to form a lvl.
 -- the extra parameter α is used to thread the primary argument to a level through ⊚.
