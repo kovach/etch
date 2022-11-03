@@ -715,8 +715,9 @@ lemma compile_scalar_sound (x : BoundedStreamGen unit (Expr rr)) (ctx : EContext
 begin
   simp [compile_scalar, Prog.eval],
   set ctx' := ctx.update reserved∷ᵣoutput 0,
-  obtain ⟨ci, hci⟩ := option.is_some_iff_exists.mp h.hinit, 
-  -- simp only [hci, exists_eq_left'],
+  have : (x.initialize.eval ctx').is_some := sorry, -- This is similar to `h.hinit`, but requires some frame issues to be resolved
+  rw option.is_some_iff_exists at this, cases this with ctx₂ hctx₂,
+  simp only [hctx₂, exists_eq_left'],
 
   sorry,
 end
@@ -751,7 +752,6 @@ begin
 end
 
 end examples
-
 
 -- Final theorem will be something like:
 -- ∀ (x : BoundedStreamGen ι α) [TRAble ι → ι'] [TRAble α → β] [FinsuppEval (StreamExec EContext ι' β)]
