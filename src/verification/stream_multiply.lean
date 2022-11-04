@@ -64,6 +64,8 @@ instance StreamExec.preorder : preorder (StreamExec σ ι α) := preorder.lift S
 
 local infix `⊑`:50    := StreamExec.lag
 local infix `⊏`:50    := StreamExec.lag_lt
+local infix `⊑ₛ`:50   := StreamState.lag
+local infix `⊏ₛ`:50   := StreamState.lag_lt
 
 lemma StreamExec.le_total {α β : Type} (a : StreamExec σ₁ ι α) (b : StreamExec σ₂ ι β) : a.lag b ∨ b.lag a := le_total a.to_order_tuple b.to_order_tuple
 
@@ -112,7 +114,54 @@ infix ` ⋆ `:71 := StreamExec.mul
 
 open StreamExec
 
-@[simp] lemma mul.valid (a : StreamExec σ₁ ι α) (b : StreamExec σ₂ ι α) : (a ⋆ b).valid ↔ a.valid ∧ b.valid := iff.rfl.
+@[simp] lemma StreamExec.mul.valid (a : StreamExec σ₁ ι α) (b : StreamExec σ₂ ι α) : (a ⋆ b).valid ↔ a.valid ∧ b.valid := iff.rfl.
+
+lemma Stream.mul.valid.comm (a : Stream σ₁ ι α) (b : Stream σ₂ ι α) (s₁ s₂) :
+  (a.mul b).valid (s₁, s₂) ↔ (b.mul a).valid (s₂, s₁) := by simp [and.comm].
+
+lemma StreamExec.mul.valid.comm (a : StreamExec σ₁ ι α) (b : StreamExec σ₂ ι α) :
+  (a ⋆ b).valid ↔ (b ⋆ a).valid := Stream.mul.valid.comm _ _ _ _.
+
+lemma Stream.mul.ready.comm (a : Stream σ₁ ι α) (b : Stream σ₂ ι α) (s₁ s₂) :
+  Stream.mul.ready a b (s₁, s₂) ↔ Stream.mul.ready b a (s₂, s₁) := begin
+
+  split; intro h; split;
+  { simpa [and.comm] using h.ready <|>
+    simpa [and.comm] using h.valid <|>
+    simp [h.index] }
+end
+
+lemma StreamExec.mul.ready.comm (a : StreamExec σ₁ ι α) (b : StreamExec σ₂ ι α) :
+  (a ⋆ b).ready ↔ (b ⋆ a).ready := Stream.mul.ready.comm _ _ _ _.
+
+lemma Stream.mul.index.comm (a : Stream σ₁ ι α) (b : Stream σ₂ ι α) (s₁ s₂)
+  (h : (a.mul b).valid (s₁, s₂)) (h' : (b.mul a).valid (s₂, s₁)) :
+  (a.mul b).index (s₁, s₂) h = (b.mul a).index (s₂, s₁) h' :=
+  by simpa [Stream.mul] using max_comm _ _.
+
+lemma StreamState.mul.now'.index.comm {a : Stream σ₁ ι α} {b : Stream σ₂ ι α} :
+  (StreamState.mk (a.mul b) (s₁, s₂)).now'.index =
+  (StreamState.mk (b.mul a) (s₂, s₁)).now'.index := begin
+
+  simp only [StreamState.now'],
+  split_ifs,
+  { simp [max_comm] },
+  { simp at h h_1, exact absurd h.1 (h_1 h.2) },
+  { simp at h h_1, exact absurd h_1.1 (h h_1.2) },
+  { refl }
+end
+
+lemma mul.to_order_tuple.comm (a : Stream σ₁ ι α) (b : Stream σ₂ ι α) (s₁ : σ₁) (s₂ : σ₂) :
+  { StreamState . stream := a.mul b, state := (s₁, s₂) }.to_order_tuple =
+  { StreamState . stream := b.mul a, state := (s₂, s₁) }.to_order_tuple := begin
+
+  simp only [StreamState.to_order_tuple, prod.mk.inj_iff],
+  split,
+  { simp_rw [StreamState.now', Stream.mul.valid.comm] },
+  split,
+  { exact StreamState.mul.now'.index.comm _ _ },
+  { simp_rw [StreamState.now', Stream.mul_ready, Stream.mul.ready.comm] }
+end
 
 lemma mul.invalid (a : StreamExec σ₁ ι α) (b : StreamExec σ₂ ι α) :
 ¬ a.valid ∨ ¬ b.valid → ¬ (a.mul b).valid := λ d,
@@ -225,14 +274,14 @@ begin
   generalize hb : b.bound = n₂,
   induction n₁ with _ _ c d e f g h generalizing a n₂ b;
   induction n₂ with _ _ k l m n o p generalizing b,
-  { apply bound_valid_aux.invalid, simp [*] at * },
-  { apply bound_valid_aux.invalid, simp [*] at * },
-  { apply bound_valid_aux.invalid, simp [*] at * },
+  { apply bound_valid_aux.start, simp [bound_valid, *] at * },
+  { apply bound_valid_aux.start, simp [bound_valid, *] at * },
+  { apply bound_valid_aux.start, simp [bound_valid, *] at * },
   {
     cases em a.valid; cases em b.valid,
     { simp only [StreamExec.mul_bound, bound_valid, *],
       have : (a ⋆ b).valid, { simp, split; assumption },
-      apply bound_valid_aux.next_bound_valid this,
+      apply bound_valid_aux.step this,
       simp only [delta_succ],
       cases em (a ⊑ b) with ale nale,
       { rw le_succ_left,
@@ -259,15 +308,173 @@ begin
         { assumption }
       },
     },
-    { apply bound_valid_aux.invalid, simp [*] },
-    { apply bound_valid_aux.invalid, simp [*] },
-    { apply bound_valid_aux.invalid, simp [*] } }
+    { apply bound_valid_aux.start, simp [StreamExec.valid, *] at * },
+    { apply bound_valid_aux.start, simp [StreamExec.valid, *] at * },
+    { apply bound_valid_aux.start, simp [StreamExec.valid, *] at * } }
+end
+
+lemma prod_le_iff {α₁ β₁} [has_lt α₁] [has_le β₁] (a b : α₁ ×ₗ β₁) :
+  a ≤ b ↔
+    a.1 < b.1 ∨
+    a.1 = b.1 ∧ a.2 ≤ b.2 := prod.lex_def _ _
+
+lemma bool_not_iff (a b : bool) : !a = !b ↔ a = b :=
+  by cases a; cases b; simp
+
+lemma mul.mono.a_lags_b {a : Stream σ₁ ι α} {b : Stream σ₂ ι α}
+  [ha : a.is_simple] [hb : b.is_simple]
+  {r} (h : (a.mul b).valid r) :
+  (StreamState.mk a r.1) ⊑ₛ (StreamState.mk b r.2) →
+  (StreamState.mk (a.mul b) r) ⊑ₛ (StreamState.mk (a.mul b) (a.next r.1 h.1, r.2)) := begin
+
+  intro a_lags,
+  cases h with ha_valid hb_valid,
+  let r' := (a.next r.fst _, r.snd),
+  have a_mono := is_simple.monotonic ha_valid,
+  simp only [StreamState.lag, StreamState.to_order_tuple, StreamState.now', bool_not_iff] at ⊢ a_mono a_lags,
+
+  rw prod_le_iff at a_lags,
+  cases a_lags with ab_valid_lt a_lags,
+  { -- a is valid but b is invalid (impossible case)
+    revert ab_valid_lt,
+    simp only [bool.lt_iff, bool.of_to_bool_iff, to_bool_iff, and_imp],
+    intros _ hb_invalid, from absurd hb_valid hb_invalid
+  },
+
+  rw prod_le_iff at a_mono,
+  cases a_mono with valid_lt hh,
+  { -- a went from valid to invalid
+    left, simpa only [hb_valid, Stream.mul_valid, and_true] using valid_lt
+  },
+
+  cases hh with valid_eq hh,
+  replace valid_eq : a.valid r.fst ↔ a.valid (a.next r.fst ha_valid) :=
+    by simpa only [bool_not_iff, bool.of_to_bool_iff, bool.to_bool_not, bool.to_bool_eq] using valid_eq,
+
+  have ha_valid' : a.valid (a.next r.fst _) := valid_eq.mp ha_valid,
+
+  rw prod_le_iff at |- hh,
+  right, rw prod_le_iff,
+
+  split,
+  { -- Since a's validity did not change,
+    -- (a.mul b)'s validity must not change either.
+    simp only [bool.of_to_bool_iff, bool.to_bool_eq, not_iff_not],
+
+    change (a.mul b).valid r ↔ (a.mul b).valid r',
+      simp only [Stream.mul_valid],
+      split; rw and_imp; intros _ h; split; assumption'
+  },
+
+  cases hh with idx_lt hh,
+  { -- a's index increased
+    rw prod_le_iff at a_lags,
+    split_ifs at ⊢ idx_lt,
+    { -- a and b remain valid.
+      rw with_top.coe_eq_coe at ⊢,
+      rw with_top.coe_lt_coe at ⊢ idx_lt,
+      cases em (b.index r.snd _ < a.index (a.next r.fst _) _) with idx'_gt idx'_le,
+      { -- a's new index > b's
+        left,
+        show (a.mul b).index r _ < (a.mul b).index r' _,
+          simp only [Stream.mul_index, with_top.coe_lt_coe, max_lt_iff],
+          split; apply lt_max_iff.mpr; left; assumption
+      },
+      { -- a's new index ≤ b's
+        right,
+        simp only [not_lt] at idx'_le,
+        simp only [bool.le_iff_imp, bool.of_to_bool_iff],
+        split,
+
+        show (a.mul b).index r _ = (a.mul b).index r' _,
+          simp only [Stream.mul_index, with_top.coe_eq_coe],
+          rw max_eq_right idx'_le,
+          rw max_eq_right (has_le.le.trans (le_of_lt idx_lt) idx'_le),
+
+        show (a.mul b).ready r → (a.mul b).ready r',
+          suffices : ¬(a.mul b).ready r,
+            intro h, from absurd h this,
+          simp only [Stream.mul_ready],
+          have : a.index r.fst _ < b.index r.snd _ :=
+            has_lt.lt.trans_le idx_lt idx'_le,
+          intro h, from absurd h.index (ne_of_lt this),
+      }
+    },
+
+    -- Various impossible cases (either a or b is invalid).
+    all_goals {
+      { simp only [Stream.mul_index, Stream.mul_valid, not_and] at h_1,
+        from absurd hb_valid (h_1 ha_valid') }
+      <|>
+      { simp only [Stream.mul_index, Stream.mul_valid, not_and] at h,
+        from absurd hb_valid (h ha_valid) }
+      <|>
+      contradiction
+    }
+  },
+
+  right,
+  cases hh with idx_eq ready_le,
+  { -- a became ready or stayed the same
+    simp only [bool_not_iff, bool.le_iff_imp, bool.of_to_bool_iff] at ⊢ idx_eq ready_le,
+    split_ifs at ⊢ idx_eq ready_le,
+    { -- a and b remain valid
+      rw with_top.coe_eq_coe at ⊢ idx_eq,
+      split,
+      show (a.mul b).index r _ = (a.mul b).index r' _,
+        simp only [Stream.mul_index, idx_eq],
+
+      show (a.mul b).ready r → (a.mul b).ready r',
+        simp only [Stream.mul_ready],
+        intro prev_mul_ready,
+        cases prev_mul_ready.ready with ha_ready hb_ready,
+
+        have ha_ready' : a.ready (a.next r.fst _) := ready_le ha_ready,
+        exact {
+          valid := ⟨ha_valid', hb_valid⟩,
+          ready := ⟨ha_ready', hb_ready⟩,
+          index := begin
+            have := prev_mul_ready.index,
+            transitivity; { symmetry, assumption } <|> assumption
+          end,
+        }
+    },
+
+    -- Various impossible cases (either a or b is invalid).
+    all_goals {
+      { simp only [Stream.mul_index, Stream.mul_valid, not_and] at h_1,
+        from absurd hb_valid (h_1 ha_valid') }
+      <|>
+      { simp only [Stream.mul_index, Stream.mul_valid, not_and] at h,
+        from absurd hb_valid (h ha_valid) }
+      <|>
+      contradiction
+    }
+  }
 end
 
 instance hmul.is_simple
 (a : Stream σ₁ ι α) (b : Stream σ₂ ι α)
-(ha : a.is_simple) (hb : b.is_simple) : (a.mul b).is_simple :=
-{ monotonic := begin sorry, end,
+[ha : a.is_simple] [hb : b.is_simple] : (a.mul b).is_simple :=
+{ monotonic := begin
+    intros r h,
+    obtain ⟨s₁, s₂⟩ := r,
+    obtain ⟨ha_valid, hb_valid⟩ := h,
+    rw Stream.mul_next,
+
+    split_ifs with lags,
+    { -- a lags b
+      apply mul.mono.a_lags_b, refine ⟨ha_valid, hb_valid⟩, assumption },
+
+    { -- b (strictly) lags a; weaken the hypothesis first to reuse mul.mono.a_lags_b
+      have := le_of_lt (not_le.mp lags),
+      simp_rw [StreamState.lag, mul.to_order_tuple.comm a b],
+      apply mul.mono.a_lags_b,
+      { exact ⟨hb_valid, ha_valid⟩ },
+      { assumption }
+    }
+  end,
+
   reduced :=
   begin
     intros s t hs ht ready_s ready_t eq,
@@ -282,6 +489,41 @@ instance hmul.is_simple
     { apply @is_simple.reduced _ _ _ _ _ hb; simp [*] },
   end
 }
+
+#check primitives.range 2
+
+instance primitives.range.is_simple (n : ℕ) : (primitives.range n).is_simple := {
+  monotonic := begin
+    intros ctr h_valid,
+    simp only [StreamState.lag, StreamState.to_order_tuple, StreamState.now', prod_le_iff],
+    cases em (n ≤ ctr + 1),
+    { left,
+      simp only [primitives.range] at ⊢ h_valid,
+      simp only [bool.lt_iff],
+      split; simpa },
+    { right, split,
+      { simp only [primitives.range] at ⊢ h_valid,
+        simp [h_valid, lt_of_not_le h] },
+      { left, split_ifs,
+        { simp [with_top.coe_lt_coe, primitives.range] },
+        { apply with_top.coe_lt_top },
+        { contradiction },
+        { apply with_top.coe_lt_top } } }
+  end,
+
+  reduced := begin
+    intros s t hs ht ready_s ready_t eq,
+    cases ready_s,
+    cases ready_t,
+
+    simp only [primitives.range] at eq,
+    assumption
+  end,
+}
+
+example : (primitives.range 2).is_simple := infer_instance
+example : ((primitives.range 2).mul (primitives.range 3)).is_simple := by apply_instance
+example : (((primitives.range 2).mul (primitives.range 3)).mul (primitives.range 4)).is_simple := by apply_instance
 
 variables
 (a_simple : a.is_simple)
@@ -559,7 +801,7 @@ begin
 
 end.
 
-@[simp] lemma mul_eval₀ :
+lemma mul_eval₀ :
 (a ⋆ b).eval₀'  = a.eval₀' * b.eval₀' :=
 begin
 cases em a.valid with ha; cases em b.valid with hb; cases em a.ready; cases em b.ready,
@@ -642,7 +884,7 @@ begin
     {
       simp only [nat.succ_add, le_succ_left, eval_steps', *],
       rw ba_ih,
-      { simp [*, eval_steps', right_distrib, left_distrib], abel, },
+      { simp [*, eval_steps', right_distrib, left_distrib, mul_eval₀], abel, },
       { exact succ_bound_valid abv },
       { assumption },
       { simpa },
