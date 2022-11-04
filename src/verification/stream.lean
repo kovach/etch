@@ -121,6 +121,8 @@ open Stream.bound_valid_aux (start step)
 
 def StreamExec.bound_valid (s : StreamExec σ ι α) : Prop := s.stream.bound_valid_aux s.bound s.state
 
+-- lemma StreamExec.bound_delta {s : StreamExec σ ι α} (hs : ∀ (h : s.valid), )
+
 @[simp] lemma StreamExec.bound_valid_zero {s : Stream σ ι α} {σ₀ : σ} :
   s.bound_valid_aux 0 σ₀ ↔ ¬s.valid σ₀ :=
 ⟨λ h, by { cases h, assumption, }, λ h, start _ h⟩

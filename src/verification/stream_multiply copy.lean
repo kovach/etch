@@ -14,29 +14,6 @@ variables (R : Type) [add_zero_class R] [has_one R] [has_mul R]
 variables
 [linear_order ι]
 
-structure partial_status (σ ι α : Type) :=
-(index : with_top ι)
-(value : option α)
-(ready : bool)
-(valid : bool)
-(state : σ)
-
-@[reducible, inline]
-def StreamState.valid (s : StreamState σ ι α) : Prop := s.stream.valid s.state
-@[reducible, inline]
-def StreamState.ready (s : StreamState σ ι α) : Prop := s.stream.ready s.state
-
-def StreamState.now' (s : StreamState σ ι ρ) : partial_status σ ι ρ :=
-{ index := if h : s.stream.valid s.state then s.stream.index s.state h else ⊤,
-  value := if h : s.stream.ready s.state then s.stream.value s.state h else none,
-  ready := s.stream.ready s.state,
-  valid := s.stream.valid s.state,
-  state := s.state }
-
-@[simp]
-def StreamExec.now' (s : StreamExec σ ι ρ) : partial_status σ ι ρ :=
-s.to_StreamState.now'
-
 open Types
 
 open Stream StreamExec
@@ -85,10 +62,6 @@ variables
 -- no assumptions on value type
 variables (q : StreamExec σ ι ρ)
 
-@[simp] lemma StreamExec.bound_valid_zero' {s : StreamExec σ ι α} :
-  s.bound = 0 → (s.bound_valid ↔ ¬s.valid) := λ bz,
-by simp [StreamExec.bound_valid, bz]
-
 structure Stream.mul.ready (a : Stream σ₁ ι α) (b : Stream σ₂ ι α) (s : σ₁ × σ₂) : Prop :=
 (valid : a.valid s.1 ∧ b.valid s.2)
 (ready : a.ready s.1 ∧ b.ready s.2)
@@ -119,6 +92,15 @@ lemma mul.invalid (a : StreamExec σ₁ ι α) (b : StreamExec σ₂ ι α) :
 begin
   cases d;
   simp [d],
+end
+
+lemma invalid_eval_zero : ¬ s.valid → s.eval = 0 :=
+begin
+  intros,
+  simp only [eval, eval_steps],
+  cases s.bound; simp only [eval_steps],
+  split_ifs,
+  refl,
 end
 
 def Stream.reduced' (q : Stream σ ι α) : Prop :=
@@ -158,16 +140,13 @@ lemma invalid_succ_invalid : ¬ a.valid → ¬ a.succ.valid :=
 @[simp] lemma invalid_succ_eq : ¬ a.valid → a.succ.valid = ff :=
 λ h, begin simp [succ], split_ifs, simp [StreamExec.valid], simpa using h end
 
-lemma succ_bound_valid' {s : Stream σ ι α} {σ₀ : σ} {n : ℕ} (h : s.bound_valid_aux n σ₀)
-  (hv : s.valid σ₀) : s.bound_valid_aux (n - 1) (s.next σ₀ hv) :=
-by { induction h, { trivial, }, assumption, }
-
-lemma succ_bound_valid (h : a.bound_valid) : a.succ.bound_valid :=
+lemma succ_bound_valid : a.bound_valid → a.succ.bound_valid :=
 begin
-  simp [bound_valid] at *,
-  split_ifs with H,
-  { exact succ_bound_valid' h H, },
-  { exact Stream.bound_valid_aux.start _ H, },
+  simp [bound_valid],
+  intro h,
+  induction h with _ _ _ a b c d e,
+  { solve_by_elim [StreamExec.bound_valid_aux.invalid, invalid_succ_invalid] },
+  { simpa using d }
 end
 
 lemma lag.lt_iff_le_not_le : a ⊏ b ↔ (a ⊑ b ∧ ¬ b ⊑ a) := begin
@@ -219,14 +198,14 @@ begin
   generalize hb : b.bound = n₂,
   induction n₁ with _ _ c d e f g h generalizing a n₂ b;
   induction n₂ with _ _ k l m n o p generalizing b,
-  { apply Stream.bound_valid_aux.start, simp [*] at *, intro, assumption, },
-  { apply Stream.bound_valid_aux.start, simp [*] at *, intro, contradiction, },
-  { apply Stream.bound_valid_aux.start, simp [*] at *, intro, assumption, },
+  { apply bound_valid_aux.invalid, simp [*] at * },
+  { apply bound_valid_aux.invalid, simp [*] at * },
+  { apply bound_valid_aux.invalid, simp [*] at * },
   {
     cases em a.valid; cases em b.valid,
     { simp only [StreamExec.mul_bound, bound_valid, *],
       have : (a ⋆ b).valid, { simp, split; assumption },
-      apply Stream.bound_valid_aux.step this,
+      apply bound_valid_aux.next_bound_valid this,
       simp only [delta_succ],
       cases em (a ⊑ b) with ale nale,
       { rw le_succ_left,

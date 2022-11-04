@@ -462,7 +462,7 @@ lemma preserves.and (h₀ : preserves next p₁) (h₁ : preserves next p₂) : 
 by { rw [preserves] at *, tauto, }
 
 lemma preserves.is_length {b : Types} (v : Ident b) (e : Ident nn)  (h : (sigma.mk _ e) ∉ next.frame) :
-  preserves next (λ c, c.is_length v e) := sorry
+  preserves next (λ c, c.is_length v e) := sorry -- FOOTPRINT: If `e` (length variable) is not modified, this is preserved 
 
 end preserves
 
