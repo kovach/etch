@@ -109,6 +109,10 @@ noncomputable def Stream.eval_steps [add_zero_class α] (s : Stream σ ι α) :
 | 0 _ := 0
 | (n + 1) σ₀ := if h₁ : s.valid σ₀ then (Stream.eval_steps n (s.next σ₀ h₁)) + (s.eval₀ _ h₁) else 0
 
+lemma Stream.eval_invalid [add_zero_class α] {s : Stream σ ι α} {σ₀ : σ} (h : ¬s.valid σ₀) (n : ℕ) :
+  s.eval_steps n σ₀ = 0 :=
+by cases n; simp [h]
+
 inductive Stream.bound_valid_aux : ℕ → σ → Stream σ ι α → Prop
 | start (n : ℕ) {σ₀ : σ} {s : Stream σ ι α} : ¬s.valid σ₀ → Stream.bound_valid_aux n σ₀ s
 | step {n : ℕ} {σ₀ : σ} {s : Stream σ ι α} : ∀ (h : s.valid σ₀), Stream.bound_valid_aux n (s.next σ₀ h) s → Stream.bound_valid_aux (n + 1) σ₀ s
