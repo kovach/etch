@@ -14,60 +14,8 @@ variables (R : Type) [add_zero_class R] [has_one R] [has_mul R]
 variables
 [linear_order ι]
 
-structure partial_status (σ ι α : Type) :=
-(index : with_top ι)
-(value : option α)
-(ready : bool)
-(valid : bool)
-(state : σ)
-
-@[reducible, inline]
-def StreamState.valid (s : StreamState σ ι α) : Prop := s.stream.valid s.state
-@[reducible, inline]
-def StreamState.ready (s : StreamState σ ι α) : Prop := s.stream.ready s.state
-
-def StreamState.now' (s : StreamState σ ι ρ) : partial_status σ ι ρ :=
-{ index := if h : s.stream.valid s.state then s.stream.index s.state h else ⊤,
-  value := if h : s.stream.ready s.state then s.stream.value s.state h else none,
-  ready := s.stream.ready s.state,
-  valid := s.stream.valid s.state,
-  state := s.state }
-
-@[simp]
-def StreamExec.now' (s : StreamExec σ ι ρ) : partial_status σ ι ρ :=
-s.to_StreamState.now'
-
-open Types
-
-open Stream StreamExec
-
-@[reducible] def stream_order_tuple (ι : Type) : Type := bool ×ₗ with_top ι ×ₗ bool
-example : linear_order (stream_order_tuple ι) := infer_instance
-
-def StreamState.to_order_tuple {α} (a : StreamState σ ι α) : stream_order_tuple ι :=
-(¬ a.now'.valid, a.now'.index, a.now'.ready)
---let a := p.1, s := p.2 in (¬ a.valid s, if h : a.valid s then a.index s h else ⊤, a.ready s)
-def StreamExec.to_order_tuple {α} (a : StreamExec σ ι α) : bool ×ₗ with_top ι ×ₗ bool :=
-a.to_StreamState.to_order_tuple .
-
 variables {σ₁ σ₂ : Type}
-
-def StreamState.lag {σ₁ σ₂ ι α β} [linear_order ι] : StreamState σ₁ ι α → StreamState σ₂ ι β → Prop := λ a b, a.to_order_tuple ≤ b.to_order_tuple
-def StreamState.lag_lt {α β} : StreamState σ₁ ι α → StreamState σ₂ ι β → Prop := λ a b, a.to_order_tuple < b.to_order_tuple
-def StreamExec.lag  {α β} : StreamExec σ₁ ι α → StreamExec σ₂ ι β → Prop := λ a b, a.to_order_tuple ≤ b.to_order_tuple
-def StreamExec.lag_lt  {α β} : StreamExec σ₁ ι α → StreamExec σ₂ ι β → Prop := λ a b, a.to_order_tuple < b.to_order_tuple
-
 instance (σ ι α : Type) : has_coe (StreamExec σ ι α) (StreamState σ ι α) := ⟨StreamExec.to_StreamState⟩
-
-instance StreamState.preorder : preorder (StreamState σ ι α) := preorder.lift StreamState.to_order_tuple
-instance StreamExec.preorder : preorder (StreamExec σ ι α) := preorder.lift StreamExec.to_order_tuple
-
-local infix `⊑`:50    := StreamExec.lag
-local infix `⊏`:50    := StreamExec.lag_lt
-local infix `⊑ₛ`:50   := StreamState.lag
-local infix `⊏ₛ`:50   := StreamState.lag_lt
-
-lemma StreamExec.le_total {α β : Type} (a : StreamExec σ₁ ι α) (b : StreamExec σ₂ ι β) : a.lag b ∨ b.lag a := le_total a.to_order_tuple b.to_order_tuple
 
 def Stream.monotonic (q : Stream σ ι α) : Prop :=
 ∀ {r} (h : q.valid r), StreamState.lag ⟨q, r⟩ ⟨q, q.next r h⟩
@@ -181,12 +129,6 @@ end
 
 def Stream.reduced' (q : Stream σ ι α) : Prop :=
 ∀ {s t} (hs : q.valid s) (ht : q.valid t), q.ready s → q.ready t → q.index s hs = q.index t ht → s = t
-
-class Stream.is_simple (q : Stream σ ι ρ) : Prop :=
-(monotonic : ∀ {r} (h : q.valid r), StreamState.lag ⟨q, r⟩ ⟨q, q.next r h⟩)
-(reduced : ∀ {s t} (hs : q.valid s) (ht : q.valid t), q.ready s → q.ready t → q.index s hs = q.index t ht → s = t)
-
-@[simp] def StreamExec.is_simple : Prop := q.stream.is_simple
 
 @[simps]
 def StreamExec.succ : StreamExec σ ι ρ :=
@@ -330,7 +272,7 @@ lemma mul.mono.a_lags_b {a : Stream σ₁ ι α} {b : Stream σ₂ ι α}
   intro a_lags,
   cases h with ha_valid hb_valid,
   let r' := (a.next r.fst _, r.snd),
-  have a_mono := is_simple.monotonic ha_valid,
+  have a_mono := Stream.is_simple.monotonic ha_valid,
   simp only [StreamState.lag, StreamState.to_order_tuple, StreamState.now', bool_not_iff] at ⊢ a_mono a_lags,
 
   rw prod_le_iff at a_lags,
@@ -485,43 +427,11 @@ instance hmul.is_simple
     simp [Stream.mul, *, max_idem.idempotent] at eq,
 
     ext,
-    { apply @is_simple.reduced _ _ _ _ _ ha; simp [*] },
-    { apply @is_simple.reduced _ _ _ _ _ hb; simp [*] },
+    { apply @Stream.is_simple.reduced _ _ _ _ _ ha; simp [*] },
+    { apply @Stream.is_simple.reduced _ _ _ _ _ hb; simp [*] },
   end
 }
 
-#check primitives.range 2
-
-instance primitives.range.is_simple (n : ℕ) : (primitives.range n).is_simple := {
-  monotonic := begin
-    intros ctr h_valid,
-    simp only [StreamState.lag, StreamState.to_order_tuple, StreamState.now', prod_le_iff],
-    cases em (n ≤ ctr + 1),
-    { left,
-      simp only [primitives.range] at ⊢ h_valid,
-      simp only [bool.lt_iff],
-      split; simpa },
-    { right, split,
-      { simp only [primitives.range] at ⊢ h_valid,
-        simp [h_valid, lt_of_not_le h] },
-      { left, split_ifs,
-        { simp [with_top.coe_lt_coe, primitives.range] },
-        { apply with_top.coe_lt_top },
-        { contradiction },
-        { apply with_top.coe_lt_top } } }
-  end,
-
-  reduced := begin
-    intros s t hs ht ready_s ready_t eq,
-    cases ready_s,
-    cases ready_t,
-
-    simp only [primitives.range] at eq,
-    assumption
-  end,
-}
-
-example : (primitives.range 2).is_simple := infer_instance
 example : ((primitives.range 2).mul (primitives.range 3)).is_simple := by apply_instance
 example : (((primitives.range 2).mul (primitives.range 3)).mul (primitives.range 4)).is_simple := by apply_instance
 
