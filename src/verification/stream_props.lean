@@ -7,23 +7,7 @@ noncomputable theory
 
 variables {σ σ₁ σ₂ ι α β : Type} [linear_order ι]
 
-def Stream.index' (s : Stream σ ι α) (x : σ) : with_top ι :=
-if h : s.valid x then s.index x h else ⊤ 
-
-def Stream.value' [has_zero α] (s : Stream σ ι α) (x : σ) : α :=
-if h : s.ready x then s.value _ h else 0
-
-@[simp] lemma Stream.index'_lt_top_iff {s : Stream σ ι α} {x : σ} :
-  s.index' x < ⊤ ↔ s.valid x :=
-by { rw Stream.index', split_ifs; simp [h], exact with_top.coe_lt_top _, }
-
-lemma Stream.index'_val {s : Stream σ ι α} {x : σ} (h : s.valid x) :
-  s.index' x = s.index x h := by simp [Stream.index', h]
-
-lemma Stream.value'_val [has_zero α] {s : Stream σ ι α} {x : σ} (h : s.ready x) :
-  s.value' x = s.value x h := by simp [Stream.value', h]
-
--- valid index ready
+-- index ready
 @[reducible]
 def stream_order (ι : Type) : Type := with_top ι ×ₗ bool
 

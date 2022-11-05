@@ -198,16 +198,57 @@ by ext; simp [finsupp.sum_range, contract_stream, StreamExec.eval]
   (contract_stream s).bound_valid ↔ s.bound_valid :=
 by simp [contract_stream]
 
+def Stream.index' (s : Stream σ ι α) (x : σ) : with_top ι :=
+if h : s.valid x then s.index x h else ⊤ 
+
+def Stream.value' [has_zero α] (s : Stream σ ι α) (x : σ) : α :=
+if h : s.ready x then s.value _ h else 0
+
+def Stream.next' (s : Stream σ ι α) (x : σ) : σ :=
+if h : s.valid x then s.next x h else x
+
+@[simp] lemma Stream.index'_lt_top_iff [preorder ι] {s : Stream σ ι α} {x : σ} :
+  s.index' x < ⊤ ↔ s.valid x :=
+by { rw Stream.index', split_ifs; simp [h], exact with_top.coe_lt_top _, }
+
+lemma Stream.index'_val {s : Stream σ ι α} {x : σ} (h : s.valid x) :
+  s.index' x = s.index x h := by simp [Stream.index', h]
+
+lemma Stream.value'_val [has_zero α] {s : Stream σ ι α} {x : σ} (h : s.ready x) :
+  s.value' x = s.value x h := by simp [Stream.value', h]
+
+@[simp] lemma Stream.next'_val {s : Stream σ ι α} {x : σ} (hx) :
+  s.next' x = s.next x hx := by simp [Stream.next', hx]
+
+@[simp] lemma Stream.next'_val_invalid {s : Stream σ ι α} {x : σ} (hx : ¬s.valid x) :
+  s.next' x = x := by simp [Stream.next', hx]
+
+@[simp] lemma Stream.next'_val_invalid' {s : Stream σ ι α} {x : σ} (hx : ¬s.valid x) (n : ℕ) :
+  s.next'^[n] x = x := function.iterate_fixed (Stream.next'_val_invalid hx) n
+
+lemma bound_valid_iff_next'_iterate {s : Stream σ ι α} {x : σ} {n : ℕ} :
+  s.bound_valid n x ↔ ¬s.valid (s.next'^[n] x) :=
+begin
+  induction n with n ih generalizing x,
+  { simp, },
+  by_cases H : s.valid x; simp [ih, H],
+end
 
 end defs
+
+open_locale big_operators
+
+-- lemma StreamExec.spec_of_iterate [add_comm_monoid α] {n : σ → σ} (s : StreamExec σ ι α) (hn : ∀ (x h), s.stream.next x h = n x)
+--   (h : ∀ i < s.bound, s.stream.valid (n^[i] s.state)) :
+--   s.eval = (finsupp.indicator (@finset.univ (fin s.bound) _) (λ i _, s.stream.value' (n^[i] s.state))).map_domain _
 
 namespace primitives
 
 def externSparseVec_stream : Stream (ℕ × (list ι) × (list α)) ι α :=
-{ valid := λ ⟨i, inds, _⟩, i < inds.length,
+{ valid := λ ⟨i, inds, vals⟩, i < inds.length ∧ i < vals.length,
   ready := λ ⟨i, _, vals⟩, i < vals.length,
   next := λ ⟨i, inds, vals⟩ _, ⟨i + 1, inds, vals⟩,
-  index := λ ⟨i , inds, vals⟩ hi, inds.nth_le i hi,
+  index := λ ⟨i , inds, vals⟩ hi, inds.nth_le i hi.1,
   value := λ ⟨i, inds, vals⟩ hi, vals.nth_le i hi }
 
 def externSparseVec (inds : list ι) (vals : list α) :
@@ -216,15 +257,25 @@ def externSparseVec (inds : list ι) (vals : list α) :
   state := ⟨0, inds, vals⟩,
   bound := inds.length }
 
+lemma externSparseVec_stream.spec [add_comm_monoid α] (i : ℕ) (inds : list ι) (vals : list α) :
+  externSparseVec_stream.eval_steps (inds.length - i) ⟨i, inds, vals⟩ = (list.zip_with finsupp.single (inds.drop i) (vals.drop i)).sum :=
+begin
+  induction inds with hd tl ih generalizing i vals,
+  { simp, },
+  sorry,
+end
+
 @[simp] lemma externSparseVec.spec [add_comm_monoid α] (inds : list ι) (vals : list α) :
   (externSparseVec inds vals).eval = (list.zip_with finsupp.single inds vals).sum :=
-sorry
+begin
+  sorry,
+end
 
 def range (n : ℕ) : Stream ℕ ℕ ℕ :=
 { next  := λ k _, k+1,
   index := λ k _, k,
   value := λ k _, k,
-  ready := λ _, tt,
+  ready := λ _, true,
   valid := λ k, k < n, }
 
 end primitives

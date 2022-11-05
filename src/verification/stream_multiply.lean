@@ -91,6 +91,7 @@ variables (q : StreamExec σ ι ρ)
   s.bound = 0 → (s.bound_valid ↔ ¬s.valid) := λ bz,
 by simp [StreamExec.bound_valid, bz]
 
+@[mk_iff]
 structure Stream.mul.ready (a : Stream σ₁ ι α) (b : Stream σ₂ ι α) (s : σ₁ × σ₂) : Prop :=
 (valid : a.valid s.1 ∧ b.valid s.2)
 (ready : a.ready s.1 ∧ b.ready s.2)
@@ -124,11 +125,7 @@ lemma StreamExec.mul.valid.comm (a : StreamExec σ₁ ι α) (b : StreamExec σ�
 
 lemma Stream.mul.ready.comm (a : Stream σ₁ ι α) (b : Stream σ₂ ι α) (s₁ s₂) :
   Stream.mul.ready a b (s₁, s₂) ↔ Stream.mul.ready b a (s₂, s₁) := begin
-
-  split; intro h; split;
-  { simpa [and.comm] using h.ready <|>
-    simpa [and.comm] using h.valid <|>
-    simp [h.index] }
+  simp [Stream.mul.ready_iff, and_comm, eq_comm],
 end
 
 lemma StreamExec.mul.ready.comm (a : StreamExec σ₁ ι α) (b : StreamExec σ₂ ι α) :
