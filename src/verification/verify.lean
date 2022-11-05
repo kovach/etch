@@ -660,7 +660,7 @@ def sum_vec (scratch : NameSpace) : BoundedStreamGen unit (Expr rr) :=
 contract (externSparseVec scratch)
 
 @[simp] lemma sum_vec_spec (scratch : NameSpace) (ctx : EContext) (hctx : externSparseVecInv ctx) :
-  StreamExec.eval (tr ctx (sum_vec scratch)) = finsupp.single () (ctx.heap.get (NameSpace.reserved∷Vars.vals : Ident rr)).sum :=
+  StreamExec.eval (tr ctx (sum_vec scratch)) = finsupp.single () (ctx.heap.get reserved∷ᵣvals).sum :=
 begin
   simp [sum_vec, *],
   -- TODO: Up to here should be automated -- this is resolved in this case by totality
@@ -668,6 +668,10 @@ begin
   rw list.zip_with_snd,
   simp [hctx],
 end
+
+lemma sum_vec_compile_spec (scratch : NameSpace) (ctx : EContext) (hctx : externSparseVecInv ctx) :
+  ((compile_scalar (sum_vec scratch)).eval ctx).store.get reserved∷ᵣoutput = (ctx.heap.get reserved∷ᵣvals).sum :=
+by { rw [compile_scalar_sound, sum_vec_spec _ _ hctx], simp, }
 
 
 

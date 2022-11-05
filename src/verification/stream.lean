@@ -113,22 +113,47 @@ lemma Stream.eval_invalid [add_zero_class α] {s : Stream σ ι α} {σ₀ : σ}
   s.eval_steps n σ₀ = 0 :=
 by cases n; simp [h]
 
-inductive Stream.bound_valid_aux : ℕ → σ → Stream σ ι α → Prop
-| start (n : ℕ) {σ₀ : σ} {s : Stream σ ι α} : ¬s.valid σ₀ → Stream.bound_valid_aux n σ₀ s
-| step {n : ℕ} {σ₀ : σ} {s : Stream σ ι α} : ∀ (h : s.valid σ₀), Stream.bound_valid_aux n (s.next σ₀ h) s → Stream.bound_valid_aux (n + 1) σ₀ s
+inductive Stream.bound_valid : ℕ → σ → Stream σ ι α → Prop
+| start (n : ℕ) {σ₀ : σ} {s : Stream σ ι α} : ¬s.valid σ₀ → Stream.bound_valid n σ₀ s
+| step {n : ℕ} {σ₀ : σ} {s : Stream σ ι α} : ∀ (h : s.valid σ₀), Stream.bound_valid n (s.next σ₀ h) s → Stream.bound_valid (n + 1) σ₀ s
 
-open Stream.bound_valid_aux (start step)
+open Stream.bound_valid (start step)
 
-def StreamExec.bound_valid (s : StreamExec σ ι α) : Prop := s.stream.bound_valid_aux s.bound s.state
+def StreamExec.bound_valid (s : StreamExec σ ι α) : Prop := s.stream.bound_valid s.bound s.state
 
 -- lemma StreamExec.bound_delta {s : StreamExec σ ι α} (hs : ∀ (h : s.valid), )
 
-@[simp] lemma StreamExec.bound_valid_zero {s : Stream σ ι α} {σ₀ : σ} :
-  s.bound_valid_aux 0 σ₀ ↔ ¬s.valid σ₀ :=
+@[simp] lemma Stream.bound_valid_zero {s : Stream σ ι α} {σ₀ : σ} :
+  s.bound_valid 0 σ₀ ↔ ¬s.valid σ₀ :=
 ⟨λ h, by { cases h, assumption, }, λ h, start _ h⟩
 
-@[simp] lemma StreamExec.bound_valid_succ {s : Stream σ ι α} {n : ℕ} {σ₀ : σ} :
-  s.bound_valid_aux (n + 1) σ₀ ↔ (∀ (h : s.valid σ₀), s.bound_valid_aux n (s.next σ₀ h)) :=
+lemma Stream.bound_valid.mono {s : Stream σ ι α} {σ₀ : σ} {n m : ℕ} (h : s.bound_valid n σ₀) (n_le : n ≤ m) :
+  s.bound_valid m σ₀ :=
+begin
+  induction h with _ _ _ _ _ _ _ hv _ ih generalizing m,
+  { apply Stream.bound_valid.start, assumption, },
+  cases m, { cases nat.not_succ_le_zero _ n_le, },
+  exact Stream.bound_valid.step hv (ih (nat.le_of_succ_le_succ n_le)),
+end
+
+lemma Stream.eval_ge_bound [add_zero_class α] {s : Stream σ ι α} {σ₀ : σ} {n b : ℕ} (hb : s.bound_valid b σ₀) (hn : b ≤ n) :
+  s.eval_steps n σ₀ = s.eval_steps b σ₀ :=
+begin
+  induction hb with _ _ _ _ n' σ₀' s' hv _ ih generalizing n,
+  { simp [Stream.eval_invalid, *], },
+  cases n, { cases nat.not_succ_le_zero _ hn, },
+  simp [hv, ih (nat.le_of_succ_le_succ hn)],
+end
+
+lemma Stream.eval_min_bound [add_zero_class α] {s : Stream σ ι α} {σ₀ : σ} {n b : ℕ} (hb : s.bound_valid b σ₀) :
+  s.eval_steps (min b n) σ₀ = s.eval_steps n σ₀ :=
+by { rw min_def, split_ifs, { rw Stream.eval_ge_bound hb h, }, refl, }
+
+lemma Stream.valid.bound_pos {s : Stream σ ι α} {σ₀ : σ} (h : s.valid σ₀) :
+  ¬s.bound_valid 0 σ₀ := by simpa
+
+@[simp] lemma Stream.bound_valid_succ {s : Stream σ ι α} {n : ℕ} {σ₀ : σ} :
+  s.bound_valid (n + 1) σ₀ ↔ (∀ (h : s.valid σ₀), s.bound_valid n (s.next σ₀ h)) :=
 ⟨λ h, by { cases h, { intro, contradiction, }, intro, assumption, }, λ h, if H : s.valid σ₀ then step H (h H) else start _ H⟩
 
 def StreamExec.eval [add_zero_class α] (s : StreamExec σ ι α) : ι →₀ α :=

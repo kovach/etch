@@ -95,9 +95,15 @@ by { rw [← not_iff_not, eq_ff_eq_not_eq_tt, option.not_is_some, option.is_none
 lemma prod.lex.le_iff' {α β : Type} [has_lt α] [has_le β] {x y : α ×ₗ β} :
   x ≤ y ↔ x.1 < y.1 ∨ (x.1 = y.1 ∧ x.2 ≤ y.2) := by { simp only [has_le.le, prod.lex_def], }
 
+lemma prod.lex.lt_iff' {α β : Type} [has_lt α] [has_lt β] {x y : α ×ₗ β} :
+  x < y ↔ x.1 < y.1 ∨ (x.1 = y.1 ∧ x.2 < y.2) := by { simp only [has_lt.lt, prod.lex_def], }
+
 lemma prod.lex.fst_le_of_le {α β : Type} [preorder α] [preorder β] {x y : α ×ₗ β} (h : x ≤ y) :
   x.1 ≤ y.1 :=
 by { rw prod.lex.le_iff' at h, cases h, { exact h.le, }, { exact h.1.le, }, }
+
+@[simp, norm_cast] lemma prod.with_top.coe_inj {α : Type} (x y : α) : (x : with_top α) = y ↔ x = y :=
+option.some_inj
 
 end with_top
 
