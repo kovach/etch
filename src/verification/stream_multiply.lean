@@ -207,16 +207,16 @@ lemma invalid_succ_invalid : ¬ a.valid → ¬ a.succ.valid :=
 @[simp] lemma invalid_succ_eq : ¬ a.valid → a.succ.valid = ff :=
 λ h, begin simp [succ], split_ifs, simp [StreamExec.valid], simpa using h end
 
-lemma succ_bound_valid' {s : Stream σ ι α} {σ₀ : σ} {n : ℕ} (h : s.bound_valid_aux n σ₀)
-  (hv : s.valid σ₀) : s.bound_valid_aux (n - 1) (s.next σ₀ hv) :=
+lemma succ_bound_valid' {s : Stream σ ι α} {σ₀ : σ} {n : ℕ} (h : s.bound_valid n σ₀)
+  (hv : s.valid σ₀) : s.bound_valid (n - 1) (s.next σ₀ hv) :=
 by { induction h, { trivial, }, assumption, }
 
 lemma succ_bound_valid (h : a.bound_valid) : a.succ.bound_valid :=
 begin
-  simp [bound_valid] at *,
+  simp [StreamExec.bound_valid] at *,
   split_ifs with H,
   { exact succ_bound_valid' h H, },
-  { exact Stream.bound_valid_aux.start _ H, },
+  { exact Stream.bound_valid.start _ H, },
 end
 
 lemma lag.lt_iff_le_not_le : a ⊏ b ↔ (a ⊑ b ∧ ¬ b ⊑ a) := begin
@@ -235,7 +235,7 @@ begin
   have : a.valid := v.1,
   have : a.bound ≠ 0,
   { intro,
-    simpa [bound_valid, *] using ha },
+    simpa [StreamExec.bound_valid, *] using ha },
   obtain ⟨_, _⟩ := nat.exists_eq_succ_of_ne_zero this,
 
   simp [StreamExec.succ],
@@ -249,7 +249,7 @@ begin
   have : b.valid := v.2,
   have : ¬ a ⊑ b, { simp only [lag.lt_iff_le_not_le] at lt, simp [lt], },
   have : b.bound ≠ 0,
-  { intro, simpa [bound_valid, *] using hb },
+  { intro, simpa [StreamExec.bound_valid, *] using hb },
     obtain ⟨_, _⟩ := nat.exists_eq_succ_of_ne_zero this,
 
   simp [StreamExec.succ],
@@ -268,18 +268,18 @@ begin
   generalize hb : b.bound = n₂,
   induction n₁ with _ _ c d e f g h generalizing a n₂ b;
   induction n₂ with _ _ k l m n o p generalizing b,
-  { apply bound_valid_aux.start, simp [bound_valid, *] at * },
-  { apply bound_valid_aux.start, simp [bound_valid, *] at * },
-  { apply bound_valid_aux.start, simp [bound_valid, *] at * },
+  { apply bound_valid.start, simp [StreamExec.bound_valid, *] at * },
+  { apply bound_valid.start, simp [StreamExec.bound_valid, *] at * },
+  { apply bound_valid.start, simp [StreamExec.bound_valid, *] at * },
   {
     cases em a.valid; cases em b.valid,
-    { simp only [StreamExec.mul_bound, bound_valid, *],
+    { simp only [StreamExec.mul_bound, StreamExec.bound_valid, *],
       have : (a ⋆ b).valid, { simp, split; assumption },
-      apply bound_valid_aux.step this,
+      apply bound_valid.step this,
       simp only [delta_succ],
       cases em (a ⊑ b) with ale nale,
       { rw le_succ_left,
-        change bound_valid_aux (n₁_n.succ + n₂_n) (a.succ ⋆ b),
+        change bound_valid (n₁_n.succ + n₂_n) (a.succ ⋆ b),
         rw [nat.succ_add],
         have ha' : a.succ.bound = n₁_n, { simp [succ, *] },
         rw [← ha', ← nat.add_succ, ← hb],
@@ -302,9 +302,9 @@ begin
         { assumption }
       },
     },
-    { apply bound_valid_aux.start, simp [StreamExec.valid, *] at * },
-    { apply bound_valid_aux.start, simp [StreamExec.valid, *] at * },
-    { apply bound_valid_aux.start, simp [StreamExec.valid, *] at * } }
+    { apply bound_valid.start, simp [StreamExec.valid, *] at * },
+    { apply bound_valid.start, simp [StreamExec.valid, *] at * },
+    { apply bound_valid.start, simp [StreamExec.valid, *] at * } }
 end
 
 lemma prod_le_iff {α₁ β₁} [has_lt α₁] [has_le β₁] (a b : α₁ ×ₗ β₁) :

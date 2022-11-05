@@ -121,7 +121,7 @@ lemma StreamExec.add_spec (a : StreamExec σ₁ ι α) (b : StreamExec σ₂ ι 
 begin
   simp only [StreamExec.eval],
   obtain ⟨k₁, k₂, hk₁, hk₂, H, he⟩ := Stream.add_spec a.stream b.stream _ _ (a.bound + b.bound) ha hb rfl.le,
-  obtain ⟨rfl, rfl⟩ : k₁ = a.bound ∧ k₂ = b.bound, { split; zify at H hk₁ hk₂ ⊢; linarith only [hk₁, hk₂, H], }, 
+  obtain ⟨rfl, rfl⟩ : k₁ = a.bound ∧ k₂ = b.bound, { clear he, split; zify at *; linarith, }, 
   exact he,
 end
 
