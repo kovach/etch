@@ -47,6 +47,9 @@ by cases x; simp
 @[simp] lemma option.map_is_some {α β} (x : option α) (y : α → β) :
   (y <$> x).is_some = x.is_some := by cases x; simp
 
+@[simp] lemma option.not_is_some' {α} (x : option α) : !x.is_some = x.is_none :=
+by { cases x; simp, }
+
 def option.guard_prop {α} (p : Prop) [decidable p] (x : α) : option α :=
   if p then some x else none
 @[simp] lemma option.guard_prop_is_some {α} {p : Prop} [decidable p] {x : α} :
@@ -79,6 +82,30 @@ lemma list.zip_with_snd {α β} {l₁ : list α} {l₂ : list β} (hl : l₂.len
   list.zip_with (λ a b, b) l₁ l₂ = l₂ :=
 by { erw [← list.map_uncurry_zip_eq_zip_with, list.map_snd_zip], exact hl, }
 
+@[simp] lemma le_ff_iff {b : bool} : b ≤ ff ↔ b = ff :=
+by cases b; simp
+
+section with_top
+variables {ι : Type} [partial_order ι]
+
+@[simp] lemma with_top.is_some_iff_lt_top {x : with_top ι} :
+  x.is_some ↔ x < ⊤ :=
+by { rw [← not_iff_not, eq_ff_eq_not_eq_tt, option.not_is_some, option.is_none_iff_eq_none, lt_top_iff_ne_top, ne, not_not], refl, }
+
+lemma prod.lex.le_iff' {α β : Type} [has_lt α] [has_le β] {x y : α ×ₗ β} :
+  x ≤ y ↔ x.1 < y.1 ∨ (x.1 = y.1 ∧ x.2 ≤ y.2) := by { simp only [has_le.le, prod.lex_def], }
+
+lemma prod.lex.lt_iff' {α β : Type} [has_lt α] [has_lt β] {x y : α ×ₗ β} :
+  x < y ↔ x.1 < y.1 ∨ (x.1 = y.1 ∧ x.2 < y.2) := by { simp only [has_lt.lt, prod.lex_def], }
+
+lemma prod.lex.fst_le_of_le {α β : Type} [preorder α] [preorder β] {x y : α ×ₗ β} (h : x ≤ y) :
+  x.1 ≤ y.1 :=
+by { rw prod.lex.le_iff' at h, cases h, { exact h.le, }, { exact h.1.le, }, }
+
+@[simp, norm_cast] lemma prod.with_top.coe_inj {α : Type} (x y : α) : (x : with_top α) = y ↔ x = y :=
+option.some_inj
+
+end with_top
 
 variables {ι α : Type}
 

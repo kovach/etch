@@ -133,8 +133,8 @@ function.update ctx b (function.update (@ctx b) x v)
 @[simp] lemma update_sound (ctx : Context val_type) {b : Types} (x : Ident b) (v : val_type b) :
   (ctx.update x v).get x = v := by simp [update, get]
 
-@[simp] lemma update_frame (ctx : Context val_type) {b : Types} (x y : Ident b) (vx vy : val_type b)
-  (neq : y ≠ x) (hy : ctx.get y = vy) : (ctx.update x vx).get y = vy := by simpa [get, update, function.update, neq]
+@[simp] lemma update_frame (ctx : Context val_type) {b : Types} (x y : Ident b) (vx : val_type b)
+  (neq : y ≠ x) : (ctx.update x vx).get y = ctx.get y := by simp [get, update, function.update, neq]
 
 /- TODO: Add simp lemmas -/
 
@@ -170,17 +170,22 @@ def iterate_while {α : Type*} (f : α → option α) (cond : α → option bool
 | 0 x := none
 | (n+1) x := (cond x).bind (λ b, if b then (f x).bind (iterate_while n) else some x)
 
-theorem iterate_while_eq_of_invariant {α : Type*} (inv : α → ℕ → Prop)
-  (f : α → option α) (cond : α → option bool) (n : ℕ) (x : α)
-  (hcond : ∀ x i, inv x i → (cond x).is_some)
-  (h₀ : inv x 0) (hind : ∀ x i, cond x = some tt → inv x i → ∃ x' ∈ f x, inv x' (i + 1))
-  (hₜ : ∀ {x}, inv x n → cond x = some ff) :
-  ∃ r ∈ iterate_while f cond (n + 1) x, inv r n :=
-begin
-  induction n with n ih generalizing x,
-  { simpa [hₜ h₀], },
-  simp,
-end
+-- theorem iterate_while_tr {α β : Type*} {f₁ : α → option α} {cond₁ : α → option bool} {n : ℕ} {x : α}
+--   (tr : α → β) (f₂ : β → option β) (cond₂ : β → option bool) (y : β)
+--   (hf : ∀ x, )
+
+-- theorem iterate_while_eq_of_invariant {α : Type*} (inv : α → ℕ → Prop)
+--   (f : α → option α) (cond : α → option bool) (n : ℕ) (x : α)
+--   (hcond : ∀ {x i}, inv x i → (cond x).is_some)
+--   (h₀ : inv x 0) (hind : ∀ x i, cond x = some tt → inv x i → ∃ x' ∈ f x, inv x' (i + 1))
+--   (hₜ : ∀ {x}, inv x n → cond x = some ff) :
+--   ∃ r ∈ iterate_while f cond (n + 1) x, inv r n :=
+-- begin
+--   induction n with n ih generalizing x,
+--   { simpa [hₜ h₀], },
+--   obtain ⟨_|_, hc⟩ := option.is_some_iff_exists.mp (hcond h₀),
+--   { simp, }
+-- end
 
 end iterate
 
