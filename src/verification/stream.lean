@@ -1,6 +1,9 @@
 import data.finsupp.basic
 import control.bifunctor
 import finsupp_lemmas
+import algebra.big_operators.fin
+import data.nat.succ_pred
+import tactic.linarith
 
 open_locale classical
 noncomputable theory
@@ -211,6 +214,10 @@ if h : s.valid x then s.next x h else x
   s.index' x < ⊤ ↔ s.valid x :=
 by { rw Stream.index', split_ifs; simp [h], exact with_top.coe_lt_top _, }
 
+lemma Stream.eval₀_eq_single [has_zero α] (s : Stream σ ι α) (x : σ) (h : s.valid x) :
+  s.eval₀ x h = finsupp.single (s.index _ h) (s.value' x) :=
+by { rw [Stream.eval₀, Stream.value'], split_ifs with hr; simp, }
+
 lemma Stream.index'_val {s : Stream σ ι α} {x : σ} (h : s.valid x) : s.index' x = s.index x h := dif_pos h
 
 lemma Stream.index'_invalid {s : Stream σ ι α} {x : σ} (h : ¬s.valid x) : s.index' x = ⊤ := dif_neg h
@@ -245,12 +252,21 @@ end defs
 
 open_locale big_operators
 
--- lemma StreamExec.spec_of_iterate [add_comm_monoid α] {n : σ → σ} (s : StreamExec σ ι α) (hn : ∀ (x h), s.stream.next x h = n x)
---   (h : ∀ i < s.bound, s.stream.valid (n^[i] s.state)) :
---   s.eval = (finsupp.indicator (@finset.univ (fin s.bound) _) (λ i _, s.stream.value' (n^[i] s.state))).map_domain _
+lemma Stream.spec_of_iterate [add_comm_monoid α] (s : Stream σ ι α)
+  (B : ℕ) (σ₀ : σ) (h : ∀ i < B, s.valid (s.next'^[i] σ₀)) :
+  s.eval_steps B σ₀ = ∑ i : fin B, finsupp.single (s.index (s.next'^[i] σ₀) (h i i.prop)) (s.value' (s.next'^[i] σ₀)) :=
+begin
+  induction B with B ih generalizing σ₀,
+  { simp, },
+  have hv : s.valid σ₀, { exact h 0 (nat.zero_lt_succ _), },
+  specialize ih (s.next _ hv) (λ i hi, by simpa [Stream.next'_val hv] using h (i + 1) (nat.succ_lt_succ hi)),
+  simp [hv, fin.sum_univ_succ, ih, Stream.eval₀_eq_single _ _ hv, Stream.next'_val hv],
+  rw add_comm,
+end
 
 namespace primitives
 
+@[simps]
 def externSparseVec_stream {len : ℕ} (inds : vector ι len) (vals : vector α len) :
   Stream ℕ ι α :=
 { valid := λ i, i < len,
@@ -259,25 +275,40 @@ def externSparseVec_stream {len : ℕ} (inds : vector ι len) (vals : vector α 
   index := λ i hi, inds.nth ⟨i, hi⟩,
   value := λ i hi, vals.nth ⟨i, hi⟩ }
 
+@[simp] lemma externSparseVec_stream_value' [has_zero α] {len : ℕ} (inds : vector ι len) (vals : vector α len) (i : fin len) :
+  (externSparseVec_stream inds vals).value' i = vals.nth i := 
+by { rw Stream.value'_val, swap, { exact i.prop, }, simp, }
+
+@[simp] lemma externSparseVec_next'_iterate {len : ℕ} (inds : vector ι len) (vals : vector α len) (i : ℕ) :
+  (externSparseVec_stream inds vals).next'^[i] 0 = min len i :=
+begin
+  induction i with i ih, { simp [externSparseVec_stream], },
+  rw [function.iterate_succ_apply', ih],
+  simp [Stream.next', min_def, nat.succ_eq_add_one], clear ih,
+  split_ifs; linarith,
+end
+
+@[simps]
 def externSparseVec {len : ℕ} (inds : vector ι len) (vals : vector α len) :
   StreamExec ℕ ι α :=
 { stream := externSparseVec_stream inds vals,
   state := 0,
-  bound := inds.length }
+  bound := len }
 
--- lemma externSparseVec_stream.spec [add_comm_monoid α] {len : ℕ} (i : ℕ) (inds : vector ι len) (vals : vector α len) :
---   externSparseVec_stream.eval_steps (inds.length - i) ⟨i, inds, vals⟩ = (list.zip_with finsupp.single (inds.drop i) (vals.drop i)).sum :=
+lemma externSparseVec.spec [add_comm_monoid α] {len : ℕ} (inds : vector ι len) (vals : vector α len) :
+  (externSparseVec inds vals).eval = ∑ i : fin len, finsupp.single (inds.nth i) (vals.nth i) :=
+begin
+  rw [StreamExec.eval, Stream.spec_of_iterate], swap, { simp, },
+  dsimp, apply fintype.sum_congr,
+  intro i,
+  congr; { simp [min_eq_right i.prop.le], },
+end
+
+-- @[simp] lemma externSparseVec.spec [add_comm_monoid α] {len : ℕ} (inds : vector ι len) (vals : vector α len) :
+--   (externSparseVec inds vals).eval = (list.zip_with finsupp.single inds.to_list vals.to_list).sum :=
 -- begin
---   induction inds with hd tl ih generalizing i vals,
---   { simp, },
 --   sorry,
 -- end
-
-@[simp] lemma externSparseVec.spec [add_comm_monoid α] {len : ℕ} (inds : vector ι len) (vals : vector α len) :
-  (externSparseVec inds vals).eval = (list.zip_with finsupp.single inds.to_list vals.to_list).sum :=
-begin
-  sorry,
-end
 
 def range (n : ℕ) : Stream ℕ ℕ ℕ :=
 { next  := λ k _, k+1,
