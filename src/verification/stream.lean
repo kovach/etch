@@ -295,7 +295,7 @@ def externSparseVec {len : ℕ} (inds : vector ι len) (vals : vector α len) :
   state := 0,
   bound := len }
 
-lemma externSparseVec.spec [add_comm_monoid α] {len : ℕ} (inds : vector ι len) (vals : vector α len) :
+@[simp] lemma externSparseVec.spec [add_comm_monoid α] {len : ℕ} (inds : vector ι len) (vals : vector α len) :
   (externSparseVec inds vals).eval = ∑ i : fin len, finsupp.single (inds.nth i) (vals.nth i) :=
 begin
   rw [StreamExec.eval, Stream.spec_of_iterate], swap, { simp, },
@@ -303,12 +303,6 @@ begin
   intro i,
   congr; { simp [min_eq_right i.prop.le], },
 end
-
--- @[simp] lemma externSparseVec.spec [add_comm_monoid α] {len : ℕ} (inds : vector ι len) (vals : vector α len) :
---   (externSparseVec inds vals).eval = (list.zip_with finsupp.single inds.to_list vals.to_list).sum :=
--- begin
---   sorry,
--- end
 
 def range (n : ℕ) : Stream ℕ ℕ ℕ :=
 { next  := λ k _, k+1,

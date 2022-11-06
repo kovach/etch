@@ -581,9 +581,11 @@ def externSparseVec_tr (scratch : NameSpace) (hs : reserved ≠ scratch) (c : EC
   hbound := by simp [primitives.externSparseVec, externSparseVec, hc],
   preserves := by { apply preserves.unmodified, simpa [externSparseVec], } }
 
+open_locale big_operators
+
 @[simp] lemma externSparseVec_spec (scratch : NameSpace) (hs : reserved ≠ scratch) (c : EContext) (hc : externSparseVecCond c) :
-  StreamExec.eval (tr c (externSparseVec scratch)) = (list.zip_with finsupp.single (c.heap.get reserved∷ₙind₀) (c.heap.get reserved∷ᵣvals)).sum :=
-by simp [(externSparseVec_tr scratch hs c hc).eval_finsupp_eq]
+  StreamExec.eval (tr c (externSparseVec scratch)) = ∑ i : fin (c.store.get reserved∷ₙlen), finsupp.single ((c.heap.get reserved∷ₙind₀).nth_le i (by rw hc.1; exact i.prop)) ((c.heap.get reserved∷ᵣvals).nth_le i (by rw hc.2; exact i.prop))  :=
+by { simp [(externSparseVec_tr scratch hs c hc).eval_finsupp_eq, vector.nth_eq_nth_le], }
 
 end sparse_vectors
 
@@ -666,9 +668,8 @@ contract (externSparseVec scratch)
 begin
   simp [sum_vec, *],
   -- TODO: Up to here should be automated -- this is resolved in this case by totality
-  simp [← list.sum_hom, list.map_zip_with],
-  rw list.zip_with_snd,
-  simp [hctx.1, hctx.2],
+  rw [map_sum],
+  simp [finset.sum, multiset.map_nth_le hctx.2],
 end
 
 lemma sum_vec_compile_spec (scratch : NameSpace) (hs : reserved ≠ scratch) (ctx : EContext) (hctx : externSparseVecCond ctx) :
