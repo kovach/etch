@@ -297,9 +297,6 @@ by { simp [has_sup.sup, Expr.eval] }
   e.not.eval ctx = !(e.eval ctx) :=
 by { simp [Expr.not, Expr.eval] }
 
-@[simp] def EContext.is_length {b : Types} (ctx : EContext) (arr : Ident b) (len : Ident nn) : Prop :=
-(ctx.heap.get arr).length = ctx.store.get len
-
 end Expr
 
 parameter (R)
@@ -453,13 +450,28 @@ lemma tr_to_stream.hready {σ'} [TRAble ι ι'] [TRAble α β] {s : BoundedStrea
   {t : Stream σ' ι' β} {f : EContext → σ'} {ctx : EContext} (h : tr_to_stream s t f ctx)
   (hv : t.valid (f ctx)) : s.ready.eval ctx ↔ t.ready (f ctx) := h.hready' (h.hvalid.mpr hv) hv
 
+@[simp] def EContext.is_length {b : Types} (ctx : EContext) (arr : Ident b) (len : Ident nn) : Prop :=
+(ctx.heap.get arr).length = ctx.store.get len
+
 def preserves (next : Prog) (inv : EContext → Prop) : Prop :=
-∀ c, inv c → inv (next.eval c)
+∀ {c}, inv c → inv (next.eval c)
+
+@[mk_iff]
+structure EContext.unmodified (inv : NameSpace) (c₀ : EContext) (ctx : EContext) : Prop :=
+(h : ∀ {b : Types} (v : Vars), ctx.heap.get (inv∷v : Ident b) = c₀.heap.get inv∷v)
+(s : ∀ {b : Types} (v : Vars), ctx.store.get (inv∷v : Ident b) = c₀.store.get inv∷v)
+
+@[refl] lemma EContext.unmodified.rfl (inv : NameSpace) (c₀ : EContext) :
+  c₀.unmodified inv c₀ :=
+⟨λ _ v, rfl, λ _ v, rfl⟩
 
 section preserves
 variables {next : Prog} {ctx : EContext} {p₁ p₂ : EContext → Prop}
 lemma preserves.and (h₀ : preserves next p₁) (h₁ : preserves next p₂) : (preserves next (λ c, p₁ c ∧ p₂ c)) :=
 by { rw [preserves] at *, tauto, }
+
+lemma preserves.unmodified (c₀ : EContext) {inv : NameSpace} (h : inv ∉ next.frame.image (λ x : Σ b, Ident b, x.2.ns)) :
+  preserves next (c₀.unmodified inv) := sorry -- FOOTPRINT: nothing in `inv` is modified
 
 lemma preserves.is_length {b : Types} (v : Ident b) (e : Ident nn)  (h : (sigma.mk _ e) ∉ next.frame) :
   preserves next (λ c, c.is_length v e) := sorry -- FOOTPRINT: If `e` (length variable) is not modified, this is preserved 
@@ -544,44 +556,34 @@ section sparse_vectors
 open NameSpace (reserved) Vars (ind₀ vals len)
 
 @[mk_iff]
-structure externSparseVecInv (ctx : EContext) : Prop :=
-(inds_len' : ctx.is_length reserved∷ₙind₀ reserved∷ₙlen)
-(vals_len' : ctx.is_length reserved∷ᵣvals reserved∷ₙlen)
+structure externSparseVecCond (ctx : EContext) : Prop :=
+(inds_len : (ctx.heap.get reserved∷ₙind₀).length = ctx.store.get reserved∷ₙlen)
+(vals_len : (ctx.heap.get reserved∷ᵣvals).length = ctx.store.get reserved∷ₙlen)
 
--- Maybe bug? `higher_order` doesn't work with `↔`
--- attribute [higher_order] externSparseVecInv_iff 
-lemma externSparseVecInv_iff' : externSparseVecInv = 
-  (λ ctx, ctx.is_length reserved∷ₙind₀ reserved∷ₙlen ∧ ctx.is_length reserved∷ᵣvals reserved∷ₙlen) :=
-by { ext, rw externSparseVecInv_iff, }
+lemma externSparseVec_tr_to_stream (scratch : NameSpace) (c : EContext) {l : ℕ} (is : vector ℕ l) (vs : vector R l)
+  (hc₁ : c.heap.get reserved∷ₙind₀ = is.to_list) (hc₂ : c.heap.get reserved∷ᵣvals = vs.to_list) (hc₃ : c.store.get reserved∷ₙlen = l) :
+  tr_to_stream (externSparseVec scratch) (primitives.externSparseVec_stream is vs)
+    (λ ctx, ctx.store.get scratch∷ₙVars.i) c :=
+{ hvalid := by simp [externSparseVec, primitives.externSparseVec_stream, hc₁, hc₂, hc₃],
+  hready' := by simp [externSparseVec, primitives.externSparseVec_stream, hc₁, hc₂, hc₃],
+  hnext := by { intros, simp [externSparseVec, primitives.externSparseVec_stream, hc₁, hc₂, hc₃], },
+  hcurr := by { simp [externSparseVec, primitives.externSparseVec_stream, hc₁, hc₂, hc₃, vector.nth_eq_nth_le], intros, rw list.nth_le_nth, },
+  hval := by { simp [externSparseVec, primitives.externSparseVec_stream, hc₁, hc₂, hc₃, vector.nth_eq_nth_le], intros, rw list.nth_le_nth, } }
 
-@[simp] lemma externSparseVecInv.inds_len {c : EContext} (hc : externSparseVecInv c) :
-  (c.heap.get reserved∷ₙind₀).length = c.store.get reserved∷ₙlen := hc.inds_len'
-@[simp] lemma externSparseVecInv.vals_len {c : EContext} (hc : externSparseVecInv c) :
-  (c.heap.get reserved∷ᵣvals).length = c.store.get reserved∷ₙlen := hc.vals_len'
-
-lemma externSparseVec_tr_to_stream (scratch : NameSpace) (c : EContext) (hc : externSparseVecInv c) :
-  tr_to_stream (externSparseVec scratch) primitives.externSparseVec_stream 
-    (λ ctx, ⟨ctx.store.get scratch∷ₙVars.i, ctx.heap.get reserved∷ₙind₀, ctx.heap.get reserved∷ᵣvals⟩) c :=
-{ hvalid := by simp [externSparseVec, primitives.externSparseVec_stream, hc],
-  hready' := by simp [externSparseVec, primitives.externSparseVec_stream, hc],
-  hnext := by { intros, simp [externSparseVec, primitives.externSparseVec_stream, hc], },
-  hcurr := by { simp [externSparseVec, primitives.externSparseVec_stream, hc], intros, rw list.nth_le_nth, },
-  hval := by { simp [externSparseVec, primitives.externSparseVec_stream, hc], intros, rw list.nth_le_nth, } }
-
-def externSparseVec_tr (scratch : NameSpace) (c : EContext) 
-  (hc : externSparseVecInv c) :
-  tr_to (externSparseVec scratch) (primitives.externSparseVec (c.heap.get reserved∷ₙind₀) (c.heap.get reserved∷ᵣvals)) 
-    (λ ctx, ⟨ctx.store.get scratch∷ₙVars.i, ctx.heap.get reserved∷ₙind₀, ctx.heap.get reserved∷ᵣvals⟩) c :=
-{ inv := externSparseVecInv,
-  to_stream := λ c hc, externSparseVec_tr_to_stream _ c hc,
+def externSparseVec_tr (scratch : NameSpace) (hs : reserved ≠ scratch) (c : EContext) 
+  (hc : externSparseVecCond c) :
+  tr_to (externSparseVec scratch) (primitives.externSparseVec ⟨c.heap.get reserved∷ₙind₀, hc.inds_len⟩ ⟨c.heap.get reserved∷ᵣvals, hc.vals_len⟩) 
+    (λ ctx, ctx.store.get scratch∷ₙVars.i) c :=
+{ inv := c.unmodified reserved,
+  to_stream := λ c' hc', by apply externSparseVec_tr_to_stream scratch c'; simp [hc'.h, hc'.s],
   hinit := by simp [primitives.externSparseVec, externSparseVec],
-  init_inv := by split; simp [primitives.externSparseVec, externSparseVec, hc],
+  init_inv := by { apply preserves.unmodified, { simpa [externSparseVec], }, refl, },
   hbound := by simp [primitives.externSparseVec, externSparseVec, hc],
-  preserves := by { rw externSparseVecInv_iff', apply preserves.and; apply preserves.is_length; simp [externSparseVec], } }
+  preserves := by { apply preserves.unmodified, simpa [externSparseVec], } }
 
-@[simp] lemma externSparseVec_spec (scratch : NameSpace) (c : EContext) (hc : externSparseVecInv c) :
+@[simp] lemma externSparseVec_spec (scratch : NameSpace) (hs : reserved ≠ scratch) (c : EContext) (hc : externSparseVecCond c) :
   StreamExec.eval (tr c (externSparseVec scratch)) = (list.zip_with finsupp.single (c.heap.get reserved∷ₙind₀) (c.heap.get reserved∷ᵣvals)).sum :=
-by simp [(externSparseVec_tr scratch c hc).eval_finsupp_eq]
+by simp [(externSparseVec_tr scratch hs c hc).eval_finsupp_eq]
 
 end sparse_vectors
 
@@ -659,19 +661,19 @@ parameters [add_comm_monoid R] [has_one R] [has_mul R]
 def sum_vec (scratch : NameSpace) : BoundedStreamGen unit (Expr rr) :=
 contract (externSparseVec scratch)
 
-@[simp] lemma sum_vec_spec (scratch : NameSpace) (ctx : EContext) (hctx : externSparseVecInv ctx) :
+@[simp] lemma sum_vec_spec (scratch : NameSpace) (hs : reserved ≠ scratch) (ctx : EContext) (hctx : externSparseVecCond ctx) :
   StreamExec.eval (tr ctx (sum_vec scratch)) = finsupp.single () (ctx.heap.get reserved∷ᵣvals).sum :=
 begin
   simp [sum_vec, *],
   -- TODO: Up to here should be automated -- this is resolved in this case by totality
   simp [← list.sum_hom, list.map_zip_with],
   rw list.zip_with_snd,
-  simp [hctx],
+  simp [hctx.1, hctx.2],
 end
 
-lemma sum_vec_compile_spec (scratch : NameSpace) (ctx : EContext) (hctx : externSparseVecInv ctx) :
+lemma sum_vec_compile_spec (scratch : NameSpace) (hs : reserved ≠ scratch) (ctx : EContext) (hctx : externSparseVecCond ctx) :
   ((compile_scalar (sum_vec scratch)).eval ctx).store.get reserved∷ᵣoutput = (ctx.heap.get reserved∷ᵣvals).sum :=
-by { rw [compile_scalar_sound, sum_vec_spec _ _ hctx], simp, }
+by { rw [compile_scalar_sound, sum_vec_spec _ hs _ hctx], simp, }
 
 
 

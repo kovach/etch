@@ -244,29 +244,30 @@ open_locale big_operators
 
 namespace primitives
 
-def externSparseVec_stream : Stream (ℕ × (list ι) × (list α)) ι α :=
-{ valid := λ ⟨i, inds, vals⟩, i < inds.length ∧ i < vals.length,
-  ready := λ ⟨i, _, vals⟩, i < vals.length,
-  next := λ ⟨i, inds, vals⟩ _, ⟨i + 1, inds, vals⟩,
-  index := λ ⟨i , inds, vals⟩ hi, inds.nth_le i hi.1,
-  value := λ ⟨i, inds, vals⟩ hi, vals.nth_le i hi }
+def externSparseVec_stream {len : ℕ} (inds : vector ι len) (vals : vector α len) :
+  Stream ℕ ι α :=
+{ valid := λ i, i < len,
+  ready := λ i, i < len,
+  next := λ i hi, i + 1,
+  index := λ i hi, inds.nth ⟨i, hi⟩,
+  value := λ i hi, vals.nth ⟨i, hi⟩ }
 
-def externSparseVec (inds : list ι) (vals : list α) :
-  StreamExec (ℕ × (list ι) × (list α)) ι α :=
-{ stream := externSparseVec_stream,
-  state := ⟨0, inds, vals⟩,
+def externSparseVec {len : ℕ} (inds : vector ι len) (vals : vector α len) :
+  StreamExec ℕ ι α :=
+{ stream := externSparseVec_stream inds vals,
+  state := 0,
   bound := inds.length }
 
-lemma externSparseVec_stream.spec [add_comm_monoid α] (i : ℕ) (inds : list ι) (vals : list α) :
-  externSparseVec_stream.eval_steps (inds.length - i) ⟨i, inds, vals⟩ = (list.zip_with finsupp.single (inds.drop i) (vals.drop i)).sum :=
-begin
-  induction inds with hd tl ih generalizing i vals,
-  { simp, },
-  sorry,
-end
+-- lemma externSparseVec_stream.spec [add_comm_monoid α] {len : ℕ} (i : ℕ) (inds : vector ι len) (vals : vector α len) :
+--   externSparseVec_stream.eval_steps (inds.length - i) ⟨i, inds, vals⟩ = (list.zip_with finsupp.single (inds.drop i) (vals.drop i)).sum :=
+-- begin
+--   induction inds with hd tl ih generalizing i vals,
+--   { simp, },
+--   sorry,
+-- end
 
-@[simp] lemma externSparseVec.spec [add_comm_monoid α] (inds : list ι) (vals : list α) :
-  (externSparseVec inds vals).eval = (list.zip_with finsupp.single inds vals).sum :=
+@[simp] lemma externSparseVec.spec [add_comm_monoid α] {len : ℕ} (inds : vector ι len) (vals : vector α len) :
+  (externSparseVec inds vals).eval = (list.zip_with finsupp.single inds.to_list vals.to_list).sum :=
 begin
   sorry,
 end
