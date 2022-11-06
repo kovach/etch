@@ -11,6 +11,7 @@ variables {σ σ₁ σ₂ ι α β : Type} [linear_order ι]
 @[reducible]
 def stream_order (ι : Type) : Type := with_top ι ×ₗ bool
 
+@[simps]
 def Stream.to_order (s : Stream σ ι α) (x : σ) : stream_order ι :=
 ⟨s.index' x, s.ready x⟩
 
@@ -23,10 +24,9 @@ lemma valid_of_le_or {a : Stream σ₁ ι α} {b : Stream σ₂ ι α} {x : σ�
 (or_iff_left_of_imp (valid_of_le_valid h')).mp h
 
 def Stream.monotonic (q : Stream σ ι α) : Prop :=
-∀ {r} (h : q.valid r), (q.to_order r) ≤ (q.to_order (q.next r h))
+∀ {r} (h : q.valid r), q.index' r ≤ q.index' (q.next r h)
 
 def Stream.reduced (q : Stream σ ι α) : Prop :=
-∀ {s t} (hs : q.valid s) (ht : q.valid t), q.ready s → q.ready t → q.index s hs = q.index t ht → s = t
-
+∀ {r} (h : q.valid r) (h' : q.ready r), q.index' r ≠ q.index' (q.next r h)
 
 

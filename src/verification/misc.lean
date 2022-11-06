@@ -85,6 +85,9 @@ by { erw [← list.map_uncurry_zip_eq_zip_with, list.map_snd_zip], exact hl, }
 @[simp] lemma le_ff_iff {b : bool} : b ≤ ff ↔ b = ff :=
 by cases b; simp
 
+lemma ne_min_of_ne_and_ne {ι : Type} [linear_order ι] {a x y : ι} (hx : a ≠ x) (hy : a ≠ y) :
+  a ≠ min x y := by cases min_choice x y with h; rw h; assumption
+
 section with_top
 variables {ι : Type} [partial_order ι]
 
@@ -104,6 +107,10 @@ lemma prod.lex.lt_iff' {α β : Type} [has_lt α] [has_lt β] {x y : α ×ₗ β
 
 lemma prod.lex.fst_le_of_le {α β : Type} [preorder α] [preorder β] {x y : α ×ₗ β} (h : x ≤ y) : x.1 ≤ y.1 :=
 by { rw prod.lex.le_iff' at h, cases h, { exact h.le, }, { exact h.1.le, }, }
+
+lemma prod.lex.fst_lt_of_lt_of_le {α β : Type} [preorder α] [partial_order β] {x y : α ×ₗ β}
+  (h : x < y) (h' : y.2 ≤ x.2) : x.1 < y.1 :=
+by { rw prod.lex.lt_iff' at h, cases h, { exact h, }, cases h.2.not_le h', }
 
 @[simp, norm_cast] lemma prod.with_top.coe_inj {α : Type} (x y : α) : (x : with_top α) = y ↔ x = y :=
 option.some_inj
