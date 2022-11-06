@@ -67,10 +67,15 @@ def cube_lvl (d₁ d₂ d₃ : E ℕ):= 0 &
   (with_values (dense_index d₃ "i3") $ dense_vl "values")
 def sparse_vec : lvl ℕ (MemLoc α) := ⟨("size" : Var ℕ), (0 : E ℕ)⟩ &
   (with_values (sparse_index ("A1_crd" : Var ℕ)) (dense_vl "A_vals"))
-def dcsr (l : String) : lvl ℕ (lvl ℕ (MemLoc α)) := (interval_vl $ l ++ "1_pos").value 0 &
+def dcsr (l : String) : lvl ℕ (lvl ℕ (MemLoc α)) :=
+  (interval_vl $ l ++ "1_pos").value 0 &
   (with_values (sparse_index (l ++ "1_crd" : Var ℕ)) (interval_vl $ l ++ "2_pos")) ⊚
   (with_values (sparse_index (l ++ "2_crd" : Var ℕ)) (dense_vl $ l ++ "_vals"))
 def csr_mat : lvl ℕ (lvl ℕ (MemLoc α)) := 0 &
   (with_values (dense_index "dim" "i1") (interval_vl "B2_pos")) ⊚
   (with_values (sparse_index "B2_crd") (dense_vl "B_vals"))
 
+--todo
+def trieType : ℕ → Type _
+| 0 => lvl ℕ (MemLoc α)
+| n+1 => lvl ℕ (trieType n)

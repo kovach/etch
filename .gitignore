@@ -6,3 +6,4 @@ junk/
 out*.cpp
 *.asm
 TAGS
+*temp*

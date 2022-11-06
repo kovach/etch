@@ -151,10 +151,6 @@ instance [Tagged α] [OfNat α (nat_lit 0)] : OfNat (E α) (nat_lit 0) := ⟨ E.
 instance [Tagged α] [OfNat α (nat_lit 1)] : OfNat (E α) (nat_lit 1) := ⟨ E.call O.one ![] ⟩
 instance : OfNat (E ℕ) n := ⟨ .intLit n ⟩
 
---def zero [OfNat α (nat_lit 0)] : α := 0
---def one [OfNat α 1] : α := 1
---#check (zero : E Bool)
-
 def E.compile : E α → Expr
 | @call _ _ op args => Expr.call op.name $ List.ofFin λ i => E.compile (args i)
 | access base i => Expr.index (Expr.var base.toString) [i.compile]
@@ -227,21 +223,11 @@ def Var.expr (v : Var α) : E α := E.var v
 
 instance : Coe (Var α) (E α) := ⟨E.var⟩
 
-structure S' (ι α : Type _) where
-  σ : Type _
-  skip : ∀ ι, (σ → ι) → σ → ι → σ
-  bound : σ → ι
-  value : σ → α
-
 -- todo, skip is tricky?
 class Bifunctor (F : Type u₀ → Type u₁ → Type u₂) :=
 (bimap : {α α' β β' : Type _} → (α → α') → (β → β') → F α β → F α' β')
 
-instance : Bifunctor S' where
-  bimap := λ f g s => { s with bound := f ∘ s.bound, value := g ∘ s.value }
-
-instance : Functor (S ι) where
-  map := λ f s => {s with value := f s.value }
+instance : Functor (S ι) where map := λ f s => {s with value := f s.value }
 
 def Var.store_var (v : Var α) := P.store_var v
 
@@ -262,6 +248,18 @@ def S.repl (pos : Var ℕ) (size : E ℕ) (v : α) : S ℕ α where
   bound := pos.expr
   valid := pos.expr << size
   init := pos.store_var 0
+
+-- todo: use instead of zero
+--class Bot (α : Type _) := (bot : α)
+--notation "⊥"  => Bot.bot
+def S.repl' [Zero ι] (last : Var ι) (v : α) : S ι α where
+  value := v
+  succ := .skip
+  ready := 1
+  skip := λ i => .store_var last i
+  bound := last.expr
+  valid := 1
+  init := last.store_var 0
 
 def simpleSkip (pos : Var ℕ) (is : Var ι) (max_pos : E ℕ) (tgt : E ι) :=
   .store_var "temp" tgt;;
@@ -286,17 +284,7 @@ tgt.store_var i;;
       ((.store_var not_done 0);; .store_var lo m))) ;;
   .store_var pos lo
 
-def S.interval (is : Var ι) (pos : Var ℕ) (lower upper : E ℕ) : S ι (E ℕ) where
-  value := pos.expr
-  succ := pos.incr
-  ready := 1
-  skip  := λ i => .store_var "temp" i;;
-                  .while ((pos.expr << upper) * (.access is pos << "temp")) pos.incr
-  bound := .access is pos.expr
-  valid := pos.expr << upper
-  init := pos.store_var lower
-
-def S.interval_simp (is : Var ι) (pos : Var ℕ) (lower upper : E ℕ) : S ι (E ℕ) where
+def S.interval_step (is : Var ι) (pos : Var ℕ) (lower upper : E ℕ) : S ι (E ℕ) where
   value := pos.expr
   succ := pos.incr
   ready := 1
@@ -340,6 +328,11 @@ def csr.of (name : String) (n : ℕ) (ι := ℕ) : csr ι ℕ :=
   { i := field "_crd", v := field "_pos", var := field "_i" }
 
 def csr.level : csr ι ℕ → E ℕ → S ι (E ℕ) := λ csr loc =>
-S.interval csr.i csr.var (.access csr.v loc) (csr.v.access (loc+1))
+S.interval_search csr.i csr.var (.access csr.v loc) (csr.v.access (loc+1))
 def S.level   : csr ι ℕ → S ι' (E ℕ) → S ι' (S ι (E ℕ)) := Functor.map ∘ csr.level
 def S.leaf    :   Var α → S ι (E ℕ) → S ι (E α)         := Functor.map ∘ E.access
+def S.leaf'   :   Var α → E ℕ → E α         := E.access
+
+def Contraction (α : Type _) := Σ ι, S ι α
+instance : Functor Contraction where map := λ f ⟨ι, v⟩ => ⟨ι, f <$> v⟩
+def S.contract (s : S ι α) : Contraction α := ⟨_, s⟩
