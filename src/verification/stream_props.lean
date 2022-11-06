@@ -24,9 +24,17 @@ lemma valid_of_le_or {a : Stream σ₁ ι α} {b : Stream σ₂ ι α} {x : σ�
 (or_iff_left_of_imp (valid_of_le_valid h')).mp h
 
 def Stream.monotonic (q : Stream σ ι α) : Prop :=
-∀ {r} (h : q.valid r), q.index' r ≤ q.index' (q.next r h)
+∀ ⦃r⦄ (h : q.valid r), q.index' r ≤ q.index' (q.next r h)
 
 def Stream.reduced (q : Stream σ ι α) : Prop :=
-∀ {r} (h : q.valid r) (h' : q.ready r), q.index' r ≠ q.index' (q.next r h)
+∀ ⦃r⦄ (h : q.valid r) (h' : q.ready r), q.index' r ≠ q.index' (q.next r h)
 
+class Stream.simple (q : Stream σ ι α) : Prop :=
+(monotonic : q.monotonic)
+(reduced : q.reduced)
 
+lemma Stream.is_monotonic (q : Stream σ ι α) [q.simple] : Stream.monotonic q :=
+‹q.simple›.monotonic
+
+lemma Stream.is_reduced (q : Stream σ ι α) [q.simple] : Stream.reduced q :=
+‹q.simple›.reduced
