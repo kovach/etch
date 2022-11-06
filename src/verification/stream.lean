@@ -211,28 +211,35 @@ if h : s.valid x then s.next x h else x
   s.index' x < ⊤ ↔ s.valid x :=
 by { rw Stream.index', split_ifs; simp [h], exact with_top.coe_lt_top _, }
 
-lemma Stream.index'_val {s : Stream σ ι α} {x : σ} (h : s.valid x) :
-  s.index' x = s.index x h := by simp [Stream.index', h]
+lemma Stream.index'_val {s : Stream σ ι α} {x : σ} (h : s.valid x) : s.index' x = s.index x h := dif_pos h
 
-lemma Stream.value'_val [has_zero α] {s : Stream σ ι α} {x : σ} (h : s.ready x) :
-  s.value' x = s.value x h := by simp [Stream.value', h]
+lemma Stream.index'_invalid {s : Stream σ ι α} {x : σ} (h : ¬s.valid x) : s.index' x = ⊤ := dif_neg h
 
-@[simp] lemma Stream.next'_val {s : Stream σ ι α} {x : σ} (hx) :
-  s.next' x = s.next x hx := by simp [Stream.next', hx]
+lemma Stream.value'_val [has_zero α] {s : Stream σ ι α} {x : σ} (h : s.ready x) : s.value' x = s.value x h := dif_pos h
 
-@[simp] lemma Stream.next'_val_invalid {s : Stream σ ι α} {x : σ} (hx : ¬s.valid x) :
-  s.next' x = x := by simp [Stream.next', hx]
+lemma Stream.next'_val {s : Stream σ ι α} {x : σ} (hx) : s.next' x = s.next x hx := dif_pos hx
 
-@[simp] lemma Stream.next'_val_invalid' {s : Stream σ ι α} {x : σ} (hx : ¬s.valid x) (n : ℕ) :
+lemma Stream.next'_val_invalid {s : Stream σ ι α} {x : σ} (hx : ¬s.valid x) : s.next' x = x := dif_neg hx
+
+lemma Stream.next'_val_invalid' {s : Stream σ ι α} {x : σ} (hx : ¬s.valid x) (n : ℕ) :
   s.next'^[n] x = x := function.iterate_fixed (Stream.next'_val_invalid hx) n
 
 lemma bound_valid_iff_next'_iterate {s : Stream σ ι α} {x : σ} {n : ℕ} :
   s.bound_valid n x ↔ ¬s.valid (s.next'^[n] x) :=
+by { induction n with n ih generalizing x, { simp, }, by_cases H : s.valid x; simp [ih, H, Stream.next'_val, Stream.next'_val_invalid, Stream.next'_val_invalid'], }
+
+lemma Stream.next'_ge_bound {s : Stream σ ι α} {σ₀ : σ} {n b : ℕ} (hb : s.bound_valid b σ₀) (hn : b ≤ n) :
+  (s.next'^[n] σ₀) = (s.next'^[b] σ₀) :=
 begin
-  induction n with n ih generalizing x,
-  { simp, },
-  by_cases H : s.valid x; simp [ih, H],
+  obtain ⟨k, rfl⟩ := nat.exists_eq_add_of_le hn,
+  rw add_comm b k,
+  rw bound_valid_iff_next'_iterate at hb,
+  simp [function.iterate_add_apply, Stream.next'_val_invalid' hb],
 end
+
+lemma Stream.next'_min_bound {s : Stream σ ι α} {σ₀ : σ} {n b : ℕ} (hb : s.bound_valid b σ₀) :
+  (s.next'^[min b n] σ₀) = (s.next'^[n] σ₀) :=
+by { rw min_def, split_ifs, { rw Stream.next'_ge_bound hb h, }, refl, }
 
 end defs
 

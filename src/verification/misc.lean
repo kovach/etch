@@ -95,6 +95,10 @@ by { rw [← not_iff_not, eq_ff_eq_not_eq_tt, option.not_is_some, option.is_none
 lemma prod.lex.le_iff' {α β : Type} [has_lt α] [has_le β] {x y : α ×ₗ β} :
   x ≤ y ↔ x.1 < y.1 ∨ (x.1 = y.1 ∧ x.2 ≤ y.2) := prod.lex_def _ _
 
+lemma prod.lex.le_iff'' {α β : Type} [partial_order α] [preorder β] {x y : α ×ₗ β} :
+  x ≤ y ↔ x.1 ≤ y.1 ∧ (x.1 = y.1 → x.2 ≤ y.2) :=
+by { rw [prod.lex.le_iff', le_iff_lt_or_eq], have := @ne_of_lt _ _ x.1 y.1, tauto!, }
+
 lemma prod.lex.lt_iff' {α β : Type} [has_lt α] [has_lt β] {x y : α ×ₗ β} :
   x < y ↔ x.1 < y.1 ∨ (x.1 = y.1 ∧ x.2 < y.2) := prod.lex_def _ _
 
