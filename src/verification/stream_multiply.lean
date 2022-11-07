@@ -12,7 +12,7 @@ variables {σ₁ σ₂ α ι : Type}
 [non_unital_non_assoc_semiring α]
 
 @[mk_iff]
-structure Stream.mul.ready (a : Stream σ₁ ι α) (b : Stream σ₂ ι α) (s : σ₁ × σ₂) : Prop :=
+structure Stream.mul.ready {σ₁ σ₂ α ι : Type} [linear_order ι] [has_mul α] (a : Stream σ₁ ι α) (b : Stream σ₂ ι α) (s : σ₁ × σ₂) : Prop :=
 (v₁ : a.valid s.1)
 (v₂ : b.valid s.2)
 (r₁ : a.ready s.1)
@@ -20,7 +20,7 @@ structure Stream.mul.ready (a : Stream σ₁ ι α) (b : Stream σ₂ ι α) (s 
 (index : a.index s.1 v₁ = b.index s.2 v₂)
 
 @[simps]
-def Stream.mul (a : Stream σ₁ ι α) (b : Stream σ₂ ι α) : Stream (σ₁ × σ₂) ι α :=
+def Stream.mul {σ₁ σ₂ α ι : Type} [linear_order ι] [has_mul α] (a : Stream σ₁ ι α) (b : Stream σ₂ ι α) : Stream (σ₁ × σ₂) ι α :=
 { valid := λ p, a.valid p.1 ∧ b.valid p.2,
   ready := λ p, Stream.mul.ready a b p,
   next  := λ p hv, if a.to_order p.1 ≤ b.to_order p.2 then (a.next p.1 hv.1, p.2) else (p.1, b.next p.2 hv.2),
@@ -147,7 +147,7 @@ begin
 end
 
 @[simps]
-def StreamExec.mul (a : StreamExec σ₁ ι α) (b : StreamExec σ₂ ι α) : StreamExec (σ₁ × σ₂) ι α :=
+def StreamExec.mul {σ₁ σ₂ α ι : Type} [linear_order ι] [has_mul α] (a : StreamExec σ₁ ι α) (b : StreamExec σ₂ ι α) : StreamExec (σ₁ × σ₂) ι α :=
 { stream := a.stream ⋆ b.stream,
   state := (a.state, b.state),
   bound := a.bound + b.bound }
