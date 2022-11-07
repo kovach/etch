@@ -9,7 +9,7 @@ noncomputable theory
 
 variables {σ σ₁ σ₂ ι α : Type}
   [linear_order ι]
-  [non_unital_semiring α]
+  [add_comm_monoid α]
 
 @[simps]
 def Stream.add (a : Stream σ₁ ι α) (b : Stream σ₂ ι α) : Stream (σ₁ × σ₂) ι α :=

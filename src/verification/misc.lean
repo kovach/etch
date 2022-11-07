@@ -4,6 +4,7 @@ import data.pfun
 import data.list.basic
 import data.finsupp.basic
 import data.list.range
+import data.finsupp.pointwise
 
 lemma bool.coe_iff_eq_tt (b : bool) : b ↔ b = tt := iff.rfl
 @[simp] lemma option.bind_const_none {α β} (x : option α) :
@@ -128,27 +129,49 @@ option.some_inj
 
 end with_top
 
-variables {ι α : Type}
+/- NOTE: This stuff is already in mathlib (`data.finsupp.pointwise`) -/
 
-noncomputable instance finsupp.has_mul [mul_zero_class α] : has_mul (ι →₀ α) :=
-⟨λ a b, finsupp.zip_with (*) (zero_mul _) a b⟩
+-- variables {ι α : Type}
 
-lemma finsupp.mul_apply [mul_zero_class α] (g₁ g₂ : ι →₀ α) (a : ι) : (g₁ * g₂) a = g₁ a * g₂ a := rfl
+-- noncomputable instance finsupp.has_mul [mul_zero_class α] : has_mul (ι →₀ α) :=
+-- ⟨λ a b, finsupp.zip_with (*) (zero_mul _) a b⟩
 
--- #check pi.distrib -- todo, tactic like this?
-noncomputable instance finsupp.non_unital_semiring [non_unital_semiring α] : non_unital_semiring (ι →₀ α) :=
-{
-  zero := 0,
-  add_assoc := λ a b c, fun_like.ext _ _ (by simp [finsupp.add_apply, add_assoc]),
-  zero_add  := λ a,     fun_like.ext _ _ (by simp [finsupp.add_apply]),
-  add_zero  := λ a,     fun_like.ext _ _ (by simp [finsupp.add_apply]),
-  add_comm  := λ a b,   fun_like.ext _ _ (by simp [finsupp.add_apply, add_comm] ),
-  zero_mul  := λ a,     fun_like.ext _ _ (by simp [finsupp.mul_apply]),
-  mul_zero  := λ a,     fun_like.ext _ _ (by simp [finsupp.mul_apply]),
+-- lemma finsupp.mul_apply [mul_zero_class α] (g₁ g₂ : ι →₀ α) (a : ι) : (g₁ * g₂) a = g₁ a * g₂ a := rfl
 
-  left_distrib  := λ a b c, by simp [fun_like.ext_iff, finsupp.mul_apply, finsupp.add_apply, left_distrib],
-  right_distrib := λ a b c, by simp [fun_like.ext_iff, finsupp.mul_apply, finsupp.add_apply, right_distrib],
+-- -- #check pi.distrib -- todo, tactic like this?
+-- noncomputable instance finsupp.non_unital_semiring [non_unital_semiring α] : non_unital_semiring (ι →₀ α) :=
+-- {
+--   zero := 0,
+--   add_assoc := λ a b c, fun_like.ext _ _ (by simp [finsupp.add_apply, add_assoc]),
+--   zero_add  := λ a,     fun_like.ext _ _ (by simp [finsupp.add_apply]),
+--   add_zero  := λ a,     fun_like.ext _ _ (by simp [finsupp.add_apply]),
+--   add_comm  := λ a b,   fun_like.ext _ _ (by simp [finsupp.add_apply, add_comm] ),
+--   zero_mul  := λ a,     fun_like.ext _ _ (by simp [finsupp.mul_apply]),
+--   mul_zero  := λ a,     fun_like.ext _ _ (by simp [finsupp.mul_apply]),
 
-  mul_assoc     := λ a b c, by simp [fun_like.ext_iff, finsupp.mul_apply, mul_assoc],
+--   left_distrib  := λ a b c, by simp [fun_like.ext_iff, finsupp.mul_apply, finsupp.add_apply, left_distrib],
+--   right_distrib := λ a b c, by simp [fun_like.ext_iff, finsupp.mul_apply, finsupp.add_apply, right_distrib],
 
-  ..finsupp.has_mul, ..finsupp.has_add, }
+--   mul_assoc     := λ a b c, by simp [fun_like.ext_iff, finsupp.mul_apply, mul_assoc],
+
+--   ..finsupp.has_mul, ..finsupp.has_add, }
+
+@[simp] lemma finsupp.mul_single {ι β : Type*} [mul_zero_class β] (i : ι) (x y : β) :
+  (finsupp.single i x) * (finsupp.single i y) = finsupp.single i (x * y) :=
+by { ext a, by_cases i = a; simp [h], }
+
+lemma finsupp.mul_eq_zero_of_disjoint_support {ι β : Type*} [decidable_eq ι] [mul_zero_class β] (f g : ι →₀ β) (h : disjoint f.support g.support) :
+  f * g = 0 :=
+begin
+  rw [← finsupp.support_eq_empty, ← finset.subset_empty],
+  refine trans finsupp.support_mul _,
+  rwa [finset.subset_empty, ← finset.disjoint_iff_inter_eq_empty],
+end
+
+lemma finsupp.mul_single_eq_zero {ι β : Type*} [mul_zero_class β] (i₁ i₂ : ι) (hi : i₁ ≠ i₂) (x y : β) :
+  (finsupp.single i₁ x) * (finsupp.single i₂ y) = 0 :=
+by { classical, rw [finsupp.mul_eq_zero_of_disjoint_support], simp [finset.disjoint_iff_ne, finsupp.mem_support_single], intros, exact hi, }
+
+set_option pp.implicit true
+
+

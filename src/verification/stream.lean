@@ -155,6 +155,10 @@ by { rw min_def, split_ifs, { rw Stream.eval_ge_bound hb h, }, refl, }
 lemma Stream.valid.bound_pos {s : Stream σ ι α} {σ₀ : σ} (h : s.valid σ₀) :
   ¬s.bound_valid 0 σ₀ := by simpa
 
+lemma Stream.eval₀_support [has_zero α] (s : Stream σ ι α) (x : σ) (h : s.valid x) :
+  (s.eval₀ x h).support ⊆ {s.index x h} :=
+by { rw Stream.eval₀, split_ifs, { exact finsupp.support_single_subset, }, simp, }
+
 @[simp] lemma Stream.bound_valid_succ {s : Stream σ ι α} {n : ℕ} {σ₀ : σ} :
   s.bound_valid (n + 1) σ₀ ↔ (∀ (h : s.valid σ₀), s.bound_valid n (s.next σ₀ h)) :=
 ⟨λ h, by { cases h, { intro, contradiction, }, intro, assumption, }, λ h, if H : s.valid σ₀ then step H (h H) else start _ H⟩
