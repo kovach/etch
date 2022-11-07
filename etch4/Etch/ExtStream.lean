@@ -2,6 +2,8 @@ import Mathlib.Algebra.Ring.Basic
 import Etch.C
 import Etch.Basic
 
+notation "𝟚"  => Bool
+
 inductive Op
 | add | mul | lt | le | eq | min | max | mid | sub
 | succ | neg
@@ -22,6 +24,7 @@ instance : Inhabited R := ⟨ R.mk ⟩
 instance : Add R := ⟨ λ _ _ => default ⟩
 instance : Mul R := ⟨ λ _ _ => default ⟩
 instance : OfNat R (nat_lit 0) := ⟨ default ⟩
+instance : OfNat R (nat_lit 1) := ⟨ default ⟩
 
 -- todo reconsider α parameter
 structure O (α β : Type _) extends Tagged α where
@@ -117,6 +120,11 @@ def O.atof : O String R where
   spec := λ _ => default -- todo
   opName := "atof"
 
+def O.ofBool [OfNat α (nat_lit 0)] [OfNat α (nat_lit 1)] : O 𝟚 α where
+  arity := 1
+  argTypes := λ | 0 => 𝟚
+  spec := λ a => if a 0 then 1 else 0
+  opName := "ofBool"
 
 -- marked irreducible later
 def Var (α : Type _) := String
@@ -163,6 +171,7 @@ def name2 : E String := .v String "name2"
 instance : DecidableRel (LT.lt : String → String → Prop) := inferInstance
 
 infixr:40 " << " => λ a b => E.call O.lt ![a, b]
+infixr:40 " <ᵣ " => λ a b => E.call O.ofBool ![E.call O.lt ![a, b]]
 infixr:40 " == " => λ a b => E.call O.eq ![a, b]
 infixr:40 " != " => λ a b => E.call O.neg ![(E.call O.eq ![a, b])]
 infixr:40 " <= " => λ a b => E.call O.le ![a, b]
@@ -180,6 +189,7 @@ inductive P
 attribute [irreducible] Var
 
 def P.if1 := λ c t => P.branch c t P.skip
+infixr:10 ";;" => P.seq
 
 def P.compile : P → Stmt
 | seq a b => Stmt.seq a.compile b.compile
@@ -198,7 +208,7 @@ structure S (ι : Type _) (α : Type _) where
   valid : E Bool
   init  : P
 
-infixr:10 ";;" => P.seq
+infixr:20 "→ₛ"  => S
 
 variable
 {ι : Type} [Tagged ι] [DecidableEq ι]
@@ -216,16 +226,34 @@ def S.mul [Mul α]  (a b : S ι α) : S ι α where
 
 instance [Mul α] : Mul (S ι α) := ⟨S.mul⟩
 
+--def S.add [Mul α] (count : Var ℕ) (args : Var α) : S ι α where
+--  value := a.value * b.value
+--  skip  := λ i => a.skip i;; b.skip i
+--  succ  := a.succ;; b.succ
+--  ready := a.ready * b.ready * (a.bound == b.bound)
+--  bound := .call .max ![a.bound, b.bound]
+--  valid := a.valid * b.valid
+--  init := a.init ;; b.init
+
+--def S.toCont [Mul α]  (a : S ι α) : S ι ((α → P) → P) := { a with value := λ k => k a.value }
+--
+--def S.add [Mul α]  (a b : S ι ((α → P) → P)) : S ι ((α → P) → P) where
+--  value := λ k => P.branch (a.ready * b.ready * (a.bound == b.bound)) (k $ a.add b) _
+--  skip  := λ i => a.skip i;; b.skip i
+--  succ  := a.succ;; b.succ
+--  ready := a.ready * b.ready * (a.bound == b.bound)
+--  bound := .call .max ![a.bound, b.bound]
+--  valid := a.valid * b.valid
+--  init := a.init ;; b.init
+
+instance [Mul α] : Mul (S ι α) := ⟨S.mul⟩
+
 def Var.access (v : Var α) := E.access v
 def Var.incr [Tagged α] [Add α] [OfNat α 1] (v : Var α) : P := .store_var v $ E.var v + 1
 def Var.incr_array [Tagged α] [Add α] [OfNat α 1] (v : Var α) (ind : E ℕ) : P := .store_mem v ind $ v.access ind + 1
 def Var.expr (v : Var α) : E α := E.var v
 
 instance : Coe (Var α) (E α) := ⟨E.var⟩
-
--- todo, skip is tricky?
-class Bifunctor (F : Type u₀ → Type u₁ → Type u₂) :=
-(bimap : {α α' β β' : Type _} → (α → α') → (β → β') → F α β → F α' β')
 
 instance : Functor (S ι) where map := λ f s => {s with value := f s.value }
 
@@ -240,26 +268,14 @@ def S.range (pos : Var ℕ) (size : E ℕ) : S ℕ (E ℕ) where
   valid := pos.expr << size
   init := pos.store_var 0
 
-def S.repl (pos : Var ℕ) (size : E ℕ) (v : α) : S ℕ α where
-  value := v
-  succ := pos.incr
-  ready := 1
-  skip := λ i => .store_var pos i
-  bound := pos.expr
-  valid := pos.expr << size
-  init := pos.store_var 0
-
--- todo: use instead of zero
---class Bot (α : Type _) := (bot : α)
---notation "⊥"  => Bot.bot
-def S.repl' [Zero ι] (last : Var ι) (v : α) : S ι α where
-  value := v
-  succ := .skip
-  ready := 1
-  skip := λ i => .store_var last i
-  bound := last.expr
-  valid := 1
-  init := last.store_var 0
+--def S.repl (pos : Var ℕ) (size : E ℕ) (v : α) : S ℕ α where
+--  value := v
+--  succ := pos.incr
+--  ready := 1
+--  skip := λ i => .store_var pos i
+--  bound := pos.expr
+--  valid := pos.expr << size
+--  init := pos.store_var 0
 
 def simpleSkip (pos : Var ℕ) (is : Var ι) (max_pos : E ℕ) (tgt : E ι) :=
   .store_var "temp" tgt;;
@@ -302,12 +318,12 @@ def S.interval_search (is : Var ι) (pos : Var ℕ) (lower upper : E ℕ) : S ι
   valid := pos.expr << upper
   init := pos.store_var lower
 
+-- todo remove?
 def S.sparse (pos size : Var ℕ) (is : Var ι) (vs : Var α) : S ι (E α) where
   value := .access vs pos
   succ  := pos.incr
   ready := 1
-  skip  := λ i => .store_var "temp" i;;
-                  .while ((pos.expr << size.expr) * (.access is pos << "temp")) pos.incr
+  skip  := simpleSkip pos is size
   bound := E.access is pos.expr
   valid := pos.expr << size.expr
   init := pos.store_var 0
@@ -321,17 +337,33 @@ def S.sparseSearch (pos size : Var ℕ) (is : Var ι) (vs : Var α) : S ι (E α
   valid := pos.expr << size.expr
   init  := pos.store_var 0
 
+-- todo: use instead of zero
+--class Bot (α : Type _) := (bot : α)
+--notation "⊥"  => Bot.bot
+def S.univ [Zero ι] (last : Var ι) : S ι (E ι) where
+  value := last.expr
+  succ := .skip -- imprecise but ok
+  ready := 1
+  skip := λ i => .store_var last i
+  bound := last.expr
+  valid := 1
+  init := last.store_var 0
+
+-- using fmap introduces a universe constraint between α and Type 1 (coming from E ι). this is probably ok anyway
+def S.repl [Zero ι] (last : Var ι) (v : α) : S ι α := {S.univ last with value := v}
+--def S.repl' {α : Type 1} [Zero ι] (last : Var ι) (v : α) : S ι α := (Function.const _ v) <$> (S.univ last)
+def S.function [Zero ι] (last : Var ι) (f : E ι → α) : S ι α := f <$> S.univ last
+
 structure csr (ι α : Type _) := (i : Var ι) (v : Var α) (var : Var ℕ)
 
 def csr.of (name : String) (n : ℕ) (ι := ℕ) : csr ι ℕ :=
   let field {ι} (x : String) : Var ι := Var.mk $ name ++ n.repr ++ x
   { i := field "_crd", v := field "_pos", var := field "_i" }
 
-def csr.level : csr ι ℕ → E ℕ → S ι (E ℕ) := λ csr loc =>
-S.interval_search csr.i csr.var (.access csr.v loc) (csr.v.access (loc+1))
-def S.level   : csr ι ℕ → S ι' (E ℕ) → S ι' (S ι (E ℕ)) := Functor.map ∘ csr.level
-def S.leaf    :   Var α → S ι (E ℕ) → S ι (E α)         := Functor.map ∘ E.access
-def S.leaf'   :   Var α → E ℕ → E α         := E.access
+def csr.level : csr ι ℕ → E ℕ → S ι (E ℕ) := λ csr loc => S.interval_search csr.i csr.var (.access csr.v loc) (csr.v.access (loc+1))
+def S.level : csr ι ℕ → S ι' (E ℕ) → S ι' (S ι (E ℕ)) := Functor.map ∘ csr.level
+def S.leaf : Var α → S ι (E ℕ) → S ι (E α) := Functor.map ∘ E.access
+def S.leaf' : Var α → E ℕ → E α := E.access
 
 def Contraction (α : Type _) := Σ ι, S ι α
 instance : Functor Contraction where map := λ f ⟨ι, v⟩ => ⟨ι, f <$> v⟩
