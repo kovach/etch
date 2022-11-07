@@ -33,7 +33,7 @@ infixl ` +ₑ `:80 := StreamExec.add
 -- Some weird inequality lemma I extracted from the main proof
 private lemma succ_le_min_succ_add_succ {a b b' d : ℕ} (ha : a ≤ b + d) (hb' : b ≤ b') :
   a + 1 ≤ (min b' (b + 1)) + (d + 1) :=
-by { rw [← add_assoc, nat.succ_le_succ_iff, min_def], split_ifs; zify at *; linarith, }
+by { rw [← add_assoc, nat.succ_le_succ_iff, min_def], split_ifs; linarith, }
 
 section lemmas
 variables {a : Stream σ₁ ι α} {b : Stream σ₂ ι α} {x : σ₁} {y : σ₂}

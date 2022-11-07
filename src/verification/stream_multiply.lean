@@ -98,8 +98,6 @@ by { rw [finsupp.mul_eq_zero_of_disjoint_support], exact (Stream.mul_eq_zero_aux
 
 end lemmas
 
-example {P Q : Prop} : (¬P ∨ Q) ↔ (P → Q) := imp_iff_not_or.symm
-
 theorem Stream.mul_spec_aux {a : Stream σ₁ ι α} {b : Stream σ₂ ι α} (hsa : a.simple) (hsb : b.simple) (n : ℕ)
   {x y B₁ B₂} (ha : a.bound_valid B₁ x) (hb : b.bound_valid B₂ y) (hn : n = B₁ + B₂) :
   ∃ (k₁ k₂ : ℕ), k₁ ≤ B₁ ∧ k₂ ≤ B₂ ∧ n = k₁ + k₂ ∧ 
