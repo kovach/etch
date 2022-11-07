@@ -97,8 +97,16 @@ by { subst hn, simp [finset.univ, fintype.elems, finset.fin_range], erw list.map
 @[simp] lemma le_ff_iff {b : bool} : b ≤ ff ↔ b = ff :=
 by cases b; simp
 
-lemma ne_min_of_ne_and_ne {ι : Type} [linear_order ι] {a x y : ι} (hx : a ≠ x) (hy : a ≠ y) :
+lemma ne_min_of_ne_and_ne {ι : Type*} [linear_order ι] {a x y : ι} (hx : a ≠ x) (hy : a ≠ y) :
   a ≠ min x y := by cases min_choice x y with h; rw h; assumption
+
+@[simp] lemma max_ne_self_iff {ι : Type*} [linear_order ι] (a b : ι) :
+  ¬(a = max a b) ↔ a < b :=
+by { simp [max_def, ← not_lt], split_ifs; simp [h], exact h.ne, }
+
+@[simp] lemma max_ne_self_iff' {ι : Type*} [linear_order ι] (a b : ι) :
+  ¬(b = max a b) ↔ b < a :=
+by { rw max_comm, simp, }
 
 section with_top
 variables {ι : Type} [partial_order ι]

@@ -1,6 +1,6 @@
 import data.finsupp.basic
-import verification.verify
 import data.fintype.order
+import verification.stream_props
 
 variables {ι α β σ : Type}
 [add_zero_class α]

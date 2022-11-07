@@ -31,13 +31,17 @@ infixl ` ⋆ `:71 := Stream.mul
 
 section lemmas
 
-lemma Stream.mul.eq_order_of_ready {a : Stream σ₁ ι α} {b : Stream σ₂ ι α} {x y} (h : (a ⋆ b).ready (x, y)) :
+lemma Stream.mul.ready.index' {a : Stream σ₁ ι α} {b : Stream σ₂ ι α} {x y} (h : (a ⋆ b).ready (x, y)) :
+  a.index' x = b.index' y :=
+by simp [Stream.index'_val h.v₁, Stream.index'_val h.v₂, h.index]
+
+lemma Stream.mul.ready.order_eq {a : Stream σ₁ ι α} {b : Stream σ₂ ι α} {x y} (h : (a ⋆ b).ready (x, y)) :
   a.to_order x = b.to_order y :=
-by ext : 1; simp [h.r₁, h.r₂, Stream.index'_val h.v₁, Stream.index'_val h.v₂, h.index]
+by ext : 1; simp [h.r₁, h.r₂, h.index']
 
 lemma Stream.mul_eval₀_of_neq {a : Stream σ₁ ι α} {b : Stream σ₂ ι α} {x y} (h : a.to_order x ≠ b.to_order y) (H) :
   (a ⋆ b).eval₀ (x, y) H = 0 :=
-by { contrapose! h, apply Stream.mul.eq_order_of_ready, simp [Stream.eval₀] at h, exact h.fst, }
+by { contrapose! h, apply Stream.mul.ready.order_eq, simp [Stream.eval₀] at h, exact h.fst, }
 
 lemma Stream.mul_eval₀ (a : Stream σ₁ ι α) (b : Stream σ₂ ι α) (x : σ₁) (y : σ₂) (H) :
   (a ⋆ b).eval₀ (x, y) H = (a.eval₀ x H.1) * (b.eval₀ y H.2) :=
@@ -47,6 +51,15 @@ begin
   simp [Stream.mul.ready_iff, H.1, H.2] at hr,
   simp [Stream.eval₀], split_ifs with h₁ h₂; try { simp },
   rw finsupp.mul_single_eq_zero _ _ (hr h₁ h₂),
+end
+
+lemma Stream.mul_index' (a : Stream σ₁ ι α) (b : Stream σ₂ ι α) (xy : σ₁ × σ₂) :
+  (a ⋆ b).index' xy = max (a.index' xy.1) (b.index' xy.2) :=
+begin
+  cases xy with x y,
+  rw [Stream.index'], simp, split_ifs with h,
+  { simp [Stream.index'_val h.1, Stream.index'_val h.2], },
+  rw not_and_distrib at h, cases h; simp [Stream.index'_invalid h],
 end
 
 /-- This lemma states that if `a.to_order x ≤ b.to_order y`, 
@@ -159,5 +172,26 @@ end
 @[simp] lemma StreamExec.mul_spec {a : StreamExec σ₁ ι α} {b : StreamExec σ₂ ι α} (hsa : a.stream.simple) (hsb : b.stream.simple) 
   (ha : a.bound_valid) (hb : b.bound_valid) :
   (a ⋆ b).eval = a.eval * b.eval :=  (Stream.mul_spec hsa hsb ha hb).1
+
+lemma Stream.mul_is_monotonic {a : Stream σ₁ ι α} {b : Stream σ₂ ι α} (hsa : a.monotonic) (hsb : b.monotonic) :
+  (a ⋆ b).monotonic :=
+begin
+  rintros ⟨x, y⟩ H,
+  simp only [Stream.mul_index'],
+  refine max_le_max _ _; simp; split_ifs,
+  any_goals { exact rfl.le, },
+  exacts [hsa _, hsb _],
+end
+
+lemma Stream.mul_is_simple {a : Stream σ₁ ι α} {b : Stream σ₂ ι α} (hsa : a.simple) (hsb : b.simple) :
+  (a ⋆ b).simple :=
+begin
+  refine ⟨Stream.mul_is_monotonic hsa.monotonic hsb.monotonic, _⟩,
+  rintros ⟨x, y⟩ hv hr,
+  simp only [Stream.mul_index', hr.index', max_self, Stream.mul_next],
+  split_ifs with H,
+  { simp only [← hr.index', ne, max_ne_self_iff'], exact hsa.index_lt_next _ hr.r₁, },
+  { simp only [hr.index', ne, max_ne_self_iff], exact hsb.index_lt_next _ hr.r₂, },
+end
 
 
