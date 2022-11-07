@@ -1,4 +1,5 @@
 import verification.stream_props
+import verification.stream_zero
 import verification.misc
 import tactic.zify
 import tactic.linarith
@@ -7,36 +8,43 @@ import tactic.abel
 open_locale classical
 noncomputable theory
 
-variables {σ σ₁ σ₂ ι α : Type}
+variables {ι : Type} {α : Type*}
   [linear_order ι]
-  [add_comm_monoid α]
+
+section defs
+variables [has_zero α]
+  [has_add α]
 
 @[simps]
-def Stream.add (a : Stream σ₁ ι α) (b : Stream σ₂ ι α) : Stream (σ₁ × σ₂) ι α :=
-{ valid := λ s, a.valid s.1 ∨ b.valid s.2,
+instance : has_add (Stream ι α) := ⟨λ a b,
+{ σ := a.σ × b.σ,
+  valid := λ s, a.valid s.1 ∨ b.valid s.2,
   ready := λ s, (a.to_order s.1 ≤ b.to_order s.2 ∧ a.ready s.1) ∨ (b.to_order s.2 ≤ a.to_order s.1 ∧ b.ready s.2),
   next := λ s h, (if H : a.to_order s.1 ≤ b.to_order s.2 then a.next s.1 (valid_of_le_or h H) else s.1, 
                   if H : b.to_order s.2 ≤ a.to_order s.1 then b.next s.2 (valid_of_le_or h.symm H) else s.2),
   index := λ s h, option.get (show (min (a.index' s.1) (b.index' s.2)).is_some, by simpa),
   value := λ s h, (if a.to_order s.1 ≤ b.to_order s.2 then a.value' s.1 else 0) +
-                  (if b.to_order s.2 ≤ a.to_order s.1 then b.value' s.2 else 0) }
+                  (if b.to_order s.2 ≤ a.to_order s.1 then b.value' s.2 else 0) }⟩ 
 
-infixl ` +ₛ `:80 := Stream.add
 
-def StreamExec.add (a : StreamExec σ₁ ι α) (b : StreamExec σ₂ ι α) : StreamExec (σ₁ × σ₂) ι α :=
-{ stream := a.stream +ₛ b.stream,
+@[simps]
+instance : has_add (StreamExec ι α) := ⟨λ a b,
+{ stream := a.stream + b.stream,
   state := (a.state, b.state),
-  bound := a.bound + b.bound } 
-
-infixl ` +ₑ `:80 := StreamExec.add
+  bound := a.bound + b.bound }⟩
 
 -- Some weird inequality lemma I extracted from the main proof
 private lemma succ_le_min_succ_add_succ {a b b' d : ℕ} (ha : a ≤ b + d) (hb' : b ≤ b') :
   a + 1 ≤ (min b' (b + 1)) + (d + 1) :=
 by { rw [← add_assoc, nat.succ_le_succ_iff, min_def], split_ifs; linarith, }
 
+end defs
+
+section
+variables [add_comm_monoid α]
+
 section lemmas
-variables {a : Stream σ₁ ι α} {b : Stream σ₂ ι α} {x : σ₁} {y : σ₂}
+variables {a : Stream ι α} {b : Stream ι α} {x : a.σ} {y : b.σ}
 
 lemma lt_index_of_valid (h : a.to_order x ≤ b.to_order y) (hva : a.valid x) :
   ↑(a.index x hva) ≤ b.index' y :=
@@ -46,18 +54,18 @@ lemma Stream.min_index (h : a.to_order x ≤ b.to_order y) (hva : a.valid x) :
   min (a.index' x) (b.index' y) = a.index x hva :=
 by { rw [Stream.index'_val hva, min_eq_left_iff], exact lt_index_of_valid h hva, }
 
-@[simp] lemma Stream.add_index' (xy : σ₁ × σ₂) (a : Stream σ₁ ι α) (b : Stream σ₂ ι α) :
-  (a +ₛ b).index' xy = min (a.index' xy.1) (b.index' xy.2) :=
+@[simp] lemma Stream.add_index' (a : Stream ι α) (b : Stream ι α) (xy : a.σ × b.σ) :
+  (a + b).index' xy = min (a.index' xy.1) (b.index' xy.2) :=
 begin
   rcases xy with ⟨x, y⟩,
-  by_cases H : (a +ₛ b).valid (x, y),
+  by_cases H : (a + b).valid (x, y),
   { simp [Stream.index'_val H], },
   { have : ¬a.valid x ∧ ¬b.valid y := by { simpa [not_or_distrib] using H, },
     simp [Stream.index', H, this], }
 end
 
 lemma Stream.add.eval₀_left (h : a.to_order x < b.to_order y) (hva H) :
-  (a +ₛ b).eval₀ (x, y) H = a.eval₀ x hva :=
+  (a + b).eval₀ (x, y) H = a.eval₀ x hva :=
 begin
   simp [Stream.eval₀, h.le, h.not_le],
   split_ifs with H,
@@ -66,7 +74,7 @@ begin
 end
 
 lemma Stream.add_eval₀_right (h : b.to_order y < a.to_order x) (hvb H) :
-  (a +ₛ b).eval₀ (x, y) H = b.eval₀ y hvb :=
+  (a + b).eval₀ (x, y) H = b.eval₀ y hvb :=
 begin
   simp [Stream.eval₀, h.le, h.not_le],
   split_ifs with H,
@@ -75,7 +83,7 @@ begin
 end
 
 lemma Stream.add_eval₀_both (h : a.to_order x = b.to_order y) (hva hvb H) :
-  (a +ₛ b).eval₀ (x, y) H = a.eval₀ x hva + b.eval₀ y hvb :=
+  (a + b).eval₀ (x, y) H = a.eval₀ x hva + b.eval₀ y hvb :=
 begin
   simp [Stream.eval₀, h],
   have : a.index _ hva = b.index _ hvb, { simpa [Stream.index'_val hva, Stream.index'_val hvb] using congr_arg prod.fst h, },
@@ -84,15 +92,15 @@ end
 
 end lemmas
 
-theorem Stream.add_spec (a : Stream σ₁ ι α) (b : Stream σ₂ ι α) (x : σ₁) (y : σ₂) (n : ℕ)
+theorem Stream.add_spec (a : Stream ι α) (b : Stream ι α) (x : a.σ) (y : b.σ) (n : ℕ)
   {B₁ B₂ : ℕ} (ha : a.bound_valid B₁ x) (hb : b.bound_valid B₂ y) (hn : n ≤ B₁ + B₂) :
   ∃ (k₁ k₂ : ℕ), k₁ ≤ B₁ ∧ k₂ ≤ B₂ ∧ n ≤ k₁ + k₂ ∧
-    (a +ₛ b).eval_steps n (x, y) = a.eval_steps k₁ x + b.eval_steps k₂ y ∧
-    ((a +ₛ b).next'^[n] (x, y)) = (a.next'^[k₁] x, b.next'^[k₂] y) :=
+    (a + b).eval_steps n (x, y) = a.eval_steps k₁ x + b.eval_steps k₂ y ∧
+    ((a + b).next'^[n] (x, y)) = (a.next'^[k₁] x, b.next'^[k₂] y) :=
 begin
   induction n with n ih generalizing B₁ B₂ x y,
   { use [0, 0], simp, },
-  by_cases H : (a +ₛ b).valid (x, y), swap,
+  by_cases H : (a + b).valid (x, y), swap,
   { -- Invalid
     obtain ⟨hvx, hvy⟩ : ¬a.valid x ∧ ¬b.valid y := by simpa [not_or_distrib] using H,
     refine ⟨B₁, B₂, rfl.le, rfl.le, hn, _, _⟩,
@@ -134,27 +142,31 @@ begin
 end 
 
 /-- This is the previous lemma specialized for `n = B₁ + B₂`, which forces `k₁ = B₁` and `k₂ = B₂` -/
-lemma Stream.add_spec' (a : Stream σ₁ ι α) (b : Stream σ₂ ι α) (x : σ₁) (y : σ₂)
+lemma Stream.add_spec' (a : Stream ι α) (b : Stream ι α) (x : a.σ) (y : b.σ)
   {B₁ B₂ : ℕ} (ha : a.bound_valid B₁ x) (hb : b.bound_valid B₂ y) :
-  (a +ₛ b).eval_steps (B₁ + B₂) (x, y) = a.eval_steps B₁ x + b.eval_steps B₂ y ∧
-    ((a +ₛ b).next'^[B₁ + B₂] (x, y)) = (a.next'^[B₁] x, b.next'^[B₂] y) :=
+  (a + b).eval_steps (B₁ + B₂) (x, y) = a.eval_steps B₁ x + b.eval_steps B₂ y ∧
+    ((a + b).next'^[B₁ + B₂] (x, y)) = (a.next'^[B₁] x, b.next'^[B₂] y) :=
 begin
   obtain ⟨k₁, k₂, hk₁, hk₂, H, he⟩ := Stream.add_spec a b _ _ (B₁ + B₂) ha hb rfl.le,
   obtain ⟨rfl, rfl⟩ : k₁ = B₁ ∧ k₂ = B₂, { clear he, split; linarith, }, 
   exact he,
 end
 
-lemma StreamExec.add_spec (a : StreamExec σ₁ ι α) (b : StreamExec σ₂ ι α) (ha : a.bound_valid) (hb : b.bound_valid) :
-  (a +ₑ b).eval = a.eval + b.eval := (Stream.add_spec' a.stream b.stream _ _ ha hb).1
+lemma StreamExec.add_spec (a : StreamExec ι α) (b : StreamExec ι α) (ha : a.bound_valid) (hb : b.bound_valid) :
+  (a + b).eval = a.eval + b.eval := (Stream.add_spec' a.stream b.stream _ _ ha hb).1
 
-lemma StreamExec.add_bound_valid (a : StreamExec σ₁ ι α) (b : StreamExec σ₂ ι α) (ha : a.bound_valid) (hb : b.bound_valid) :
-  (a +ₑ b).bound_valid :=
-by simpa [StreamExec.bound_valid, StreamExec.add, bound_valid_iff_next'_iterate,
-  (Stream.add_spec' a.stream b.stream _ _ ha hb).2, not_or_distrib] using (and.intro ha hb) 
+lemma StreamExec.add_bound_valid (a : StreamExec ι α) (b : StreamExec ι α) (ha : a.bound_valid) (hb : b.bound_valid) :
+  (a + b).bound_valid :=
+begin
+  simp [StreamExec.bound_valid, bound_valid_iff_next'_iterate],
+  dsimp,
+  simpa [StreamExec.bound_valid, bound_valid_iff_next'_iterate,
+  (Stream.add_spec' a.stream b.stream _ _ ha hb).2, not_or_distrib] using (and.intro ha hb),
+end
 
-lemma Stream.add_monotonic {a : Stream σ₁ ι α} {b : Stream σ₂ ι α}
+lemma Stream.add_monotonic {a : Stream ι α} {b : Stream ι α}
   (ha : a.monotonic) (hb : b.monotonic) :
-  (a +ₛ b).monotonic :=
+  (a + b).monotonic :=
 begin
   rintros ⟨x, y⟩ h,
   simp only [Stream.add_index'],
@@ -163,8 +175,8 @@ begin
   { simp, split_ifs, { exact hb _, }, exact rfl.le, },
 end
 
-lemma Stream.add_reduced {a : Stream σ₁ ι α} {b : Stream σ₂ ι α}
-  (ha : a.reduced) (hb : b.reduced) : (a +ₛ b).reduced :=
+lemma Stream.add_reduced {a : Stream ι α} {b : Stream ι α}
+  (ha : a.reduced) (hb : b.reduced) : (a + b).reduced :=
 begin
   rintros ⟨x, y⟩ hv hr,
   rcases hr with ⟨h, hr⟩|⟨h, hr⟩;
@@ -185,7 +197,19 @@ begin
     exact ne_of_lt (prod.lex.fst_lt_of_lt_of_le (lt_of_le_not_le h H) (by simp [hr])), },
 end
 
-lemma Stream.add_simple {a : Stream σ₁ ι α} {b : Stream σ₂ ι α} (ha : a.simple) (hb : b.simple) :
-  (a +ₛ b).simple :=
+lemma Stream.add_simple {a : Stream ι α} {b : Stream ι α} (ha : a.simple) (hb : b.simple) :
+  (a + b).simple :=
 { monotonic := Stream.add_monotonic ha.monotonic hb.monotonic,
   reduced := Stream.add_reduced ha.reduced hb.reduced, }
+
+
+end
+
+lemma test (a b : StreamExec ι (StreamExec ι ℤ)) :
+  (StreamExec.eval <$₂> (a + b)).eval = (StreamExec.eval <$₂> a).eval + (StreamExec.eval <$₂> b).eval :=
+begin
+ sorry,
+end
+
+-- feval (a + b) = feval a + feval b
+-- feval 0 = 0
