@@ -185,7 +185,7 @@ begin
     exact ne_of_lt (prod.lex.fst_lt_of_lt_of_le (lt_of_le_not_le h H) (by simp [hr])), },
 end
 
-instance Stream.add_simple (a : Stream σ₁ ι α) (b : Stream σ₂ ι α) [a.simple] [b.simple] :
+lemma Stream.add_simple {a : Stream σ₁ ι α} {b : Stream σ₂ ι α} (ha : a.simple) (hb : b.simple) :
   (a +ₛ b).simple :=
-{ monotonic := Stream.add_monotonic a.is_monotonic b.is_monotonic,
-  reduced := Stream.add_reduced a.is_reduced b.is_reduced, }
+{ monotonic := Stream.add_monotonic ha.monotonic hb.monotonic,
+  reduced := Stream.add_reduced ha.reduced hb.reduced, }

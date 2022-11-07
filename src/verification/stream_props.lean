@@ -29,15 +29,9 @@ def Stream.monotonic (q : Stream σ ι α) : Prop :=
 def Stream.reduced (q : Stream σ ι α) : Prop :=
 ∀ ⦃r⦄ (h : q.valid r) (h' : q.ready r), q.index' r ≠ q.index' (q.next r h)
 
-class Stream.simple (q : Stream σ ι α) : Prop :=
+structure Stream.simple (q : Stream σ ι α) : Prop :=
 (monotonic : q.monotonic)
 (reduced : q.reduced)
-
-lemma Stream.is_monotonic (q : Stream σ ι α) [q.simple] : Stream.monotonic q :=
-‹q.simple›.monotonic
-
-lemma Stream.is_reduced (q : Stream σ ι α) [q.simple] : Stream.reduced q :=
-‹q.simple›.reduced
 
 lemma Stream.monotonic.index_le_support [add_zero_class α] {q : Stream σ ι α} (hq : q.monotonic) {x : σ} {n : ℕ} :
   ∀ i ∈ (q.eval_steps n x).support, q.index' x ≤ ↑i :=
@@ -53,11 +47,11 @@ begin
   exact (le_of_eq (Stream.index'_val _)),
 end
 
-lemma Stream.index_lt_next [add_zero_class α] (q : Stream σ ι α) [q.simple] {x : σ}
+lemma Stream.simple.index_lt_next [add_zero_class α] {q : Stream σ ι α} (hq : q.simple) {x : σ}
   (hv : q.valid x) (hr : q.ready x) : q.index' x < q.index' (q.next _ hv) :=
-by { rw lt_iff_le_and_ne, exact ⟨q.is_monotonic hv, q.is_reduced hv hr⟩, }
+by { rw lt_iff_le_and_ne, exact ⟨hq.monotonic hv, hq.reduced hv hr⟩, }
 
-lemma Stream.index_lt_support [add_zero_class α] (q : Stream σ ι α) [q.simple] {x : σ} {n : ℕ}
+lemma Stream.simple.index_lt_support [add_zero_class α] {q : Stream σ ι α} (hq : q.simple) {x : σ} {n : ℕ}
   (hv : q.valid x) (hr : q.ready x) :
   ∀ i ∈ (q.eval_steps n (q.next x hv)).support, q.index' x < ↑i :=
-λ i H, lt_of_lt_of_le (q.index_lt_next hv hr) (q.is_monotonic.index_le_support i H)
+λ i H, lt_of_lt_of_le (hq.index_lt_next hv hr) (hq.monotonic.index_le_support i H)

@@ -52,7 +52,7 @@ end
 /-- This lemma states that if `a.to_order x ≤ b.to_order y`, 
   then the support of `a.eval₀ x h₁` (which is at most `{a.index x}`) 
   is disjoint from `b.eval_steps n (b.next y)`, assuming `b` is simple. -/
-lemma Stream.mul_eq_zero_aux {a : Stream σ₁ ι α} {b : Stream σ₂ ι α} [b.simple] {x : σ₁} {y : σ₂}
+lemma Stream.mul_eq_zero_aux {a : Stream σ₁ ι α} {b : Stream σ₂ ι α} (hb : b.simple) {x : σ₁} {y : σ₂}
   (h₁ : a.valid x) (h₂ : b.valid y) (H : a.to_order x ≤ b.to_order y) (n : ℕ) :
   disjoint (a.eval₀ x h₁).support (b.eval_steps n (b.next y h₂)).support :=
 begin
@@ -67,27 +67,27 @@ begin
   { -- `a.to_order x = b.to_order y`
     simp [prod.ext_iff, hr] at H,
     rw H.1,
-    exact b.index_lt_support h₂ H.2 _ hi₂, },
+    exact hb.index_lt_support h₂ H.2 _ hi₂, },
   -- Case `a < b`
   refine lt_of_lt_of_le (prod.lex.fst_lt_of_lt_of_le H (by simp [hr])) _,
-  exact (b.is_monotonic h₂).trans (b.is_monotonic.index_le_support _ hi₂),
+  exact (hb.monotonic h₂).trans (hb.monotonic.index_le_support _ hi₂),
 end
 
-lemma Stream.mul_eq_zero {a : Stream σ₁ ι α} {b : Stream σ₂ ι α} [b.simple] {x : σ₁} {y : σ₂}
+lemma Stream.mul_eq_zero {a : Stream σ₁ ι α} {b : Stream σ₂ ι α} (hb : b.simple) {x : σ₁} {y : σ₂}
   (h₁ : a.valid x) (h₂ : b.valid y) (H : a.to_order x ≤ b.to_order y) (n : ℕ) :
   a.eval₀ x h₁ * b.eval_steps n (b.next y h₂) = 0 :=
-by { rw [finsupp.mul_eq_zero_of_disjoint_support], exact Stream.mul_eq_zero_aux h₁ h₂ H n, }
+by { rw [finsupp.mul_eq_zero_of_disjoint_support], exact Stream.mul_eq_zero_aux hb h₁ h₂ H n, }
 
-lemma Stream.mul_eq_zero' {a : Stream σ₁ ι α} {b : Stream σ₂ ι α} [a.simple] {x : σ₁} {y : σ₂}
+lemma Stream.mul_eq_zero' {a : Stream σ₁ ι α} {b : Stream σ₂ ι α} (ha : a.simple) {x : σ₁} {y : σ₂}
   (h₁ : a.valid x) (h₂ : b.valid y) (H : b.to_order y ≤ a.to_order x) (n : ℕ) :
   a.eval_steps n (a.next x h₁) * b.eval₀ y h₂ = 0 :=
-by { rw [finsupp.mul_eq_zero_of_disjoint_support], exact (Stream.mul_eq_zero_aux h₂ h₁ H n).symm, }
+by { rw [finsupp.mul_eq_zero_of_disjoint_support], exact (Stream.mul_eq_zero_aux ha h₂ h₁ H n).symm, }
 
 end lemmas
 
 example {P Q : Prop} : (¬P ∨ Q) ↔ (P → Q) := imp_iff_not_or.symm
 
-theorem Stream.mul_spec_aux (a : Stream σ₁ ι α) (b : Stream σ₂ ι α) [a.simple] [b.simple] (n : ℕ)
+theorem Stream.mul_spec_aux {a : Stream σ₁ ι α} {b : Stream σ₂ ι α} (hsa : a.simple) (hsb : b.simple) (n : ℕ)
   {x y B₁ B₂} (ha : a.bound_valid B₁ x) (hb : b.bound_valid B₂ y) (hn : n = B₁ + B₂) :
   ∃ (k₁ k₂ : ℕ), k₁ ≤ B₁ ∧ k₂ ≤ B₂ ∧ n = k₁ + k₂ ∧ 
     (a ⋆ b).eval_steps n (x, y) = (a.eval_steps k₁ x) * (b.eval_steps k₂ y) ∧
@@ -110,7 +110,7 @@ begin
     refine ⟨k₁ + 1, k₂, nat.succ_le_succ hk₁, hk₂, (add_right_comm k₁ k₂ 1), _, _⟩,
     { simp [H, H.1, h, he, add_mul], congr, 
       cases k₂, { exfalso, linarith only [hn, hk₁], },
-      simp [H.2, mul_add, Stream.mul_eq_zero H.1 H.2 h, Stream.mul_eval₀], },
+      simp [H.2, mul_add, Stream.mul_eq_zero hsb H.1 H.2 h, Stream.mul_eval₀], },
     simp only [Stream.next'_val H, function.iterate_succ_apply, Stream.mul_next, h, if_true, Stream.next'_val H.1],
     exact hiter, },
   { -- Advance `b` (i.e. `b < a`)
@@ -120,17 +120,17 @@ begin
     refine ⟨k₁, k₂ + 1, hk₁, nat.succ_le_succ  hk₂, rfl, _, _⟩,
     { simp [H, H.2, h.not_le, he, mul_add], congr,
       cases k₁, { exfalso, linarith only [hn, hk₂], },
-      simp [H.1, add_mul, Stream.mul_eval₀, Stream.mul_eq_zero' H.1 H.2 h.le], },
+      simp [H.1, add_mul, Stream.mul_eval₀, Stream.mul_eq_zero' hsa H.1 H.2 h.le], },
     simp only [Stream.next'_val H, function.iterate_succ_apply, Stream.mul_next, h.not_le, if_false, Stream.next'_val H.2],
     exact hiter, }
 end
 
-lemma Stream.mul_spec (a : Stream σ₁ ι α) (b : Stream σ₂ ι α) [a.simple] [b.simple]
+lemma Stream.mul_spec {a : Stream σ₁ ι α} {b : Stream σ₂ ι α} (hsa : a.simple) (hsb : b.simple)
   {x y B₁ B₂} (ha : a.bound_valid B₁ x) (hb : b.bound_valid B₂ y) :
   (a ⋆ b).eval_steps (B₁ + B₂) (x, y) = (a.eval_steps B₁ x) * (b.eval_steps B₂ y) ∧ 
   ((a ⋆ b).valid ((a ⋆ b).next'^[B₁ + B₂] (x, y)) → ((a ⋆ b).next'^[B₁ + B₂] (x, y) = (a.next'^[B₁] x, b.next'^[B₂] y))) :=
 begin
-  obtain ⟨k₁, k₂, hk₁, hk₂, hs, he, hiter⟩ := Stream.mul_spec_aux a b (B₁ + B₂) ha hb rfl,
+  obtain ⟨k₁, k₂, hk₁, hk₂, hs, he, hiter⟩ := Stream.mul_spec_aux hsa hsb (B₁ + B₂) ha hb rfl,
   obtain ⟨rfl, rfl⟩ : k₁ = B₁ ∧ k₂ = B₂ := by split; linarith only [hk₁, hk₂, hs],
   exact ⟨he, hiter⟩,
 end
@@ -144,18 +144,20 @@ def StreamExec.mul (a : StreamExec σ₁ ι α) (b : StreamExec σ₂ ι α) : S
 infixl ` ⋆ `:71 := StreamExec.mul
 
 
-lemma StreamExec.mul_bound_valid (a : StreamExec σ₁ ι α) (b : StreamExec σ₂ ι α) [a.stream.simple] [b.stream.simple]
+lemma StreamExec.mul_bound_valid {a : StreamExec σ₁ ι α} {b : StreamExec σ₂ ι α} (hsa : a.stream.simple) (hsb : b.stream.simple)
   (ha : a.bound_valid) (hb : b.bound_valid) :
   (a ⋆ b).bound_valid :=
 begin
   rw [StreamExec.bound_valid, bound_valid_iff_next'_iterate],
   intro H,
-  have := (Stream.mul_spec _ _ ha hb).2 H,
+  have := (Stream.mul_spec hsa hsb ha hb).2 H,
   simp [this] at H,
   rw [StreamExec.bound_valid, bound_valid_iff_next'_iterate] at ha,
   exact absurd H.1 ha,
 end
 
-@[simp] lemma StreamExec.mul_spec (a : StreamExec σ₁ ι α) (b : StreamExec σ₂ ι α) [a.stream.simple] [b.stream.simple] 
+@[simp] lemma StreamExec.mul_spec {a : StreamExec σ₁ ι α} {b : StreamExec σ₂ ι α} (hsa : a.stream.simple) (hsb : b.stream.simple) 
   (ha : a.bound_valid) (hb : b.bound_valid) :
-  (a ⋆ b).eval = a.eval * b.eval :=  (Stream.mul_spec _ _ ha hb).1
+  (a ⋆ b).eval = a.eval * b.eval :=  (Stream.mul_spec hsa hsb ha hb).1
+
+
