@@ -76,6 +76,15 @@ int j_last = -1;
 
 int size[] = {0,0};
 
+ind* C1_crd = (ind*)calloc(array_size, sizeof(ind));
+ind* C1_pos = (ind*)calloc(array_size, sizeof(ind));
+ind* C2_crd = (ind*)calloc(array_size, sizeof(ind));
+ind* C2_pos = (ind*)calloc(array_size, sizeof(ind));
+num*   C_vals = (num*)calloc(array_size, sizeof(num));
+int C1_i = -1;
+int C2_i = -1;
+ind _C = 0;
+
 ind* B1_crd = (ind*)calloc(array_size, sizeof(ind));
 ind* B1_pos = (ind*)calloc(array_size, sizeof(ind));
 ind* B2_crd = (ind*)calloc(array_size, sizeof(ind));
@@ -158,9 +167,9 @@ static int callback1(void *data, int argc, char **argv, char **azColName){
 
 static int callback_gen1(void *data, int argc, char **argv, char **azColName){
 #include "out_query_1.c"
-  printf("reading : %d\n", atoi(argv[0]));
-  printf("reading : %d\n", atoi(argv[1]));
-  printf("reading : %f\n", atof(argv[2]));
+  //printf("reading : %d\n", atoi(argv[0]));
+  //printf("reading : %d\n", atoi(argv[1]));
+  //printf("reading : %f\n", atof(argv[2]));
 return 0;
 }
 
@@ -173,9 +182,9 @@ static int callback(void *data, int argc, char **argv, char **azColName){
    return 0;
 }
 
+// breakpoints
 void start() { }
 void done() { }
-
 
 int main() {
   sqlite3* db;
@@ -208,4 +217,18 @@ int main() {
   sqlite3_close(db);
   start();
     auto t1 = std::chrono::high_resolution_clock::now();
-// sic
+
+/* main code */
+#include "gen_main.c"
+/* end main code */
+
+  done();
+
+  auto t2 = std::chrono::high_resolution_clock::now();
+  std::cout << "took:" << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count() << "μ" << std::endl;
+  std::cout << "took:" << std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count() << "ms" << std::endl;
+
+  std::cout << out << std::endl;
+  std::cout << fout << std::endl;
+  return 0;
+}
