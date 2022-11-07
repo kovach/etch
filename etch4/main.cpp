@@ -13,6 +13,9 @@ static inline double    num_mul(double a, double b) { return a * b; }
 static inline double    num_one() { return 1; }
 static inline double    num_zero() { return 0; }
 
+// todo, naming wrong
+static inline double    bool_ofBool(bool x) { return x ? 1 : 0; }
+
 static inline int    nat_add(int a, int b) { return a + b; }
 static inline int    nat_sub(int a, int b) { return a - b; }
 static inline int    nat_mul(int a, int b) { return a * b; }
@@ -66,10 +69,15 @@ int i;
 int j;
 int i1;
 int i2;
+int i3;
 int j1;
 int j2;
+int j3;
 int k1;
 int k2;
+int k3;
+int f1_;
+int f2_;
 
 int i_last = -1;
 int j_last = -1;
@@ -165,8 +173,16 @@ static int callback1(void *data, int argc, char **argv, char **azColName){
   return 0;
 }
 
-static int callback_gen1(void *data, int argc, char **argv, char **azColName){
-#include "out_query_1.c"
+static int gen_callback_graph1(void *data, int argc, char **argv, char **azColName){
+#include "gen_query_1.c"
+  //printf("reading : %d\n", atoi(argv[0]));
+  //printf("reading : %d\n", atoi(argv[1]));
+  //printf("reading : %f\n", atof(argv[2]));
+return 0;
+}
+
+static int gen_callback_graph2(void *data, int argc, char **argv, char **azColName){
+#include "gen_query_2.c"
   //printf("reading : %d\n", atoi(argv[0]));
   //printf("reading : %d\n", atoi(argv[1]));
   //printf("reading : %f\n", atof(argv[2]));
@@ -201,12 +217,12 @@ int main() {
      fprintf(stderr, "Opened database successfully\n");
   }
 
-  /* Create SQL statement */
-  char const* sql = "SELECT * from graph ORDER BY src, tgt";
+  char const* sql;
+  sql = "SELECT * from graph1 ORDER BY src, tgt";
+  rc = sqlite3_exec(db, sql, gen_callback_graph1, (void*)data, &zErrMsg);
+  sql = "SELECT * from graph2 ORDER BY src, tgt";
+  rc = sqlite3_exec(db, sql, gen_callback_graph2, (void*)data, &zErrMsg);
 
-  /* Execute SQL statement */
-  rc = sqlite3_exec(db, sql, callback_gen1, (void*)data, &zErrMsg);
-  //rc = sqlite3_exec(db, sql, callback1, (void*)data, &zErrMsg);
 
   if( rc != SQLITE_OK ) {
      fprintf(stderr, "SQL error: %s\n", zErrMsg);

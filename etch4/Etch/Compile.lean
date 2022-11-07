@@ -26,6 +26,9 @@ instance [Compile α β] : Compile α (Contraction β) where
         (Compile.compile storage v.value;; v.succ)
         (v.skip v.bound))
 
+instance [Compile α β] : Compile α ((β → P) → P) where
+  compile := λ l cc => cc (Compile.compile l)
+
 -- Used only to generate callback for data loading
 instance [Compile α β] : Compile (lvl ι α) (E ι × β) :=
 { compile := λ storage v =>
@@ -73,26 +76,35 @@ def lA : lvl ℕ (lvl ℕ (MemLoc R)) := dcsr "A"
 def lB : lvl ℕ (lvl ℕ (MemLoc R)) := dcsr "B"
 def lC : lvl ℕ (lvl ℕ (MemLoc R)) := dcsr "C"
 
+variable {α : Type 1}
+
 def outVar : Var R := "fout"
 def sum1 : S ι α → Contraction α := S.contract
 def sum2 : S ι (S ι' α) → Contraction (Contraction α) := S.contract ⊚ S.contract
 def sum3 : S ι (S ι' (S ι'' α)) → Contraction (Contraction (Contraction α)) :=
 S.contract ⊚ S.contract ⊚ S.contract
-def exp0 {ι : Type _} [Zero ι] [Tagged ι] (n : Var ι) : α → S ι α := S.repl' n
+def exp0 {ι : Type _} [Zero ι] [Tagged ι] (n : Var ι) : α → S ι α := S.repl n
 def exp1 {ι'' : Type _} [Zero ι''] [Tagged ι''] (n : String) : (S ι' α) → (S ι' (S ι'' α)) :=
-Functor.map $ S.repl' n
+Functor.map $ S.repl n
 def exp2 {ι'' : Type _} [Zero ι''] [Tagged ι''] (n : String) : S ι (S ι' α) → S ι (S ι' (S ι'' α)) :=
-Functor.map (Functor.map $ S.repl' n)
+Functor.map (Functor.map $ S.repl n)
 
-def A : S ℕ (S ℕ (E R)) := (csr.of "A" 1).level 0 & S.level (csr.of "A" 2) ⊚ S.leaf "A_vals"
-def B : S ℕ (S ℕ (E R)) := (csr.of "B" 1).level 0 & S.level (csr.of "B" 2) ⊚ S.leaf "B_vals"
+#check S.function ("f1_" : Var ℕ) (. << show E ℕ from 3)
+def lt : E ℕ → E ℕ → E Bool := (. << .)
+def f1 := S.function ("f1_" : Var ℕ) (show E ℕ → E ℕ → E Bool from (. << .))
+#check (S.function ("f2_" : Var ℕ) <$> f1)
+def S.lt : ℕ →ₛ ℕ →ₛ (E R) := S.function "f1_" ⊚ S.function "f2_" $ (. <ᵣ .)
+
+def A : ℕ →ₛ ℕ →ₛ E R := (csr.of "A" 1).level 0 & S.level (csr.of "A" 2) ⊚ S.leaf "A_vals"
+def B : ℕ →ₛ ℕ →ₛ E R := (csr.of "B" 1).level 0 & S.level (csr.of "B" 2) ⊚ S.leaf "B_vals"
 
 def k1 : Var ℕ := "k1"
-def mulAB := ((exp0 k1 <$> .) <$> A) * exp0 "i2" B
+def mulAB := ((exp0 "k1" <$> .) <$> A) * exp0 "i2" B
+def mulAB_ij := mulAB * (exp0 "j3" <$> S.lt)
 
 def A' := S.contract $ S.contract <$> A
 
 #eval IO.compile' "gen_query_1.c" [go lA SQLCallback]
--- go lC (S.contract <$> mulAB),
-#eval IO.compile' "gen_main.c" [go lB A, go outVar $ sum3 $ mulAB]
-
+#eval IO.compile' "gen_query_2.c" [go lB SQLCallback]
+-- go lC (S.contract <$> mulAB), go lB A,
+#eval IO.compile' "gen_main.c" [go outVar $ sum3 $ mulAB_ij]
