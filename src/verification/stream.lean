@@ -70,17 +70,27 @@ structure status (σ ι α : Type*) :=
 universes v w
 variables {ι ι' ι'' : Type} {α : Type u} {β : Type v} {γ : Type w}
 
+/-- Solve as many goals as possible by definitional simplification, use heq/eq, and `refl` -/
+meta def tactic.interactive.solve_refl : tactic unit :=
+let tactics : list (tactic unit) :=
+[`[dsimp],
+  `[simp only [heq_iff_eq]],
+  `[intros],
+  `[subst_vars],
+  `[refl]] in 
+sequence (tactics.map (λ t, tactic.try t)) >> tactic.skip
+
 @[simps]
 def Stream.bimap (s : Stream ι α) (f : ι → ι') (g : α → β) : Stream ι' β :=
 { s with value := λ x hx, g (s.value x hx), index := λ x hx, f (s.index x hx) }
 
 @[simp] lemma Stream.id_bimap (s : Stream ι α) : s.bimap id id = s :=
-by { ext; simp; intros; subst_vars; refl, }
+by ext; solve_refl
 
 @[simp] lemma Stream.bimap_bimap (s : Stream ι α)
   (f : ι → ι') (f' : ι' → ι'') (g : α → β) (h : β → γ) :
   (s.bimap f g).bimap f' h = s.bimap (f' ∘ f) (h ∘ g) :=
-by { ext; simp; intros; subst_vars; refl, }
+by ext; solve_refl
 
 notation f ` <$₁> `:1 s := s.bimap f id
 notation g ` <$₂> `:1 s := s.bimap id g
@@ -155,12 +165,12 @@ def StreamExec.bimap (s : StreamExec ι α) (f : ι → ι') (g : α → β) : S
 { s with stream := s.stream.bimap f g, bound_valid := by simpa using s.bound_valid }
 
 @[simp] lemma StreamExec.id_bimap (s : StreamExec ι α) : s.bimap id id = s :=
-by { ext; simp; intros; subst_vars; refl, }
+by ext; solve_refl
 
 @[simp] lemma StreamExec.bimap_bimap (s : StreamExec ι α)
   (f : ι → ι') (f' : ι' → ι'') (g : α → β) (h : β → γ) :
   (s.bimap f g).bimap f' h = s.bimap (f' ∘ f) (h ∘ g) :=
-by { ext; simp; intros; subst_vars; refl, }
+by ext; solve_refl
 
 @[simp] lemma imap_stream (s : StreamExec ι α) (f : ι → ι') :
   (f <$₁> s).stream = (f <$₁> s.stream) := rfl

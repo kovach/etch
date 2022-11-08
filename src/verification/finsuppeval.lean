@@ -1,9 +1,10 @@
+import data.finsupp.pointwise
 import verification.stream
 
 noncomputable theory
 open_locale classical
 
-class Eval (α : Type*) (ι : out_param Type) (β : out_param Type*) [add_zero_class β] :=
+class Eval (α : Type*) (ι : out_param Type) (β : out_param Type*) [has_zero β] :=
 (eval : α → (ι →₀ β))
 
 instance Stream.Eval_base {ι : Type} {α : Type*} [add_zero_class α] : 
@@ -18,5 +19,9 @@ class AddZeroEval (α : Type*) (ι : out_param Type) (β : out_param Type*) [add
   extends Eval α ι β, has_add α, has_zero α :=
 (hadd : ∀ (x y : α), eval (x + y) = eval x + eval y)
 (hzero : eval 0 = 0)
+
+class MulEval (α : Type*) (ι : out_param Type) (β : out_param Type*) [mul_zero_class β]
+  extends Eval α ι β, has_mul α :=
+(hmul : ∀ (x y : α), eval (x * y) = eval x * eval y)
 
 attribute [simp] AddZeroEval.hadd AddZeroEval.hzero

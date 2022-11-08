@@ -18,7 +18,8 @@ instance [has_zero β] : has_zero (Stream ι β) :=
 instance [has_zero β] : has_zero (StreamExec ι β) := ⟨
 { stream := 0,
   state := (),
-  bound := 0 }⟩
+  bound := 0,
+  bound_valid := Stream.bound_valid.start _ not_false }⟩
 
 @[simp] lemma StreamExec.zero_eval [add_zero_class β] :
   (0 : StreamExec ι β).eval = 0 := rfl

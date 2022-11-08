@@ -50,7 +50,7 @@ begin
   exact (le_of_eq (Stream.index'_val _)),
 end
 
-lemma Stream.simple.index_lt_next [add_zero_class α] {q : Stream ι α} (hq : q.simple) {x : q.σ}
+lemma Stream.simple.index_lt_next {q : Stream ι α} (hq : q.simple) {x : q.σ}
   (hv : q.valid x) (hr : q.ready x) : q.index' x < q.index' (q.next _ hv) :=
 by { rw lt_iff_le_and_ne, exact ⟨hq.monotonic hv, hq.reduced hv hr⟩, }
 
@@ -58,3 +58,15 @@ lemma Stream.simple.index_lt_support [add_zero_class α] {q : Stream ι α} (hq 
   (hv : q.valid x) (hr : q.ready x) :
   ∀ i ∈ (q.eval_steps n (q.next x hv)).support, q.index' x < ↑i :=
 λ i H, lt_of_lt_of_le (hq.index_lt_next hv hr) (hq.monotonic.index_le_support i H)
+
+class StreamExec.is_simple (s : StreamExec ι α) : Prop :=
+(prop : s.stream.simple)
+
+lemma StreamExec.simple (s : StreamExec ι α) [s.is_simple] : s.stream.simple :=
+‹s.is_simple›.prop
+
+lemma StreamExec.monotonic (s : StreamExec ι α) [s.is_simple] : s.stream.monotonic :=
+s.simple.monotonic
+
+lemma StreamExec.reduced (s : StreamExec ι α) [s.is_simple] : s.stream.reduced :=
+s.simple.reduced

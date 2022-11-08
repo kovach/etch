@@ -235,21 +235,11 @@ instance StreamExec.AddZeroEval [add_comm_monoid α] : AddZeroEval (StreamExec �
 { hadd := StreamExec.add_spec,
   hzero := StreamExec.zero_eval }
 
-/-- Solve as many goals as possible by definitional simplification, use heq/eq, and `refl` -/
-meta def tactic.interactive.solve_refl : tactic unit :=
-let tactics : list (tactic unit) :=
-[`[dsimp],
-  `[simp only [heq_iff_eq]],
-  `[intros],
-  `[subst_vars],
-  `[refl]] in 
-sequence (tactics.map (λ t, tactic.try (tactic.any_goals' t))) >> tactic.skip
-
 lemma add_value_eval {ι α ι' α' : Type*} [linear_order ι] [add_comm_monoid α'] [AddZeroEval α ι' α'] 
   (a b : StreamExec ι α) :
   (Eval.eval <$₂> (a + b)) = (Eval.eval <$₂> a) + (Eval.eval <$₂> b) :=
 begin
-  ext, solve_refl,
+  ext; solve_refl,
   simp [apply_ite Eval.eval],
   congr; rw [Stream.bimap_value'_apply]; simp,
 end
@@ -262,5 +252,3 @@ instance {ι α ι' α' : Type*} [linear_order ι] [add_comm_monoid α'] [AddZer
 example {ι₁ ι₂ : Type} [linear_order ι₁] [linear_order ι₂]
   (a b : StreamExec ι₁ (StreamExec ι₂ ℤ)) :
   Eval.eval (a + b) = (Eval.eval a) + (Eval.eval b) := by simp
-
-
