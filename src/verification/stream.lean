@@ -59,13 +59,6 @@ structure StreamExec (ι : Type) (α : Type u) :=
 (bound : ℕ)
 (bound_valid : stream.bound_valid bound state)
 
-structure status (σ ι α : Type*) :=
-(next  : σ)
-(index : ι)
-(value : α)
-(ready : bool)
-(valid : bool)
-(state : σ)
 
 universes v w
 variables {ι ι' ι'' : Type} {α : Type u} {β : Type v} {γ : Type w}

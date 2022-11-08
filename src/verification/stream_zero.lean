@@ -1,4 +1,5 @@
 import verification.stream
+import verification.stream_props
 
 variables {ι : Type} {α β : Type*}
 
@@ -24,3 +25,10 @@ instance [has_zero β] : has_zero (StreamExec ι β) := ⟨
 @[simp] lemma StreamExec.zero_eval [add_zero_class β] :
   (0 : StreamExec ι β).eval = 0 := rfl
 
+instance [has_zero β] [linear_order ι] : has_zero (SimpleStream ι β) :=
+⟨{ simple :=
+{ monotonic := λ x h, h.elim,
+  reduced := λ x h, h.elim }, ..(0 : StreamExec ι β) }⟩
+
+@[simp] lemma SimpleStream.zero_eval [add_zero_class β] [linear_order ι] :
+  StreamExec.eval ((0 : SimpleStream ι β) : StreamExec ι β) = 0 := rfl

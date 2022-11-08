@@ -59,14 +59,14 @@ lemma Stream.simple.index_lt_support [add_zero_class α] {q : Stream ι α} (hq 
   ∀ i ∈ (q.eval_steps n (q.next x hv)).support, q.index' x < ↑i :=
 λ i H, lt_of_lt_of_le (hq.index_lt_next hv hr) (hq.monotonic.index_le_support i H)
 
-class StreamExec.is_simple (s : StreamExec ι α) : Prop :=
-(prop : s.stream.simple)
+structure SimpleStream (ι : Type) (α : Type*) [linear_order ι] extends StreamExec ι α :=
+(simple : stream.simple)
 
-lemma StreamExec.simple (s : StreamExec ι α) [s.is_simple] : s.stream.simple :=
-‹s.is_simple›.prop
+instance (ι : Type) (α : Type*) [linear_order ι] : has_coe
+  (SimpleStream ι α) (StreamExec ι α) := ⟨SimpleStream.to_StreamExec⟩
 
-lemma StreamExec.monotonic (s : StreamExec ι α) [s.is_simple] : s.stream.monotonic :=
+lemma SimpleStream.monotonic (s : SimpleStream ι α) : s.stream.monotonic :=
 s.simple.monotonic
 
-lemma StreamExec.reduced (s : StreamExec ι α) [s.is_simple] : s.stream.reduced :=
+lemma SimpleStream.reduced (s : SimpleStream ι α) : s.stream.reduced :=
 s.simple.reduced

@@ -226,11 +226,6 @@ begin
     exact ne_of_lt (prod.lex.fst_lt_of_lt_of_le (lt_of_le_not_le h H) (by simp [hr])), },
 end
 
-lemma Stream.add_simple [has_zero α] [has_add α] {a : Stream ι α} {b : Stream ι α} (ha : a.simple) (hb : b.simple) :
-  (a + b).simple :=
-{ monotonic := Stream.add_monotonic ha.monotonic hb.monotonic,
-  reduced := Stream.add_reduced ha.reduced hb.reduced, }
-
 instance StreamExec.AddZeroEval [add_comm_monoid α] : AddZeroEval (StreamExec ι α) ι α :=
 { hadd := StreamExec.add_spec,
   hzero := StreamExec.zero_eval }
@@ -249,6 +244,19 @@ instance {ι α ι' α' : Type*} [linear_order ι] [add_comm_monoid α'] [AddZer
 { hadd := λ x y, by simp [Eval.eval, add_value_eval],
   hzero := StreamExec.zero_eval }
 
-example {ι₁ ι₂ : Type} [linear_order ι₁] [linear_order ι₂]
-  (a b : StreamExec ι₁ (StreamExec ι₂ ℤ)) :
-  Eval.eval (a + b) = (Eval.eval a) + (Eval.eval b) := by simp
+instance {ι : Type} {α : Type*} [linear_order ι] [has_zero α] [has_add α] : has_add (SimpleStream ι α) := ⟨λ a b,
+{ simple :=
+  { monotonic := Stream.add_monotonic a.monotonic b.monotonic,
+    reduced := Stream.add_reduced a.reduced b.reduced },
+  ..(@has_add.add (StreamExec ι α) _ a b) }⟩
+
+instance SimpleStream.AddZeroEvalBase [add_comm_monoid α] : AddZeroEval (SimpleStream ι α) ι α :=
+{ hadd := λ x y, by exact AddZeroEval.hadd (↑x : StreamExec _ _) (↑y : StreamExec _ _),
+  hzero := SimpleStream.zero_eval }
+
+instance SimpleStream.AddZeroEval {ι α ι' α' : Type*} [linear_order ι] [add_comm_monoid α'] [AddZeroEval α ι' α'] :
+  AddZeroEval (SimpleStream ι α) ι (ι' →₀ α') :=
+{ hadd := λ x y, by exact AddZeroEval.hadd (↑x : StreamExec _ _) (↑y : StreamExec _ _),
+  hzero := SimpleStream.zero_eval }
+
+

@@ -3,6 +3,7 @@ import data.finsupp.basic
 import control.bifunctor
 import verification.misc
 import verification.stream_props
+import verification.finsuppeval
 
 open_locale classical
 noncomputable theory
@@ -196,8 +197,8 @@ instance {ι : Type} {α : Type*} [linear_order ι] [has_mul α] : has_mul (Stre
     exact a.bound_valid,
   end }⟩
 
-@[simp] lemma StreamExec.mul_spec [non_unital_non_assoc_semiring α] (a : StreamExec ι α) (b : StreamExec ι α) [a.is_simple] [b.is_simple] :
-  (a * b).eval = a.eval * b.eval := Stream.mul_spec_value a.simple b.simple a.bound_valid b.bound_valid
+lemma StreamExec.mul_spec [non_unital_non_assoc_semiring α] (a : StreamExec ι α) (b : StreamExec ι α) (ha : a.stream.simple) (hb : b.stream.simple) :
+  (a * b).eval = a.eval * b.eval := Stream.mul_spec_value ha hb a.bound_valid b.bound_valid
 
 lemma Stream.mul_is_monotonic [has_mul α] {a : Stream ι α} {b : Stream ι α} (hsa : a.monotonic) (hsb : b.monotonic) :
   (a * b).monotonic :=
@@ -220,5 +221,34 @@ begin
   { simp only [hr.index', ne, max_ne_self_iff], exact hsb.index_lt_next _ hr.r₂, },
 end
 
-instance StreamExec.mul_is_simple [has_mul α] (a b : StreamExec ι α) [a.is_simple] [b.is_simple] : (a * b).is_simple :=
-⟨Stream.mul_is_simple a.simple b.simple⟩
+@[simps]
+instance {ι : Type} {α : Type*} [linear_order ι] [has_mul α] : has_mul (SimpleStream ι α) := ⟨λ a b,
+{ simple := Stream.mul_is_simple a.simple b.simple,
+  ..(@has_mul.mul (StreamExec ι α) _ a b) }⟩
+
+lemma SimpleStream.coe_mul {ι : Type} {α : Type*} [linear_order ι] [has_mul α] (a b : SimpleStream ι α) :
+  (↑(a * b) : StreamExec ι α) = (↑a) * (↑b) := rfl
+
+instance SimpleStream.MulEval [non_unital_non_assoc_semiring α] : MulEval (SimpleStream ι α) ι α :=
+{ hmul := λ a b, StreamExec.mul_spec a b a.simple b.simple  }
+
+section
+
+lemma mul_value_eval {ι α ι' α' : Type*} [linear_order ι] [non_unital_non_assoc_semiring α'] [MulEval α ι' α'] 
+  (a b : StreamExec ι α) :
+  (Eval.eval <$₂> (a * b)) = (Eval.eval <$₂> a) * (Eval.eval <$₂> b) :=
+begin
+  ext; solve_refl,
+  { simp only [Stream.mul.ready_iff], refl, },
+  { simp, refl, },
+end
+
+-- huh??
+instance {ι α ι' α' : Type*} [linear_order ι] [non_unital_non_assoc_semiring α'] [MulEval α ι' α'] :
+  Eval (SimpleStream ι α) ι (ι' →₀ α') := SimpleStream.Eval_ind
+
+instance {ι α ι' α' : Type*} [linear_order ι] [non_unital_non_assoc_semiring α'] [MulEval α ι' α'] :
+  MulEval (SimpleStream ι α) ι (ι' →₀ α') :=
+{ hmul := λ x y, by { simp [Eval.eval, mul_value_eval, SimpleStream.coe_mul], rw StreamExec.mul_spec, exacts [⟨x.monotonic, x.reduced⟩, ⟨y.monotonic, y.reduced⟩], } }
+
+end
