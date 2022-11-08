@@ -208,14 +208,14 @@ structure S (ι : Type _) (α : Type _) where
   valid : E Bool
   init  : P
 
-infixr:20 " →ₛ "  => S
+infixr:25 " →ₛ " => S
 
 variable
 {ι : Type} [Tagged ι] [DecidableEq ι]
 [LE ι] [DecidableRel (LE.le : ι → ι → _)]
 [LT ι] [DecidableRel (LT.lt : ι → ι → _)]
 
-def S.mul [Mul α]  (a b : S ι α) : S ι α where
+def S.mul [HMul α β γ] (a : S ι α) (b : S ι β) : (S ι γ) where
   value := a.value * b.value
   skip  := λ i => a.skip i;; b.skip i
   succ  := a.succ;; b.succ
@@ -225,26 +225,7 @@ def S.mul [Mul α]  (a b : S ι α) : S ι α where
   init := a.init ;; b.init
 
 instance [Mul α] : Mul (S ι α) := ⟨S.mul⟩
-
---def S.add [Mul α] (count : Var ℕ) (args : Var α) : S ι α where
---  value := a.value * b.value
---  skip  := λ i => a.skip i;; b.skip i
---  succ  := a.succ;; b.succ
---  ready := a.ready * b.ready * (a.bound == b.bound)
---  bound := .call .max ![a.bound, b.bound]
---  valid := a.valid * b.valid
---  init := a.init ;; b.init
-
---def S.toCont [Mul α]  (a : S ι α) : S ι ((α → P) → P) := { a with value := λ k => k a.value }
---
---def S.add [Mul α]  (a b : S ι ((α → P) → P)) : S ι ((α → P) → P) where
---  value := λ k => P.branch (a.ready * b.ready * (a.bound == b.bound)) (k $ a.add b) _
---  skip  := λ i => a.skip i;; b.skip i
---  succ  := a.succ;; b.succ
---  ready := a.ready * b.ready * (a.bound == b.bound)
---  bound := .call .max ![a.bound, b.bound]
---  valid := a.valid * b.valid
---  init := a.init ;; b.init
+instance [HMul α β γ] : HMul (S ι α) (S ι β) (S ι γ) := ⟨S.mul⟩
 
 instance [Mul α] : Mul (S ι α) := ⟨S.mul⟩
 
@@ -258,15 +239,6 @@ instance : Coe (Var α) (E α) := ⟨E.var⟩
 instance : Functor (S ι) where map := λ f s => {s with value := f s.value }
 
 def Var.store_var (v : Var α) := P.store_var v
-
-def S.range (pos : Var ℕ) (size : E ℕ) : S ℕ (E ℕ) where
-  value := pos.expr
-  succ := pos.incr
-  ready := 1
-  skip := λ i => .store_var pos i
-  bound := pos.expr
-  valid := pos.expr << size
-  init := pos.store_var 0
 
 --def S.repl (pos : Var ℕ) (size : E ℕ) (v : α) : S ℕ α where
 --  value := v
@@ -318,7 +290,7 @@ def S.interval_search (is : Var ι) (pos : Var ℕ) (lower upper : E ℕ) : S ι
   valid := pos.expr << upper
   init := pos.store_var lower
 
--- todo remove?
+-- todo remove these two?
 def S.sparse (pos size : Var ℕ) (is : Var ι) (vs : Var α) : S ι (E α) where
   value := .access vs pos
   succ  := pos.incr
@@ -327,7 +299,6 @@ def S.sparse (pos size : Var ℕ) (is : Var ι) (vs : Var α) : S ι (E α) wher
   bound := E.access is pos.expr
   valid := pos.expr << size.expr
   init := pos.store_var 0
-
 def S.sparseSearch (pos size : Var ℕ) (is : Var ι) (vs : Var α) : S ι (E α) where
   value := .access vs (E.var pos)
   succ  := pos.incr
@@ -350,8 +321,8 @@ def S.univ [Zero ι] (last : Var ι) : S ι (E ι) where
   init := last.store_var 0
 
 -- using fmap introduces a universe constraint between α and Type 1 (coming from E ι). this is probably ok anyway
-def S.repl [Zero ι] (last : Var ι) (v : α) : S ι α := {S.univ last with value := v}
 --def S.repl' {α : Type 1} [Zero ι] (last : Var ι) (v : α) : S ι α := (Function.const _ v) <$> (S.univ last)
+def S.repl [Zero ι] (last : Var ι) (v : α) : S ι α := {S.univ last with value := v}
 def S.function [Zero ι] (last : Var ι) (f : E ι → α) : S ι α := f <$> S.univ last
 
 structure csr (ι α : Type _) := (i : Var ι) (v : Var α) (var : Var ℕ)
@@ -360,11 +331,29 @@ def csr.of (name : String) (n : ℕ) (ι := ℕ) : csr ι ℕ :=
   let field {ι} (x : String) : Var ι := Var.mk $ name ++ n.repr ++ x
   { i := field "_crd", v := field "_pos", var := field "_i" }
 
-def csr.level : csr ι ℕ → E ℕ → S ι (E ℕ) := λ csr loc => S.interval_search csr.i csr.var (.access csr.v loc) (csr.v.access (loc+1))
-def S.level : csr ι ℕ → S ι' (E ℕ) → S ι' (S ι (E ℕ)) := Functor.map ∘ csr.level
-def S.leaf : Var α → S ι (E ℕ) → S ι (E α) := Functor.map ∘ E.access
-def S.leaf' : Var α → E ℕ → E α := E.access
-
 def Contraction (α : Type _) := Σ ι, S ι α
 instance : Functor Contraction where map := λ f ⟨ι, v⟩ => ⟨ι, f <$> v⟩
 def S.contract (s : S ι α) : Contraction α := ⟨_, s⟩
+
+end
+
+def Fun (ι α : Type _) := E ι → α
+infixr:25 "→ₐ"  => Fun -- arbitrarily chosen for ease of typing: \ra
+example : (ℕ → ℕ →ₐ ℕ) = (ℕ → (ℕ →ₐ ℕ)) := rfl
+example : (ℕ →ₛ ℕ →ₐ ℕ) = (ℕ →ₛ (ℕ →ₐ ℕ)) := rfl
+example : (ℕ →ₐ ℕ →ₛ ℕ) = (ℕ →ₐ (ℕ →ₛ ℕ)) := rfl
+--def Exp (ι α : Type _) := α
+def Fun.un (h : ι →ₐ α) : E ι → α := h
+def Fun.of (h : E ι → α) : ι →ₐ α := h
+instance : Functor (Fun ι) where map := λ f v => f ∘ v
+
+--def S.range (pos : Var ℕ) (size : E ℕ) : ℕ →ₛ (E ℕ) where
+--  value := pos.expr
+--  succ := pos.incr
+--  ready := 1
+--  skip := λ i => .store_var pos i
+--  bound := pos.expr
+--  valid := pos.expr << size
+--  init := pos.store_var 0
+
+def range : ℕ →ₐ E ℕ := id

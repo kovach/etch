@@ -24,6 +24,7 @@ static inline bool   nat_le(int a, int b) { return a <= b; }
 static inline bool   nat_eq(int a, int b) { return a == b; }
 static inline int    nat_max(int a, int b) { return a < b ? b : a; }
 static inline int    nat_min(int a, int b) { return a < b ? a : b; }
+static inline int    TACO_MIN(int a, int b) { return a < b ? a : b; }
 static inline int    nat_succ(int a) { return a + 1; }
 static inline bool   nat_neg(int a) { return !a; }
 static inline int    nat_mid(int a, int b) { return (a + b) / 2; }
@@ -42,7 +43,7 @@ static inline bool   str_eq(const char* a, const char* b) { return strcmp(a, b) 
 static inline int    str_atoi(char* a) { return atoi(a); }
 static inline double str_atof(char* a) { return atof(a); }
 
-int dim        = 10000;
+int dim        = 100000;
 int array_size = 100000;
 
 int* base = 0;
@@ -84,15 +85,27 @@ int j_last = -1;
 
 int size[] = {0,0};
 
+ind* out1_crd = (ind*)calloc(array_size, sizeof(ind));
+ind* out1_pos = (ind*)calloc(array_size, sizeof(ind));
+ind* out2_crd = (ind*)calloc(array_size, sizeof(ind));
+ind* out2_pos = (ind*)calloc(array_size, sizeof(ind));
+num* out_vals = (num*)calloc(array_size, sizeof(num));
+int  out1_i = -1;
+int  out2_i = -1;
+ind  _out = 0;
+
 ind* C1_crd = (ind*)calloc(array_size, sizeof(ind));
 ind* C1_pos = (ind*)calloc(array_size, sizeof(ind));
 ind* C2_crd = (ind*)calloc(array_size, sizeof(ind));
 ind* C2_pos = (ind*)calloc(array_size, sizeof(ind));
+ind* C3_crd = (ind*)calloc(array_size, sizeof(ind));
+ind* C3_pos = (ind*)calloc(array_size, sizeof(ind));
 num*   C_vals = (num*)calloc(array_size, sizeof(num));
 int C1_i = -1;
 int C2_i = -1;
 ind _C = 0;
 
+int B1_dimension = 10000;
 ind* B1_crd = (ind*)calloc(array_size, sizeof(ind));
 ind* B1_pos = (ind*)calloc(array_size, sizeof(ind));
 ind* B2_crd = (ind*)calloc(array_size, sizeof(ind));
@@ -189,6 +202,18 @@ static int gen_callback_graph2(void *data, int argc, char **argv, char **azColNa
 return 0;
 }
 
+double taco_mul2() {
+#include "taco/sum_mul2.c"
+}
+
+double taco_mul2_csr() {
+#include "taco/sum_mul2_csr.c"
+}
+
+double taco_sum_B_csr() {
+#include "taco/sum_B_csr.c"
+}
+
 static int callback(void *data, int argc, char **argv, char **azColName){
    for(int i = 0; i<argc; i++){
       printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
@@ -232,19 +257,44 @@ int main() {
   }
   sqlite3_close(db);
   start();
-    auto t1 = std::chrono::high_resolution_clock::now();
+
+  // warmup?
+  fout = 0;
+#include "gen_main.c"
+  taco_mul2();
+  // warmup
+
+  // decl
+  auto t1 = std::chrono::high_resolution_clock::now();
+  auto t2 = std::chrono::high_resolution_clock::now();
+
+  int reps = 100;
+  double tout;
+
+  // taco
+  t1 = std::chrono::high_resolution_clock::now();
+  for (int i = 0; i < reps; i++)
+    tout = taco_mul2_csr();
+  t2 = std::chrono::high_resolution_clock::now();
+  std::cout << "taco took: " << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count() << "μ" << std::endl;
+  std::cout << "taco took: " << std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count() << "ms" << std::endl;
+  // taco
 
 /* main code */
+  t1 = std::chrono::high_resolution_clock::now();
+  for (int i = 0; i < reps; i++) {
+  fout = 0;
 #include "gen_main.c"
+  }
+  t2 = std::chrono::high_resolution_clock::now();
+  std::cout << "etch took: " << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count() << "μ" << std::endl;
+  std::cout << "etch took: " << std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count() << "ms" << std::endl;
 /* end main code */
 
   done();
 
-  auto t2 = std::chrono::high_resolution_clock::now();
-  std::cout << "took:" << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count() << "μ" << std::endl;
-  std::cout << "took:" << std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count() << "ms" << std::endl;
-
-  std::cout << out << std::endl;
-  std::cout << fout << std::endl;
+  //std::cout << out << std::endl;
+  std::cout << "etch: " << fout << std::endl;
+  std::cout << "taco: " << tout << std::endl;
   return 0;
 }
