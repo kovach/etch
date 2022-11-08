@@ -340,7 +340,7 @@ def S.contract (s : S ι α) : Contraction α := ⟨_, s⟩
 end ι
 
 def Fun (ι α : Type _) := E ι → α
-infixr:25 "→ₐ"  => Fun -- arbitrarily chosen for ease of typing: \ra
+infixr:25 " →ₐ "  => Fun -- arbitrarily chosen for ease of typing: \ra
 example : (ℕ → ℕ →ₐ ℕ) = (ℕ → (ℕ →ₐ ℕ)) := rfl
 example : (ℕ →ₛ ℕ →ₐ ℕ) = (ℕ →ₛ (ℕ →ₐ ℕ)) := rfl
 example : (ℕ →ₐ ℕ →ₛ ℕ) = (ℕ →ₐ (ℕ →ₛ ℕ)) := rfl
