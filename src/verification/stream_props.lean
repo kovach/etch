@@ -15,6 +15,9 @@ def stream_order (ι : Type) : Type := with_top ι ×ₗ bool
 def Stream.to_order (s : Stream ι α) (x : s.σ) : stream_order ι :=
 ⟨s.index' x, s.ready x⟩
 
+@[simp] lemma Stream.bimap_to_order (s : Stream ι α) (g : α → β) :
+  (g <$₂> s).to_order = s.to_order := rfl
+
 lemma valid_of_le_valid {s₁ : Stream ι α} {s₂ : Stream ι β} {x : s₁.σ} {y : s₂.σ}
   (h : s₁.to_order x ≤ s₂.to_order y) (h' : s₂.valid y) : s₁.valid x :=
 by { simp [Stream.to_order, h'] at h, rw ← Stream.index'_lt_top_iff, refine lt_of_le_of_lt (prod.lex.fst_le_of_le h) _, simpa, }

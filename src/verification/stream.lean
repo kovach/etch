@@ -30,11 +30,34 @@ begin
   { apply h₅ x x _ _ rfl; assumption, },
 end
 
+section stream_defs
+variables {ι : Type} {α : Type*}
+
+def Stream.eval₀ [has_zero α] (s : Stream ι α) (σ₀ : s.σ) (h₁ : s.valid σ₀) : ι →₀ α :=
+if h₂ : s.ready σ₀ then finsupp.single (s.index _ h₁) (s.value _ h₂) else 0
+
+@[simp]
+noncomputable def Stream.eval_steps [add_zero_class α] (s : Stream ι α) :
+  ℕ → s.σ → ι →₀ α
+| 0 _ := 0
+| (n + 1) σ₀ := if h₁ : s.valid σ₀ then (Stream.eval_steps n (s.next σ₀ h₁)) + (s.eval₀ _ h₁) else 0
+
+lemma Stream.eval_invalid [add_zero_class α] {s : Stream ι α} {σ₀ : s.σ} (h : ¬s.valid σ₀) (n : ℕ) :
+  s.eval_steps n σ₀ = 0 :=
+by cases n; simp [h]
+
+inductive Stream.bound_valid : ℕ → ∀ (s : Stream ι α), s.σ → Prop
+| start (n : ℕ) {s : Stream ι α} {σ₀ : s.σ} : ¬s.valid σ₀ → Stream.bound_valid n s σ₀
+| step {n : ℕ} {s : Stream ι α} {σ₀ : s.σ} : ∀ (h : s.valid σ₀), Stream.bound_valid n s (s.next σ₀ h) → Stream.bound_valid (n + 1) s σ₀
+
+end stream_defs
+
 @[ext]
 structure StreamExec (ι : Type) (α : Type u) :=
 (stream : Stream ι α)
 (state : stream.σ)
 (bound : ℕ)
+(bound_valid : stream.bound_valid bound state)
 
 structure status (σ ι α : Type*) :=
 (next  : σ)
@@ -59,18 +82,6 @@ by { ext; simp; intros; subst_vars; refl, }
   (s.bimap f g).bimap f' h = s.bimap (f' ∘ f) (h ∘ g) :=
 by { ext; simp; intros; subst_vars; refl, }
 
-@[simps]
-def StreamExec.bimap (s : StreamExec ι α) (f : ι → ι') (g : α → β) : StreamExec ι' β :=
-{ s with stream := s.stream.bimap f g }
-
-@[simp] lemma StreamExec.id_bimap (s : StreamExec ι α) : s.bimap id id = s :=
-by { ext; simp; intros; subst_vars; refl, }
-
-@[simp] lemma StreamExec.bimap_bimap (s : StreamExec ι α)
-  (f : ι → ι') (f' : ι' → ι'') (g : α → β) (h : β → γ) :
-  (s.bimap f g).bimap f' h = s.bimap (f' ∘ f) (h ∘ g) :=
-by { ext; simp; intros; subst_vars; refl, }
-
 notation f ` <$₁> `:1 s := s.bimap f id
 notation g ` <$₂> `:1 s := s.bimap id g
 
@@ -80,49 +91,7 @@ def StreamExec.valid (s : StreamExec ι α) : Prop := s.stream.valid s.state
 @[reducible, inline]
 def StreamExec.ready (s : StreamExec ι α) : Prop := s.stream.ready s.state
 
-@[simps] def StreamExec.δ (s : StreamExec ι α) (h : s.valid) : StreamExec ι α :=
-{ stream := s.stream,
-  state := s.stream.next s.state h,
-  bound := s.bound.pred }
-
-
-section
-variables (f : ι → ι') (g : α → β)
-
-set_option pp.universes true
-
-@[simp] lemma StreamExec.bifunctor_bimap_valid (s : StreamExec ι α):
-  (s.bimap f g).valid ↔ s.valid := iff.rfl
-@[simp] lemma StreamExec.bifunctor_bimap_ready (s : StreamExec ι α) :
-  (s.bimap f g).ready ↔ s.ready := iff.rfl
-
-@[simp] lemma StreamExec.bifunctor_bimap_δ (s : StreamExec ι α) (h : s.valid) :
-  (s.bimap f g).δ h = (s.δ h).bimap f g := rfl
-
-end
-
-def Stream.eval₀ [has_zero α] (s : Stream ι α) (σ₀ : s.σ) (h₁ : s.valid σ₀) : ι →₀ α :=
-if h₂ : s.ready σ₀ then finsupp.single (s.index _ h₁) (s.value _ h₂) else 0
-
-@[simp]
-noncomputable def Stream.eval_steps [add_zero_class α] (s : Stream ι α) :
-  ℕ → s.σ → ι →₀ α
-| 0 _ := 0
-| (n + 1) σ₀ := if h₁ : s.valid σ₀ then (Stream.eval_steps n (s.next σ₀ h₁)) + (s.eval₀ _ h₁) else 0
-
-lemma Stream.eval_invalid [add_zero_class α] {s : Stream ι α} {σ₀ : s.σ} (h : ¬s.valid σ₀) (n : ℕ) :
-  s.eval_steps n σ₀ = 0 :=
-by cases n; simp [h]
-
-inductive Stream.bound_valid : ℕ → ∀ (s : Stream ι α), s.σ → Prop
-| start (n : ℕ) {s : Stream ι α} {σ₀ : s.σ} : ¬s.valid σ₀ → Stream.bound_valid n s σ₀
-| step {n : ℕ} {s : Stream ι α} {σ₀ : s.σ} : ∀ (h : s.valid σ₀), Stream.bound_valid n s (s.next σ₀ h) → Stream.bound_valid (n + 1) s σ₀
-
 open Stream.bound_valid (start step)
-
-def StreamExec.bound_valid (s : StreamExec ι α) : Prop := s.stream.bound_valid s.bound s.state
-
--- lemma StreamExec.bound_delta {s : StreamExec σ ι α} (hs : ∀ (h : s.valid), )
 
 @[simp] lemma Stream.bound_valid_zero {s : Stream ι α} {σ₀ : s.σ} :
   s.bound_valid 0 σ₀ ↔ ¬s.valid σ₀ :=
@@ -166,12 +135,6 @@ s.stream.eval_steps s.bound s.state
 
 section defs
 
-@[simp] lemma imap_stream (s : StreamExec ι α) (f : ι → ι') :
-  (f <$₁> s).stream = (f <$₁> s.stream) := rfl
-
-@[simp] lemma imap_stream_eval [add_zero_class α] (s : StreamExec ι α) (f : ι → ι') (n : ℕ) :
-  (f <$₁> s).stream.eval_steps n s.state = (f <$₁> s.stream).eval_steps n s.state := rfl
-
 @[simp] lemma imap_eval₀_spec [add_comm_monoid α] (f : ι → ι') (s : Stream ι α) (σ₀ : s.σ) (h : s.valid σ₀) :
   (f <$₁> s).eval₀ _ h = (s.eval₀ _ h).map_domain f :=
 by { simp only [Stream.eval₀], split_ifs; simp, }
@@ -183,9 +146,34 @@ begin
   split_ifs; simp [ih, finsupp.map_domain_add], refl,
 end
 
-@[simp] lemma bimap_bound_valid_iff (f : ι → ι') (g : α → β) (s : StreamExec ι α) :
-  (s.bimap f g).bound_valid ↔ s.bound_valid :=
-by { simp [StreamExec.bound_valid], generalize : s.state = σ₀, induction s.bound with n ih generalizing σ₀; simp [*]; refl, }
+@[simp] lemma bimap_bound_valid_iff (f : ι → ι') (g : α → β) (s : Stream ι α) (n : ℕ) (x : s.σ) :
+  (s.bimap f g).bound_valid n x ↔ s.bound_valid n x :=
+by { induction n with n ih generalizing x; simp [*]; refl, }
+
+@[simps]
+def StreamExec.bimap (s : StreamExec ι α) (f : ι → ι') (g : α → β) : StreamExec ι' β :=
+{ s with stream := s.stream.bimap f g, bound_valid := by simpa using s.bound_valid }
+
+@[simp] lemma StreamExec.id_bimap (s : StreamExec ι α) : s.bimap id id = s :=
+by { ext; simp; intros; subst_vars; refl, }
+
+@[simp] lemma StreamExec.bimap_bimap (s : StreamExec ι α)
+  (f : ι → ι') (f' : ι' → ι'') (g : α → β) (h : β → γ) :
+  (s.bimap f g).bimap f' h = s.bimap (f' ∘ f) (h ∘ g) :=
+by { ext; simp; intros; subst_vars; refl, }
+
+@[simp] lemma imap_stream (s : StreamExec ι α) (f : ι → ι') :
+  (f <$₁> s).stream = (f <$₁> s.stream) := rfl
+
+@[simp] lemma imap_stream_eval [add_zero_class α] (s : StreamExec ι α) (f : ι → ι') (n : ℕ) :
+  (f <$₁> s).stream.eval_steps n s.state = (f <$₁> s.stream).eval_steps n s.state := rfl
+
+@[simp] lemma StreamExec.bifunctor_bimap_valid (s : StreamExec ι α) (f : ι → ι') (g : α → β) :
+  (s.bimap f g).valid ↔ s.valid := iff.rfl
+
+@[simp] lemma StreamExec.bifunctor_bimap_ready (s : StreamExec ι α) (f : ι → ι') (g : α → β) :
+  (s.bimap f g).ready ↔ s.ready := iff.rfl
+
 
 def contract_stream (s : StreamExec ι α) : StreamExec unit α :=
 (λ _, ()) <$₁> s
@@ -194,9 +182,6 @@ def contract_stream (s : StreamExec ι α) : StreamExec unit α :=
   (contract_stream s).eval = finsupp.single () (finsupp.sum_range s.eval) :=
 by { ext, simp [finsupp.sum_range, contract_stream, StreamExec.eval], }
 
-@[simp] lemma contract_stream_bound_valid_iff (s : StreamExec ι α) :
-  (contract_stream s).bound_valid ↔ s.bound_valid :=
-by simp [contract_stream]
 
 def Stream.index' (s : Stream ι α) (x : s.σ) : with_top ι :=
 if h : s.valid x then s.index x h else ⊤ 
@@ -245,6 +230,14 @@ lemma Stream.next'_min_bound {s : Stream ι α} {σ₀ : s.σ} {n b : ℕ} (hb :
   (s.next'^[min b n] σ₀) = (s.next'^[n] σ₀) :=
 by { rw min_def, split_ifs, { rw Stream.next'_ge_bound hb h, }, refl, }
 
+lemma Stream.bimap_value' [has_zero α] [has_zero β] (s : Stream ι α) (f : ι → ι') (g : α → β) (hg : g 0 = 0) :
+  (s.bimap f g).value' = g ∘ s.value' :=
+by { ext x, simp [Stream.value', apply_dite g, hg], refl, }
+
+lemma Stream.bimap_value'_apply [has_zero α] [has_zero β] (s : Stream ι α) (f : ι → ι') (g : α → β) (hg : g 0 = 0) (x) :
+  (s.bimap f g).value' x = g (s.value' x) :=
+by rwa Stream.bimap_value'
+
 end defs
 
 open_locale big_operators
@@ -291,7 +284,8 @@ def externSparseVec {len : ℕ} (inds : vector ι len) (vals : vector α len) :
   StreamExec ι α :=
 { stream := externSparseVec_stream inds vals,
   state := (0 : ℕ),
-  bound := len }
+  bound := len,
+  bound_valid := by simp [bound_valid_iff_next'_iterate] }
 
 @[simp] lemma externSparseVec.spec [add_comm_monoid α] {len : ℕ} (inds : vector ι len) (vals : vector α len) :
   (externSparseVec inds vals).eval = ∑ i : fin len, finsupp.single (inds.nth i) (vals.nth i) :=
