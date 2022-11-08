@@ -7,3 +7,6 @@ out*.cpp
 *.asm
 TAGS
 *temp*
+etch4/build
+etch4/lean_packages
+etch4/gen*.c

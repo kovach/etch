@@ -5,35 +5,38 @@ import verification.stream
 open_locale classical
 noncomputable theory
 
-variables {σ σ₁ σ₂ ι α β : Type} [linear_order ι]
+variables {ι : Type} {α β : Type*} [linear_order ι]
 
 -- index ready
 @[reducible]
 def stream_order (ι : Type) : Type := with_top ι ×ₗ bool
 
 @[simps]
-def Stream.to_order (s : Stream σ ι α) (x : σ) : stream_order ι :=
+def Stream.to_order (s : Stream ι α) (x : s.σ) : stream_order ι :=
 ⟨s.index' x, s.ready x⟩
 
-lemma valid_of_le_valid {s₁ : Stream σ₁ ι α} {s₂ : Stream σ₂ ι β} {x : σ₁} {y : σ₂}
+@[simp] lemma Stream.bimap_to_order (s : Stream ι α) (g : α → β) :
+  (g <$₂> s).to_order = s.to_order := rfl
+
+lemma valid_of_le_valid {s₁ : Stream ι α} {s₂ : Stream ι β} {x : s₁.σ} {y : s₂.σ}
   (h : s₁.to_order x ≤ s₂.to_order y) (h' : s₂.valid y) : s₁.valid x :=
 by { simp [Stream.to_order, h'] at h, rw ← Stream.index'_lt_top_iff, refine lt_of_le_of_lt (prod.lex.fst_le_of_le h) _, simpa, }
 
-lemma valid_of_le_or {a : Stream σ₁ ι α} {b : Stream σ₂ ι α} {x : σ₁} {y : σ₂}
+lemma valid_of_le_or {a : Stream ι α} {b : Stream ι α} {x : a.σ} {y : b.σ}
   (h : a.valid x ∨ b.valid y) (h' : a.to_order x ≤ b.to_order y) : a.valid x :=
 (or_iff_left_of_imp (valid_of_le_valid h')).mp h
 
-def Stream.monotonic (q : Stream σ ι α) : Prop :=
+def Stream.monotonic (q : Stream ι α) : Prop :=
 ∀ ⦃r⦄ (h : q.valid r), q.index' r ≤ q.index' (q.next r h)
 
-def Stream.reduced (q : Stream σ ι α) : Prop :=
+def Stream.reduced (q : Stream ι α) : Prop :=
 ∀ ⦃r⦄ (h : q.valid r) (h' : q.ready r), q.index' r ≠ q.index' (q.next r h)
 
-structure Stream.simple (q : Stream σ ι α) : Prop :=
+structure Stream.simple (q : Stream ι α) : Prop :=
 (monotonic : q.monotonic)
 (reduced : q.reduced)
 
-lemma Stream.monotonic.index_le_support [add_zero_class α] {q : Stream σ ι α} (hq : q.monotonic) {x : σ} {n : ℕ} :
+lemma Stream.monotonic.index_le_support [add_zero_class α] {q : Stream ι α} (hq : q.monotonic) {x : q.σ} {n : ℕ} :
   ∀ i ∈ (q.eval_steps n x).support, q.index' x ≤ ↑i :=
 begin
   induction n with n ih generalizing x,
@@ -47,11 +50,23 @@ begin
   exact (le_of_eq (Stream.index'_val _)),
 end
 
-lemma Stream.simple.index_lt_next [add_zero_class α] {q : Stream σ ι α} (hq : q.simple) {x : σ}
+lemma Stream.simple.index_lt_next {q : Stream ι α} (hq : q.simple) {x : q.σ}
   (hv : q.valid x) (hr : q.ready x) : q.index' x < q.index' (q.next _ hv) :=
 by { rw lt_iff_le_and_ne, exact ⟨hq.monotonic hv, hq.reduced hv hr⟩, }
 
-lemma Stream.simple.index_lt_support [add_zero_class α] {q : Stream σ ι α} (hq : q.simple) {x : σ} {n : ℕ}
+lemma Stream.simple.index_lt_support [add_zero_class α] {q : Stream ι α} (hq : q.simple) {x : q.σ} {n : ℕ}
   (hv : q.valid x) (hr : q.ready x) :
   ∀ i ∈ (q.eval_steps n (q.next x hv)).support, q.index' x < ↑i :=
 λ i H, lt_of_lt_of_le (hq.index_lt_next hv hr) (hq.monotonic.index_le_support i H)
+
+structure SimpleStream (ι : Type) (α : Type*) [linear_order ι] extends StreamExec ι α :=
+(simple : stream.simple)
+
+instance (ι : Type) (α : Type*) [linear_order ι] : has_coe
+  (SimpleStream ι α) (StreamExec ι α) := ⟨SimpleStream.to_StreamExec⟩
+
+lemma SimpleStream.monotonic (s : SimpleStream ι α) : s.stream.monotonic :=
+s.simple.monotonic
+
+lemma SimpleStream.reduced (s : SimpleStream ι α) : s.stream.reduced :=
+s.simple.reduced

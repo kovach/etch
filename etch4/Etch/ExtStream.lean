@@ -208,7 +208,7 @@ structure S (ι : Type _) (α : Type _) where
   valid : E Bool
   init  : P
 
-infixr:20 "→ₛ"  => S
+infixr:20 " →ₛ "  => S
 
 variable
 {ι : Type} [Tagged ι] [DecidableEq ι]
