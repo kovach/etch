@@ -8,6 +8,8 @@
 #define num double
 #define ind int
 
+#define macro_ternary(c, x, y) ((c) ? x : y)
+
 //#define time(x, y) \
 //  t1 = std::chrono::high_resolution_clock::now(); \
 //  val = x(); \
@@ -68,28 +70,6 @@ static inline double str_atof(char* a) { return atof(a); }
 int dim        = 100000;
 int array_size = 100000;
 
-int* base = 0;
-int is1_[] = {1,  3,5};
-int* is1 = is1_;
-int is2_[] = {1,2,3,6};
-int* is2 = is2_;
-int vs1_[] = {1,  7,3};
-int* vs1 = vs1_;
-int vs2_[] = {2,2,3,4};
-int* vs2 = vs2_;
-int p1 = 0;
-int p2 = 0;
-int s1 = 3;
-int s2 = 4;
-int temp;
-bool not_done;
-int hi;
-int lo;
-int m;
-int out = 0;
-double fout = 0.;
-int i;
-int j;
 int i1;
 int i2;
 int i3;
@@ -99,155 +79,67 @@ int j3;
 int k1;
 int k2;
 int k3;
-int f1_;
-int f2_;
 
-int i_last = -1;
-int j_last = -1;
+int temp;
+bool not_done;
+int hi;
+int lo;
+int m;
+int out = 0;
+double fout = 0.;
 
-int size[] = {0,0};
+#include "decls.c"
 
-ind* out1_crd = (ind*)calloc(array_size, sizeof(ind));
-ind* out1_pos = (ind*)calloc(array_size, sizeof(ind));
-ind* out2_crd = (ind*)calloc(array_size, sizeof(ind));
-ind* out2_pos = (ind*)calloc(array_size, sizeof(ind));
-num* out_vals = (num*)calloc(array_size, sizeof(num));
-int  out1_i = -1;
-int  out2_i = -1;
-ind  _out = 0;
-
-ind* C1_crd = (ind*)calloc(array_size, sizeof(ind));
-ind* C1_pos = (ind*)calloc(array_size, sizeof(ind));
-ind* C2_crd = (ind*)calloc(array_size, sizeof(ind));
-ind* C2_pos = (ind*)calloc(array_size, sizeof(ind));
-ind* C3_crd = (ind*)calloc(array_size, sizeof(ind));
-ind* C3_pos = (ind*)calloc(array_size, sizeof(ind));
-num*   C_vals = (num*)calloc(array_size, sizeof(num));
-int C1_i = -1;
-int C2_i = -1;
-ind _C = 0;
-
-int B1_dimension = 10000;
-ind* B1_crd = (ind*)calloc(array_size, sizeof(ind));
-ind* B1_pos = (ind*)calloc(array_size, sizeof(ind));
-ind* B2_crd = (ind*)calloc(array_size, sizeof(ind));
-ind* B2_pos = (ind*)calloc(array_size, sizeof(ind));
-num*   B_vals = (num*)calloc(array_size, sizeof(num));
-int B1_i = -1;
-int B2_i = -1;
-ind _B = 0;
-
-ind* A1_crd = (ind*)calloc(array_size, sizeof(ind));
-ind* A1_pos = (ind*)calloc(array_size, sizeof(ind));
-ind* A2_crd = (ind*)calloc(array_size, sizeof(ind));
-ind* A2_pos = (ind*)calloc(array_size, sizeof(ind));
-num*   A_vals = (num*)calloc(array_size, sizeof(num));
-int A1_i = -1;
-int A2_i = -1;
-ind _A = 0;
-
-int n = 0;
-ind* is    = (ind*)calloc(array_size, sizeof(ind));
-ind* i_pos = (ind*)calloc(array_size, sizeof(ind));
-ind* js    = (ind*)calloc(array_size, sizeof(ind));
-ind* j_pos = (ind*)calloc(array_size, sizeof(ind));
-num* vals  = (num*)calloc(array_size, sizeof(num));
-
-// not used
-struct cursor {
-  ind* max; // scalar
-  ind* is;  // array
-  int* pos; // array
-            // is.len = pos.len
-};
-
-void push_i(ind i) {
-  i_last = i;
-  ind& max = n;
-  is[max] = i;
-  i_pos[max+1] = i_pos[max];
-  max++;
-}
-
-void push_j(ind j) {
-  j_last = j;
-  ind* max = &i_pos[n];
-  js[*max] = j;
-  j_pos[*max+1] = j_pos[*max];
-  (*max)++;
-}
-
-void push_val(num v) {
-  vals[i_pos[n] - 1] = v;
-}
-
-// graph: src, tgt, val
-static int callback1(void *data, int argc, char **argv, char **azColName){
-  ind i = atoi(argv[0]);
-  ind j = atoi(argv[1]);
-  num v = atof(argv[2]);
-  if (i == i_last) {
-    //printf("same i\n");
-    if (j == j_last) {
-      //printf("same j\n");
-      // error?
-    }
-    else {
-      //printf("greater j\n");
-      push_j(j);
-      push_val(v);
-    }
-  }
-  else /* (argv[0] > i_last)*/ {
-    //printf("greater i\n");
-    push_i(i);
-    push_j(j);
-    push_val(v);
-  }
-
-  return 0;
-}
-
-static int gen_callback_graph1(void *data, int argc, char **argv, char **azColName){
-#include "gen_query_1.c"
   //printf("reading : %d\n", atoi(argv[0]));
   //printf("reading : %d\n", atoi(argv[1]));
   //printf("reading : %f\n", atof(argv[2]));
+static int gen_callback_graph_ssA(void *data, int argc, char **argv, char **azColName){
+#include "gen_query_ssA.c"
 return 0;
 }
 
-static int gen_callback_graph2(void *data, int argc, char **argv, char **azColName){
-#include "gen_query_2.c"
-  //printf("reading : %d\n", atoi(argv[0]));
-  //printf("reading : %d\n", atoi(argv[1]));
-  //printf("reading : %f\n", atof(argv[2]));
+static int gen_callback_graph_dsA(void *data, int argc, char **argv, char **azColName){
+#include "gen_query_dsA.c"
 return 0;
 }
+
+static int gen_callback_graph_ssB(void *data, int argc, char **argv, char **azColName){
+#include "gen_query_ssB.c"
+return 0;
+}
+
+static int gen_callback_graph_dsB(void *data, int argc, char **argv, char **azColName){
+#include "gen_query_dsB.c"
+return 0;
+}
+
+//static int gen_callback_graph2(void *data, int argc, char **argv, char **azColName){
+//#include "gen_query_2.c"
+//return 0;
+//}
 
 double taco_mul2() {
 #include "taco/sum_mul2.c"
 }
-/* here */
 
+/* here */
 double taco_sum_add2_() {
+load_ssA();
+load_ssB();
 #include "taco/sum_add2.c"
 }
 double taco_sum_mul2_csr_() {
+load_ssA();
+load_dsB();
 #include "taco/sum_mul2_csr.c"
 }
 double taco_inner2ss_() {
-  //printf("p");
+load_ssA();
+load_ssB();
 #include "taco/inner2ss.c"
 }
 /* here end */
 
-//double taco_sum_mul2_inner_() {
-//#include "taco/sum_mul2_inner.c"
-//}
-
-double taco_sum_B_csr() {
-#include "taco/sum_B_csr.c"
-}
 static int callback(void *data, int argc, char **argv, char **azColName){
    for(int i = 0; i<argc; i++){
       printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
@@ -280,9 +172,11 @@ int main() {
 
   char const* sql;
   sql = "SELECT * from graph1 ORDER BY src, tgt";
-  rc = sqlite3_exec(db, sql, gen_callback_graph1, (void*)data, &zErrMsg);
+  rc = sqlite3_exec(db, sql, gen_callback_graph_ssA, (void*)data, &zErrMsg);
+  rc = sqlite3_exec(db, sql, gen_callback_graph_dsA, (void*)data, &zErrMsg);
   sql = "SELECT * from graph2 ORDER BY src, tgt";
-  rc = sqlite3_exec(db, sql, gen_callback_graph2, (void*)data, &zErrMsg);
+  rc = sqlite3_exec(db, sql, gen_callback_graph_ssB, (void*)data, &zErrMsg);
+  rc = sqlite3_exec(db, sql, gen_callback_graph_dsB, (void*)data, &zErrMsg);
 
 
   if( rc != SQLITE_OK ) {
@@ -294,54 +188,20 @@ int main() {
   sqlite3_close(db);
   start();
 
-  // warmup?
+// warmup?
 //  fout = 0;
 //#include "gen_main.c"
 //  taco_mul2();
-  // warmup
+// warmup
 
   // decl
-  auto t1 = std::chrono::high_resolution_clock::now();
-  auto t2 = std::chrono::high_resolution_clock::now();
-
-  int reps = 100;
-  double tout;
-  double val;
+  //auto t1 = std::chrono::high_resolution_clock::now();
+  //auto t2 = std::chrono::high_resolution_clock::now();
+  //int reps = 100;
+  //double tout;
+  //double val;
 
 #include "gen_out.c"
 
-  return 0;
-
-  //time(&taco_sum_mul2_csr_, "taco", reps);
-
-  // taco
-  t1 = std::chrono::high_resolution_clock::now();
-  for (int i = 0; i < reps; i++) {
-//#include "gen_taco.c"
-    tout = taco_sum_mul2_csr_();
-    //tout = inner2ss();
-  }
-  printf("\n");
-  t2 = std::chrono::high_resolution_clock::now();
-  std::cout << "taco took: " << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count() << "μ" << std::endl;
-  std::cout << "taco took: " << std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count() << "ms" << std::endl;
-  // taco
-
-/* main code */
-  t1 = std::chrono::high_resolution_clock::now();
-  for (int i = 0; i < reps; i++) {
-  fout = 0;
-#include "gen_main.c"
-  }
-  t2 = std::chrono::high_resolution_clock::now();
-  std::cout << "etch took: " << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count() << "μ" << std::endl;
-  std::cout << "etch took: " << std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count() << "ms" << std::endl;
-/* end main code */
-
-  done();
-
-  //std::cout << out << std::endl;
-  std::cout << "etch: " << fout << std::endl;
-  std::cout << "taco: " << tout << std::endl;
   return 0;
 }

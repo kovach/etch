@@ -138,7 +138,7 @@ def O.ternary : O Unit α where
   arity := 3
   argTypes := λ | 0 => 𝟚 | 1 => α | 2 => α
   spec := λ a => bif (a 0) then a 1 else a 2
-  opName := "ternary" 
+  opName := "ternary"
 
 -- marked irreducible later
 def Var (α : Type _) := String
