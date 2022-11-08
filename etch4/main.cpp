@@ -8,13 +8,35 @@
 #define num double
 #define ind int
 
+//#define time(x, y) \
+//  t1 = std::chrono::high_resolution_clock::now(); \
+//  val = x(); \
+//  t2 = std::chrono::high_resolution_clock::now(); \
+//  std::cout << "val: " << val << std::endl; \
+//  std::cout << y << " took: " << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count() << "μ" << std::endl; \
+//  std::cout << y << " took: " << std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count() << "ms" << std::endl;
+
+void time(double (* f)(), char const* tag, int reps) {
+  auto t1 = std::chrono::high_resolution_clock::now();
+  double val;
+  for (int i = 0; i < reps; i++) {
+    val = f();
+  }
+  auto t2 = std::chrono::high_resolution_clock::now();
+  std::cout << "val: " << val << std::endl;
+  std::cout << tag << " took: " << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count() << "μ" << std::endl;
+  std::cout << tag << " took: " << std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count() << "ms" << std::endl;
+}
+
+
+
 static inline double    num_add(double a, double b) { return a + b; }
 static inline double    num_mul(double a, double b) { return a * b; }
 static inline double    num_one() { return 1; }
 static inline double    num_zero() { return 0; }
 
 // todo, naming wrong
-static inline double    bool_ofBool(bool x) { return x ? 1 : 0; }
+static inline double    num_ofBool(bool x) { return x ? 1 : 0; }
 
 static inline int    nat_add(int a, int b) { return a + b; }
 static inline int    nat_sub(int a, int b) { return a - b; }
@@ -205,15 +227,27 @@ return 0;
 double taco_mul2() {
 #include "taco/sum_mul2.c"
 }
+/* here */
 
-double taco_mul2_csr() {
+double taco_sum_add2_() {
+#include "taco/sum_add2.c"
+}
+double taco_sum_mul2_csr_() {
 #include "taco/sum_mul2_csr.c"
 }
+double taco_inner2ss_() {
+  //printf("p");
+#include "taco/inner2ss.c"
+}
+/* here end */
+
+//double taco_sum_mul2_inner_() {
+//#include "taco/sum_mul2_inner.c"
+//}
 
 double taco_sum_B_csr() {
 #include "taco/sum_B_csr.c"
 }
-
 static int callback(void *data, int argc, char **argv, char **azColName){
    for(int i = 0; i<argc; i++){
       printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
@@ -226,6 +260,8 @@ static int callback(void *data, int argc, char **argv, char **azColName){
 // breakpoints
 void start() { }
 void done() { }
+
+#include "gen_funs.c"
 
 int main() {
   sqlite3* db;
@@ -259,9 +295,9 @@ int main() {
   start();
 
   // warmup?
-  fout = 0;
-#include "gen_main.c"
-  taco_mul2();
+//  fout = 0;
+//#include "gen_main.c"
+//  taco_mul2();
   // warmup
 
   // decl
@@ -270,11 +306,22 @@ int main() {
 
   int reps = 100;
   double tout;
+  double val;
+
+#include "gen_out.c"
+
+  return 0;
+
+  //time(&taco_sum_mul2_csr_, "taco", reps);
 
   // taco
   t1 = std::chrono::high_resolution_clock::now();
-  for (int i = 0; i < reps; i++)
-    tout = taco_mul2_csr();
+  for (int i = 0; i < reps; i++) {
+//#include "gen_taco.c"
+    tout = taco_sum_mul2_csr_();
+    //tout = inner2ss();
+  }
+  printf("\n");
   t2 = std::chrono::high_resolution_clock::now();
   std::cout << "taco took: " << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count() << "μ" << std::endl;
   std::cout << "taco took: " << std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count() << "ms" << std::endl;

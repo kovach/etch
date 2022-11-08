@@ -36,6 +36,13 @@ structure O (α β : Type _) extends Tagged α where
 
 def O.name (f : O α β) : String := f.tag ++ "_" ++ f.opName
 
+def O.voidCall (f : String) : O Unit Unit where
+  arity := 0
+  argTypes := λ y => nomatch y
+  spec := λ _ => default
+  opName := ""
+  tag := f
+
 def O.lt [Tagged α] [LT α] [DecidableRel (LT.lt : α → α → _) ] : O α Bool where
   arity := 2
   argTypes := λ | 0 => α | 1 => α
@@ -120,7 +127,7 @@ def O.atof : O String R where
   spec := λ _ => default -- todo
   opName := "atof"
 
-def O.ofBool [OfNat α (nat_lit 0)] [OfNat α (nat_lit 1)] : O 𝟚 α where
+def O.ofBool [Tagged α] [OfNat α (nat_lit 0)] [OfNat α (nat_lit 1)] : O α α where
   arity := 1
   argTypes := λ | 0 => 𝟚
   spec := λ a => if a 0 then 1 else 0
@@ -158,6 +165,7 @@ instance [Tagged α] [Mul α] : Mul (E α) := ⟨ λ a b => E.call O.mul ![a, b]
 instance [Tagged α] [OfNat α (nat_lit 0)] : OfNat (E α) (nat_lit 0) := ⟨ E.call O.zero ![] ⟩
 instance [Tagged α] [OfNat α (nat_lit 1)] : OfNat (E α) (nat_lit 1) := ⟨ E.call O.one ![] ⟩
 instance : OfNat (E ℕ) n := ⟨ .intLit n ⟩
+def E.ext (f : String) : E Unit := E.call (O.voidCall f) ![]
 
 def E.compile : E α → Expr
 | @call _ _ op args => Expr.call op.name $ List.ofFin λ i => E.compile (args i)
@@ -165,17 +173,11 @@ def E.compile : E α → Expr
 | var v => Expr.var v.toString
 | intLit x => Expr.lit x
 
-def eg1 : E ℕ := 1 + 1 #eval eg1.compile
-def name1 : E String := E.var "name1"
-def name2 : E String := .v String "name2"
-instance : DecidableRel (LT.lt : String → String → Prop) := inferInstance
-
 infixr:40 " << " => λ a b => E.call O.lt ![a, b]
 infixr:40 " <ᵣ " => λ a b => E.call O.ofBool ![E.call O.lt ![a, b]]
 infixr:40 " == " => λ a b => E.call O.eq ![a, b]
 infixr:40 " != " => λ a b => E.call O.neg ![(E.call O.eq ![a, b])]
 infixr:40 " <= " => λ a b => E.call O.le ![a, b]
-#eval (.v String "name1" << name2).compile
 
 inductive P
 | seq    : P → P → P
@@ -204,6 +206,7 @@ structure S (ι : Type _) (α : Type _) where
   skip  : E ι → P
   succ  : P
   ready : E Bool
+  -- todo index
   bound : E ι
   valid : E Bool
   init  : P
@@ -228,8 +231,6 @@ def S.mul [HMul α β γ] (a : S ι α) (b : S ι β) : (S ι γ) where
 
 instance [Mul α] : Mul (S ι α) := ⟨S.mul⟩
 instance [HMul α β γ] : HMul (S ι α) (S ι β) (S ι γ) := ⟨S.mul⟩
-
-instance [Mul α] : Mul (S ι α) := ⟨S.mul⟩
 
 def Var.access (v : Var α) := E.access v
 def Var.incr [Tagged α] [Add α] [OfNat α 1] (v : Var α) : P := .store_var v $ E.var v + 1
@@ -274,41 +275,16 @@ tgt.store_var i;;
       ((.store_var not_done 0);; .store_var lo m))) ;;
   .store_var pos lo
 
-def S.interval_step (is : Var ι) (pos : Var ℕ) (lower upper : E ℕ) : S ι (E ℕ) where
+inductive IterMethod | step | search
+
+def S.interval (h : IterMethod) (is : Var ι) (pos : Var ℕ) (lower upper : E ℕ) : S ι (E ℕ) where
   value := pos.expr
   succ := pos.incr
   ready := 1
-  skip  := simpleSkip pos is upper
+  skip  := (match h with | .step => simpleSkip | .search => searchSkip)  pos is upper
   bound := .access is pos.expr
   valid := pos.expr << upper
   init := pos.store_var lower
-
-def S.interval_search (is : Var ι) (pos : Var ℕ) (lower upper : E ℕ) : S ι (E ℕ) where
-  value := pos.expr
-  succ := pos.incr
-  ready := 1
-  skip  := searchSkip pos is upper
-  bound := .access is pos.expr
-  valid := pos.expr << upper
-  init := pos.store_var lower
-
--- todo remove these two?
-def S.sparse (pos size : Var ℕ) (is : Var ι) (vs : Var α) : S ι (E α) where
-  value := .access vs pos
-  succ  := pos.incr
-  ready := 1
-  skip  := simpleSkip pos is size
-  bound := E.access is pos.expr
-  valid := pos.expr << size.expr
-  init := pos.store_var 0
-def S.sparseSearch (pos size : Var ℕ) (is : Var ι) (vs : Var α) : S ι (E α) where
-  value := .access vs (E.var pos)
-  succ  := pos.incr
-  ready := 1
-  skip  := λ i => searchSkip pos is (max_pos := size) i
-  bound := E.access is pos
-  valid := pos.expr << size.expr
-  init  := pos.store_var 0
 
 -- todo: use instead of zero
 --class Bot (α : Type _) := (bot : α)
@@ -333,9 +309,19 @@ def csr.of (name : String) (n : ℕ) (ι := ℕ) : csr ι ℕ :=
   let field {ι} (x : String) : Var ι := Var.mk $ name ++ n.repr ++ x
   { i := field "_crd", v := field "_pos", var := field "_i" }
 
+-- todo: move back into ExtStream
+def csr.level (h : IterMethod) : csr ι ℕ → E ℕ → S ι (E ℕ) := λ csr loc => S.interval h csr.i csr.var (.access csr.v loc) (csr.v.access (loc+1))
+--def csr.level : csr ι ℕ → E ℕ → S ι (E ℕ) := λ csr loc => S.interval_search csr.i csr.var (.access csr.v loc) (csr.v.access (loc+1))
+def S.level {f} [Functor f] (h : IterMethod) : csr ι ℕ → f (E ℕ) → f (S ι (E ℕ)) := Functor.map ∘ csr.level h
+def S.leaf  {f} [Functor f] : Var α → f (E ℕ) → f (E α) := Functor.map ∘ E.access
+--def S.leaf' : Var α → E ℕ → E α := E.access
 def Contraction (α : Type _) := Σ ι, S ι α
 instance : Functor Contraction where map := λ f ⟨ι, v⟩ => ⟨ι, f <$> v⟩
 def S.contract (s : S ι α) : Contraction α := ⟨_, s⟩
+
+section add
+
+end add
 
 end ι
 
@@ -359,3 +345,4 @@ instance : Functor (Fun ι) where map := λ f v => f ∘ v
 --  init := pos.store_var 0
 
 def range : ℕ →ₐ E ℕ := id
+
