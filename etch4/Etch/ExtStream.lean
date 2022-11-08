@@ -210,6 +210,8 @@ structure S (ι : Type _) (α : Type _) where
 
 infixr:25 " →ₛ " => S
 
+section ι
+
 variable
 {ι : Type} [Tagged ι] [DecidableEq ι]
 [LE ι] [DecidableRel (LE.le : ι → ι → _)]
@@ -335,7 +337,7 @@ def Contraction (α : Type _) := Σ ι, S ι α
 instance : Functor Contraction where map := λ f ⟨ι, v⟩ => ⟨ι, f <$> v⟩
 def S.contract (s : S ι α) : Contraction α := ⟨_, s⟩
 
-end
+end ι
 
 def Fun (ι α : Type _) := E ι → α
 infixr:25 "→ₐ"  => Fun -- arbitrarily chosen for ease of typing: \ra
