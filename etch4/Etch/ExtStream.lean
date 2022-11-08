@@ -18,6 +18,7 @@ instance : Tagged ℕ := ⟨ "nat" ⟩
 instance : Tagged String := ⟨ "str" ⟩
 instance : Tagged Bool := ⟨ "bool" ⟩
 instance : Tagged R := ⟨ "num" ⟩
+instance : Tagged Unit := ⟨ "macro" ⟩
 
 -- todo
 instance : Inhabited R := ⟨ R.mk ⟩
@@ -125,6 +126,12 @@ def O.ofBool [OfNat α (nat_lit 0)] [OfNat α (nat_lit 1)] : O 𝟚 α where
   argTypes := λ | 0 => 𝟚
   spec := λ a => if a 0 then 1 else 0
   opName := "ofBool"
+
+def O.ternary : O Unit α where
+  arity := 3
+  argTypes := λ | 0 => 𝟚 | 1 => α | 2 => α
+  spec := λ a => bif (a 0) then a 1 else a 2
+  opName := "ternary" 
 
 -- marked irreducible later
 def Var (α : Type _) := String

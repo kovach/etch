@@ -7,12 +7,16 @@ instance : Mul Bool := ⟨ and ⟩
 -- todo, generalize
 def Fin.mk1 {γ : Fin 1 → Type _} (a : γ 0) : (i : Fin 1) → (γ i) | 0 => a
 def Fin.mk2 {γ : Fin 2 → Type _} (a : γ 0) (b : γ 1) : (i : Fin 2) → (γ i) | 0 => a | 1 => b
+def Fin.mk3 {γ : Fin 3 → Type _} (a : γ 0) (b : γ 1) (c : γ 2) : (i : Fin 3) → (γ i)
+| 0 => a | 1 => b | 2 => c
+
 
 set_option quotPrecheck false
 notation "![]" => λ i => nomatch i
 set_option quotPrecheck true
 notation "![" a "]" => Fin.mk1 a
 notation "![" a "," b "]" => Fin.mk2 a b
+notation "![" a "," b "," c "]" => Fin.mk3 a b c
 
 def List.ofFin_aux (k) (f : Fin k → α) : List α :=
 match k, f with

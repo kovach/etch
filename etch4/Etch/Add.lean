@@ -18,17 +18,34 @@ import Etch.ExtStream
 --   valid := a.valid * b.valid
 --   init := a.init ;; b.init
 
-variable {ι α : Type} [Tagged ι] [DecidableEq ι]
+variable {ι : Type} {α : Type _} [Tagged ι] [DecidableEq ι]
   [LT ι] [LE ι] [DecidableRel (LT.lt : ι → ι → Prop)]
   [DecidableRel (LE.le : ι → ι → _)]
 
-def S_le (a b : S ι α) : E 𝟚 
+class Guard (α : Type _) where
+  guard : E 𝟚 → α → α
 
-def S.add [Add α] (a b : S ι α) : S ι α where
-  value := _
-  skip := _
-  succ := _
-  ready := _
-  bound := .call .max ![a.bound, b.bound]
+
+instance [Tagged α] [OfNat α 0] : Guard (E α) where
+  guard := λ b v => 
+  let zero : E α := E.call O.zero (λ i => nomatch i)
+  .call O.ternary ![b, v, zero]
+
+instance : Guard (S ι α) where
+  guard := λ b s => {s with valid := b * s.valid}
+
+/-- Returns an expression which evaluates to `true` iff `a.index' ≤ b.index'` -/
+def S_le (a b : S ι α) : E 𝟚 := 
+  (.call O.neg ![b.valid]) + (a.valid * (a.bound <= b.bound))
+
+infixr:40 "≤ₛ" => S_le
+
+def S.add [Add α] [Guard α] (a b : S ι α) : S ι α where
+  value := (Guard.guard ((a ≤ₛ b) * a.ready) a.value) + 
+    (Guard.guard ((b ≤ₛ a) * b.ready) b.value)
+  skip := λ i => a.skip i ;; b.skip i
+  succ := P.if1 ((a ≤ₛ b) * a.ready) a.succ ;; P.if1 ((b ≤ₛ a) * b.ready) b.succ
+  ready := (a ≤ₛ b) * a.ready + (b ≤ₛ a) * b.ready
+  bound := .call O.ternary ![a ≤ₛ b, a.bound, b.bound]
   valid := a.valid + b.valid
   init := a.init ;; b.init
