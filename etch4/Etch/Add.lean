@@ -1,4 +1,4 @@
-import Etch.ExtStream
+import Etch.Stream
 
 variable {ι : Type} {α : Type _} [Tagged ι] [DecidableEq ι]
   [LT ι] [LE ι] [DecidableRel (LT.lt : ι → ι → Prop)]

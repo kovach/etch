@@ -1,7 +1,8 @@
 import Etch.Basic
-import Etch.ExtStream
+import Etch.Stream
 import Etch.LVal
 import Etch.Add
+import Etch.Mul
 
 class NatLt (m n : ℕ) := (proof : m < n)
 instance NatLt.one (n : ℕ) : NatLt 0 (n+1) := ⟨Nat.succ_pos _⟩
@@ -175,7 +176,6 @@ notation:35 "∑" i:34 "," j:34 "," k:34 ":" v:34 => SumIndex.sum i.1 (SumIndex.
 #check ∑ i: (A : i ↠ j ↠ E R)
 #check ∑ i, j: (A : i ↠ j ↠ E R)
 #check ∑ i, j: (A : i ↠ j ↠ E R)
-
 #check ∑ j, k: (A : i ↠ j ↠ E R) * (B : j ↠ k ↠ E R)
 
 class ApplyScalarFn (α γ β : Type _) (δ : outParam $ Type _) := (map : (α → β) → γ → δ)

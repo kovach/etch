@@ -1,7 +1,8 @@
 import Etch.Basic
-import Etch.ExtStream
+import Etch.Stream
 import Etch.LVal
 import Etch.Add
+import Etch.Mul
 import Etch.ShapeInference
 
 class Compile (α β : Type _) where compile : α → β → P
