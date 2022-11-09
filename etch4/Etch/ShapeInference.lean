@@ -1,6 +1,7 @@
 import Etch.Basic
 import Etch.ExtStream
 import Etch.LVal
+import Etch.Add
 
 class NatLt (m n : ℕ) := (proof : m < n)
 instance NatLt.one (n : ℕ) : NatLt 0 (n+1) := ⟨Nat.succ_pos _⟩
@@ -51,7 +52,8 @@ def merge {α β γ} [Merge α β γ] : α → β → (γ × γ) := λ a b => (m
 
 end Instances
 
-instance hmul_of_Merge {α β γ : Type _} [Merge α β γ] [Mul γ] : HMul α β γ := ⟨λ a b => merge1 β a * merge2 α b⟩
+instance {α β γ : Type _} [Merge α β γ] [Mul γ] : HMul α β γ := ⟨λ a b => merge1 β a * merge2 α b⟩
+instance {α β γ : Type _} [Merge α β γ] [Add γ] : HAdd α β γ := ⟨λ a b => merge1 β a + merge2 α b⟩
 
 @[reducible] def Ind (i : ℕ) (ι : Type _) := ι
 inductive Str (ι : Type _) (n : ℕ) (α : Type _)
@@ -75,6 +77,9 @@ notation:37 a:36 " × " b:36 " ⟶ " c:36  => Str b a c
 notation:37 p:36 " ↠ " c:36  => Str p.2 p.1 c
 set_option quotPrecheck true
 
+instance [Guard α] : Guard (n × ι ⟶ α) where guard b := λ
+| .str s => .str {s with valid := b * s.valid}
+| .fun f => .fun λ x => Guard.guard b $ f x
 
 variable
 {α β γ : Type _}
@@ -95,6 +100,7 @@ abbrev k := (2, ℕ)
 --instance [Inhabited ι] [Inhabited α] : Inhabited (G ι α) := ⟨G.empty⟩
 
 -- instance Stream.has_mul {α} {i} [has_mul α] : has_mul (StreamGen' i α) := ⟨StreamGen.mul⟩
+
 instance Str.Mul {γ} {i} [Mul γ] : Mul (i × ι ⟶ γ) := ⟨λ a b =>
 match a, b with
 | .fun a, .fun b => Str.fun $ a*b
@@ -156,13 +162,21 @@ instance sum_eq (n : ℕ) : SumIndex n (n × ι ⟶ α) (Contraction α) := ⟨S
 example : Inhabited $ E R := inferInstance
 instance sum_lt (m n : ℕ) [NatLt n m] [SumIndex m α β] : SumIndex m (n × ι ⟶ α) (n × ι ⟶ β) := ⟨Functor.map $ SumIndex.sum m⟩
 
-notation:35 "∑" i:34 "," j:34 => SumIndex.sum i.1 j
-#check SumIndex.sum 0 (a : 0 × ℕ ⟶ E R)
-#check ∑ i, (a : i ↠ E R)
-#check ∑ i, (A : i ↠ j ↠ E R)
-#check ∑ i, ∑ j, (A : i ↠ j ↠ E R)
+notation:35 "∑" i:34 ":" v:34 => SumIndex.sum i.1 v
+notation:35 "∑" i:34 "," j:34 ":" v:34 => SumIndex.sum i.1 (SumIndex.sum j.1 v)
+notation:35 "∑" i:34 "," j:34 "," k:34 ":" v:34 => SumIndex.sum i.1 (SumIndex.sum j.1 (SumIndex.sum k.1 v))
+--macro "∑" i:term ws j:term "," v:term : term => `(SumIndex.sum $i.1 (SumIndex.sum $j.1 $v))
+--macro "∑" i:term "," v:term : term => `(SumIndex.sum $i.1 $v)
+--macro "∑" i:term+ "," v:term : term => `(SumIndex.sum $(i[0]!).1 $v)
 
-#check ∑ j, ∑ k, (A : i ↠ j ↠ E R) * (B : j ↠ k ↠ E R)
+
+#check SumIndex.sum 0 (a : 0 × ℕ ⟶ E R)
+#check ∑ i: (a : i ↠ E R)
+#check ∑ i: (A : i ↠ j ↠ E R)
+#check ∑ i, j: (A : i ↠ j ↠ E R)
+#check ∑ i, j: (A : i ↠ j ↠ E R)
+
+#check ∑ j, k: (A : i ↠ j ↠ E R) * (B : j ↠ k ↠ E R)
 
 class ApplyScalarFn (α γ β : Type _) (δ : outParam $ Type _) := (map : (α → β) → γ → δ)
 instance : ApplyScalarFn (E α) (E α) (E β) (E β) := ⟨ (. $ .) ⟩

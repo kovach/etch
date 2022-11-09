@@ -107,10 +107,11 @@ def dsB'   : j ↠ k ↠ E R := dsMat "dsB"
 
 def etch_ops : List (String × String) :=
 [
-  ("inner2ss", compile_fun "inner2ss" $ [go outVal $ ∑ i, ∑ j, ssA' * ssB_ij]),
+  ("inner2ss", compile_fun "inner2ss" $ [go outVal $ ∑ i, j: ssA' * ssB_ij]),
   ("sum_add2", compile_fun "sum_add2" $ [go outVal $ sum2 $ ssA + ssB]),
+  --("sum_add2", compile_fun "sum_add2" $ [go outVal $ ∑ i, j: ssA' + ssB_ij]),
   --("sum_add2", compile_fun "sum_add2" $ [go outVal $ sum2 $ ssA, go outVal $ sum2 $ ssB]),
-  ("sum_mul2_csr", compile_fun "sum_mul2_csr" $ [go outVal $ ∑ i, ∑ j, ∑ k, ssA' * dsB'])
+  ("sum_mul2_csr", compile_fun "sum_mul2_csr" $ [go outVal $ ∑ i, j, k: ssA' * dsB'])
 ]
 
 def main : IO Unit := do
@@ -124,7 +125,3 @@ def main : IO Unit := do
   IO.FS.writeFile "gen_out.c" main
 
 #eval main
-
-#check (ssA : i ↠ j ↠ E R )
-#check ∑ i, ∑ j, (ssA : i ↠ j ↠ E R )
-#check go outVal $ ∑ i, ∑ j, (ssA : i ↠ j ↠ E R )

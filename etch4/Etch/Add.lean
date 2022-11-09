@@ -12,16 +12,15 @@ instance [Tagged α] [OfNat α (nat_lit 0)] : Guard (E α) where
   let zero : E α := E.call O.zero (λ i => nomatch i)
   .call O.ternary ![b, v, zero]
 
-instance : Guard (S ι α) where
-  guard := λ b s => {s with valid := b * s.valid}
+instance : Guard (S ι α) where guard := λ b s => {s with valid := b * s.valid}
 
 /-- Returns an expression which evaluates to `true` iff `a.index' ≤ b.index'` -/
-def S_le (a b : S ι α) : E 𝟚 :=
+def S_le (a : S ι α) (b : S ι β) : E 𝟚 :=
   (.call O.neg ![b.valid]) + (a.valid * (a.bound <= b.bound))
 
 infixr:40 "≤ₛ" => S_le
 
-def S.add [Add α] [Guard α] (a b : S ι α) : S ι α where
+def S.add [HAdd α β γ] [Guard α] [Guard β] (a : S ι α) (b : S ι β) : S ι γ where
   value := (Guard.guard ((a ≤ₛ b) * a.ready) a.value) +
            (Guard.guard ((b ≤ₛ a) * b.ready) b.value)
   skip := λ i => a.skip i ;; b.skip i -- TODO: is skip allowed if `a` is invalid, or do we need to guard
@@ -35,4 +34,5 @@ def S.add [Add α] [Guard α] (a b : S ι α) : S ι α where
   init := a.init ;; b.init
 
 instance [Add α] [Guard α] : Add (ι →ₛ α) := ⟨S.add⟩
-example : HAdd (ℕ →ₛ ℕ →ₛ E R) (ℕ →ₛ ℕ →ₛ E R) (ℕ →ₛ ℕ →ₛ E R):= inferInstance
+instance [HAdd α β γ] [Guard α] [Guard β] : HAdd (S ι α) (S ι β) (S ι γ) := ⟨S.add⟩
+instance [HAdd α β γ] : HAdd (ι →ₐ α) (ι →ₐ β) (ι →ₐ γ) where hAdd a b := λ v => a v + b v
