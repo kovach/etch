@@ -8,9 +8,7 @@ class Guard (α : Type _) where
   guard : E 𝟚 → α → α
 
 instance [Tagged α] [OfNat α (nat_lit 0)] : Guard (E α) where
-  guard := λ b v =>
-  let zero : E α := E.call O.zero (λ i => nomatch i)
-  .call O.ternary ![b, v, zero]
+  guard := λ b v => .call O.ternary ![b, v, (0 : E α)]
 
 instance : Guard (S ι α) where guard := λ b s => {s with valid := λ l => b * s.valid l}
 
@@ -34,9 +32,7 @@ def S.add [HAdd α β γ] [Guard α] [Guard β] (a : S ι α) (b : S ι β) : S 
   ready p := (S_le a b p) * a.ready p.1 + (S_le b a p.symm) * b.ready p.2
   index p := .call O.ternary ![S_le a b p, a.index p.1, b.index p.2]
   valid p := a.valid p.1 + b.valid p.2
-  init  n := let (ai, as) := a.init (n.fresh 0);
-             let (bi, bs) := b.init (n.fresh 1)
-             (ai ;; bi, (as, bs))
+  init    := seqInit a b
 
 instance [Add α] [Guard α] : Add (ι →ₛ α) := ⟨S.add⟩
 instance [HAdd α β γ] [Guard α] [Guard β] : HAdd (S ι α) (S ι β) (S ι γ) := ⟨S.add⟩

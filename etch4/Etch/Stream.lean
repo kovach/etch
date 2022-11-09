@@ -227,7 +227,7 @@ def Name.toString : Name → String := String.join ∘ List.map (@ToString.toStr
 def Name.fresh (n : Name) (new : ℕ) := new :: n
 
 structure S (ι : Type _) (α : Type _) where
-  σ : Type
+  σ     : Type
   value : σ → α
   skip  : σ → E ι → P
   succ  : σ → P
@@ -325,4 +325,7 @@ def Fun.of (h : E ι → α) : ι →ₐ α := h
 instance : Functor (Fun ι) where map := λ f v => f ∘ v
 
 def range : ℕ →ₐ E ℕ := id
+
+def seqInit (a : S ι α) (b : S ι β) (n : Name) :=
+let (ai, as) := a.init (n.fresh 0); let (bi, bs) := b.init (n.fresh 1); (ai ;; bi, (as, bs))
 
