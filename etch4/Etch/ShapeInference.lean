@@ -64,7 +64,7 @@ inductive Str (ι : Type _) (n : ℕ) (α : Type _)
 instance {n} : Functor (Str n ι) where
   map := λ f g => match g with
   | .fun v => Str.fun $ f ∘ v
-  | .str g => Str.str { g with value := f g.value }
+  | .str g => Str.str { g with value := f ∘ g.value }
 
 instance {ι : Type _} : Rectangle (Str ι) where
   map  := λ _ => Functor.map
@@ -79,7 +79,7 @@ notation:37 p:36 " ↠ " c:36  => Str p.2 p.1 c
 set_option quotPrecheck true
 
 instance [Guard α] : Guard (n × ι ⟶ α) where guard b := λ
-| .str s => .str {s with valid := b * s.valid}
+| .str s => .str {s with valid := λ l => b * s.valid l}
 | .fun f => .fun λ x => Guard.guard b $ f x
 
 variable

@@ -11,18 +11,21 @@ instance Comp.base_var [Tagged α] [Add α] : Compile (Var α) (E α) := ⟨λ l
 instance Comp.base_mem [Tagged α] [Add α] : Compile (MemLoc α) (E α) := ⟨λ l v => .store_mem l.arr l.ind (l.access + v) ⟩
 
 instance Comp.step [Compile α β] : Compile (lvl ι α) (S ι β) :=
-{ compile := λ storage v => let (push, position) := storage.push v.bound
-    v.init ;; P.while v.valid
-      (.branch v.ready
-        (push;; Compile.compile position v.value;; v.succ)
-        (v.skip v.bound)) }
+{ compile := λ storage v =>
+    let (init, s) := v.init [];
+    let (push, position) := storage.push $ v.index s
+    init ;; P.while (v.valid s)
+      (.branch (v.ready s)
+        (push;; Compile.compile position (v.value s);; (v.succ s))
+        (v.skip s (v.index s))) }
 
 instance Comp.contract [Compile α β] : Compile α (Contraction β) where
   compile := λ storage ⟨_, v⟩ =>
-    v.init ;; P.while v.valid
-      (.branch v.ready
-        (Compile.compile storage v.value;; v.succ)
-        (v.skip v.bound))
+    let (init, s) := v.init [];
+    init ;; P.while (v.valid s)
+      (.branch (v.ready s)
+        (Compile.compile storage (v.value s);; v.succ s)
+        (v.skip s (v.index s)))
 
 -- Used only to generate callback for data loading
 instance [Compile α β] : Compile (lvl ι α) (E ι × β) :=

@@ -159,9 +159,9 @@ instance : Coe String (Var α) := ⟨Var.mk⟩
 
 inductive E : Type → Type 1
 | call {α β} (op : O α β) (args : (i : Fin op.arity) → E (op.argTypes i)) : E β
-| var : (v : Var α) → E α
+| var    : (v : Var α) → E α
 | access : Var α → E ℕ → E α
-| intLit : ℕ → E ℕ -- todo, ℤ
+| intLit : ℕ → E ℕ
 
 def E.v (α) (v : String) : E α := E.var v
 
@@ -203,6 +203,7 @@ inductive P
 | while  : E Bool → P → P
 | branch : E Bool → P → P → P
 | skip   : P
+| decl   : Var α → E α → P
 | store_var : Var α → E α → P
 | store_mem : Var α → E ℕ → E α → P
 
@@ -217,63 +218,51 @@ def P.compile : P → Stmt
 | .while cond body => Stmt.while cond.compile body.compile
 | branch c a b => Stmt.conde c.compile a.compile b.compile
 | skip => Stmt.noop
+| decl var e => Stmt.decl .Int var.toString e.compile
 | store_var var e => Stmt.store (Expr.var var.toString) e.compile
 | store_mem v l r => Stmt.store (Expr.index (Expr.var v.toString) [l.compile]) r.compile
 
+def Name := List ℕ
+def Name.toString : Name → String := String.join ∘ List.map (@ToString.toString ℕ _)
+def Name.fresh (n : Name) (new : ℕ) := new :: n
+
 structure S (ι : Type _) (α : Type _) where
-  value : α
-  skip  : E ι → P
-  succ  : P
-  ready : E Bool
-  -- todo index
-  bound : E ι
-  valid : E Bool
-  init  : P
+  σ : Type
+  value : σ → α
+  skip  : σ → E ι → P
+  succ  : σ → P
+  ready : σ → E Bool
+  index : σ → E ι
+  valid : σ → E Bool
+  init  : Name → P × σ
 
 infixr:25 " →ₛ " => S
 
 section ι
 
 variable {ι : Type} [Tagged ι] [DecidableEq ι] [LT ι] [DecidableRel (LT.lt : ι → ι → _)]
---[LE ι] [DecidableRel (LE.le : ι → ι → _)]
-
-def S.mul [HMul α β γ] (a : S ι α) (b : S ι β) : (S ι γ) where
-  value := a.value * b.value
-  skip  := λ i => a.skip i;; b.skip i
-  succ  := a.succ;; b.succ
-  ready := a.ready * b.ready * (a.bound == b.bound)
-  bound := .call .max ![a.bound, b.bound]
-  valid := a.valid * b.valid
-  init := a.init ;; b.init
-
-instance [Mul α] : Mul (S ι α) := ⟨S.mul⟩
-instance [HMul α β γ] : HMul (S ι α) (S ι β) (S ι γ) := ⟨S.mul⟩
 
 def Var.access (v : Var α) := E.access v
 def Var.incr [Tagged α] [Add α] [OfNat α 1] (v : Var α) : P := .store_var v $ E.var v + 1
 def Var.incr_array [Tagged α] [Add α] [OfNat α 1] (v : Var α) (ind : E ℕ) : P := .store_mem v ind $ v.access ind + 1
 def Var.expr (v : Var α) : E α := E.var v
+def Var.fresh (v : Var α) (n : Name) : Var α := Var.mk (v.toString ++ n.toString)
+def Var.store_var (v : Var α) := P.store_var v
+def Var.decl (v : Var α) := P.decl v
 
 instance : Coe (Var α) (E α) := ⟨E.var⟩
 
-instance : Functor (S ι) where map := λ f s => {s with value := f s.value }
+instance : Functor (S ι) where map := λ f s => {s with value := f ∘ s.value }
 
-def Var.store_var (v : Var α) := P.store_var v
 
 def simpleSkip (pos : Var ℕ) (is : Var ι) (max_pos : E ℕ) (tgt : E ι) :=
   .store_var "temp" tgt;;
   .while ((pos.expr << max_pos) * (is.access pos << "temp")) pos.incr
 
 def searchSkip (pos : Var ℕ) (is : Var ι) (max_pos : E ℕ) (i : E ι) : P :=
-let hi : Var ℕ := "hi"
-let lo : Var ℕ := "lo"
-let m  : Var ℕ := "m"
-let tgt : Var ι := "temp"
-let not_done : Var Bool := "not_done"
-tgt.store_var i;;
-.store_var lo pos;;
-.store_var hi max_pos;;
-.store_var not_done 1;;
+let hi : Var ℕ := "hi"; let lo : Var ℕ := "lo"; let m  : Var ℕ := "m";
+let tgt : Var ι := "temp"; let not_done : Var Bool := "not_done"
+tgt.store_var i;; .store_var lo pos;; .store_var hi max_pos;; .store_var not_done 1;;
 (.while ((lo.expr <= hi.expr) * not_done) $
   .store_var m (E.call .mid ![lo.expr, hi.expr]) ;;
   .branch (.access is m << tgt.expr)
@@ -286,29 +275,30 @@ tgt.store_var i;;
 inductive IterMethod | step | search
 
 def S.interval (h : IterMethod) (is : Var ι) (pos : Var ℕ) (lower upper : E ℕ) : S ι (E ℕ) where
-  value := pos.expr
-  succ := pos.incr
-  ready := 1
-  skip  := (match h with | .step => simpleSkip | .search => searchSkip)  pos is upper
-  bound := .access is pos.expr
-  valid := pos.expr << upper
-  init := pos.store_var lower
+  σ := Var ℕ
+  value pos := pos.expr
+  succ  pos := pos.incr
+  ready pos := 1
+  skip  pos := (match h with | .step => simpleSkip | .search => searchSkip)  pos is upper
+  index pos := .access is pos.expr
+  valid pos := pos.expr << upper
+  init  n   := let p := pos.fresh n; (p.decl lower, p)
 
 -- todo: use instead of zero
 --class Bot (α : Type _) := (bot : α)
 --notation "⊥"  => Bot.bot
 def S.univ [Zero ι] (last : Var ι) : S ι (E ι) where
-  value := last.expr
-  succ := .skip -- imprecise but ok
-  ready := 1
-  skip := λ i => .store_var last i
-  bound := last.expr
-  valid := 1
-  init := last.store_var 0
+  value last := last.expr
+  succ  last := .skip -- imprecise but ok
+  ready last := 1
+  skip  last := λ i => .store_var last i
+  index last := last.expr
+  valid last := 1
+  init  n    := let v := last.fresh n; (v.decl 0, v)
 
 -- using fmap introduces a universe constraint between α and Type 1 (coming from E ι). this is probably ok anyway
 --def S.repl' {α : Type 1} [Zero ι] (last : Var ι) (v : α) : S ι α := (Function.const _ v) <$> (S.univ last)
-def S.repl [Zero ι] (last : Var ι) (v : α) : S ι α := {S.univ last with value := v}
+def S.repl [Zero ι] (last : Var ι) (v : α) : S ι α := {S.univ last with value := λ _ => v}
 def S.function [Zero ι] (last : Var ι) (f : E ι → α) : S ι α := f <$> S.univ last
 
 structure csr (ι α : Type _) := (i : Var ι) (v : Var α) (var : Var ℕ)
@@ -325,34 +315,14 @@ def Contraction (α : Type _) := Σ ι, S ι α
 instance : Functor Contraction where map := λ f ⟨ι, v⟩ => ⟨ι, f <$> v⟩
 def S.contract (s : S ι α) : Contraction α := ⟨_, s⟩
 
-section add
-
-end add
-
 end ι
 
 def Fun (ι α : Type _) := E ι → α
 infixr:25 " →ₐ "  => Fun -- arbitrarily chosen for ease of typing: \ra
-example : (ℕ → ℕ →ₐ ℕ) = (ℕ → (ℕ →ₐ ℕ)) := rfl
-example : (ℕ →ₛ ℕ →ₐ ℕ) = (ℕ →ₛ (ℕ →ₐ ℕ)) := rfl
 example : (ℕ →ₐ ℕ →ₛ ℕ) = (ℕ →ₐ (ℕ →ₛ ℕ)) := rfl
---def Exp (ι α : Type _) := α
 def Fun.un (h : ι →ₐ α) : E ι → α := h
 def Fun.of (h : E ι → α) : ι →ₐ α := h
 instance : Functor (Fun ι) where map := λ f v => f ∘ v
 
---def S.range (pos : Var ℕ) (size : E ℕ) : ℕ →ₛ (E ℕ) where
---  value := pos.expr
---  succ := pos.incr
---  ready := 1
---  skip := λ i => .store_var pos i
---  bound := pos.expr
---  valid := pos.expr << size
---  init := pos.store_var 0
-
 def range : ℕ →ₐ E ℕ := id
-
-instance [HMul α β γ] : HMul (ι →ₛ α) (ι →ₐ β) (ι →ₛ γ) where hMul a b := {a with value := a.value * b a.bound}
-instance [HMul β α γ] : HMul (ι →ₐ β) (ι →ₛ α) (ι →ₛ γ) where hMul b a := {a with value := b a.bound * a.value}
-instance [HMul α β γ] : HMul (ι →ₐ α) (ι →ₐ β) (ι →ₐ γ) where hMul a b := λ v => a v * b v
 
