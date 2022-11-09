@@ -2,6 +2,7 @@ import Etch.Basic
 import Etch.ExtStream
 import Etch.LVal
 import Etch.Add
+import Etch.ShapeInference
 
 class Compile (α β : Type _) where compile : α → β → P
 
@@ -22,26 +23,17 @@ instance Comp.contract [Compile α β] : Compile α (Contraction β) where
         (Compile.compile storage v.value;; v.succ)
         (v.skip v.bound))
 
---instance [Compile α β] : Compile α ((β → P) → P) where
---  compile := λ l cc => cc (Compile.compile l)
-
 -- Used only to generate callback for data loading
 instance [Compile α β] : Compile (lvl ι α) (E ι × β) :=
 { compile := λ storage v =>
     let (push, position) := storage.push v.1
     push;; Compile.compile position v.2 }
 
-def incPrelude : String := "#include \"prelude.c\"\n"
-def epilogue   : String := "#include \"epilogue.c\"\n"
-
 def go [Compile α β] (l : α) (r : β) : String := (Compile.compile l r).compile.emit.run
 
 def IO.compile' (f : String) (body : List String) : IO Unit := IO.FS.writeFile f $ String.join body
 def compile_fun (name : String) (body : List String) : String :=
 let b := String.join body; s!"double {name}()\{ double val = 0;\n {b} return val; }"
-
---set_option trace.Meta.synthInstance.instances true
---set_option pp.all true
 
 def SQLCallback : (E ℕ × E ℕ × E R) :=
 (.call O.atoi ![.access "argv" 0],
@@ -56,19 +48,11 @@ def l_dsB : lvl ℕ (lvl ℕ (MemLoc R)) := csr_mat "dsB" "dim" "i1" -- todo "i2
 def outVar : Var R := "fout"
 def outVal : Var R := "val"
 def sum1 : S ι α → Contraction α := S.contract
-def sum2 : S ι (S ι' α) → Contraction (Contraction α) := S.contract ⊚ S.contract
-def sum3 : S ι (S ι' (S ι'' α)) → Contraction (Contraction (Contraction α)) :=
-S.contract ⊚ S.contract ⊚ S.contract
+def sum2 : S ι (S ι' α) → Contraction (Contraction α) := S.contract ⊚ sum1
+def sum3 : S ι (S ι' (S ι'' α)) → Contraction (Contraction (Contraction α)) := S.contract ⊚ sum2
 def exp0 (ι : Type _) : α → ι →ₐ α := λ (v : α) => λ _ => v
---def exp0 {ι : Type _} [Zero ι] [Tagged ι] (n : Var ι) : α → S ι α := S.repl n
 def exp1 (ι'' : Type _) : (S ι' α) → (S ι' (Fun ι'' α)) := Functor.map $ exp0 ι''
---def exp1 {ι'' : Type _} [Zero ι''] [Tagged ι''] (n : String) : (S ι' α) → (S ι' (S ι'' α)) := Functor.map $ S.repl n
 def exp2 (ι'' : Type _) : S ι (S ι' α) → S ι (S ι' (Fun ι'' α)) := Functor.map $ exp1 ι''
---def exp2 {ι'' : Type _} [Zero ι''] [Tagged ι''] (n : String) : S ι (S ι' α) → S ι (S ι' (S ι'' α)) := Functor.map (Functor.map $ S.repl n)
-
-instance [HMul α β γ] : HMul (ι →ₛ α) (ι →ₐ β) (ι →ₛ γ) where hMul a b := {a with value := a.value * b a.bound}
-instance [HMul β α γ] : HMul (ι →ₐ β) (ι →ₛ α) (ι →ₛ γ) where hMul b a := {a with value := b a.bound * a.value}
-instance [HMul α β γ] : HMul (ι →ₐ α) (ι →ₐ β) (ι →ₐ γ) where hMul a b := λ v => a v * b v
 
 def S.lt : ℕ →ₛ ℕ →ₛ (E R) := S.function "f1_" ⊚ S.function "f2_" $ (. <ᵣ .)
 
@@ -79,36 +63,27 @@ variable {ι : Type} [Tagged ι] [DecidableEq ι]
 
 end csr
 
-def mat (f : String) : ℕ →ₛ ℕ →ₛ E R := (csr.of f 1).level .step 0 & S.level .step (csr.of f 2) ⊚ S.leaf (f ++ "_vals")
+def mat   (f : String) : ℕ →ₛ ℕ →ₛ E R := (csr.of f 1).level .step 0 & S.level .step (csr.of f 2) ⊚ S.leaf (f ++ "_vals")
 def dsMat (f : String) : ℕ →ₐ ℕ →ₛ E R := range & S.level .step (csr.of f 2) ⊚ S.leaf (f ++ "_vals")
 def ssA := mat "ssA"
 def dsA := dsMat "dsA"
 def ssB := mat "ssB"
 def dsB := dsMat "dsB"
 
---def A : ℕ →ₛ ℕ →ₛ E R := (csr.of "A" 1).level .step 0 & S.level .step (csr.of "A" 2) ⊚ S.leaf "A_vals"
---def B : ℕ →ₛ ℕ →ₛ E R := (csr.of "B" 1).level .step 0 & S.level .step (csr.of "B" 2) ⊚ S.leaf "B_vals"
---def A_csr : ℕ →ₐ ℕ →ₛ E R := range & S.level .step (csr.of "A" 2) ⊚ S.leaf "A_vals"
---def B_csr : ℕ →ₐ ℕ →ₛ E R := range & S.level .step (csr.of "B" 2) ⊚ S.leaf "B_vals"
---def B_csr : ℕ →ₛ ℕ →ₛ E R := S.range "j2" 10000 & S.level (csr.of "B" 2) ⊚ S.leaf "B_vals"
-
-@[reducible] def ijk := ℕ →ₛ ℕ →ₛ ℕ →ₛ E R
+--@[reducible] def ijk := ℕ →ₛ ℕ →ₛ ℕ →ₛ E R
 example : HMul (ℕ →ₛ ℕ →ₐ E R) (ℕ →ₛ ℕ →ₛ E R) (ℕ →ₛ ℕ →ₛ E R) := inferInstance
 def mulAB := ((exp0 ℕ <$> .) <$> ssA) * (exp0 ℕ ssB)
 def mulAB_csr := ((exp0 ℕ <$> .) <$> ssA) * (exp0 ℕ dsB)
 def mulAB_inner := (exp0 ℕ <$> ssA) * (exp0 ℕ ssB)
 
 def mulAB_ij := mulAB * (exp0 ℕ <$> S.lt)
---def mulAB := ((exp0 "k1" <$> .) <$> A) * exp0 "i2" B_csr
---def mulAB_ij := mulAB * (exp0 "j3" <$> S.lt)
 
-def t1 : String := (P.compile $ .store_var "tout" $ E.ext "taco_mul2_csr").emit.run
 #eval IO.compile' "gen_query_dsA.c" [go l_dsA SQLCallback]
 #eval IO.compile' "gen_query_dsB.c" [go l_dsB SQLCallback]
 #eval IO.compile' "gen_query_ssA.c" [go l_ssA SQLCallback]
 #eval IO.compile' "gen_query_ssB.c" [go l_ssB SQLCallback]
-#eval IO.compile' "gen_taco.c" [t1]
 #eval IO.compile' "gen_main.c" [go outVar $ sum3 $ mulAB]
+
 -- todo
 def names := [
   "add2",
@@ -124,12 +99,18 @@ def names := [
   "sum_ttm"
 ]
 
+def ssA'   : i ↠ j ↠ E R := mat "ssA"
+def dsA'   : i ↠ j ↠ E R := dsMat "dsA"
+def ssB_ij : i ↠ j ↠ E R := mat "ssB"
+def ssB'   : j ↠ k ↠ E R := mat "ssB"
+def dsB'   : j ↠ k ↠ E R := dsMat "dsB"
+
 def etch_ops : List (String × String) :=
 [
-  ("inner2ss", compile_fun "inner2ss" $ [go outVal $ sum2 $ ssA * ssB]),
+  ("inner2ss", compile_fun "inner2ss" $ [go outVal $ ∑ i, ∑ j, ssA' * ssB_ij]),
   ("sum_add2", compile_fun "sum_add2" $ [go outVal $ sum2 $ ssA + ssB]),
   --("sum_add2", compile_fun "sum_add2" $ [go outVal $ sum2 $ ssA, go outVal $ sum2 $ ssB]),
-  ("sum_mul2_csr", compile_fun "sum_mul2_csr" $ [go outVal $ sum3 mulAB_csr])
+  ("sum_mul2_csr", compile_fun "sum_mul2_csr" $ [go outVal $ ∑ i, ∑ j, ∑ k, ssA' * dsB'])
 ]
 
 def main : IO Unit := do
@@ -143,3 +124,7 @@ def main : IO Unit := do
   IO.FS.writeFile "gen_out.c" main
 
 #eval main
+
+#check (ssA : i ↠ j ↠ E R )
+#check ∑ i, ∑ j, (ssA : i ↠ j ↠ E R )
+#check go outVal $ ∑ i, ∑ j, (ssA : i ↠ j ↠ E R )

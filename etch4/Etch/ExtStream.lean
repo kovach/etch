@@ -14,16 +14,21 @@ class Tagged (α : Type _) where
 
 inductive R | mk
 
+def RMin := R
+def RMin.ofR : R → RMin := id
+
 instance : Tagged ℕ := ⟨ "nat" ⟩
 instance : Tagged String := ⟨ "str" ⟩
 instance : Tagged Bool := ⟨ "bool" ⟩
 instance : Tagged R := ⟨ "num" ⟩
 instance : Tagged Unit := ⟨ "macro" ⟩
+instance : Tagged RMin := ⟨ "min" ⟩
 
 -- todo
 instance : Inhabited R := ⟨ R.mk ⟩
 instance : Add R := ⟨ λ _ _ => default ⟩
 instance : Mul R := ⟨ λ _ _ => default ⟩
+instance : Sub R := ⟨ λ _ _ => default ⟩
 instance : OfNat R (nat_lit 0) := ⟨ default ⟩
 instance : OfNat R (nat_lit 1) := ⟨ default ⟩
 
@@ -134,6 +139,12 @@ def O.ofBool [Tagged α] [OfNat α (nat_lit 0)] [OfNat α (nat_lit 1)] : O α α
   spec := λ a => if a 0 then 1 else 0
   opName := "ofBool"
 
+def O.toMin : O R RMin where
+  arity := 1
+  argTypes := λ | 0 => R
+  spec := λ a => RMin.ofR (a 0)
+  opName := "toMin"
+
 def O.ternary : O Unit α where
   arity := 3
   argTypes := λ | 0 => 𝟚 | 1 => α | 2 => α
@@ -172,7 +183,8 @@ instance [Tagged α] [Mul α] : Mul (E α) := ⟨ λ a b => E.call O.mul ![a, b]
 instance [Tagged α] [OfNat α (nat_lit 0)] : OfNat (E α) (nat_lit 0) := ⟨ E.call O.zero ![] ⟩
 instance [Tagged α] [OfNat α (nat_lit 1)] : OfNat (E α) (nat_lit 1) := ⟨ E.call O.one ![] ⟩
 instance : OfNat (E ℕ) n := ⟨ .intLit n ⟩
-def E.ext (f : String) : E Unit := E.call (O.voidCall f) ![]
+instance : Inhabited (E R) := ⟨ 0 ⟩
+--def E.ext (f : String) : E Unit := E.call (O.voidCall f) ![]
 
 def E.compile : E α → Expr
 | @call _ _ op args => Expr.call op.name $ List.ofFin λ i => E.compile (args i)
@@ -222,10 +234,8 @@ infixr:25 " →ₛ " => S
 
 section ι
 
-variable
-{ι : Type} [Tagged ι] [DecidableEq ι]
-[LE ι] [DecidableRel (LE.le : ι → ι → _)]
-[LT ι] [DecidableRel (LT.lt : ι → ι → _)]
+variable {ι : Type} [Tagged ι] [DecidableEq ι] [LT ι] [DecidableRel (LT.lt : ι → ι → _)]
+--[LE ι] [DecidableRel (LE.le : ι → ι → _)]
 
 def S.mul [HMul α β γ] (a : S ι α) (b : S ι β) : (S ι γ) where
   value := a.value * b.value
@@ -249,15 +259,6 @@ instance : Coe (Var α) (E α) := ⟨E.var⟩
 instance : Functor (S ι) where map := λ f s => {s with value := f s.value }
 
 def Var.store_var (v : Var α) := P.store_var v
-
---def S.repl (pos : Var ℕ) (size : E ℕ) (v : α) : S ℕ α where
---  value := v
---  succ := pos.incr
---  ready := 1
---  skip := λ i => .store_var pos i
---  bound := pos.expr
---  valid := pos.expr << size
---  init := pos.store_var 0
 
 def simpleSkip (pos : Var ℕ) (is : Var ι) (max_pos : E ℕ) (tgt : E ι) :=
   .store_var "temp" tgt;;
@@ -316,9 +317,7 @@ def csr.of (name : String) (n : ℕ) (ι := ℕ) : csr ι ℕ :=
   let field {ι} (x : String) : Var ι := Var.mk $ name ++ n.repr ++ x
   { i := field "_crd", v := field "_pos", var := field "_i" }
 
--- todo: move back into ExtStream
 def csr.level (h : IterMethod) : csr ι ℕ → E ℕ → S ι (E ℕ) := λ csr loc => S.interval h csr.i csr.var (.access csr.v loc) (csr.v.access (loc+1))
---def csr.level : csr ι ℕ → E ℕ → S ι (E ℕ) := λ csr loc => S.interval_search csr.i csr.var (.access csr.v loc) (csr.v.access (loc+1))
 def S.level {f} [Functor f] (h : IterMethod) : csr ι ℕ → f (E ℕ) → f (S ι (E ℕ)) := Functor.map ∘ csr.level h
 def S.leaf  {f} [Functor f] : Var α → f (E ℕ) → f (E α) := Functor.map ∘ E.access
 --def S.leaf' : Var α → E ℕ → E α := E.access
@@ -352,4 +351,8 @@ instance : Functor (Fun ι) where map := λ f v => f ∘ v
 --  init := pos.store_var 0
 
 def range : ℕ →ₐ E ℕ := id
+
+instance [HMul α β γ] : HMul (ι →ₛ α) (ι →ₐ β) (ι →ₛ γ) where hMul a b := {a with value := a.value * b a.bound}
+instance [HMul β α γ] : HMul (ι →ₐ β) (ι →ₛ α) (ι →ₛ γ) where hMul b a := {a with value := b a.bound * a.value}
+instance [HMul α β γ] : HMul (ι →ₐ α) (ι →ₐ β) (ι →ₐ γ) where hMul a b := λ v => a v * b v
 
