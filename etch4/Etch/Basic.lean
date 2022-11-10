@@ -1,4 +1,5 @@
 --set_option trace.Meta.synthInstance.instances true
+--set_option pp.all true
 import Mathlib.Algebra.Ring.Basic
 
 instance : Add Bool := ⟨ or ⟩

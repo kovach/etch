@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <sqlite3.h>
 #include <chrono>
+#include <float.h>
 
 #define num double
 #define ind int
@@ -30,8 +31,6 @@ void time(double (* f)(), char const* tag, int reps) {
   std::cout << tag << " took: " << std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count() << "ms" << std::endl;
 }
 
-
-
 static inline double    num_add(double a, double b) { return a + b; }
 static inline double    num_mul(double a, double b) { return a * b; }
 static inline double    num_one() { return 1; }
@@ -40,9 +39,14 @@ static inline double    num_zero() { return 0; }
 // todo, naming wrong
 static inline double    num_ofBool(bool x) { return x ? 1 : 0; }
 
+static inline double    min_add(double a, double b) { return a < b ? a : b; }
+static inline double    min_mul(double a, double b) { return a + b; }
+static inline double    min_one() { return 0; }
+static inline double    min_zero() { return -DBL_MAX; }
+
 static inline int    nat_add(int a, int b) { return a + b; }
-static inline int    nat_sub(int a, int b) { return a - b; }
 static inline int    nat_mul(int a, int b) { return a * b; }
+static inline int    nat_sub(int a, int b) { return a - b; }
 static inline bool   nat_lt(int a, int b) { return a < b; }
 static inline bool   nat_le(int a, int b) { return a <= b; }
 static inline bool   nat_eq(int a, int b) { return a == b; }

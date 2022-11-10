@@ -14,16 +14,21 @@ class Tagged (α : Type _) where
 
 inductive R | mk
 
+def RMin := R
+def RMin.ofR : R → RMin := id
+
 instance : Tagged ℕ := ⟨ "nat" ⟩
 instance : Tagged String := ⟨ "str" ⟩
 instance : Tagged Bool := ⟨ "bool" ⟩
 instance : Tagged R := ⟨ "num" ⟩
 instance : Tagged Unit := ⟨ "macro" ⟩
+instance : Tagged RMin := ⟨ "min" ⟩
 
 -- todo
 instance : Inhabited R := ⟨ R.mk ⟩
 instance : Add R := ⟨ λ _ _ => default ⟩
 instance : Mul R := ⟨ λ _ _ => default ⟩
+instance : Sub R := ⟨ λ _ _ => default ⟩
 instance : OfNat R (nat_lit 0) := ⟨ default ⟩
 instance : OfNat R (nat_lit 1) := ⟨ default ⟩
 
@@ -134,6 +139,12 @@ def O.ofBool [Tagged α] [OfNat α (nat_lit 0)] [OfNat α (nat_lit 1)] : O α α
   spec := λ a => if a 0 then 1 else 0
   opName := "ofBool"
 
+def O.toMin : O R RMin where
+  arity := 1
+  argTypes := λ | 0 => R
+  spec := λ a => RMin.ofR (a 0)
+  opName := "toMin"
+
 def O.ternary : O Unit α where
   arity := 3
   argTypes := λ | 0 => 𝟚 | 1 => α | 2 => α
@@ -148,9 +159,9 @@ instance : Coe String (Var α) := ⟨Var.mk⟩
 
 inductive E : Type → Type 1
 | call {α β} (op : O α β) (args : (i : Fin op.arity) → E (op.argTypes i)) : E β
-| var : (v : Var α) → E α
+| var    : (v : Var α) → E α
 | access : Var α → E ℕ → E α
-| intLit : ℕ → E ℕ -- todo, ℤ
+| intLit : ℕ → E ℕ
 
 def E.v (α) (v : String) : E α := E.var v
 
@@ -172,7 +183,8 @@ instance [Tagged α] [Mul α] : Mul (E α) := ⟨ λ a b => E.call O.mul ![a, b]
 instance [Tagged α] [OfNat α (nat_lit 0)] : OfNat (E α) (nat_lit 0) := ⟨ E.call O.zero ![] ⟩
 instance [Tagged α] [OfNat α (nat_lit 1)] : OfNat (E α) (nat_lit 1) := ⟨ E.call O.one ![] ⟩
 instance : OfNat (E ℕ) n := ⟨ .intLit n ⟩
-def E.ext (f : String) : E Unit := E.call (O.voidCall f) ![]
+instance : Inhabited (E R) := ⟨ 0 ⟩
+--def E.ext (f : String) : E Unit := E.call (O.voidCall f) ![]
 
 def E.compile : E α → Expr
 | @call _ _ op args => Expr.call op.name $ List.ofFin λ i => E.compile (args i)
@@ -191,6 +203,7 @@ inductive P
 | while  : E Bool → P → P
 | branch : E Bool → P → P → P
 | skip   : P
+| decl   : Var α → E α → P
 | store_var : Var α → E α → P
 | store_mem : Var α → E ℕ → E α → P
 
@@ -205,74 +218,51 @@ def P.compile : P → Stmt
 | .while cond body => Stmt.while cond.compile body.compile
 | branch c a b => Stmt.conde c.compile a.compile b.compile
 | skip => Stmt.noop
+| decl var e => Stmt.decl .Int var.toString e.compile
 | store_var var e => Stmt.store (Expr.var var.toString) e.compile
 | store_mem v l r => Stmt.store (Expr.index (Expr.var v.toString) [l.compile]) r.compile
 
+def Name := List ℕ
+def Name.toString : Name → String := String.join ∘ List.map (@ToString.toString ℕ _)
+def Name.fresh (n : Name) (new : ℕ) := new :: n
+
 structure S (ι : Type _) (α : Type _) where
-  value : α
-  skip  : E ι → P
-  succ  : P
-  ready : E Bool
-  -- todo index
-  bound : E ι
-  valid : E Bool
-  init  : P
+  σ     : Type
+  value : σ → α
+  skip  : σ → E ι → P
+  succ  : σ → P
+  ready : σ → E Bool
+  index : σ → E ι
+  valid : σ → E Bool
+  init  : Name → P × σ
 
 infixr:25 " →ₛ " => S
 
 section ι
 
-variable
-{ι : Type} [Tagged ι] [DecidableEq ι]
-[LE ι] [DecidableRel (LE.le : ι → ι → _)]
-[LT ι] [DecidableRel (LT.lt : ι → ι → _)]
-
-def S.mul [HMul α β γ] (a : S ι α) (b : S ι β) : (S ι γ) where
-  value := a.value * b.value
-  skip  := λ i => a.skip i;; b.skip i
-  succ  := a.succ;; b.succ
-  ready := a.ready * b.ready * (a.bound == b.bound)
-  bound := .call .max ![a.bound, b.bound]
-  valid := a.valid * b.valid
-  init := a.init ;; b.init
-
-instance [Mul α] : Mul (S ι α) := ⟨S.mul⟩
-instance [HMul α β γ] : HMul (S ι α) (S ι β) (S ι γ) := ⟨S.mul⟩
+variable {ι : Type} [Tagged ι] [DecidableEq ι] [LT ι] [DecidableRel (LT.lt : ι → ι → _)]
 
 def Var.access (v : Var α) := E.access v
 def Var.incr [Tagged α] [Add α] [OfNat α 1] (v : Var α) : P := .store_var v $ E.var v + 1
 def Var.incr_array [Tagged α] [Add α] [OfNat α 1] (v : Var α) (ind : E ℕ) : P := .store_mem v ind $ v.access ind + 1
 def Var.expr (v : Var α) : E α := E.var v
+def Var.fresh (v : Var α) (n : Name) : Var α := Var.mk (v.toString ++ n.toString)
+def Var.store_var (v : Var α) := P.store_var v
+def Var.decl (v : Var α) := P.decl v
 
 instance : Coe (Var α) (E α) := ⟨E.var⟩
 
-instance : Functor (S ι) where map := λ f s => {s with value := f s.value }
+instance : Functor (S ι) where map := λ f s => {s with value := f ∘ s.value }
 
-def Var.store_var (v : Var α) := P.store_var v
-
---def S.repl (pos : Var ℕ) (size : E ℕ) (v : α) : S ℕ α where
---  value := v
---  succ := pos.incr
---  ready := 1
---  skip := λ i => .store_var pos i
---  bound := pos.expr
---  valid := pos.expr << size
---  init := pos.store_var 0
 
 def simpleSkip (pos : Var ℕ) (is : Var ι) (max_pos : E ℕ) (tgt : E ι) :=
   .store_var "temp" tgt;;
   .while ((pos.expr << max_pos) * (is.access pos << "temp")) pos.incr
 
 def searchSkip (pos : Var ℕ) (is : Var ι) (max_pos : E ℕ) (i : E ι) : P :=
-let hi : Var ℕ := "hi"
-let lo : Var ℕ := "lo"
-let m  : Var ℕ := "m"
-let tgt : Var ι := "temp"
-let not_done : Var Bool := "not_done"
-tgt.store_var i;;
-.store_var lo pos;;
-.store_var hi max_pos;;
-.store_var not_done 1;;
+let hi : Var ℕ := "hi"; let lo : Var ℕ := "lo"; let m  : Var ℕ := "m";
+let tgt : Var ι := "temp"; let not_done : Var Bool := "not_done"
+tgt.store_var i;; .store_var lo pos;; .store_var hi max_pos;; .store_var not_done 1;;
 (.while ((lo.expr <= hi.expr) * not_done) $
   .store_var m (E.call .mid ![lo.expr, hi.expr]) ;;
   .branch (.access is m << tgt.expr)
@@ -285,29 +275,30 @@ tgt.store_var i;;
 inductive IterMethod | step | search
 
 def S.interval (h : IterMethod) (is : Var ι) (pos : Var ℕ) (lower upper : E ℕ) : S ι (E ℕ) where
-  value := pos.expr
-  succ := pos.incr
-  ready := 1
-  skip  := (match h with | .step => simpleSkip | .search => searchSkip)  pos is upper
-  bound := .access is pos.expr
-  valid := pos.expr << upper
-  init := pos.store_var lower
+  σ := Var ℕ
+  value pos := pos.expr
+  succ  pos := pos.incr
+  ready pos := 1
+  skip  pos := (match h with | .step => simpleSkip | .search => searchSkip)  pos is upper
+  index pos := .access is pos.expr
+  valid pos := pos.expr << upper
+  init  n   := let p := pos.fresh n; (p.decl lower, p)
 
 -- todo: use instead of zero
 --class Bot (α : Type _) := (bot : α)
 --notation "⊥"  => Bot.bot
 def S.univ [Zero ι] (last : Var ι) : S ι (E ι) where
-  value := last.expr
-  succ := .skip -- imprecise but ok
-  ready := 1
-  skip := λ i => .store_var last i
-  bound := last.expr
-  valid := 1
-  init := last.store_var 0
+  value last := last.expr
+  succ  last := .skip -- imprecise but ok
+  ready last := 1
+  skip  last := λ i => .store_var last i
+  index last := last.expr
+  valid last := 1
+  init  n    := let v := last.fresh n; (v.decl 0, v)
 
 -- using fmap introduces a universe constraint between α and Type 1 (coming from E ι). this is probably ok anyway
 --def S.repl' {α : Type 1} [Zero ι] (last : Var ι) (v : α) : S ι α := (Function.const _ v) <$> (S.univ last)
-def S.repl [Zero ι] (last : Var ι) (v : α) : S ι α := {S.univ last with value := v}
+def S.repl [Zero ι] (last : Var ι) (v : α) : S ι α := {S.univ last with value := λ _ => v}
 def S.function [Zero ι] (last : Var ι) (f : E ι → α) : S ι α := f <$> S.univ last
 
 structure csr (ι α : Type _) := (i : Var ι) (v : Var α) (var : Var ℕ)
@@ -316,9 +307,7 @@ def csr.of (name : String) (n : ℕ) (ι := ℕ) : csr ι ℕ :=
   let field {ι} (x : String) : Var ι := Var.mk $ name ++ n.repr ++ x
   { i := field "_crd", v := field "_pos", var := field "_i" }
 
--- todo: move back into ExtStream
 def csr.level (h : IterMethod) : csr ι ℕ → E ℕ → S ι (E ℕ) := λ csr loc => S.interval h csr.i csr.var (.access csr.v loc) (csr.v.access (loc+1))
---def csr.level : csr ι ℕ → E ℕ → S ι (E ℕ) := λ csr loc => S.interval_search csr.i csr.var (.access csr.v loc) (csr.v.access (loc+1))
 def S.level {f} [Functor f] (h : IterMethod) : csr ι ℕ → f (E ℕ) → f (S ι (E ℕ)) := Functor.map ∘ csr.level h
 def S.leaf  {f} [Functor f] : Var α → f (E ℕ) → f (E α) := Functor.map ∘ E.access
 --def S.leaf' : Var α → E ℕ → E α := E.access
@@ -326,30 +315,17 @@ def Contraction (α : Type _) := Σ ι, S ι α
 instance : Functor Contraction where map := λ f ⟨ι, v⟩ => ⟨ι, f <$> v⟩
 def S.contract (s : S ι α) : Contraction α := ⟨_, s⟩
 
-section add
-
-end add
-
 end ι
 
 def Fun (ι α : Type _) := E ι → α
 infixr:25 " →ₐ "  => Fun -- arbitrarily chosen for ease of typing: \ra
-example : (ℕ → ℕ →ₐ ℕ) = (ℕ → (ℕ →ₐ ℕ)) := rfl
-example : (ℕ →ₛ ℕ →ₐ ℕ) = (ℕ →ₛ (ℕ →ₐ ℕ)) := rfl
 example : (ℕ →ₐ ℕ →ₛ ℕ) = (ℕ →ₐ (ℕ →ₛ ℕ)) := rfl
---def Exp (ι α : Type _) := α
 def Fun.un (h : ι →ₐ α) : E ι → α := h
 def Fun.of (h : E ι → α) : ι →ₐ α := h
 instance : Functor (Fun ι) where map := λ f v => f ∘ v
 
---def S.range (pos : Var ℕ) (size : E ℕ) : ℕ →ₛ (E ℕ) where
---  value := pos.expr
---  succ := pos.incr
---  ready := 1
---  skip := λ i => .store_var pos i
---  bound := pos.expr
---  valid := pos.expr << size
---  init := pos.store_var 0
-
 def range : ℕ →ₐ E ℕ := id
+
+def seqInit (a : S ι α) (b : S ι β) (n : Name) :=
+let (ai, as) := a.init (n.fresh 0); let (bi, bs) := b.init (n.fresh 1); (ai ;; bi, (as, bs))
 

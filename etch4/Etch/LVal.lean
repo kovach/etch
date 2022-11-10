@@ -1,5 +1,5 @@
 import Etch.Basic
-import Etch.ExtStream
+import Etch.Stream
 
 variable
 (ι : Type _) [Tagged ι] [DecidableEq ι]

@@ -1,4 +1,4 @@
-import Etch.ExtStream
+import Etch.Stream
 
 variable {ι : Type} {α : Type _} [Tagged ι] [DecidableEq ι]
   [LT ι] [LE ι] [DecidableRel (LT.lt : ι → ι → Prop)]
@@ -8,31 +8,32 @@ class Guard (α : Type _) where
   guard : E 𝟚 → α → α
 
 instance [Tagged α] [OfNat α (nat_lit 0)] : Guard (E α) where
-  guard := λ b v =>
-  let zero : E α := E.call O.zero (λ i => nomatch i)
-  .call O.ternary ![b, v, zero]
+  guard := λ b v => .call O.ternary ![b, v, (0 : E α)]
 
-instance : Guard (S ι α) where
-  guard := λ b s => {s with valid := b * s.valid}
+instance : Guard (S ι α) where guard := λ b s => {s with valid := λ l => b * s.valid l}
 
 /-- Returns an expression which evaluates to `true` iff `a.index' ≤ b.index'` -/
-def S_le (a b : S ι α) : E 𝟚 :=
-  (.call O.neg ![b.valid]) + (a.valid * (a.bound <= b.bound))
+def S_le (a : S ι α) (b : S ι β) (l : a.σ × b.σ) : E 𝟚 :=
+  (.call O.neg ![b.valid l.2]) + (a.valid l.1 * (a.index l.1 <= b.index l.2))
 
 infixr:40 "≤ₛ" => S_le
 
-def S.add [Add α] [Guard α] (a b : S ι α) : S ι α where
-  value := (Guard.guard ((a ≤ₛ b) * a.ready) a.value) +
-           (Guard.guard ((b ≤ₛ a) * b.ready) b.value)
-  skip := λ i => a.skip i ;; b.skip i -- TODO: is skip allowed if `a` is invalid, or do we need to guard
-                                      -- that `a` is valid?
-                                      -- Also, I am assuming you cannot skip backwards (i.e. it becomes a no-op
-                                      -- if `i < .bound`). Otherwise, each skip should be guarded by `≤ₛ` as well
-  succ := .store_var "temp" (b ≤ₛ a);; P.if1 ((a ≤ₛ b) * a.ready) a.succ ;; P.if1 ("temp" * b.ready) b.succ
-  ready := (a ≤ₛ b) * a.ready + (b ≤ₛ a) * b.ready
-  bound := .call O.ternary ![a ≤ₛ b, a.bound, b.bound]
-  valid := a.valid + b.valid
-  init := a.init ;; b.init
+def Prod.symm (f : α × β) := (f.2, f.1)
+
+def S.add [HAdd α β γ] [Guard α] [Guard β] (a : S ι α) (b : S ι β) : S ι γ where
+  σ := a.σ × b.σ
+  value p := (Guard.guard ((S_le a b p) * a.ready p.1) $ a.value p.1) +
+             (Guard.guard ((S_le b a p.symm) * b.ready p.2) $ b.value p.2)
+  skip  p := λ i => a.skip p.1 i ;; b.skip p.2 i -- TODO: is skip allowed if `a` is invalid, or do we need to guard
+                                        -- that `a` is valid?
+                                        -- Also, I am assuming you cannot skip backwards (i.e. it becomes a no-op
+                                        -- if `i < .index`). Otherwise, each skip should be guarded by `≤ₛ` as well
+  succ  p := .store_var "temp" (S_le b a p.symm);; P.if1 ((S_le a b p) * a.ready p.1) (a.succ p.1) ;; P.if1 ("temp" * b.ready p.2) (b.succ p.2)
+  ready p := (S_le a b p) * a.ready p.1 + (S_le b a p.symm) * b.ready p.2
+  index p := .call O.ternary ![S_le a b p, a.index p.1, b.index p.2]
+  valid p := a.valid p.1 + b.valid p.2
+  init    := seqInit a b
 
 instance [Add α] [Guard α] : Add (ι →ₛ α) := ⟨S.add⟩
-example : HAdd (ℕ →ₛ ℕ →ₛ E R) (ℕ →ₛ ℕ →ₛ E R) (ℕ →ₛ ℕ →ₛ E R):= inferInstance
+instance [HAdd α β γ] [Guard α] [Guard β] : HAdd (S ι α) (S ι β) (S ι γ) := ⟨S.add⟩
+instance [HAdd α β γ] : HAdd (ι →ₐ α) (ι →ₐ β) (ι →ₐ γ) where hAdd a b := λ v => a v + b v
