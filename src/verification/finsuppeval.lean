@@ -35,3 +35,13 @@ class MulEval (α : Type*) (ι : out_param Type) (β : out_param Type*) [non_uni
 
 attribute [simp] AddZeroEval.hadd AddZeroEval.hzero
   MulEval.hmul
+
+@[simp] lemma Eval.contract {ι ι' : Type} {α α' : Type*} [add_comm_monoid α'] [Eval α ι' α']
+  (s : StreamExec ι α) :
+  Eval.eval (contract_stream s) () = (Eval.eval s).sum_range :=
+by simp [Eval.eval, contract_stream, StreamExec.bimap_bimap, ← contract_stream_spec_apply]
+
+@[simp] lemma Eval.contract' {ι ι' : Type} {α α' : Type*} [linear_order ι] [add_comm_monoid α'] [Eval α ι' α']
+  (s : SimpleStream ι α) :
+  Eval.eval s.contract () = (Eval.eval s).sum_range :=
+Eval.contract _

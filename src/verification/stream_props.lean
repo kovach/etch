@@ -65,6 +65,9 @@ structure SimpleStream (ι : Type) (α : Type*) [linear_order ι] extends Stream
 instance (ι : Type) (α : Type*) [linear_order ι] : has_coe
   (SimpleStream ι α) (StreamExec ι α) := ⟨SimpleStream.to_StreamExec⟩
 
+def SimpleStream.contract {ι α} [linear_order ι] (s : SimpleStream ι α) :
+  StreamExec unit α := contract_stream (s : StreamExec ι α)
+
 lemma SimpleStream.monotonic (s : SimpleStream ι α) : s.stream.monotonic :=
 s.simple.monotonic
 

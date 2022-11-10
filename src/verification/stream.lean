@@ -177,14 +177,20 @@ by ext; solve_refl
 @[simp] lemma StreamExec.bifunctor_bimap_ready (s : StreamExec ι α) (f : ι → ι') (g : α → β) :
   (s.bimap f g).ready ↔ s.ready := iff.rfl
 
+@[simp] lemma StreamExec.bimap_eval [add_comm_monoid α] (s : StreamExec ι α) (f : ι → ι') :
+  (f <$₁> s).eval = s.eval.map_domain f :=
+by simp [StreamExec.eval]
 
 def contract_stream (s : StreamExec ι α) : StreamExec unit α :=
 (λ _, ()) <$₁> s
 
+@[simp] lemma contract_stream_spec_apply [add_comm_monoid α] (s : StreamExec ι α) :
+  (contract_stream s).eval () = (finsupp.sum_range s.eval) :=
+by simp [finsupp.sum_range, contract_stream]
+
 @[simp] lemma contract_stream_spec [add_comm_monoid α] (s : StreamExec ι α) :
   (contract_stream s).eval = finsupp.single () (finsupp.sum_range s.eval) :=
-by { ext, simp [finsupp.sum_range, contract_stream, StreamExec.eval], }
-
+by { ext, simp, }
 
 def Stream.index' (s : Stream ι α) (x : s.σ) : with_top ι :=
 if h : s.valid x then s.index x h else ⊤ 

@@ -23,11 +23,14 @@ section defs
 variables [has_mul α]
 
 @[simps]
-instance : has_mul (Stream ι α) := ⟨λ a b,
+instance : has_mul (Stream ι α) := ⟨λ (a b : Stream ι α),
 { σ := a.σ × b.σ,
   valid := λ p, a.valid p.1 ∧ b.valid p.2,
   ready := λ p, Stream.mul.ready a b p,
-  next  := λ p hv, if a.to_order p.1 ≤ b.to_order p.2 then (a.next p.1 hv.1, p.2) else (p.1, b.next p.2 hv.2),
+  next  := λ p hv,
+  if a.to_order p.1 ≤ b.to_order p.2 then
+    (a.next p.1 hv.1, p.2)
+  else (p.1, b.next p.2 hv.2),
   index := λ p hv, max (a.index p.1 hv.1) (b.index p.2 hv.2),
   value := λ p hr, a.value p.1 hr.r₁ * b.value p.2 hr.r₂ }⟩
 
