@@ -77,7 +77,7 @@ def P.compile : P → Stmt
 | store_mem v l r => Stmt.store (Expr.index (Expr.var v.toString) [l.compile]) r.compile
 
 def Name := List ℕ
-def Name.toString : Name → String := String.join ∘ List.map (@ToString.toString ℕ _)
+def Name.toString : Name → String := "_".intercalate ∘ List.map (@ToString.toString ℕ _)
 def Name.fresh (n : Name) (new : ℕ) := new :: n
 
 structure S (ι : Type _) (α : Type _) where
