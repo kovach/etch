@@ -192,7 +192,8 @@ int main() {
   sqlite3_open("/home/scott/Dropbox/2022/etch/etch4/data/FPA_FOD_20170508.sqlite", &db);
   if(rc) { fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db)); return(1);
   } else { fprintf(stderr, "Opened database successfully\n"); }
-  sql = "SELECT stat_cause_code, fire_year from fires ORDER BY stat_cause_code, fire_year LIMIT 100";
+  sql = "SELECT stat_cause_code, objectid from fires ORDER BY stat_cause_code, objectid LIMIT 100";
+  //sql = "SELECT stat_cause_code, fire_year from fires ORDER BY stat_cause_code, fire_year LIMIT 100";
   rc = sqlite3_exec(db, sql, gen_callback_fires, (void*)data, &zErrMsg);
 
 

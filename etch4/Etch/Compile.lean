@@ -143,10 +143,11 @@ def taco_ops : List (String × String) :=
 ]
 
 def minyear_ish := ∑ cause, year: (E.toMin <$$> fires) * (E.toMin ∘ E.ofNat <$$> S.attr year)
-def minyear_ish' := ∑ cause, year: (E.toMax <$$> fires)
+def maxyear_ish := ∑ cause, year: (E.toMax <$$> fires) * (E.toMax ∘ E.ofNat <$$> S.attr year)
+def total_year  := ∑ cause, year: fires * (E.ofNat <$$> S.attr year)
 def sql_ops : List (String × String) :=
 [
-  ("count_fires", compile_fun "count_fires" $ [go outVal_max $ minyear_ish'])
+  ("count_fires", compile_fun "count_fires" $ [go outVal_max maxyear_ish])
 ]
 
 def main : IO Unit := do

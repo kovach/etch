@@ -166,7 +166,7 @@ def O.toMax : O R RMax where
   arity := 1
   argTypes := λ | 0 => R
   spec := λ a => RMax.ofR (a 0)
-  opName := "toMin"
+  opName := "toMax"
 
 def O.ternary : O Unit α where
   arity := 3

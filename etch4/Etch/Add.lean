@@ -14,8 +14,8 @@ instance [Tagged α] [OfNat α (nat_lit 0)] : Guard (E α) where
   guard := λ _ b v => .call O.ternary ![b, v, (0 : E α)]
 
 instance : Guard (S ι α) where guard := λ v b s =>
-{s with 
-  init := λ n => (s.init n).map (λ p =>.store_var v b;; p) id
+{s with
+  init := λ n => (s.init n).map (λ p =>.decl v b;; p) id
   valid := λ l => b * s.valid l}
 
 /-- Returns an expression which evaluates to `true` iff `a.index' ≤ b.index'` -/
@@ -37,14 +37,11 @@ def AddTmp.ofName (n : Name) : AddTmp :=
 
 def S.add [HAdd α β γ] [Guard α] [Guard β] (a : S ι α) (b : S ι β) : S ι γ where
   σ := (a.σ × b.σ) × AddTmp
-  value := λ (p, t) => 
+  value := λ (p, t) =>
              (Guard.guard t.cv₁ ((S_le a b p) * a.ready p.1) $ a.value p.1) +
              (Guard.guard t.cv₂ ((S_le b a p.symm) * b.ready p.2) $ b.value p.2)
-  skip  := λ (p, _) i => a.skip p.1 i ;; b.skip p.2 i -- TODO: is skip allowed if `a` is invalid, or do we need to guard
-                                        -- that `a` is valid?
-                                        -- Also, I am assuming you cannot skip backwards (i.e. it becomes a no-op
-                                        -- if `i < .index`). Otherwise, each skip should be guarded by `≤ₛ` as well
-  succ  := λ (p, t)  => .store_var t.csucc (S_le b a p.symm);; P.if1 ((S_le a b p) * a.ready p.1) (a.succ p.1) ;; P.if1 (t.csucc * b.ready p.2) (b.succ p.2)
+  skip  := λ (p, _) i => a.skip p.1 i ;; b.skip p.2 i
+  succ  := λ (p, t)  => .decl t.csucc (S_le b a p.symm);; P.if1 ((S_le a b p) * a.ready p.1) (a.succ p.1) ;; P.if1 (t.csucc * b.ready p.2) (b.succ p.2)
   ready := λ (p, _) => (S_le a b p) * a.ready p.1 + (S_le b a p.symm) * b.ready p.2
   index := λ (p, _) => .call O.ternary ![S_le a b p, a.index p.1, b.index p.2]
   valid := λ (p, _) => a.valid p.1 + b.valid p.2

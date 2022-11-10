@@ -78,9 +78,9 @@ notation:37 a:36 " × " b:36 " ⟶ " c:36  => Str b a c
 notation:37 p:36 " ↠ " c:36  => Str p.2 p.1 c
 set_option quotPrecheck true
 
-instance [Guard α] : Guard (n × ι ⟶ α) where guard b := λ
+instance [Guard α] : Guard (n × ι ⟶ α) where guard n b := λ
 | .str s => .str {s with valid := λ l => b * s.valid l}
-| .fun f => .fun λ x => Guard.guard b $ f x
+| .fun f => .fun λ x => Guard.guard n b $ f x
 
 variable
 {α β γ : Type _}
@@ -182,8 +182,8 @@ notation:35 "∑" i:34 "," j:34 "," k:34 ":" v:34 => SumIndex.sum i.1 (SumIndex.
 
 class ApplyScalarFn (α γ β : Type _) (δ : outParam $ Type _) := (map : (α → β) → γ → δ)
 instance : ApplyScalarFn (E α) (E α) (E β) (E β) := ⟨ (. $ .) ⟩
-instance [ApplyScalarFn α α' β β'] : ApplyScalarFn α (n × ι ⟶ α') β (n × ι ⟶ β') :=
-⟨ λ f x => ApplyScalarFn.map f <$> x ⟩
+instance : ApplyScalarFn (E α) (Contraction α) (E β) (Contraction β) := ⟨ (. $ .) ⟩
+instance [ApplyScalarFn α α' β β'] : ApplyScalarFn α (n × ι ⟶ α') β (n × ι ⟶ β') := ⟨ λ f x => ApplyScalarFn.map f <$> x ⟩
 infixr:10 " <$$> "  => ApplyScalarFn.map
 
 variable (f : E R → E RMin)
