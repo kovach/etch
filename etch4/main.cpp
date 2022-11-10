@@ -31,18 +31,25 @@ void time(double (* f)(), char const* tag, int reps) {
   std::cout << tag << " took: " << std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count() << "ms" << std::endl;
 }
 
-static inline double    num_add(double a, double b) { return a + b; }
+static inline double    num_add(double a, double b) {  return a + b; }
 static inline double    num_mul(double a, double b) { return a * b; }
 static inline double    num_one() { return 1; }
 static inline double    num_zero() { return 0; }
 
-// todo, naming wrong
 static inline double    num_ofBool(bool x) { return x ? 1 : 0; }
+static inline double    num_toMin(double x) { return x; }
+static inline double    num_toMax(double x) { return x; }
+static inline double    nat_toNum(int x) { return x; }
 
 static inline double    min_add(double a, double b) { return a < b ? a : b; }
 static inline double    min_mul(double a, double b) { return a + b; }
 static inline double    min_one() { return 0; }
-static inline double    min_zero() { return -DBL_MAX; }
+static inline double    min_zero() { return DBL_MAX; }
+
+static inline double    max_add(double a, double b) {  return a < b ? b : a; }
+static inline double    max_mul(double a, double b) { return a + b; }
+static inline double    max_one() { return 0; }
+static inline double    max_zero() { return -DBL_MAX; }
 
 static inline int    nat_add(int a, int b) { return a + b; }
 static inline int    nat_mul(int a, int b) { return a * b; }
@@ -117,10 +124,12 @@ static int gen_callback_graph_dsB(void *data, int argc, char **argv, char **azCo
 return 0;
 }
 
-//static int gen_callback_graph2(void *data, int argc, char **argv, char **azColName){
-//#include "gen_query_2.c"
-//return 0;
-//}
+static int gen_callback_fires(void *data, int argc, char **argv, char **azColName){
+  //printf("reading : %d\n", atoi(argv[0]));
+  //printf("reading : %d\n", atoi(argv[1]));
+#include "gen_query_fires.c"
+return 0;
+}
 
 double taco_mul2() {
 #include "taco/sum_mul2.c"
@@ -159,6 +168,7 @@ void done() { }
 
 #include "gen_funs.c"
 
+
 int main() {
   sqlite3* db;
   char* zErrMsg = 0;
@@ -167,11 +177,8 @@ int main() {
 
   rc = sqlite3_open("/home/scott/Dropbox/2022/pldi.db", &db);
 
-  if(rc) {
-     fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
-     return(0);
-  } else {
-     fprintf(stderr, "Opened database successfully\n");
+  if(rc) { fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db)); return(0);
+  } else { fprintf(stderr, "Opened database successfully\n");
   }
 
   char const* sql;
@@ -182,10 +189,17 @@ int main() {
   rc = sqlite3_exec(db, sql, gen_callback_graph_ssB, (void*)data, &zErrMsg);
   rc = sqlite3_exec(db, sql, gen_callback_graph_dsB, (void*)data, &zErrMsg);
 
+  sqlite3_open("/home/scott/Dropbox/2022/etch/etch4/data/FPA_FOD_20170508.sqlite", &db);
+  if(rc) { fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db)); return(1);
+  } else { fprintf(stderr, "Opened database successfully\n"); }
+  sql = "SELECT stat_cause_code, fire_year from fires ORDER BY stat_cause_code, fire_year LIMIT 100";
+  rc = sqlite3_exec(db, sql, gen_callback_fires, (void*)data, &zErrMsg);
+
 
   if( rc != SQLITE_OK ) {
      fprintf(stderr, "SQL error: %s\n", zErrMsg);
      sqlite3_free(zErrMsg);
+     return 1;
   } else {
      fprintf(stdout, "Operation done successfully\n");
   }

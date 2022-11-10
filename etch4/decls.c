@@ -31,6 +31,15 @@ int  ssA1_i = -1;
 int  ssA2_i = -1;
 ind  ss_A = 0;
 
+ind* ssF1_crd = (ind*)calloc(array_size, sizeof(ind));
+ind* ssF1_pos = (ind*)calloc(array_size, sizeof(ind));
+ind* ssF2_crd = (ind*)calloc(array_size, sizeof(ind));
+ind* ssF2_pos = (ind*)calloc(array_size, sizeof(ind));
+num* ssF_vals = (num*)calloc(array_size, sizeof(num));
+int  ssF1_i = -1;
+int  ssF2_i = -1;
+ind  ss_F = 0;
+
 ind* dsA1_crd = (ind*)calloc(array_size, sizeof(ind));
 ind* dsA1_pos = (ind*)calloc(array_size, sizeof(ind));
 ind* dsA2_crd = (ind*)calloc(array_size, sizeof(ind));

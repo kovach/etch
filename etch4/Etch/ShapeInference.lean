@@ -150,9 +150,11 @@ def Stream.of [of_stream α β] : α → β := of_stream.coe
 
 variable
 (A : ℕ →ₛ ℕ →ₛ E R)
+(snd : ℕ →ₛ ℕ →ₛ E ℕ)
 (A' : i ↠ j ↠ E R)
 (B : ℕ →ₛ ℕ →ₛ E R)
 (e : E R)
+(e' : i ↠ j ↠ E ℕ)
 #check a * a
 #check A * B
 #check ((A : i ↠ j ↠ E R) * (B : j ↠ k ↠ E R))
@@ -185,17 +187,12 @@ instance [ApplyScalarFn α α' β β'] : ApplyScalarFn α (n × ι ⟶ α') β (
 infixr:10 " <$$> "  => ApplyScalarFn.map
 
 variable (f : E R → E RMin)
+def E.toMin (e : E R) : E RMin := E.call O.toMin ![e]
+def E.toMax (e : E R) : E RMax := E.call O.toMax ![e]
+def E.ofNat (e : E ℕ) : E R    := E.call O.toNum ![e]
+
+#check E.ofNat <$$> e'
+
 #check f <$$> e
 #check f <$$> A'
-def E.toMin (e : E R) : E RMin := E.call O.toMin ![e]
-#check E.toMin <$$> A'
-
-#exit
-
-def mmul1'  := Σ i $ Σ j $ Σ k $ (A : i →ₛ j →ₛ E) ⋆ (B : j →ₛ k →ₛ E)
-def mmul2'  := Σ i $ Σ j $ Σ k $ (A : i →ₛ k →ₛ E) ⋆ (B : j →ₛ k →ₛ E)
-def ttv'    := Σ i $ Σ j $ Σ k $ (C : i →ₛ j →ₛ k →ₛ R) ⋆ (v : k →ₛ R)
-def ttm'    := Σ i $ Σ j $ Σ k $ Σ l $ (C : i →ₛ j →ₛ l →ₛ R) ⋆ (A : k →ₛ l →ₛ R)
-def mttkrp' := Σ i $ Σ j $ Σ k $ Σ l $ (C : i →ₛ j →ₛ k →ₛ R) ⋆ (A : j →ₛ l →ₛ R) ⋆ (B : k →ₛ l →ₛ R)
-def inner3' := Σ i $ Σ j $ Σ k $ (C : i →ₛ j →ₛ k →ₛ R) ⋆ (D : i →ₛ j →ₛ k →ₛ R)
 
