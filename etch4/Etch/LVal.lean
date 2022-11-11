@@ -3,8 +3,7 @@ import Etch.Stream
 
 variable
 (ι : Type _) [Tagged ι] [DecidableEq ι]
-[LE ι] [DecidableRel (LE.le : ι → ι → _)]
-[LT ι] [DecidableRel (LT.lt : ι → ι → _)]
+[LE ι] [DecidableRel (LE.le : ι → ι → _)] [LT ι] [DecidableRel (LT.lt : ι → ι → _)]
 {α : Type _} [Tagged α] [OfNat α (nat_lit 0)]
 
 abbrev loc := E ℕ
@@ -65,17 +64,30 @@ def cube_lvl (d₁ d₂ d₃ : E ℕ):= 0 &
   (with_values (dense_index d₁ "i1") implicit_vl) ⊚
   (with_values (dense_index d₂ "i2") implicit_vl) ⊚
   (with_values (dense_index d₃ "i3") $ dense_vl "values")
-def sparse_vec : lvl ℕ (MemLoc α) := ⟨("size" : Var ℕ), (0 : E ℕ)⟩ &
-  (with_values (sparse_index ("A1_crd" : Var ℕ)) (dense_vl "A_vals"))
+--def sparse_vec : lvl ℕ (MemLoc α) := ⟨("size" : Var ℕ), (0 : E ℕ)⟩ &
+--  (with_values (sparse_index ("A1_crd" : Var ℕ)) (dense_vl "A_vals"))
 
 def dcsr (l : String) : lvl ℕ (lvl ℕ (MemLoc α)) :=
   (interval_vl $ l ++ "1_pos").value 0 &
   (with_values (sparse_index (l ++ "1_crd" : Var ℕ)) (interval_vl $ l ++ "2_pos")) ⊚
   (with_values (sparse_index (l ++ "2_crd" : Var ℕ)) (dense_vl $ l ++ "_vals"))
 
+def tcsr (l : String) : lvl ℕ (lvl ℕ (lvl ℕ (MemLoc α))) :=
+  (interval_vl $ l ++ "1_pos").value 0 &
+  (with_values (sparse_index (l ++ "1_crd" : Var ℕ)) (interval_vl $ l ++ "2_pos")) ⊚
+  (with_values (sparse_index (l ++ "2_crd" : Var ℕ)) (interval_vl $ l ++ "3_pos")) ⊚
+  (with_values (sparse_index (l ++ "3_crd" : Var ℕ)) (dense_vl $ l ++ "_vals"))
+
 def csr_mat (l dim i : String) : lvl ℕ (lvl ℕ (MemLoc α)) := 0 &
   (with_values (dense_index dim i) (interval_vl $ l ++ "2_pos")) ⊚
   (with_values (sparse_index $ l ++ "2_crd") (dense_vl $ l ++ "_vals"))
+
+def dense_vec (l : String) (d₁ : E ℕ) (i : String) : lvl ℕ (MemLoc α) := (0 : E ℕ) &
+  (with_values (dense_index d₁ i) $ dense_vl $ l ++ "_vals")
+
+def sparse_vec (l : String) : lvl ℕ (MemLoc α) :=
+  (interval_vl $ l ++ "1_pos").value 0 &
+  (with_values (sparse_index $ l ++ "1_crd") $ dense_vl $ l ++ "_vals")
 
 --todo
 def trieType : ℕ → Type _

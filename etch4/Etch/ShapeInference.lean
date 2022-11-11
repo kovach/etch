@@ -90,6 +90,7 @@ variable
 abbrev i := (0, ℕ)
 abbrev j := (1, ℕ)
 abbrev k := (2, ℕ)
+abbrev l := (3, ℕ)
 
 --example : Merge (Str ℕ 0 (E R)) (Str ℕ 0 (E R)) (Str ℕ 0 $ E R)   := inferInstance
 --example : Merge (0×ι ⟶ E R) (1×ℕ ⟶ E R) (Str ι 0 (Str ℕ 1 $ E R)) := inferInstance
@@ -124,41 +125,29 @@ variable
 [Tagged j.2] [DecidableEq j.2] [LT j.2] [DecidableRel (LT.lt : j.2 → j.2 → _)]
 [Tagged ν] [DecidableEq ν] [LT ν] [DecidableRel (LT.lt : ν → ν → _)]
 
-#check f * f
-#check a * b
---example [HMul α α α] : Mul α := inferInstance
-example : Mul (i ↠ j ↠ E R) := inferInstance
+--#check f * f #check a * b example [HMul α α α] : Mul α := inferInstance example : Mul (i ↠ j ↠ E R) := inferInstance
 
-instance : Coe (ι →ₛ E R) (n × ι ⟶ E R) := ⟨.str⟩
-instance : Coe (ι →ₐ E R) (n × ι ⟶ E R) := ⟨.fun⟩
+instance : Coe (ι →ₛ E α) (n × ι ⟶ E α) := ⟨.str⟩
+instance : Coe (ι →ₐ E α) (n × ι ⟶ E α) := ⟨.fun⟩
 instance [Coe α β] : Coe (ι →ₛ α) (n × ι ⟶ β) := ⟨.str ∘ Functor.map Coe.coe⟩
 instance [Coe α β] : Coe (ι →ₐ α) (n × ι ⟶ β) := ⟨.fun ∘ Functor.map Coe.coe⟩
 
 class of_stream (α β : Type _) := (coe : α → β)
 instance base.of_stream : of_stream α α := ⟨id⟩
 
+-- TODO!
+variable
+[Add ι] [OfNat ι 1]
 def Str.to_g {n} : (n × ι ⟶ α) → (ι →ₛ α) := λ s => match s with
-| .fun f => f <$> S.univ "no" -- ??
+| .fun f => f <$> S.univ "dim" "u_" -- ??
 | .str a => a
 
 instance [of_stream α β] : of_stream (n × ι ⟶ α) (ι →ₛ β) := ⟨
-λ | .fun f => (of_stream.coe ∘ f) <$> S.univ "no"
+λ | .fun f => (of_stream.coe ∘ f) <$> S.univ dim "no"
   | .str a => of_stream.coe <$> a
 ⟩
 
 def Stream.of [of_stream α β] : α → β := of_stream.coe
-
-variable
-(A : ℕ →ₛ ℕ →ₛ E R)
-(snd : ℕ →ₛ ℕ →ₛ E ℕ)
-(A' : i ↠ j ↠ E R)
-(B : ℕ →ₛ ℕ →ₛ E R)
-(e : E R)
-(e' : i ↠ j ↠ E ℕ)
-#check a * a
-#check A * B
-#check ((A : i ↠ j ↠ E R) * (B : j ↠ k ↠ E R))
-def A'' : i ↠ j ↠ E R := A
 
 class SumIndex (n : ℕ) (α : Type _) (β : outParam $ Type _) := (sum : α → β)
 instance sum_eq (n : ℕ) : SumIndex n (n × ι ⟶ α) (Contraction α) := ⟨S.contract ∘ Str.to_g⟩
@@ -168,31 +157,24 @@ instance sum_lt (m n : ℕ) [NatLt n m] [SumIndex m α β] : SumIndex m (n × ι
 notation:35 "∑" i:34 ":" v:34 => SumIndex.sum i.1 v
 notation:35 "∑" i:34 "," j:34 ":" v:34 => SumIndex.sum i.1 (SumIndex.sum j.1 v)
 notation:35 "∑" i:34 "," j:34 "," k:34 ":" v:34 => SumIndex.sum i.1 (SumIndex.sum j.1 (SumIndex.sum k.1 v))
+notation:35 "∑" i:34 "," j:34 "," k:34 "," l:34 ":" v:34 => SumIndex.sum i.1 (SumIndex.sum j.1 (SumIndex.sum k.1 (SumIndex.sum l.1 v)))
 --macro "∑" i:term ws j:term "," v:term : term => `(SumIndex.sum $i.1 (SumIndex.sum $j.1 $v))
 --macro "∑" i:term "," v:term : term => `(SumIndex.sum $i.1 $v)
 --macro "∑" i:term+ "," v:term : term => `(SumIndex.sum $(i[0]!).1 $v)
 
-
+variable (A : ℕ →ₛ ℕ →ₛ E R)
 #check SumIndex.sum 0 (a : 0 × ℕ ⟶ E R)
-#check ∑ i: (a : i ↠ E R)
 #check ∑ i: (A : i ↠ j ↠ E R)
 #check ∑ i, j: (A : i ↠ j ↠ E R)
 #check ∑ i, j: (A : i ↠ j ↠ E R)
-#check ∑ j, k: (A : i ↠ j ↠ E R) * (B : j ↠ k ↠ E R)
+--#check ∑ j, k: (A : i ↠ j ↠ E R) * (B : j ↠ k ↠ E R)
 
-class ApplyScalarFn (α γ β : Type _) (δ : outParam $ Type _) := (map : (α → β) → γ → δ)
-instance : ApplyScalarFn (E α) (E α) (E β) (E β) := ⟨ (. $ .) ⟩
-instance : ApplyScalarFn (E α) (Contraction α) (E β) (Contraction β) := ⟨ (. $ .) ⟩
-instance [ApplyScalarFn α α' β β'] : ApplyScalarFn α (n × ι ⟶ α') β (n × ι ⟶ β') := ⟨ λ f x => ApplyScalarFn.map f <$> x ⟩
+class ApplyScalarFn (α β γ : Type _) (δ : outParam $ Type _) := (map : (E α → E β) → γ → δ)
+instance : ApplyScalarFn α β (E α) (E β) := ⟨ (. $ .) ⟩
+instance [ApplyScalarFn α β α' β'] : ApplyScalarFn α β (n × ι ⟶ α') (n × ι ⟶ β') := ⟨ λ f x => ApplyScalarFn.map f <$> x ⟩
 infixr:10 " <$$> "  => ApplyScalarFn.map
 
 variable (f : E R → E RMin)
 def E.toMin (e : E R) : E RMin := E.call O.toMin ![e]
 def E.toMax (e : E R) : E RMax := E.call O.toMax ![e]
 def E.ofNat (e : E ℕ) : E R    := E.call O.toNum ![e]
-
-#check E.ofNat <$$> e'
-
-#check f <$$> e
-#check f <$$> A'
-

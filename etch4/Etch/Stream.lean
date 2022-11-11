@@ -41,7 +41,7 @@ instance : Inhabited (E R) := ⟨ 0 ⟩
 --def E.ext (f : String) : E Unit := E.call (O.voidCall f) ![]
 
 def E.compile : E α → Expr
-| @call _ _ op args => Expr.call op.name $ List.ofFin λ i => E.compile (args i)
+| @call _ _ op args => Expr.call op.name $ List.ofFn λ i => E.compile (args i)
 | access base i => Expr.index (Expr.var base.toString) [i.compile]
 | var v => Expr.var v.toString
 | intLit x => Expr.lit x
@@ -128,6 +128,19 @@ tgt.store_var i;; .store_var lo pos;; .store_var hi max_pos;; .store_var not_don
 
 inductive IterMethod | step | search
 
+section Range
+variable [LE ι] [DecidableRel (LE.le : ι → ι → _)]
+def S.predRange [One α] (lower upper : E ι) : S ι α where
+  σ := Var ι
+  value   _ := 1
+  succ    _ := .skip
+  ready   _ := 1
+  skip  pos := λ i => pos.store_var i
+  index pos := pos
+  valid pos := pos.expr << upper
+  init  n   := let p := .fresh "pos" n; (p.decl lower, p)
+end Range
+
 def S.interval (h : IterMethod) (is : Var ι) (pos : Var ℕ) (lower upper : E ℕ) : S ι (E ℕ) where
   σ := Var ℕ
   value pos := pos.expr
@@ -141,19 +154,30 @@ def S.interval (h : IterMethod) (is : Var ι) (pos : Var ℕ) (lower upper : E �
 -- todo: use instead of zero
 --class Bot (α : Type _) := (bot : α)
 --notation "⊥"  => Bot.bot
-def S.univ [Zero ι] (last : Var ι) : S ι (E ι) where
+def S.univ [Zero ι] [Add ι] [OfNat ι 1] (max l : Var ι) : S ι (E ι) where
   value last := last.expr
-  succ  last := .skip -- imprecise but ok
+  succ  last := last.incr  -- imprecise but ok
   ready last := 1
   skip  last := λ i => .store_var last i
   index last := last.expr
-  valid last := 1
-  init  n    := let v := last.fresh n; (v.decl 0, v)
+  valid last := last.expr << max.expr
+  init  n    := let v := l.fresh n; (v.decl 0, v)
+
+def S.valFilter (f : α → E Bool) (s : ι →ₛ α) : ι →ₛ α :=
+{ s with ready := λ p => s.ready p * f (s.value p),
+         skip := λ p i =>
+           .branch (s.ready p)
+             (.branch (f (s.value p))
+               (s.skip p i)
+               (s.succ p;; s.skip p i))
+             (s.skip p i) }
+
+def dim : Var ι := "dim"
 
 -- using fmap introduces a universe constraint between α and Type 1 (coming from E ι). this is probably ok anyway
 --def S.repl' {α : Type 1} [Zero ι] (last : Var ι) (v : α) : S ι α := (Function.const _ v) <$> (S.univ last)
-def S.repl [Zero ι] (last : Var ι) (v : α) : S ι α := {S.univ last with value := λ _ => v}
-def S.function [Zero ι] (last : Var ι) (f : E ι → α) : S ι α := f <$> S.univ last
+--def S.repl [Zero ι] (last : Var ι) (v : α) : S ι α := {S.univ last with value := λ _ => v}
+def S.function [Zero ι] [Add ι] [OfNat ι 1] (last : Var ι) (f : E ι → α) : S ι α := f <$> S.univ dim last
 
 structure csr (ι α : Type _) := (i : Var ι) (v : Var α) (var : Var ℕ)
 
@@ -181,4 +205,6 @@ instance : Functor (Fun ι) where map := λ f v => f ∘ v
 def range : ℕ →ₐ E ℕ := id
 
 def seqInit (a : S ι α) (b : S ι β) (n : Name) :=
-let (ai, as) := a.init (n.fresh 0); let (bi, bs) := b.init (n.fresh 1); (ai ;; bi, (as, bs))
+let (ai, as) := a.init (n.fresh 0);
+let (bi, bs) := b.init (n.fresh 1);
+(ai ;; bi, (as, bs))
