@@ -11,7 +11,7 @@ abbrev Fin.mk2 {γ : Fin 2 → Type _} (a : γ 0) (b : γ 1) : (i : Fin 2) → (
 abbrev Fin.mk3 {γ : Fin 3 → Type _} (a : γ 0) (b : γ 1) (c : γ 2) : (i : Fin 3) → (γ i) | 0 => a | 1 => b | 2 => c
 
 set_option quotPrecheck false
-notation "![]" => (λ i => nomatch i : Fin 0 → _)
+notation "![]" => (λ i => nomatch i : (_ : Fin 0) → _)
 set_option quotPrecheck true
 notation "![" a "]" => Fin.mk1 a
 notation "![" a "," b "]" => Fin.mk2 a b
