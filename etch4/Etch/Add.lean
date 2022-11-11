@@ -4,9 +4,9 @@ variable {ι : Type} {α : Type _} [Tagged ι] [DecidableEq ι]
   [LT ι] [LE ι] [DecidableRel (LT.lt : ι → ι → Prop)]
   [DecidableRel (LE.le : ι → ι → _)]
 
-/-- `guard v b s` returns a stream which returns `0` (empty stream) if `b` is false
-  and acts identically to `s` if `b` is true. `v` is supposed to be a variable that `guard`
-  can use for storage. -/
+-- `guard v b s` returns a stream which returns `0` (empty stream) if `b` is false
+--  and acts identically to `s` if `b` is true. `v` is supposed to be a variable that `guard`
+--  can use for storage.
 class Guard (α : Type _) where
   guard : Var Bool → E Bool → α → α
 
@@ -18,7 +18,7 @@ instance : Guard (S ι α) where guard := λ v b s =>
   init := λ n => (s.init n).map (λ p =>.decl v b;; p) id
   valid := λ l => b * s.valid l}
 
-/-- Returns an expression which evaluates to `true` iff `a.index' ≤ b.index'` -/
+-- Returns an expression which evaluates to `true` iff `a.index' ≤ b.index'`
 def S_le (a : S ι α) (b : S ι β) (l : a.σ × b.σ) : E Bool :=
   (.call O.neg ![b.valid l.2]) + (a.valid l.1 * (a.index l.1 <= b.index l.2))
 
@@ -26,7 +26,7 @@ infixr:40 "≤ₛ" => S_le
 
 def Prod.symm (f : α × β) := (f.2, f.1)
 
-/-- Local temporary variables for `add` -/
+-- Local temporary variables for `add`
 structure AddTmp where
 (csucc : Var Bool)
 (cv₁ : Var Bool)

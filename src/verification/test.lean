@@ -11,9 +11,16 @@ open Eval (eval)
 
 local notation ` ∑ᵢ ` s := s.contract
 
-example (a b c d : ι₁ ↠ ι₂ ↠ R)  : 
-  eval (a * b + c + d) =
-  (eval a) * (eval b) + (eval c) + (eval d) :=
+local notation a ` && ` b := a + b
+
+-- 
+noncomputable instance SimpleStream.AddZeroEval_weird :
+  AddZeroEval (ι₁ ↠ ι₂ ↠ ι₃ ↠ R) ι₁ (ι₂ →₀ ι₃ →₀ R) :=
+  SimpleStream.AddZeroEval
+
+example (a b c d : ι₁ ↠ ι₂ ↠ ι₃ ↠ R)  : 
+  eval (a * (b + c) * d) =
+  (eval a) * ((eval b) + (eval c)) * (eval d) :=
 by simp
 
 example [semiring R] (a b c : SimpleStream ι₁ (SimpleStream ι₂ R)) :
