@@ -128,18 +128,15 @@ begin
   ext i,
   cases i with i i_prop,
   cases r with r r_prop, change r < n at h,
-  rw [finsupp.coe_add, pi.add_apply],
-  simp [replicate_aux, finsupp.single],
+  simp [replicate_aux, finsupp.single], -- TODO: don't simp mid-proof
   split_ifs,
-  { exfalso,
-    rw h_2 at h_1, change i + 1 ≤ i at h_1,
-    exact nat.le_lt_antisymm h_1 (nat.lt_succ_self i), },
-  { have : r ≤ i := nat.le_of_eq h_2,            contradiction },
+  { exfalso, revert h_1, simp [h_2] },
+  { have : r ≤ i := le_of_eq h_2,           contradiction },
   { exact add_zero _ },
-  { have : r ≤ i := nat.le_of_succ_le h_1,       contradiction },
+  { have : r ≤ i := nat.le_of_succ_le h_1,  contradiction },
   { exact zero_add _ },
-  { have : r ≤ i := nat.le_of_eq h_2,            contradiction },
-  { have : r < i := nat.lt_of_le_and_ne h_3 h_2, contradiction },
+  { have : r ≤ i := le_of_eq h_2,           contradiction },
+  { have : r < i := lt_of_le_of_ne h_3 h_2, contradiction },
   { exact add_zero _ }
 end
 
@@ -179,7 +176,7 @@ theorem Stream.replicate.spec : (Stream.replicate n v).eval_steps n.succ 0 = fin
 begin
   rw ← replicate_aux.const,
   apply Stream.replicate.spec',
-  simp [le_of_lt (nat.lt_succ_self n)]
+  simpa using le_of_lt (nat.lt_succ_self n)
 end
 
 theorem StreamExec.replicate.spec : (StreamExec.replicate n v).eval = finsupp.const v :=
