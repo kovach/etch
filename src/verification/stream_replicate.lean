@@ -1,7 +1,6 @@
 import data.finsupp.basic
 import data.fintype.basic
 import logic.function.iterate
-import tactic.abel
 import tactic.basic
 import verification.stream_props
 
