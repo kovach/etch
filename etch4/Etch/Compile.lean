@@ -10,10 +10,9 @@ class Compile (α β : Type _) where compile : α → β → P
 section Compile
 open Compile
 
-instance Comp.base_mem [Tagged α] [Add α] : Compile (MemLoc α) (E α) := ⟨λ l v => .store_mem l.arr l.ind (l.access + v) ⟩
+instance base_mem [Tagged α] [Add α] : Compile (MemLoc α) (E α) := ⟨λ l v => .store_mem l.arr l.ind (l.access + v) ⟩
 
-instance base_var [Tagged α] [Add α] :
-  Compile (Var α) (E α) where
+instance base_var [Tagged α] [Add α] : Compile (Var α) (E α) where
   compile l v := .store_var l (E.var l + v)
 
 instance step [Compile α β] : Compile (lvl ι α) (S ι β) where
@@ -26,7 +25,7 @@ instance step [Compile α β] : Compile (lvl ι α) (S ι β) where
         (push;; compile position (v.value s);; (v.succ s))
         (v.skip s (v.index s)))
 
-instance Comp.contract [Compile α β] : Compile α (Contraction β) where
+instance contract [Compile α β] : Compile α (Contraction β) where
   compile := λ storage ⟨_, v⟩ =>
     let (init, s) := v.init [];
     init ;; P.while (v.valid s)
@@ -41,4 +40,5 @@ instance [Compile α β] : Compile (lvl ι α) (E ι × β) :=
     push;; Compile.compile position v.2 }
 
 end Compile
+
 def go [Compile α β] (l : α) (r : β) : String := (Compile.compile l r).compile.emit.run

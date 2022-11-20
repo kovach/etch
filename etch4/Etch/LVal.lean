@@ -20,35 +20,35 @@ variable {ι}
 
 infixl:20 "||" => Add.add
 
-structure MemLoc (α : Type) where (arr : Var α) (ind : E ℕ)
+structure MemLoc (α : Type) := (arr : Var α) (ind : E ℕ)
 
 def MemLoc.access (m : MemLoc α) : E α := m.arr.access m.ind
 
 def sparse_index (indices : Var ι) (bounds : MemLoc ℕ) : il ι :=
-let array := bounds.arr
-let ind   := bounds.ind
-let lower := array.access bounds.2
-let upper := array.access $ bounds.2 + 1
-let loc := upper-1
-let current := indices.access loc
-{ push' := λ init i =>
-    let prog := P.if1 (lower == upper || i != current)
-                      (array.incr_array (ind+1);; init loc);;
-                P.store_mem indices loc i
-    (prog, loc) }
+  let array := bounds.arr
+  let ind   := bounds.ind
+  let lower := array.access bounds.2
+  let upper := array.access $ bounds.2 + 1
+  let loc := upper-1
+  let current := indices.access loc
+  { push' := λ init i =>
+      let prog := P.if1 (lower == upper || i != current)
+                        (array.incr_array (ind+1);; init loc);;
+                  P.store_mem indices loc i
+      (prog, loc) }
 
 def dense_index (dim : E ℕ) (counter : Var ℕ) (base : E ℕ) : il ℕ :=
-{ push' := λ init i =>
-    let l i  : loc := base * dim + i
-    let prog : P := P.while (counter.expr <= i) (init (l counter);; counter.incr)
-    (prog, l i) }
+  { push' := λ init i =>
+      let l (i : E ℕ)  : loc := base * dim + i
+      let prog : P := P.while (counter.expr <= i) (init (l counter);; counter.incr)
+      (prog, l i) }
 
 def interval_vl (array : Var ℕ) : vl (MemLoc ℕ) :=
-{ value  := λ loc =>  ⟨array, loc⟩,
-  init := λ loc =>  .store_mem array (loc + 1) (.access array loc) }
+  { value := λ loc =>  ⟨array, loc⟩,
+    init  := λ loc =>  .store_mem array (loc + 1) (.access array loc) }
 def dense_vl  (array : Var α) : vl (MemLoc α) :=
-{ value := λ loc => ⟨array, loc⟩,
-  init := λ loc => .store_mem array loc 0 }
+  { value := λ loc => ⟨array, loc⟩,
+    init  := λ loc => .store_mem array loc 0 }
 def implicit_vl : vl (E ℕ) := { value := id, init := λ _ => P.skip }
 
 -- this combinator combines an il with a vl to form a lvl.
