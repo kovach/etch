@@ -74,7 +74,7 @@ def neg : E → E
 
 infixr ` <;> `:1 := Prog.seq
 infixr ` ;; `:1 := Prog.seq
-infixr ` ; `:1 := Prog.seq
+infixr (name := seq) ` ; `:1 := Prog.seq
 --instance : has_andthen Prog Prog Prog := ⟨Prog.seq⟩
 
 instance : has_zero E := ⟨E.lit 0⟩
@@ -286,14 +286,14 @@ section G
 
 variables {α ι γ β : Type}
 
-local infixl ` && `:70 := BinOp.and
-local infixl ` || `:65 := BinOp.or
-local infix  ` < `:71  := BinOp.lt
-infix  ` == `:71 := BinOp.eq
-infix  ` === `:71 := BinOp.lit_eq
-infix  ` != `:71 := λ a b, (BinOp.eq a b).neg
+local infixl (name := and) ` && `:70 := BinOp.and
+local infixl (name := or)  ` || `:65 := BinOp.or
+local infix  (name := lt)  ` < `:71  := BinOp.lt
+infix  (name := eq)  ` == `:71 := BinOp.eq
+infix  (name := teq) ` === `:71 := BinOp.lit_eq
+infix  (name := ne)  ` != `:71 := λ a b, (BinOp.eq a b).neg
 @[pattern] def E.le : E → E → E := λ a b, BinOp.or (a < b) (a == b)
-local infix  ` ≤ `:71  := E.le
+local infix  (name := le) ` ≤ `:71  := E.le
 
 --notation e `⟦` k `⟧` := e.access k
 
@@ -308,7 +308,7 @@ def G.empty [inhabited ι] [inhabited α] : G ι α :=
 structure View (ι α : Type) := (value : ι → α)
 
 def constView (ι : Type) (v : α) : View ι α := ⟨λ _, v⟩
-prefix ` ⇑ ` := constView
+prefix (name := const) ` ⇑ ` := constView
 -- instance : has_coe (α → β) (View α β) := ⟨View.mk⟩
 
 instance {ι : Type*} : functor (G ι) :=
@@ -333,19 +333,19 @@ def mul [has_hmul α β γ] (a : G E α) (b : G E β) : G E γ :=
                         a.next
                         b.next,
   valid := a.valid && b.valid,
-  init  := a.init; b.init,
+  init  := a.init;; b.init,
 }
 instance [has_hmul α β γ] : has_hmul (G E α) (G E β) (G E γ) := ⟨mul⟩
 
-instance scalar_G [has_scalar E α] : has_scalar E (G E α) :=
+instance smul_G [has_smul E α] : has_smul E (G E α) :=
 ⟨λ s v, { v with value := s • v.value } ⟩
-instance scalar_unit [has_scalar E α] : has_scalar E (G unit α) :=
+instance smul_unit [has_smul E α] : has_smul E (G unit α) :=
 ⟨λ s v, { v with value := s • v.value } ⟩
-instance scalar_base [has_hmul E α α] : has_scalar E α := ⟨(⋆)⟩
+instance smul_base [has_hmul E α α] : has_smul E α := ⟨(⋆)⟩
 
-example : has_scalar E E := infer_instance
+example : has_smul E E := infer_instance
 
-def add [has_scalar E α] [has_mul α] [has_add α] (a b : G E α) : G E α :=
+def add [has_smul E α] [has_mul α] [has_add α] (a b : G E α) : G E α :=
 let current := BinOp.min a.index b.index in
 { index := current,
   value := (a.index == current) • a.value + (b.index == current) • b.value,
@@ -361,7 +361,7 @@ let current := BinOp.min a.index b.index in
   init  := a.init; b.init,
 }
 
-instance [has_mul α] [has_scalar E α] [has_add α] : has_add (G E α) := ⟨add⟩
+instance [has_mul α] [has_smul E α] [has_add α] : has_add (G E α) := ⟨add⟩
 
 def mul_unit_const_r [has_hmul α β γ] (a : G unit α) (b : β) : G unit γ := (⋆ b) <$> a
 def mul_unit_const_l [has_hmul α β γ] (a : α) (b : G unit β) : G unit γ := (λ v, a ⋆ v) <$> b

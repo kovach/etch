@@ -1,10 +1,11 @@
-import data.option.basic
 import data.fin.tuple.basic
-import data.pfun
-import data.list.basic
 import data.finsupp.basic
-import data.list.range
 import data.finsupp.pointwise
+import data.list.basic
+import data.list.range
+import data.option.basic
+import data.pfun
+import data.prod.lex
 
 lemma bool.coe_iff_eq_tt (b : bool) : b ↔ b = tt := iff.rfl
 @[simp] lemma option.bind_const_none {α β} (x : option α) :
@@ -72,10 +73,6 @@ by { rw ← not_iff_not, simp [option.is_none_iff_eq_none], }
 @[simp] lemma option.map_is_some' {α β} (x : option α) (f : α → β) :
   (x.map f).is_some = x.is_some := by cases x; simp
 
-/-- This lemma is in updated version of mathlib -/
-lemma list.some_nth_le_eq {α} {l : list α} {n : ℕ} {h} : some (l.nth_le n h) = l.nth n :=
-by { symmetry, rw list.nth_eq_some, exact ⟨_, rfl⟩, }
-
 lemma list.zip_with_fst {α β} {l₁ : list α} {l₂ : list β} (hl : l₁.length ≤ l₂.length) :
   list.zip_with (λ a b, a) l₁ l₂ = l₁ :=
 by { erw [← list.map_uncurry_zip_eq_zip_with, list.map_fst_zip], exact hl, }
@@ -84,15 +81,9 @@ lemma list.zip_with_snd {α β} {l₁ : list α} {l₂ : list β} (hl : l₂.len
   list.zip_with (λ a b, b) l₁ l₂ = l₂ :=
 by { erw [← list.map_uncurry_zip_eq_zip_with, list.map_snd_zip], exact hl, }
 
-/-- This lemma is in the most updated version of mathlib -/
-@[simp] lemma list.map_nth_le {α} (l : list α) :
-  (list.fin_range l.length).map (λ n, l.nth_le n n.2) = l :=
-list.ext_le (by rw [list.length_map, list.length_fin_range]) $ λ n _ h,
-by { rw ← list.nth_le_map_rev, congr, { rw list.nth_le_fin_range, refl }, { rw list.length_fin_range, exact h } }
-
 @[simp] lemma multiset.map_nth_le {α} {n : ℕ} {l : list α} (hn : l.length = n) :
     (finset.univ.val : multiset (fin n)).map (λ i, l.nth_le i (by rw hn; exact i.prop)) = l :=
-by { subst hn, simp [finset.univ, fintype.elems, finset.fin_range], erw list.map_nth_le, }
+by { subst hn, simp [finset.univ, fintype.elems], erw list.map_nth_le, }
 
 @[simp] lemma le_ff_iff {b : bool} : b ≤ ff ↔ b = ff :=
 by cases b; simp
@@ -102,7 +93,7 @@ lemma ne_min_of_ne_and_ne {ι : Type*} [linear_order ι] {a x y : ι} (hx : a �
 
 @[simp] lemma max_ne_self_iff {ι : Type*} [linear_order ι] (a b : ι) :
   ¬(a = max a b) ↔ a < b :=
-by { simp [max_def, ← not_lt], split_ifs; simp [h], exact h.ne, }
+by { simp [max_def, ← not_lt], split_ifs, { simp [h, le_of_lt h] }, { simp [h, le_of_not_lt h] } }
 
 @[simp] lemma max_ne_self_iff' {ι : Type*} [linear_order ι] (a b : ι) :
   ¬(b = max a b) ↔ b < a :=

@@ -11,7 +11,7 @@ open Eval (eval)
 
 local notation ` ∑ᵢ ` s := s.contract
 
-local notation a ` && ` b := a + b
+local notation (name := bool_add) a ` && ` b := a + b
 
 -- 
 noncomputable instance SimpleStream.AddZeroEval_weird :

@@ -74,7 +74,7 @@ begin
   intros r hv hr,
   rw [Stream.index'_val hv, Stream.index'],
   split_ifs,
-  { simp [fin.ext_iff] },
+  { dunfold Stream.replicate, simp },
   { simp }
 end
 
@@ -102,12 +102,12 @@ def SimpleStream.replicate (n : ℕ) (v : α) : SimpleStream (fin n) α :=
 namespace finsupp
 
 noncomputable def const {ι : Type} [fintype ι] (v : α) : ι →₀ α :=
-equiv_fun_on_fintype.inv_fun $ λ _, v
+equiv_fun_on_finite.inv_fun $ λ _, v
 
 end finsupp
 
 noncomputable def replicate_aux (n : ℕ) (v : α) (r : fin n.succ) : fin n →₀ α :=
-finsupp.equiv_fun_on_fintype.inv_fun $ λ i, if i.val ≥ r.val then v else 0
+finsupp.equiv_fun_on_finite.inv_fun $ λ i, if i.val ≥ r.val then v else 0
 
 lemma replicate_aux.const : replicate_aux n v 0 = finsupp.const v :=
 begin
@@ -128,15 +128,15 @@ begin
   ext i,
   cases i with i i_prop,
   cases r with r r_prop, change r < n at h,
-  simp [replicate_aux, finsupp.single], -- TODO: don't simp mid-proof
+  simp [replicate_aux, finsupp.single, pi.single_apply], -- TODO: don't simp mid-proof
   split_ifs,
   { exfalso, revert h_1, simp [h_2] },
-  { have : r ≤ i := le_of_eq h_2,           contradiction },
+  { have : r ≤ i := le_of_eq (eq.symm h_2), contradiction },
   { exact add_zero _ },
   { have : r ≤ i := nat.le_of_succ_le h_1,  contradiction },
   { exact zero_add _ },
-  { have : r ≤ i := le_of_eq h_2,           contradiction },
-  { have : r < i := lt_of_le_of_ne h_3 h_2, contradiction },
+  { have : r ≤ i := le_of_eq (eq.symm h_2), contradiction },
+  { have : r < i := lt_of_le_of_ne h_3 (ne.symm h_2), contradiction },
   { exact add_zero _ }
 end
 

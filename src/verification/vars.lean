@@ -2,6 +2,7 @@ import tactic.derive_fintype
 import logic.function.basic
 import data.set.function
 import data.fin.tuple
+import data.finset.lattice
 
 section vars
 @[derive decidable_eq, derive fintype, derive inhabited]
@@ -29,8 +30,8 @@ theorem not_fresh_mem (S : finset NameSpace) : fresh S ∉ S :=
 begin
   simp only [fresh],
   cases hn : S.max,
-  { rw [finset.max_eq_none] at hn, subst hn, exact finset.not_mem_empty _, },
-  intro h, simpa using finset.le_max_of_mem h hn,
+  { rw finset.max_eq_bot.1 hn, exact finset.not_mem_empty _, },
+  { refine finset.not_mem_of_max_lt _ hn, simp },
 end
 
 theorem not_fresh_reserved (S : finset NameSpace) : fresh S ≠ NameSpace.reserved :=
