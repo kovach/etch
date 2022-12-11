@@ -5,7 +5,12 @@ import verification.stream
 open_locale classical
 noncomputable theory
 
-variables {ι : Type} {α β : Type*} [linear_order ι]
+variables {ι ι' ι'' : Type} {α β γ : Type*}
+
+def Stream.reduced (q : Stream ι α) : Prop :=
+∀ ⦃r⦄ (h : q.valid r) (h' : q.ready r), q.index' r ≠ q.index' (q.next r h)
+
+variables [linear_order ι] [linear_order ι'] [linear_order ι'']
 
 -- index ready
 @[reducible]
@@ -28,9 +33,6 @@ lemma valid_of_le_or {a : Stream ι α} {b : Stream ι α} {x : a.σ} {y : b.σ}
 
 def Stream.monotonic (q : Stream ι α) : Prop :=
 ∀ ⦃r⦄ (h : q.valid r), q.index' r ≤ q.index' (q.next r h)
-
-def Stream.reduced (q : Stream ι α) : Prop :=
-∀ ⦃r⦄ (h : q.valid r) (h' : q.ready r), q.index' r ≠ q.index' (q.next r h)
 
 structure Stream.simple (q : Stream ι α) : Prop :=
 (monotonic : q.monotonic)
@@ -59,10 +61,11 @@ lemma Stream.simple.index_lt_support [add_zero_class α] {q : Stream ι α} (hq 
   ∀ i ∈ (q.eval_steps n (q.next x hv)).support, q.index' x < ↑i :=
 λ i H, lt_of_lt_of_le (hq.index_lt_next hv hr) (hq.monotonic.index_le_support i H)
 
-structure SimpleStream (ι : Type) (α : Type*) [linear_order ι] extends StreamExec ι α :=
+@[ext]
+structure SimpleStream (ι : Type) [linear_order ι] (α : Type*) extends StreamExec ι α :=
 (simple : stream.simple)
 
-instance (ι : Type) (α : Type*) [linear_order ι] : has_coe
+instance (ι : Type) [linear_order ι] (α : Type*) : has_coe
   (SimpleStream ι α) (StreamExec ι α) := ⟨SimpleStream.to_StreamExec⟩
 
 def SimpleStream.contract {ι α} [linear_order ι] (s : SimpleStream ι α) :
@@ -73,3 +76,50 @@ s.simple.monotonic
 
 lemma SimpleStream.reduced (s : SimpleStream ι α) : s.stream.reduced :=
 s.simple.reduced
+
+@[simps]
+def SimpleStream.bimap (s : SimpleStream ι α) (f : ι ↪o ι') (g : α → β) : SimpleStream ι' β :=
+{ s.to_StreamExec.bimap f g with
+  simple := {
+    reduced := begin
+      simp only [StreamExec.bimap],
+      intros r hv hr,
+      simp_rw Stream.bimap_index'_eq_apply,
+      by_contra h,
+      exact absurd (option.map_injective f.injective h) (s.reduced hv hr),
+    end,
+    monotonic := begin
+      simp only [StreamExec.bimap],
+      intros r hv,
+      simp_rw Stream.bimap_index'_eq_apply,
+      exact with_top.monotone_map_iff.2 f.monotone (s.monotonic hv)
+    end,
+  }}
+
+abbreviation irefl {α : Type*} [has_le α] : α ↪o α := rel_embedding.refl _
+
+notation f ` <§₁> `:1 s := s.bimap f id
+notation g ` <§₂> `:1 s := s.bimap irefl g
+
+@[simp] lemma SimpleStream.id_bimap (s : SimpleStream ι α) : s.bimap irefl id = s :=
+by ext; solve_refl
+
+@[simp] lemma SimpleStream.bimap_bimap (s : SimpleStream ι α)
+  (f : ι ↪o ι') (f' : ι' ↪o ι'') (g : α → β) (h : β → γ) :
+  (s.bimap f g).bimap f' h = s.bimap (f.trans f') (h ∘ g) :=
+by ext; solve_refl
+
+@[simp] lemma SimpleStream.imap (s : SimpleStream ι α) (f : ι ↪o ι') :
+  (f <§₁> s).stream = (f <$₁> s.stream) := rfl
+
+@[simp] lemma SimpleStream.imap_stream_eval [add_zero_class α] (s : SimpleStream ι α) (f : ι ↪o ι') (n : ℕ) :
+  (f <§₁> s).stream.eval_steps n s.state = (f <$₁> s.stream).eval_steps n s.state := rfl
+
+@[simp] lemma SimpleStream.bifunctor_bimap_valid (s : SimpleStream ι α) (f : ι ↪o ι') (g : α → β) :
+  (s.bimap f g).valid ↔ s.valid := iff.rfl
+
+@[simp] lemma SimpleStream.bifunctor_bimap_ready (s : SimpleStream ι α) (f : ι ↪o ι') (g : α → β) :
+  (s.bimap f g).ready ↔ s.ready := iff.rfl
+
+@[simp] lemma SimpleStream.bimap_eval [add_comm_monoid α] (s : SimpleStream ι α) (f : ι ↪o ι') :
+  (f <§₁> s).eval = (f <$₁> s.to_StreamExec).eval := rfl

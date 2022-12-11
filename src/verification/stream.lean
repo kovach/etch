@@ -153,6 +153,21 @@ end
   (s.bimap f g).bound_valid n x ↔ s.bound_valid n x :=
 by { induction n with n ih generalizing x; simp [*]; refl, }
 
+instance bimap_σ.has_zero {f : ι → ι'} {g : α → β} {s : Stream ι α} [z : has_zero s.σ] :
+has_zero (s.bimap f g).σ := z
+
+@[simp] lemma Stream.bifunctor_bimap_valid (s : Stream ι α) (f : ι → ι') (g : α → β) :
+  (s.bimap f g).valid = s.valid := rfl
+
+@[simp] lemma Stream.bifunctor_bimap_valid_apply (s : Stream ι α) (f : ι → ι') (g : α → β) (x : s.σ) :
+  (s.bimap f g).valid x ↔ s.valid x := iff.rfl
+
+@[simp] lemma Stream.bifunctor_bimap_ready (s : Stream ι α) (f : ι → ι') (g : α → β) :
+  (s.bimap f g).ready = s.ready := rfl
+
+@[simp] lemma Stream.bifunctor_bimap_ready_apply (s : Stream ι α) (f : ι → ι') (g : α → β) (x : s.σ) :
+  (s.bimap f g).ready x ↔ s.ready x := iff.rfl
+
 @[simps]
 def StreamExec.bimap (s : StreamExec ι α) (f : ι → ι') (g : α → β) : StreamExec ι' β :=
 { s with stream := s.stream.bimap f g, bound_valid := by simpa using s.bound_valid }
@@ -246,6 +261,14 @@ by { ext x, simp [Stream.value', apply_dite g, hg], refl, }
 lemma Stream.bimap_value'_apply [has_zero α] [has_zero β] (s : Stream ι α) (f : ι → ι') (g : α → β) (hg : g 0 = 0) (x) :
   (s.bimap f g).value' x = g (s.value' x) :=
 by rwa Stream.bimap_value'
+
+lemma Stream.bimap_index'_eq_apply (s : Stream ι α) (f : ι → ι') (g : α → β) (x : s.σ) :
+  (s.bimap f g).index' x = with_top.map f (s.index' x) :=
+by unfold Stream.index'; split_ifs; split; simp
+
+lemma Stream.bimap_index'_eq (s : Stream ι α) (f : ι → ι') (g : α → β) :
+  (s.bimap f g).index' = with_top.map f ∘ s.index' :=
+by ext; rw function.comp_app; simp [Stream.bimap_index'_eq_apply]
 
 end defs
 
