@@ -123,3 +123,25 @@ by ext; solve_refl
 
 @[simp] lemma SimpleStream.bimap_eval [add_comm_monoid α] (s : SimpleStream ι α) (f : ι ↪o ι') :
   (f <§₁> s).eval = (f <$₁> s.to_StreamExec).eval := rfl
+
+namespace primitives
+
+lemma range.reduced {n : ℕ} : (range n).reduced :=
+begin
+  intros r hv hr,
+  unfold Stream.index',
+  split_ifs; norm_cast; simp [hv],
+end
+
+lemma range.monotonic {n : ℕ} : (range n).monotonic :=
+begin
+  intros r hv,
+  unfold Stream.index',
+  split_ifs; try { norm_cast }; simp,
+end
+
+@[simps]
+def range_simple (n : ℕ) : SimpleStream ℕ ℕ :=
+{ range_exec n with simple := ⟨range.monotonic, range.reduced⟩ }
+
+end primitives

@@ -328,6 +328,7 @@ begin
   congr; { simp [min_eq_right i.prop.le], },
 end
 
+@[simps]
 def range (n : ℕ) : Stream ℕ ℕ :=
 { σ := ℕ,
   next  := λ k _, k+1,
@@ -335,5 +336,21 @@ def range (n : ℕ) : Stream ℕ ℕ :=
   value := λ k _, k,
   ready := λ _, true,
   valid := λ k, k < n, }
+
+@[simp] lemma range_iterate {n : ℕ} (i : ℕ) :
+  ((range n).next'^[i] 0 : ℕ) = min n i :=
+begin
+  induction i with i ih, { simp [range], },
+  rw [function.iterate_succ_apply', ih],
+  simp [Stream.next', min_def, nat.succ_eq_add_one], clear ih,
+  split_ifs; linarith,
+end
+
+@[simps]
+def range_exec (n : ℕ) : StreamExec ℕ ℕ :=
+{ stream := range n,
+  state := (0 : ℕ),
+  bound := n,
+  bound_valid := by simp [bound_valid_iff_next'_iterate] }
 
 end primitives
