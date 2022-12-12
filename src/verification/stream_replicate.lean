@@ -131,11 +131,11 @@ begin
   simp [replicate_aux, finsupp.single, pi.single_apply], -- TODO: don't simp mid-proof
   split_ifs,
   { exfalso, revert h_1, simp [h_2] },
-  { have : r ≤ i := le_of_eq (eq.symm h_2), contradiction },
+  { have : r ≤ i := le_of_eq h_2.symm,      contradiction },
   { exact add_zero _ },
   { have : r ≤ i := nat.le_of_succ_le h_1,  contradiction },
   { exact zero_add _ },
-  { have : r ≤ i := le_of_eq (eq.symm h_2), contradiction },
+  { have : r ≤ i := le_of_eq h_2.symm,      contradiction },
   { have : r < i := lt_of_le_of_ne h_3 (ne.symm h_2), contradiction },
   { exact add_zero _ }
 end

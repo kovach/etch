@@ -333,7 +333,7 @@ def mul [has_hmul α β γ] (a : G E α) (b : G E β) : G E γ :=
                         a.next
                         b.next,
   valid := a.valid && b.valid,
-  init  := a.init;; b.init,
+  init  := a.init; b.init,
 }
 instance [has_hmul α β γ] : has_hmul (G E α) (G E β) (G E γ) := ⟨mul⟩
 

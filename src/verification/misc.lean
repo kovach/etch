@@ -93,7 +93,7 @@ lemma ne_min_of_ne_and_ne {ι : Type*} [linear_order ι] {a x y : ι} (hx : a �
 
 @[simp] lemma max_ne_self_iff {ι : Type*} [linear_order ι] (a b : ι) :
   ¬(a = max a b) ↔ a < b :=
-by { simp [max_def, ← not_lt], split_ifs, { simp [h, le_of_lt h] }, { simp [h, le_of_not_lt h] } }
+by { rw max_def, split_ifs, { simpa using h }, { simpa using le_of_not_ge h } }
 
 @[simp] lemma max_ne_self_iff' {ι : Type*} [linear_order ι] (a b : ι) :
   ¬(b = max a b) ↔ b < a :=
