@@ -1,3 +1,4 @@
+import data.finsupp.basic
 import data.finsupp.indicator
 
 variables {α β γ : Type*} [add_comm_monoid β]
