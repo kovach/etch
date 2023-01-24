@@ -46,8 +46,6 @@ def S.add [HAdd α β γ] [Guard α] [Guard β] (a : S ι α) (b : S ι β) : S 
     .decl t.csucc (S_le b a p.symm);;
     .decl t.ci i;;
     a.succ p.1 t.ci;; b.succ p.2 t.ci
-    --P.if1 ((S_le a b p) * a.ready p.1) (a.succ p.1 i) ;; P.if1 (t.csucc * b.ready p.2) (b.succ p.2 i)
-    --P.if1 ((S_le a b p) * a.ready p.1) (a.succ p.1) ;; P.if1 (t.csucc * b.ready p.2) (b.succ p.2)
   ready := λ (p, _) => (S_le a b p) * a.ready p.1 + (S_le b a p.symm) * b.ready p.2
   index := λ (p, _) => .call O.ternary ![S_le a b p, a.index p.1, b.index p.2]
   valid := λ (p, _) => a.valid p.1 + b.valid p.2

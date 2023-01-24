@@ -13,6 +13,7 @@ variable {ι : Type} [Tagged ι] [DecidableEq ι]
 [LE ι] [DecidableRel (LE.le : ι → ι → _)]
 (is : ArrayVar ι)
 
+-- todo: replace default interval
 def TACO.interval (pos : Var ℕ) (lower upper : E ℕ) : ι →ₛ (E ℕ) where
   σ := Var ℕ
   succ pos i := .store_var pos $ pos + .call O.ofBool ![(E.access is pos.expr <= i)]
@@ -137,12 +138,6 @@ def input_data :=
   ("gen_query_wcoj_S.c", [ go l_dsS FSQLCallback ]),
   ("gen_query_wcoj_T.c", [ go l_dsT FSQLCallback ]) ]
 
-/-
-
--/
-
-#eval List.mapM (Function.uncurry IO.compile') input_data
-
 -- todo
 def names := [
   "add2",
@@ -185,8 +180,6 @@ def udf       := ((λ _ : E R => 1) <$$> dsR) * (S.udf : i ↠ j ↠ E RMax)
 def add_ss    := ∑ i, j: ((ssA' + ssB') : i ↠ j ↠ E R)
 def inner     :=  ∑ i, j: ssA * ssB_ij
 
---def taco_style_inner := ∑ i, j: (taco_mat "ssA" : i ↠ j ↠ E R) * taco_mat "ssB_ij"
-
 def threshold : E R := "threshold"
 def filter_v    : i ↠ E R := S.valFilter (λ e => threshold << (e : E R)) sV
 def filter_spmv := ∑ i, j: filter_v * ssA
@@ -195,8 +188,6 @@ def fires : year ↠ objid ↠ E R := mat "ssF"
 def range_06_08 : year ↠ E R := (S.predRange (2006 : E ℕ) 2008 : ℕ →ₛ E R)
 def count_range := ∑ year, objid: range_06_08 * fires
 /- end examples -/
-
---#check f1 * fires
 
 #check (mat "f" : i ↠ j ↠ E R)
 #check (ssA * ssB) * (S.lt : i ↠ k ↠ E R)
@@ -210,8 +201,6 @@ structure TacoTest where
   name : String
   kernel : TacoKernel
   command : String -- go l r
-
-#check inner
 
 def taco_ops : List (String × String × String) :=
 [
@@ -251,5 +240,7 @@ def main : IO Unit := do
   IO.FS.writeFile "gen_funs.c" funs
   IO.FS.writeFile "gen_out.c" main
   IO.FS.writeFile "gen_out_taco.c" main_taco
+
+#exit
 
 #eval main

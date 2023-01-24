@@ -20,16 +20,12 @@ instance S.step [Compile L R] : Compile (lvl ι L) (ι →ₛ R) where
   compile n l r :=
     let (init, s) := r.init emptyName
     let (push, position) := l.push (r.index s)
+    let temp := ("index_lower_bound" : Var ι).fresh n
     init;; .while (r.valid s)
-      (.branch (r.ready s)
-        (push;; compile n.freshen position (r.value s);; (r.succ s (r.index s)))
-        (r.skip s (r.index s)))
-
--- inv: ∃ v, addr ↦ v ∧ₕ ⟦v⟧ + ⟦r⟧ = v₀
--- r.ready -> ⟦r⟧ = ⟦r.value⟧ + ⟦r.succ⟧
--- r.ready, lawful l.position r.value -> _ {{compile l.pos r.val}} λ h => l.position.addr h = ⟦r.val⟧
--- l.position.addr h = ⟦r.val⟧ → l.addr ↦ ⟦v_⟧ + ⟦r.value⟧
--- inv {{ l.push r.index;; compile (l.position r.index) r.value;; r.succ }} inv
+      (.decl temp (r.index s);;
+       .branch (r.ready s)
+         (push;; compile n.freshen position (r.value s);; (r.succ s temp))
+         (r.skip s temp))
 
 instance contract [Compile α β] : Compile α (Contraction β) where
   compile n := λ storage ⟨ι, v⟩ =>
