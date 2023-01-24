@@ -6,7 +6,7 @@ def S.mul [HMul α β γ] [Max ι] (a : S ι α) (b : S ι β) : (S ι γ) where
   σ := a.σ × b.σ
   value p := a.value p.1 * b.value p.2
   skip  p := λ i => a.skip p.1 i;; b.skip p.2 i
-  succ  p := a.succ p.1;; b.succ p.2
+  succ  p i := a.succ p.1 i;; b.succ p.2 i
   ready p := a.ready p.1 * b.ready p.2 * (a.index p.1 == b.index p.2)
   index p := .call .max ![a.index p.1, b.index p.2]
   valid p := a.valid p.1 * b.valid p.2

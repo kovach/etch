@@ -94,7 +94,7 @@ def O.sub [Tagged α] [Sub α] : O α where
 def O.mid : O ℕ where
   argTypes := ![ℕ, ℕ]
   spec := λ a => Nat.div (a 0 + a 1) 2
-  opName := "tag_mk_fun α mid"
+  opName := tag_mk_fun ℕ "mid"
 
 def O.mul [Tagged α] [Mul α] : O α where
   argTypes := ![α, α]

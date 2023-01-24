@@ -27,23 +27,27 @@ infixr:40 "≤ₛ" => S_le
 def Prod.symm (f : α × β) := (f.2, f.1)
 
 -- Local temporary variables for `add`
-structure AddTmp where
+structure AddTmp (ι : Type) where
 (csucc : Var Bool)
 (cv₁ : Var Bool)
 (cv₂ : Var Bool)
+(ci : Var ι)
 
-def AddTmp.ofName (n : Name) : AddTmp :=
-⟨(Var.mk "csucc").fresh n, (Var.mk "cv1__").fresh n, (Var.mk "cv2__").fresh n⟩
+def AddTmp.ofName (n : Name) : AddTmp ι :=
+⟨(Var.mk "csucc").fresh n, (Var.mk "cv1__").fresh n, (Var.mk "cv2__").fresh n, (Var.mk "ci").fresh n⟩
 
 def S.add [HAdd α β γ] [Guard α] [Guard β] (a : S ι α) (b : S ι β) : S ι γ where
-  σ := (a.σ × b.σ) × AddTmp
+  σ := (a.σ × b.σ) × AddTmp ι
   value := λ (p, t) =>
              (Guard.guard t.cv₁ ((S_le a b p) * a.ready p.1) $ a.value p.1) +
              (Guard.guard t.cv₂ ((S_le b a p.symm) * b.ready p.2) $ b.value p.2)
   skip  := λ (p, _) i => a.skip p.1 i ;; b.skip p.2 i
-  succ  := λ (p, t)  =>
+  succ  := λ (p, t) i =>
     .decl t.csucc (S_le b a p.symm);;
-    P.if1 ((S_le a b p) * a.ready p.1) (a.succ p.1) ;; P.if1 (t.csucc * b.ready p.2) (b.succ p.2)
+    .decl t.ci i;;
+    a.succ p.1 t.ci;; b.succ p.2 t.ci
+    --P.if1 ((S_le a b p) * a.ready p.1) (a.succ p.1 i) ;; P.if1 (t.csucc * b.ready p.2) (b.succ p.2 i)
+    --P.if1 ((S_le a b p) * a.ready p.1) (a.succ p.1) ;; P.if1 (t.csucc * b.ready p.2) (b.succ p.2)
   ready := λ (p, _) => (S_le a b p) * a.ready p.1 + (S_le b a p.symm) * b.ready p.2
   index := λ (p, _) => .call O.ternary ![S_le a b p, a.index p.1, b.index p.2]
   valid := λ (p, _) => a.valid p.1 + b.valid p.2

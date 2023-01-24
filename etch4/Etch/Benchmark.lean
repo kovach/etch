@@ -1,6 +1,5 @@
 import Etch.Basic
 import Etch.Stream
-import Etch.TacoStream
 import Etch.LVal
 import Etch.Add
 import Etch.Mul
@@ -9,101 +8,23 @@ import Etch.ShapeInference
 
 section TACO
 
--- 10 lines of changed code
-structure TACO (ι : Type _) (α : Type _) where
-  σ     : Type
-  -- 6
-  next  : σ → E ι → P
-  value : σ → α
-  ready : σ → E Bool
-  index : σ → E ι
-  valid : σ → E Bool
-  init  : Name → P × σ
-
-infixr:25 " →ₜ " => TACO
-instance : Functor (TACO ι) where map := λ f s => {s with value := f ∘ s.value }
-
-variable {ι : Type} [Tagged ι] [DecidableEq ι] [LT ι] [DecidableRel (LT.lt : ι → ι → _)]
+variable {ι : Type} [Tagged ι] [DecidableEq ι]
+[LT ι] [DecidableRel (LT.lt : ι → ι → _)]
 [LE ι] [DecidableRel (LE.le : ι → ι → _)]
 (is : ArrayVar ι)
 
-def TACO.interval (pos : Var ℕ) (lower upper : E ℕ) : TACO ι (E ℕ) where
+def TACO.interval (pos : Var ℕ) (lower upper : E ℕ) : ι →ₛ (E ℕ) where
   σ := Var ℕ
-  -- 5
-  next pos i := .store_var pos $ pos + .call O.ofBool ![(E.access is pos.expr <= i)]
-  --next  pos i := .store_var pos $ pos + .call O.ternary ![(E.access is pos.expr) == i, (1 : E ℕ), (0 : E ℕ)]
+  succ pos i := .store_var pos $ pos + .call O.ofBool ![(E.access is pos.expr <= i)]
+  skip pos i := .store_var pos $ pos + .call O.ofBool ![(E.access is pos.expr << i)]
   value pos := pos.expr
   ready _   := 1
   index pos := .access is pos.expr
   valid pos := pos.expr << upper
   init  n   := let p := pos.fresh n; (p.decl lower, p)
 
-def S.interval_taco (pos : Var ℕ) (lower upper : E ℕ) : ι →ₛ (E ℕ) where
-  σ := Var ℕ
-  -- 5
-  next pos i := .store_var pos $ pos + .call O.ofBool ![(E.access is pos.expr == i)]
-  --next  pos i := .store_var pos $ pos + .call O.ternary ![(E.access is pos.expr) == i, (1 : E ℕ), (0 : E ℕ)]
-  value pos := pos.expr
-  ready _   := 1
-  index pos := .access is pos.expr
-  valid pos := pos.expr << upper
-  init  n   := let p := pos.fresh n; (p.decl lower, p)
-
-def TACO.seqInit (a : ι →ₜ α) (b : ι →ₜ β) (n : Name) :=
-let (ai, as) := a.init (n.fresh 0); let (bi, bs) := b.init (n.fresh 1); (ai ;; bi, (as, bs))
-
-def TACO.mul [HMul α β γ] [Min ι] (a : ι →ₜ α) (b : ι →ₜ β) : (ι →ₜ γ) where
-  σ := a.σ × b.σ
-  value p := a.value p.1 * b.value p.2
-  -- 4
-  next  p i := a.next p.1 i;; b.next p.2 i
-  ready p := a.ready p.1 * b.ready p.2 * (a.index p.1 == b.index p.2)
-  index p := .call .min ![a.index p.1, b.index p.2] -- 3
-  valid p := a.valid p.1 * b.valid p.2
-  init    := TACO.seqInit a b
-
---def TACO.add [Add α] [Min ι] (a : ι →ₜ α) (b : ι →ₜ α) : (ι →ₜ α) where
---  σ := a.σ × b.σ
---  value p := a.value p.1 + b.value p.2
---  -- 4
---  next  p i := a.next p.1 i;; b.next p.2 i
---  ready p := a.ready p.1 * b.ready p.2 * (a.index p.1 == b.index p.2)
---  index p := .call .min ![a.index p.1, b.index p.2] -- 3
---  valid p := a.valid p.1 * b.valid p.2
---  init    := TACO.seqInit a b
-
-instance [Mul α] [Min ι] : Mul (ι →ₜ α) := ⟨TACO.mul⟩ -- 2
---instance [Add α] [Min ι] : Add (ι →ₜ α) := ⟨TACO.add⟩ -- 2
-
-def csr.level' : csr ι ℕ → E ℕ → ι →ₜ E ℕ := λ csr loc => TACO.interval csr.i csr.var (.access csr.v loc) (csr.v.access (loc+1)) -- 1
-def TACO.level {f} [Functor f] : csr ι ℕ → f (E ℕ) → f (ι →ₜ (E ℕ)) := Functor.map ∘ csr.level'
-
-def TACO.Contraction (α : Type _) := (ι : Type) × (ι →ₜ α)
-instance : Functor TACO.Contraction where map := λ f ⟨ι, v⟩ => ⟨ι, f <$> v⟩
-def TACO.contract (s : ι →ₜ α) : TACO.Contraction α := ⟨_, s⟩
-
-open Compile
-
-instance TACO.step [Compile L R] : Compile (lvl ι L) (ι →ₜ R) where
-  compile n l r :=
-    let (init, s) := r.init n
-    let (push, position) := l.push (r.index s)
-    let temp := ("cur" : Var ι).fresh n
-    init;; .while (r.valid s)
-      -- 7, 8
-      (.decl temp (r.index s);;
-        .if1 (r.ready s) (push;; compile n.freshen position (r.value s));;
-        (r.next s temp))
-
-instance TACO.contract_compile [Compile α β] : Compile α (TACO.Contraction β) where
-  compile n := λ lval ⟨ι, v⟩ =>
-    let (init, s) := v.init n
-    let temp := ("cur" : Var ι).fresh n
-    init ;; .while (v.valid s)
-      -- 9, 10
-      (.decl temp (v.index s);;
-       .if1 (v.ready s) (Compile.compile n.freshen lval (v.value s));;
-       (v.next s temp))
+def csr.level' : csr ι ℕ → E ℕ → ι →ₛ E ℕ := λ csr loc => TACO.interval csr.i csr.var (.access csr.v loc) (csr.v.access (loc+1)) -- 1
+def TACO.level {f} [Functor f] : csr ι ℕ → f (E ℕ) → f (ι →ₛ (E ℕ)) := Functor.map ∘ csr.level'
 
 end TACO
 
@@ -178,14 +99,19 @@ end funs
 def sVec   (f : String) : ℕ →ₛ E R := (csr.of f 1).level .step 0 & S.leaf (f ++ "_vals")
 def dVec   (f : String) : ℕ →ₐ E R := range & S.leaf (f ++ "_vals")
 def mat    (f : String) : ℕ →ₛ ℕ →ₛ E R := (csr.of f 1).level .step 0 & S.level .step (csr.of f 2) ⊚ S.leaf (f ++ "_vals")
-def taco_mat (f : String) : ℕ →ₜ ℕ →ₜ E R := (csr.of f 1).level' 0 & TACO.level (csr.of f 2) ⊚ S.leaf (f ++ "_vals")
+def taco_mat (f : String) : ℕ →ₛ ℕ →ₛ E R := (csr.of f 1).level' 0 & TACO.level (csr.of f 2) ⊚ S.leaf (f ++ "_vals")
+--def taco_mat (f : String) : ℕ →ₜ ℕ →ₜ E R := (csr.of f 1).level' 0 & TACO.level (csr.of f 2) ⊚ S.leaf (f ++ "_vals")
 def skip_mat   (f : String) : ℕ →ₛ ℕ →ₛ E R := (csr.of f 1).level .search 0 & S.level .step (csr.of f 2) ⊚ S.leaf (f ++ "_vals")
 def mat3  (f : String) : ℕ →ₛ ℕ →ₛ ℕ →ₛ E R := (csr.of f 1).level .step 0 & S.level .step (csr.of f 2) ⊚ S.level .step (csr.of f 3) ⊚ S.leaf (f ++ "_vals")
+def taco_mat3  (f : String) : ℕ →ₛ ℕ →ₛ ℕ →ₛ E R := (csr.of f 1).level' 0 & TACO.level (csr.of f 2) ⊚ TACO.level (csr.of f 3) ⊚ S.leaf (f ++ "_vals")
 def dsMat (f : String) : ℕ →ₐ ℕ →ₛ E R := range & S.level .step (csr.of f 2) ⊚ S.leaf (f ++ "_vals")
-def ssA' := mat "ssA"
-def dsA' := dsMat "dsA"
-def ssB' := mat "ssB"
-def dsB' := dsMat "dsB"
+def taco_dsMat (f : String) : ℕ →ₐ ℕ →ₛ E R := range & TACO.level (csr.of f 2) ⊚ S.leaf (f ++ "_vals")
+
+def ssA' := taco_mat "ssA"
+def dsA' := taco_dsMat "dsA"
+def ssB' := taco_mat "ssB"
+def dsB' := taco_dsMat "dsB"
+
 def dV   := dVec "V"
 def sV   := sVec "sV"
 example : HMul (ℕ →ₛ ℕ →ₐ E R) (ℕ →ₛ ℕ →ₛ E R) (ℕ →ₛ ℕ →ₛ E R) := inferInstance
@@ -232,13 +158,13 @@ def names := [
   "sum_ttm"
 ]
 
-def ssA   : i ↠ j ↠ E R := mat "ssA"
-def dsA   : i ↠ j ↠ E R := dsMat "dsA"
-def ssB_ij : i ↠ j ↠ E R := mat "ssB"
-def ssB   : j ↠ k ↠ E R := mat "ssB"
+def ssA   : i ↠ j ↠ E R      := taco_mat "ssA"
+def dsA   : i ↠ j ↠ E R      := taco_dsMat "dsA"
+def ssB_ij : i ↠ j ↠ E R     := taco_mat "ssB"
+def ssB   : j ↠ k ↠ E R      := taco_mat "ssB"
 def ssB_skip   : j ↠ k ↠ E R := skip_mat "ssB"
-def dsB   : j ↠ k ↠ E R := dsMat "dsB"
-def sssC : i ↠ j ↠ k ↠ E R := mat3 "ssC"
+def dsB   : j ↠ k ↠ E R      := taco_dsMat "dsB"
+def sssC : i ↠ j ↠ k ↠ E R   := taco_mat3 "ssC"
 
 def dsR : i ↠ j ↠ E R:= mat "dsR"
 def dsS : j ↠ k ↠ E R:= mat "dsS"
@@ -285,22 +211,17 @@ structure TacoTest where
   kernel : TacoKernel
   command : String -- go l r
 
-def TACO.sum2 : TACO ι (TACO ι' α) → TACO.Contraction (TACO.Contraction α) := TACO.contract ⊚ TACO.contract
 #check inner
 
 def taco_ops : List (String × String × String) :=
 [
-
-let fn := "inner2ss_"; ("inner2ss", fn, compile_fun fn $ [go outVal ((taco_mat "ssA") * (taco_mat "ssB")).sum2]),
 let fn := "inner2ss"; ("inner2ss", fn, compile_fun fn $ [go outVal inner]),
-
-let fn := "sum_add2"; (fn, fn, compile_fun fn $ [go outVal $ sum2 $ ssA' + ssB'])
--- ("sum_mul2_csr", compile_fun "sum_mul2_csr" $ [go outVal mul])
--- ("sum_mul2", compile_fun "sum_mul2" $ [go outVal mul_ss])
--- ("mttkrp", compile_fun "mttkrp" [go outVal $ mttkrp ]),
--- ("spmv", compile_fun "spmv" $ [go outVal spmv])
--- ("sum_add2", compile_fun "sum_add2" $ [go outVal add_ss])
--- ("filter_spmv", compile_fun "filter_spmv" $ [go outVal filter_spmv])
+let fn := "sum_add2"; (fn, fn, compile_fun fn $ [go outVal add_ss]),
+let fn := "sum_mul2_csr"; ("sum_mul2_csr", fn, compile_fun "sum_mul2_csr" $ [go outVal mul]),
+let fn := "sum_mul2"; ("sum_mul2", fn, compile_fun "sum_mul2" $ [go outVal mul_ss]),
+let fn := "mttkrp"; ("mttkrp", fn, compile_fun "mttkrp" [go outVal $ mttkrp ]),
+let fn := "spmv"; ("spmv", fn, compile_fun "spmv" $ [go outVal spmv]),
+let fn := "filter_spmv"; ("filter_spmv", fn, compile_fun "filter_spmv" $ [go outVal filter_spmv])
 ]
 --("sum_mul2_inner_ss", compile_fun "sum_mul2_inner_ss" $ [go outVal mul_inner]),
 --("sum_add2", compile_fun "sum_add2" $ [go outVal $ sum2 $ ssA, go outVal $ sum2 $ ssB]),

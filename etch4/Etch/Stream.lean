@@ -86,7 +86,7 @@ def emptyName : Name := []
 structure S (ι : Type _) (α : Type _) where
   σ     : Type
   skip  : σ → E ι → P
-  succ  : σ → P
+  succ  : σ → E ι → P
   value : σ → α
   ready : σ → E Bool
   index : σ → E ι
@@ -133,25 +133,24 @@ tgt.store_var i;; .store_var lo pos;; .store_var hi max_pos;; .store_var not_don
 
 inductive IterMethod | step | search
 
-section Range
 variable [LE ι] [DecidableRel (LE.le : ι → ι → _)]
+
 def S.predRange [One α] (lower upper : E ι) : S ι α where
   σ := Var ι
   value   _ := 1
-  succ    _ := .skip
+  succ  _ _ := .skip
   ready   _ := 1
   skip  pos := λ i => pos.store_var i
   index pos := pos
   valid pos := pos.expr << upper
   init  n   := let p := .fresh "pos" n; (p.decl lower, p)
-end Range
 
 def S.interval (h : IterMethod) (pos : Var ℕ) (lower upper : E ℕ) : S ι (E ℕ) where
   σ := Var ℕ
   value pos := pos.expr
-  succ  pos := pos.incr
-  ready _   := 1
+  succ  pos i := .if1 (.access is pos.expr <= i) pos.incr
   skip  pos := (match h with | .step => simpleSkip | .search => searchSkip) is pos upper
+  ready _   := 1
   index pos := .access is pos.expr
   valid pos := pos.expr << upper
   init  n   := let p := pos.fresh n; (p.decl lower, p)
@@ -161,7 +160,7 @@ def S.interval (h : IterMethod) (pos : Var ℕ) (lower upper : E ℕ) : S ι (E 
 --notation "⊥"  => Bot.bot
 def S.univ [Zero ι] [Add ι] [OfNat ι 1] (max l : Var ι) : S ι (E ι) where
   value last := last.expr
-  succ  last := last.incr  -- imprecise but ok
+  succ  last i := .if1 (last.expr <= i) last.incr  -- imprecise but ok
   ready _    := 1
   skip  last := λ i => .store_var last i
   index last := last.expr
@@ -174,7 +173,7 @@ def S.valFilter (f : α → E Bool) (s : ι →ₛ α) : ι →ₛ α :=
            .branch (s.ready p)
              (.branch (f (s.value p))
                (s.skip p i)
-               (s.succ p;; s.skip p i))
+               (s.succ p i;; s.skip p i))
              (s.skip p i) }
 
 def dim : Var ι := "dim"

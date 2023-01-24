@@ -81,7 +81,9 @@ instance [Guard α] : Guard (n × ι ⟶ α) where guard n b := λ
 variable
 {α β γ : Type _}
 (n : ℕ)
-{ι : Type _} [Tagged ι] [DecidableEq ι] [LT ι] [DecidableRel (LT.lt : ι → ι → _)] [Zero ι]
+{ι : Type _} [Tagged ι] [DecidableEq ι]
+[LT ι] [DecidableRel (LT.lt : ι → ι → _)] [Zero ι]
+[LE ι] [DecidableRel (LE.le : ι → ι → _)]
 [Max ι]
 
 -- todo: make local

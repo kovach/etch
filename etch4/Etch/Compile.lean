@@ -22,7 +22,7 @@ instance S.step [Compile L R] : Compile (lvl ι L) (ι →ₛ R) where
     let (push, position) := l.push (r.index s)
     init;; .while (r.valid s)
       (.branch (r.ready s)
-        (push;; compile n.freshen position (r.value s);; (r.succ s))
+        (push;; compile n.freshen position (r.value s);; (r.succ s (r.index s)))
         (r.skip s (r.index s)))
 
 -- inv: ∃ v, addr ↦ v ∧ₕ ⟦v⟧ + ⟦r⟧ = v₀
@@ -32,12 +32,14 @@ instance S.step [Compile L R] : Compile (lvl ι L) (ι →ₛ R) where
 -- inv {{ l.push r.index;; compile (l.position r.index) r.value;; r.succ }} inv
 
 instance contract [Compile α β] : Compile α (Contraction β) where
-  compile n := λ storage ⟨_, v⟩ =>
+  compile n := λ storage ⟨ι, v⟩ =>
     let (init, s) := v.init emptyName
+    let temp := ("index_lower_bound" : Var ι).fresh n
     init ;; .while (v.valid s)
-      (.branch (v.ready s)
-        (Compile.compile n.freshen storage (v.value s);; v.succ s)
-        (v.skip s (v.index s)))
+      (.decl temp (v.index s);;
+       .branch (v.ready s)
+        (Compile.compile n.freshen storage (v.value s);; v.succ s temp)
+        (v.skip s temp))
 
 -- Used only to generate callback for data loading
 instance [Compile α β] : Compile (lvl ι α) (E ι × β) where
