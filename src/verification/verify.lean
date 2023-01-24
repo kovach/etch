@@ -311,7 +311,7 @@ instance : has_coe_to_fun LoopBound (λ _, EContext → ℕ) :=
 ⟨LoopBound.to_fun⟩
 instance has_coe_from_nat : has_coe ℕ LoopBound := ⟨λ n, ⟨finset.empty, (λ _, n), true.intro⟩⟩
 
-@[simp] lemma LoopBound.mk_apply (a f c x) : (LoopBound.mk a f c) x = f x := rfl  
+@[simp] lemma LoopBound.mk_apply (a f c x) : (LoopBound.mk a f c) x = f x := rfl
 
 end LoopBound
 
@@ -345,12 +345,12 @@ instance [has_to_string R] : has_to_string Prog :=
 @[simp] def Prog.eval : Prog → EContext → EContext
 | Prog.skip ctx := ctx
 | (Prog.store dst val) ctx := ctx.update dst (val.eval ctx)
-| (Prog.store_arr dst ind val) ctx := 
+| (Prog.store_arr dst ind val) ctx :=
   let i : ℕ := ind.eval ctx in
   if i < (ctx.heap.get dst).length then ctx.update_arr dst i (val.eval ctx) else ctx
 | (Prog.seq a b) ctx := b.eval (a.eval ctx)
 | (Prog.branch condition a b) ctx := cond (condition.eval ctx) (a.eval ctx) (b.eval ctx)
-| (Prog.loop n c b) ctx := 
+| (Prog.loop n c b) ctx :=
 (λ ctx, cond (c.eval ctx) (b.eval ctx) ctx)^[(n ctx)] ctx
 
 @[simp] def Prog.frame : Prog → Frame
@@ -359,7 +359,7 @@ instance [has_to_string R] : has_to_string Prog :=
 | (Prog.store_arr dst ind val) := insert (sigma.mk _ dst) (ind.frame ∪ val.frame)
 | (Prog.seq a b) := a.frame ∪ b.frame
 | (Prog.branch c a b) := c.frame ∪ a.frame ∪ b.frame
-| (Prog.loop n c b) := c.frame ∪ b.frame  
+| (Prog.loop n c b) := c.frame ∪ b.frame
 
 end Prog
 
@@ -472,11 +472,16 @@ variables {next : Prog} {ctx : EContext} {p₁ p₂ : EContext → Prop}
 lemma preserves.and (h₀ : preserves next p₁) (h₁ : preserves next p₂) : (preserves next (λ c, p₁ c ∧ p₂ c)) :=
 by { rw [preserves] at *, tauto, }
 
+--#check
+lemma preserves.unmodified (c₀ : EContext) {b} {inv : Ident b}
+(h : {⟨_, inv⟩} # next.frame) :
+  preserves next (c₀.unmodified inv) := sorry -- FOOTPRINT: nothing in `inv` is modified
+
 lemma preserves.unmodified (c₀ : EContext) {inv : NameSpace} (h : inv ∉ next.frame.image (λ x : Σ b, Ident b, x.2.ns)) :
   preserves next (c₀.unmodified inv) := sorry -- FOOTPRINT: nothing in `inv` is modified
 
 lemma preserves.is_length {b : Types} (v : Ident b) (e : Ident nn)  (h : (sigma.mk _ e) ∉ next.frame) :
-  preserves next (λ c, c.is_length v e) := sorry -- FOOTPRINT: If `e` (length variable) is not modified, this is preserved 
+  preserves next (λ c, c.is_length v e) := sorry -- FOOTPRINT: If `e` (length variable) is not modified, this is preserved
 
 end preserves
 
@@ -494,7 +499,7 @@ variables [TRAble ι ι'] [TRAble α β] {s : BoundedStreamGen ι α}
   {t : Stream ι' β} {f : EContext → t.σ} {ctx : EContext}
   [add_zero_class β]
 
-lemma tr_to_stream.eval₀ (h : tr_to_stream s t f ctx) (h₀ h₁) : 
+lemma tr_to_stream.eval₀ (h : tr_to_stream s t f ctx) (h₀ h₁) :
   s.to_stream_aux.eval₀ ctx h₀ =
   t.eval₀ (f ctx) h₁ :=
 begin
@@ -507,7 +512,7 @@ end
 lemma tr_to_stream.eval_steps_eq {inv : EContext → Prop}
   (hinv : ∀ {c}, inv c → inv (s.next.eval c)) (hc : inv ctx)
   (h : ∀ {c}, inv c → tr_to_stream s t f c) (n : ℕ) :
-  s.to_stream_aux.eval_steps n ctx = 
+  s.to_stream_aux.eval_steps n ctx =
   t.eval_steps n (f ctx) :=
 begin
   induction n with n ih generalizing ctx, { refl, },
@@ -515,7 +520,7 @@ begin
   simp [StreamExec.valid, h.hvalid],
   split_ifs with hv, swap, { refl, },
   congr' 1, swap,   { /- The first step is the same -/ rw tr_to_stream.eval₀ h, },
-  /- The rest of the steps are the same -/ 
+  /- The rest of the steps are the same -/
   rw [ih, h.hnext (h.hvalid.mpr hv)],
   exact hinv hc,
 end
@@ -572,9 +577,9 @@ lemma externSparseVec_tr_to_stream (scratch : NameSpace) (c : EContext) {l : ℕ
   hcurr := by { simp [externSparseVec, primitives.externSparseVec_stream, hc₁, hc₂, hc₃, vector.nth_eq_nth_le], intros, rw list.nth_le_nth, },
   hval := by { simp [externSparseVec, primitives.externSparseVec_stream, hc₁, hc₂, hc₃, vector.nth_eq_nth_le], intros, rw list.nth_le_nth, } }
 
-def externSparseVec_tr (scratch : NameSpace) (hs : reserved ≠ scratch) (c : EContext) 
+def externSparseVec_tr (scratch : NameSpace) (hs : reserved ≠ scratch) (c : EContext)
   (hc : externSparseVecCond c) :
-  tr_to (externSparseVec scratch) (primitives.externSparseVec ⟨c.heap.get reserved∷ₙind₀, hc.inds_len⟩ ⟨c.heap.get reserved∷ᵣvals, hc.vals_len⟩) 
+  tr_to (externSparseVec scratch) (primitives.externSparseVec ⟨c.heap.get reserved∷ₙind₀, hc.inds_len⟩ ⟨c.heap.get reserved∷ᵣvals, hc.vals_len⟩)
     (λ ctx, ctx.store.get scratch∷ₙVars.i) c :=
 { inv := c.unmodified reserved,
   to_stream := λ c' hc', by apply externSparseVec_tr_to_stream scratch c'; simp [hc'.h, hc'.s],
@@ -586,7 +591,7 @@ def externSparseVec_tr (scratch : NameSpace) (hs : reserved ≠ scratch) (c : EC
 open_locale big_operators
 
 @[simp] lemma externSparseVec_spec (scratch : NameSpace) (hs : reserved ≠ scratch) (c : EContext) (hc : externSparseVecCond c) :
-  StreamExec.eval (tr c (externSparseVec scratch)) = ∑ i : fin (c.store.get reserved∷ₙlen), finsupp.single ((c.heap.get reserved∷ₙind₀).nth_le i (by rw hc.1; exact i.prop)) ((c.heap.get reserved∷ᵣvals).nth_le i (by rw hc.2; exact i.prop))  :=
+  StreamExec.eval (tr c (externSparseVec scratch)) = ∑ i : fin (c.store.get reserved∷ₙlen), finsupp.single ((c.heap.get reserved∷ₙind₀).nth_le i (by rw hc.1; exact i.prop)) ((c.heap.get reserved∷ᵣvals).nth_le i (by rw hc.2; exact i.prop)) :=
 by { simp [(externSparseVec_tr scratch hs c hc).eval_finsupp_eq, vector.nth_eq_nth_le], }
 
 end sparse_vectors
@@ -595,7 +600,7 @@ end sparse_vectors
 def BoundedStreamGen.body (x : BoundedStreamGen unit (Expr rr)) : Prog :=
 Prog.branch x.ready
   (reserved∷ᵣoutput ::= reserved∷ᵣoutput + x.value)
-/- else -/ Prog.skip <;> 
+/- else -/ Prog.skip <;>
 x.next
 
 def compile_scalar (x : BoundedStreamGen unit (Expr rr)) : Prog :=
@@ -614,15 +619,15 @@ lemma eval_body (x : BoundedStreamGen unit (Expr rr)) (c c' : EContext)
 begin
   have F₁ : x.ready.eval c' = x.ready.eval c := sorry, -- FOOTPRINT: `out ∉ ready.footprint`
   have F₂ : ∀ ctx, (x.next.eval ctx).store.get reserved∷ᵣoutput = ctx.store.get reserved∷ᵣoutput := sorry, -- FOOTPRINT: out ∉ next.footprint
-  have F₃ : x.value.eval c' = x.value.eval c := sorry, -- FOOTPRINT: `out ∉ value.footprint` 
+  have F₃ : x.value.eval c' = x.value.eval c := sorry, -- FOOTPRINT: `out ∉ value.footprint`
   simp [BoundedStreamGen.body, Stream.eval₀, h', F₁],
-  cases H : x.ready.eval c; simp [H, F₂, F₃, punit_eq_star (tr _ _), add_comm], 
+  cases H : x.ready.eval c; simp [H, F₂, F₃, punit_eq_star (tr _ _), add_comm],
 end
 
 lemma iterate_body (x : BoundedStreamGen unit (Expr rr)) (c c' : EContext)
   (hc : c.heap = c'.heap ∧ ∀ v, v ≠ reserved∷ᵣoutput → c.store.get v = c'.store.get v)
   (n : ℕ) :
-  ((λ ctx, cond (x.valid.eval ctx) (x.body.eval ctx) ctx)^[n] c).store.get reserved∷ᵣoutput = 
+  ((λ ctx, cond (x.valid.eval ctx) (x.body.eval ctx) ctx)^[n] c).store.get reserved∷ᵣoutput =
     (Stream.eval_steps x.to_stream_aux n c' ()) + (c.store.get reserved∷ᵣoutput) :=
 begin
   induction n with n ih generalizing c c', { simp, },
@@ -644,7 +649,7 @@ begin
   set ctx' : EContext := ctx.update reserved∷ᵣoutput 0,
   simp [tr, StreamExec.eval],
   rw iterate_body x (x.initialize.eval ctx') (x.initialize.eval ctx),
-  have F₁ : (x.initialize.eval ctx').store.get reserved∷ᵣoutput = ctx'.store.get reserved∷ᵣoutput := sorry, -- FOOTPRINT: 
+  have F₁ : (x.initialize.eval ctx').store.get reserved∷ᵣoutput = ctx'.store.get reserved∷ᵣoutput := sorry, -- FOOTPRINT:
   have F₂ : x.bound (x.initialize.eval ctx') = x.bound (x.initialize.eval ctx) := sorry, -- FOOTPRINT:
   { dsimp [BoundedStreamGen.to_stream], simp [F₁, F₂], },
   sorry, /- FOOTPRINT: since `ctx` and `ctx'` only differ in `out`, `init ctx` and `init ctx'` can only differ in `out`

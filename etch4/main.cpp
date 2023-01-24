@@ -7,12 +7,11 @@
 #include <float.h>
 #include "math.h"
 
-#define num double
-#define ind int
-
 #define macro_ternary(c, x, y) ((c) ? x : y)
 
 int dim = 10000;
+
+#include "decls.c"
 
 double threshold = 0.1;
 
@@ -47,7 +46,9 @@ static void sqlite_udf(sqlite3_context *context, int argc, sqlite3_value **argv)
 static inline double    nat_udf_max(int a, int b) { return sqrt(abs(a - b)); }
 
 static inline double    num_add(double a, double b) {  return a + b; }
+//#define num_add(a, b) (a + b)
 static inline double    num_mul(double a, double b) { return a * b; }
+//#define num_mul(a, b) (a * b)
 static inline double    num_one() { return 1; }
 static inline double    num_zero() { return 0; }
 static inline double    num_lt(double a, double b) { return a < b; }
@@ -82,9 +83,12 @@ static inline bool   nat_neg(int a) { return !a; }
 static inline int    nat_mid(int a, int b) { return (a + b) / 2; }
 static inline int    nat_one() { return 1; }
 static inline int    nat_zero() { return 0; }
+static inline double nat_ofBool(bool x) { return x; }
 
 static inline bool    bool_add(bool a, bool b) { return a || b; }
+//#define bool_add(a, b) (a || b)
 static inline bool    bool_mul(bool a, bool b) { return a && b; }
+//#define bool_mul(a, b) (a && b)
 static inline bool    bool_one() { return 1; }
 static inline bool    bool_zero() { return 0; }
 static inline bool    bool_neg(bool x) { return !x; }
@@ -114,7 +118,6 @@ int m;
 int out = 0;
 double fout = 0.;
 
-#include "decls.c"
 
   //printf("reading : %d\n", atoi(argv[0]));
   //printf("reading : %d\n", atoi(argv[1]));
@@ -302,16 +305,16 @@ void load_data_of_size(sqlite3* db, int limit)
     rc = sqlite3_exec(db, sql, gen_callback_graph_sV, (void*)data, &zErrMsg);
 }
 
-void test_sample_mv(sqlite3* db) {
-  load_data_of_size(db, 100000);
-
-  double limits[] = {0, 0.2, 0.4, 0.6, 0.8, 1.0};
-  for(int i = 0; i < 6; i++) {
-    printf("testing thresh %f\n", limits[i]);
-    threshold = limits[i];
-    time(&filter_spmv, "etch", 10);
-  }
-}
+//void test_sample_mv(sqlite3* db) {
+//  load_data_of_size(db, 100000);
+//
+//  double limits[] = {0, 0.2, 0.4, 0.6, 0.8, 1.0};
+//  for(int i = 0; i < 6; i++) {
+//    printf("testing thresh %f\n", limits[i]);
+//    threshold = limits[i];
+//    time(&filter_spmv, "etch", 10);
+//  }
+//}
 
 void test_taco(sqlite3* db) {
   char sql[256];
@@ -320,12 +323,12 @@ void test_taco(sqlite3* db) {
   int rc;
   char* data;
 
-  int sizes[] = {1000, 10000, 20000, 50000, 100000};
-  for(int i = 0; i < 5; i++) {
+  //int sizes[] = {1000, 10000, 20000, 50000, 100000};
+  int sizes[] = {50000};
+  for(int i = 0; i < 1; i++) {
     printf("TESTING SIZE: %d\n\n", sizes[i]);
     load_data_of_size(db, sizes[i]);
 #include "gen_out_taco.c"
-    break;
   }
 }
 
@@ -365,8 +368,8 @@ int main() {
   //rc = sqlite3_exec(db, sql, gen_callback_graph_dsB, (void*)data, &zErrMsg);
 
 
-  test_sample_mv(db);
-  return 0;
+  //test_sample_mv(db);
+  //return 0;
 
   // HEY
   test_taco(db);

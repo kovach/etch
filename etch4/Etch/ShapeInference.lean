@@ -4,8 +4,8 @@ import Etch.LVal
 import Etch.Add
 import Etch.Mul
 
-class NatLt (m n : ℕ) := (proof : m < n)
-instance NatLt.one (n : ℕ) : NatLt 0 (n+1) := ⟨Nat.succ_pos _⟩
+class NatLt (m n : ℕ) where proof : m < n
+instance NatLt.one (n : ℕ) : NatLt 0 n.succ := ⟨Nat.succ_pos _⟩
 instance NatLt.trans (m n : ℕ) [h : NatLt m n] : NatLt (m+1) (n+1) :=
 ⟨Nat.succ_lt_succ h.proof⟩
 
@@ -16,10 +16,9 @@ universe u v
 
 class Atomic (α : Type u)
 
-class Rectangle (Gen : ℕ → Type _ → Type _) :=
-  (map {α β : Type _} (i : ℕ) : (α → β) → Gen i α → Gen i β)
-  (repl {α : Type _}  (i : ℕ) : α → Gen i α)
-
+class Rectangle (f : ℕ → Type _ → Type _) :=
+  (map {α β : Type _} (i : ℕ) : (α → β) → f i α → f i β)
+  (repl {α : Type _}  (i : ℕ) : α → f i α)
 open Rectangle
 
 class Merge (α β : Type _) (γ : outParam $ Type _) :=
@@ -41,8 +40,7 @@ instance Gen.Merge.succ {i : ℕ} [Merge α β γ] : Merge (Gen i α) (Gen i β)
 ⟨map i (merge1 β), map i (merge2 α)⟩
 instance Gen.Merge.scalar_r {i : ℕ} {ρ} [Atomic ρ] [Merge α ρ α] : Merge (Gen i α) ρ (Gen i α) :=
 ⟨id, repl i ∘ merge2 α⟩
-instance Gen.Merge.lt {i j : ℕ} [NatLt i j] [Merge α (Gen' j β) γ]
-: Merge (Gen i α) (Gen' j β) (Gen i γ) :=
+instance Gen.Merge.lt {i j : ℕ} [NatLt i j] [Merge α (Gen' j β) γ] : Merge (Gen i α) (Gen' j β) (Gen i γ) :=
 ⟨map i (merge1 (Gen' j β)), repl i ∘ merge2 α⟩
 instance Gen.Merge.scalar_l {j : ℕ} {ρ} [Atomic ρ] [Merge ρ β β] : Merge ρ (Gen j β) (Gen j β) :=
 ⟨repl j ∘ merge1 β, id⟩
@@ -56,27 +54,25 @@ end Instances
 instance {α β γ : Type _} [Merge α β γ] [Mul γ] : HMul α β γ := ⟨λ a b => merge1 β a * merge2 α b⟩
 instance {α β γ : Type _} [Merge α β γ] [Add γ] : HAdd α β γ := ⟨λ a b => merge1 β a + merge2 α b⟩
 
-@[reducible] def Ind (i : ℕ) (ι : Type _) := ι
+@[reducible] def Ind (_ : ℕ) (ι : Type _) := ι
+
 inductive Str (ι : Type _) (n : ℕ) (α : Type _)
 | fun (v : Ind n ι →ₐ α) : Str ι n α
 | str (s : Ind n ι →ₛ α) : Str ι n α
 
 instance {n} : Functor (Str n ι) where
-  map := λ f g => match g with
+  map f
   | .fun v => Str.fun $ f ∘ v
   | .str g => Str.str { g with value := f ∘ g.value }
 
 instance {ι : Type _} : Rectangle (Str ι) where
-  map  := λ _ => Functor.map
-  repl := λ _ v => .fun $ λ _ => v
+  map  _ := Functor.map
+  repl _ := fun v => .fun $ λ _ => v
 
 instance : Atomic (E α) := ⟨⟩
 
-
-set_option quotPrecheck false
 notation:37 a:36 " × " b:36 " ⟶ " c:36  => Str b a c
-notation:37 p:36 " ↠ " c:36  => Str p.2 p.1 c
-set_option quotPrecheck true
+infixr:25 " ↠ " => λ (p : ℕ×Type) c => Str (Prod.snd p) (Prod.fst p) c
 
 instance [Guard α] : Guard (n × ι ⟶ α) where guard n b := λ
 | .str s => .str {s with valid := λ l => b * s.valid l}
@@ -86,7 +82,9 @@ variable
 {α β γ : Type _}
 (n : ℕ)
 {ι : Type _} [Tagged ι] [DecidableEq ι] [LT ι] [DecidableRel (LT.lt : ι → ι → _)] [Zero ι]
+[Max ι]
 
+-- todo: make local
 abbrev i := (0, ℕ)
 abbrev j := (1, ℕ)
 abbrev k := (2, ℕ)
@@ -136,8 +134,8 @@ class of_stream (α β : Type _) := (coe : α → β)
 instance base.of_stream : of_stream α α := ⟨id⟩
 
 -- TODO!
-variable
-[Add ι] [OfNat ι 1]
+variable [Add ι] [OfNat ι 1]
+
 def Str.to_g {n} : (n × ι ⟶ α) → (ι →ₛ α) := λ s => match s with
 | .fun f => f <$> S.univ "dim" "u_" -- ??
 | .str a => a
@@ -165,8 +163,8 @@ notation:35 "∑" i:34 "," j:34 "," k:34 "," l:34 ":" v:34 => SumIndex.sum i.1 (
 variable (A : ℕ →ₛ ℕ →ₛ E R)
 #check SumIndex.sum 0 (a : 0 × ℕ ⟶ E R)
 #check ∑ i: (A : i ↠ j ↠ E R)
-#check ∑ i, j: (A : i ↠ j ↠ E R)
-#check ∑ i, j: (A : i ↠ j ↠ E R)
+--#check ∑ i, j: (A : i ↠ j ↠ E R)
+--#check ∑ i, j: (A : i ↠ j ↠ E R)
 --#check ∑ j, k: (A : i ↠ j ↠ E R) * (B : j ↠ k ↠ E R)
 
 class ApplyScalarFn (α β γ : Type _) (δ : outParam $ Type _) := (map : (E α → E β) → γ → δ)
@@ -178,3 +176,26 @@ variable (f : E R → E RMin)
 def E.toMin (e : E R) : E RMin := E.call O.toMin ![e]
 def E.toMax (e : E R) : E RMax := E.call O.toMax ![e]
 def E.ofNat (e : E ℕ) : E R    := E.call O.toNum ![e]
+
+/-
+#check Nat.add
+inductive St (α : Type) : ℕ → Type
+| base : St α 0
+| vec (δ) {n} (of : St α n) : St α (n+δ)
+
+-- no
+def St.eval {n α} (ctxt : Fin n → Type) : St α n → List Type
+| base => []
+| vec d x => ctxt ⟨d, Nat.add⟩ :: x.eval _
+
+class Broadcast (α β : Type _) (γ : outParam $ Type _) :=
+  broadcast : List ℕ → α → β → γ × γ
+
+instance [Rectangle f] [Broadcast α β γ] : Broadcast (f i α) (f j β) (f
+
+def broadcast (ordering : List ℕ) (a : f i α) (b : g i β)
+/- todo
+  fix ∑ notation (use ∃ from Heap)
+  make broadcast based on a given ordering argument
+-/
+-/

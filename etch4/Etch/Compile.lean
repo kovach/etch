@@ -5,40 +5,46 @@ import Etch.Add
 import Etch.Mul
 import Etch.ShapeInference
 
-class Compile (α β : Type _) where compile : α → β → P
+class Compile (location value : Type _) where compile : Name → location → value → P
 
 section Compile
 open Compile
 
-instance base_mem [Tagged α] [Add α] : Compile (MemLoc α) (E α) := ⟨λ l v => .store_mem l.arr l.ind (l.access + v) ⟩
-
 instance base_var [Tagged α] [Add α] : Compile (Var α) (E α) where
-  compile l v := .store_var l (E.var l + v)
+  compile _ l v := .store_var l (E.var l + v)
 
-instance step [Compile α β] : Compile (lvl ι α) (S ι β) where
-  compile := λ storage v =>
-    let (init, s) := v.init []
-    let (push, position) :=
-    storage.push (v.index s)
-    init ;; P.while (v.valid s)
-      (.branch (v.ready s)
-        (push;; compile position (v.value s);; (v.succ s))
-        (v.skip s (v.index s)))
+instance base_mem [Tagged α] [Add α] : Compile (MemLoc α) (E α) where
+  compile _ l v := .store_mem l.arr l.ind (l.access + v)
+
+instance S.step [Compile L R] : Compile (lvl ι L) (ι →ₛ R) where
+  compile n l r :=
+    let (init, s) := r.init emptyName
+    let (push, position) := l.push (r.index s)
+    init;; .while (r.valid s)
+      (.branch (r.ready s)
+        (push;; compile n.freshen position (r.value s);; (r.succ s))
+        (r.skip s (r.index s)))
+
+-- inv: ∃ v, addr ↦ v ∧ₕ ⟦v⟧ + ⟦r⟧ = v₀
+-- r.ready -> ⟦r⟧ = ⟦r.value⟧ + ⟦r.succ⟧
+-- r.ready, lawful l.position r.value -> _ {{compile l.pos r.val}} λ h => l.position.addr h = ⟦r.val⟧
+-- l.position.addr h = ⟦r.val⟧ → l.addr ↦ ⟦v_⟧ + ⟦r.value⟧
+-- inv {{ l.push r.index;; compile (l.position r.index) r.value;; r.succ }} inv
 
 instance contract [Compile α β] : Compile α (Contraction β) where
-  compile := λ storage ⟨_, v⟩ =>
-    let (init, s) := v.init [];
-    init ;; P.while (v.valid s)
+  compile n := λ storage ⟨_, v⟩ =>
+    let (init, s) := v.init emptyName
+    init ;; .while (v.valid s)
       (.branch (v.ready s)
-        (Compile.compile storage (v.value s);; v.succ s)
+        (Compile.compile n.freshen storage (v.value s);; v.succ s)
         (v.skip s (v.index s)))
 
 -- Used only to generate callback for data loading
-instance [Compile α β] : Compile (lvl ι α) (E ι × β) :=
-{ compile := λ storage v =>
+instance [Compile α β] : Compile (lvl ι α) (E ι × β) where
+  compile n := λ storage v =>
     let (push, position) := storage.push v.1
-    push;; Compile.compile position v.2 }
+    push;; Compile.compile n.freshen position v.2
 
 end Compile
 
-def go [Compile α β] (l : α) (r : β) : String := (Compile.compile l r).compile.emit.run
+def go [Compile α β] (l : α) (r : β) : String := (Compile.compile emptyName l r).compile.emit.run

@@ -12,4 +12,6 @@ lean_exe sep {
 --require aesop from git
 --  "https://github.com/JLimperg/aesop"
 require mathlib from git
-  "https://github.com/leanprover-community/mathlib4/"@"f493ef4c7bbdfc42f14962390c505c097a1650f9"
+  "https://github.com/leanprover-community/mathlib4/"@"ca97e7ba874708c46ddfc25165f9bc1a75c5b8cc"
+--require mathlib from git
+--  "https://github.com/leanprover-community/mathlib4/"

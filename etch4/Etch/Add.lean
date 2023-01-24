@@ -15,8 +15,8 @@ instance [Tagged α] [OfNat α (nat_lit 0)] : Guard (E α) where
 
 instance : Guard (S ι α) where guard := λ v b s =>
 {s with
-  init := λ n => (s.init n).map (λ p =>.decl v b;; p) id
-  valid := λ l => b * s.valid l}
+   init := λ n => (s.init n).map (λ p => .decl v b;; p) id
+   valid := λ l => b * s.valid l}
 
 -- Returns an expression which evaluates to `true` iff `a.index' ≤ b.index'`
 def S_le (a : S ι α) (b : S ι β) (l : a.σ × b.σ) : E Bool :=

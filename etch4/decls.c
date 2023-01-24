@@ -1,4 +1,6 @@
 // sorry
+#define num double
+#define ind int
 
 int size[] = {0,0};
 
