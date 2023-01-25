@@ -43,7 +43,6 @@ def S.add [HAdd α β γ] [Guard α] [Guard β] (a : S ι α) (b : S ι β) : S 
              (Guard.guard t.cv₂ ((S_le b a p.symm) * b.ready p.2) $ b.value p.2)
   skip  := λ (p, _) i => a.skip p.1 i ;; b.skip p.2 i
   succ  := λ (p, t) i =>
-    .decl t.csucc (S_le b a p.symm);;
     .decl t.ci i;;
     a.succ p.1 t.ci;; b.succ p.2 t.ci
   ready := λ (p, _) => (S_le a b p) * a.ready p.1 + (S_le b a p.symm) * b.ready p.2

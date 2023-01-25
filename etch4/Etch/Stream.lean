@@ -85,6 +85,8 @@ def emptyName : Name := []
 
 structure S (ι : Type _) (α : Type _) where
   σ     : Type
+  -- next_weak/next_strict?
+  -- upto/past ?
   skip  : σ → E ι → P -- skip s i : if current index < i, must advance; may advance to first index ≥ i.
   succ  : σ → E ι → P -- succ s i : if current index ≤ i, must advance; may advance to first index > i.
   value : σ → α

@@ -104,4 +104,3 @@ def object (l : String) : (t : List LevelType) → MemLoc ℕ → trieType α t
 | [] => ⟨"no", 0⟩
 | [x] => λ e =>
   (with_values (sparse_il (l ++ "1_crd" : ArrayVar ℕ)) (dense_vl $ l ++ "_vals"))
-
