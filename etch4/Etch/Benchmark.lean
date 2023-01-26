@@ -6,6 +6,10 @@ import Etch.Mul
 import Etch.Compile
 import Etch.ShapeInference
 
+def E.toMin (e : E R) : E RMin := E.call Op.toMin ![e]
+def E.toMax (e : E R) : E RMax := E.call Op.toMax ![e]
+def E.ofNat (e : E ℕ) : E R    := E.call Op.toNum ![e]
+
 section TACO
 
 variable {ι : Type} [Tagged ι] [DecidableEq ι]
@@ -16,8 +20,8 @@ variable {ι : Type} [Tagged ι] [DecidableEq ι]
 -- todo: replace default interval
 def TACO.interval (pos : Var ℕ) (lower upper : E ℕ) : ι →ₛ (E ℕ) where
   σ := Var ℕ
-  succ pos i := .store_var pos $ pos + .call O.ofBool ![(E.access is pos.expr <= i)]
-  skip pos i := .store_var pos $ pos + .call O.ofBool ![(E.access is pos.expr << i)]
+  succ pos i := .store_var pos $ pos + .call Op.ofBool ![(E.access is pos.expr <= i)]
+  skip pos i := .store_var pos $ pos + .call Op.ofBool ![(E.access is pos.expr << i)]
   value pos := pos.expr
   ready _   := 1
   index pos := .access is pos.expr
@@ -31,29 +35,29 @@ end TACO
 
 def List.sequence [Monad m] : List (m α) → m (List α) := List.mapM id
 
-def IO.compile' (f : String) (body : List String) : IO Unit := IO.FS.writeFile f $ String.join body
+def IOp.compile' (f : String) (body : List String) : IO Unit := IO.FS.writeFile f $ String.join body
 def compile_fun (name : String) (body : List String) : String :=
 s!"double {name}()\{ double val = 0;\n {String.join body} return val; }"
 
 def FSQLCallback : (E ℕ × E ℕ × E R) :=
-(.call O.atoi ![.access "argv" 0],
- .call O.atoi ![.access "argv" 1],
+(.call Op.atoi ![.access "argv" 0],
+ .call Op.atoi ![.access "argv" 1],
  1)
 
 def VSQLCallback : (E ℕ × E R) :=
-(.call O.atoi ![.access "argv" 0],
- .call O.atof ![.access "argv" 1])
+(.call Op.atoi ![.access "argv" 0],
+ .call Op.atof ![.access "argv" 1])
 
 def SQLCallback : (E ℕ × E ℕ × E R) :=
-(.call O.atoi ![.access "argv" 0],
- .call O.atoi ![.access "argv" 1],
- .call O.atof ![.access "argv" 2])
+(.call Op.atoi ![.access "argv" 0],
+ .call Op.atoi ![.access "argv" 1],
+ .call Op.atof ![.access "argv" 2])
 
 def SQLCallback3 : (E ℕ × E ℕ × E ℕ × E R) :=
-(.call O.atoi ![.access "argv" 0],
- .call O.atoi ![.access "argv" 1],
- .call O.atoi ![.access "argv" 2],
- .call O.atof ![.access "argv" 3])
+(.call Op.atoi ![.access "argv" 0],
+ .call Op.atoi ![.access "argv" 1],
+ .call Op.atoi ![.access "argv" 2],
+ .call Op.atof ![.access "argv" 3])
 
 def l_dV  : lvl ℕ (MemLoc R)         := dense_vec "dV" "dim" "i1_"
 def l_sV  : lvl ℕ (MemLoc R)         := sparse_vec "sV"
@@ -153,13 +157,13 @@ def names := [
   "sum_ttm"
 ]
 
-def ssA   : i ↠ j ↠ E R      := taco_mat "ssA"
-def dsA   : i ↠ j ↠ E R      := taco_dsMat "dsA"
-def ssB_ij : i ↠ j ↠ E R     := taco_mat "ssB"
-def ssB   : j ↠ k ↠ E R      := taco_mat "ssB"
-def ssB_skip   : j ↠ k ↠ E R := skip_mat "ssB"
-def dsB   : j ↠ k ↠ E R      := taco_dsMat "dsB"
-def sssC : i ↠ j ↠ k ↠ E R   := taco_mat3 "ssC"
+def ssA      : i ↠ j ↠ E R      := taco_mat "ssA"
+def dsA      : i ↠ j ↠ E R      := taco_dsMat "dsA"
+def ssB_ij   : i ↠ j ↠ E R     := taco_mat "ssB"
+def ssB      : j ↠ k ↠ E R      := taco_mat "ssB"
+def ssB_skip : j ↠ k ↠ E R := skip_mat "ssB"
+def dsB      : j ↠ k ↠ E R      := taco_dsMat "dsB"
+def sssC     : i ↠ j ↠ k ↠ E R   := taco_mat3 "ssC"
 
 def dsR : i ↠ j ↠ E R:= mat "dsR"
 def dsS : j ↠ k ↠ E R:= mat "dsS"
@@ -178,7 +182,7 @@ def mttkrp    := ∑ i, j, k, l: sssC * (dsA' : j ↠ l ↠ E R) * (dsB' : k ↠
 def mul_inner := ∑ i, j, k: (ssA' : i ↠ k ↠ E R) * (ssB' : j ↠ k ↠ E R)
 def udf       := ((λ _ : E R => 1) <$$> dsR) * (S.udf : i ↠ j ↠ E RMax)
 def add_ss    := ∑ i, j: ((ssA' + ssB') : i ↠ j ↠ E R)
-def inner     :=  ∑ i, j: ssA * ssB_ij
+def inner     := ∑ i, j: ssA * ssB_ij
 
 def threshold : E R := "threshold"
 def filter_v    : i ↠ E R := S.valFilter (λ e => threshold << (e : E R)) sV
@@ -240,7 +244,5 @@ def main : IO Unit := do
   IO.FS.writeFile "gen_funs.c" funs
   IO.FS.writeFile "gen_out.c" main
   IO.FS.writeFile "gen_out_taco.c" main_taco
-
-#exit
 
 #eval main

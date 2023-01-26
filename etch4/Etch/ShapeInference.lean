@@ -174,11 +174,6 @@ instance : ApplyScalarFn α β (E α) (E β) := ⟨ (. $ .) ⟩
 instance [ApplyScalarFn α β α' β'] : ApplyScalarFn α β (n × ι ⟶ α') (n × ι ⟶ β') := ⟨ λ f x => ApplyScalarFn.map f <$> x ⟩
 infixr:10 " <$$> "  => ApplyScalarFn.map
 
-variable (f : E R → E RMin)
-def E.toMin (e : E R) : E RMin := E.call O.toMin ![e]
-def E.toMax (e : E R) : E RMax := E.call O.toMax ![e]
-def E.ofNat (e : E ℕ) : E R    := E.call O.toNum ![e]
-
 /-
 #check Nat.add
 inductive St (α : Type) : ℕ → Type

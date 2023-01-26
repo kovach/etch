@@ -13,7 +13,7 @@ def Var.toString : Var α → String := id
 instance : Coe String (Var α) := ⟨Var.mk⟩
 
 inductive E : Type → Type 1
-| call {α} (op : O α) (args : (i : Fin op.arity) → E (op.argTypes i)) : E α
+| call {α} (op : Op α) (args : (i : Fin op.arity) → E (op.argTypes i)) : E α
 | var    : (v : Var α) → E α
 | access : Var (ℕ → α) → E ℕ → E α
 | intLit : ℕ → E ℕ
@@ -32,11 +32,11 @@ def E.eval (c : HeapContext) : E α → α
 
 instance : OfNat Bool (nat_lit 0) := ⟨ false ⟩
 instance : OfNat Bool (nat_lit 1) := ⟨ .true ⟩
-instance [Tagged α] [Add α] : Add (E α) := ⟨ λ a b => E.call O.add ![a, b] ⟩
-instance [Tagged α] [Sub α] : Sub (E α) := ⟨ λ a b => E.call O.sub ![a, b] ⟩
-instance [Tagged α] [Mul α] : Mul (E α) := ⟨ λ a b => E.call O.mul ![a, b] ⟩
-instance [Tagged α] [OfNat α (nat_lit 0)] : OfNat (E α) (nat_lit 0) := ⟨ E.call O.zero ![] ⟩
-instance [Tagged α] [OfNat α (nat_lit 1)] : OfNat (E α) (nat_lit 1) := ⟨ E.call O.one ![] ⟩
+instance [Tagged α] [Add α] : Add (E α) := ⟨ λ a b => E.call .add ![a, b] ⟩
+instance [Tagged α] [Sub α] : Sub (E α) := ⟨ λ a b => E.call .sub ![a, b] ⟩
+instance [Tagged α] [Mul α] : Mul (E α) := ⟨ λ a b => E.call .mul ![a, b] ⟩
+instance [Tagged α] [OfNat α (nat_lit 0)] : OfNat (E α) (nat_lit 0) := ⟨ E.call .zero ![] ⟩
+instance [Tagged α] [OfNat α (nat_lit 1)] : OfNat (E α) (nat_lit 1) := ⟨ E.call .one ![] ⟩
 instance : OfNat (E ℕ) n := ⟨ .intLit n ⟩
 instance : Inhabited (E R) := ⟨ 0 ⟩
 --def E.ext (f : String) : E Unit := E.call (O.voidCall f) ![]
@@ -47,11 +47,11 @@ def E.compile : E α → Expr
 | var v => Expr.var v.toString
 | intLit x => Expr.lit x
 
-infixr:40 " << " => λ a b => E.call O.lt ![a, b]
-infixr:40 " <ᵣ " => λ a b => E.call O.ofBool ![E.call O.lt ![a, b]]
-infixr:40 " == " => λ a b => E.call O.eq ![a, b]
-infixr:40 " != " => λ a b => E.call O.neg ![(E.call O.eq ![a, b])]
-infixr:40 " <= " => λ a b => E.call O.le ![a, b]
+infixr:40 " << " => λ a b => E.call Op.lt ![a, b]
+infixr:40 " <ᵣ " => λ a b => E.call Op.ofBool ![E.call Op.lt ![a, b]]
+infixr:40 " == " => λ a b => E.call Op.eq ![a, b]
+infixr:40 " != " => λ a b => E.call Op.neg ![(E.call Op.eq ![a, b])]
+infixr:40 " <= " => λ a b => E.call Op.le ![a, b]
 
 inductive P
 | seq    : P → P → P
@@ -191,7 +191,8 @@ def csr.of (name : String) (n : ℕ) (ι := ℕ) : csr ι ℕ :=
   let field {ι} (x : String) : Var ι := Var.mk $ name ++ n.repr ++ x
   { i := field "_crd", v := field "_pos", var := field "_i" }
 
-def csr.level (h : IterMethod) : csr ι ℕ → E ℕ → ι →ₛ (E ℕ) := λ csr loc => S.interval csr.i h csr.var (.access csr.v loc) (csr.v.access (loc+1))
+def csr.level (h : IterMethod) (vars : csr ι ℕ) (loc : E ℕ) : ι →ₛ (E ℕ) :=
+  S.interval vars.i h vars.var (.access vars.v loc) (vars.v.access (loc+1))
 def S.level {f} [Functor f] (h : IterMethod) : csr ι ℕ → f (E ℕ) → f (ι →ₛ (E ℕ)) := Functor.map ∘ csr.level h
 def S.leaf  {f} [Functor f] : Var (ℕ → α) → f (E ℕ) → f (E α) := Functor.map ∘ E.access
 --def S.leaf' : Var α → E ℕ → E α := E.access
@@ -220,5 +221,3 @@ def seqInit (a : S ι α) (b : S ι β) (n : Name) :=
 let (ai, as) := a.init (n.fresh 0);
 let (bi, bs) := b.init (n.fresh 1);
 (ai ;; bi, (as, bs))
-
---#eval IO.Process.run { cmd := "ls" }

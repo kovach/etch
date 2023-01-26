@@ -11,7 +11,7 @@ class Guard (α : Type _) where
   guard : Var Bool → E Bool → α → α
 
 instance [Tagged α] [OfNat α (nat_lit 0)] : Guard (E α) where
-  guard := λ _ b v => .call O.ternary ![b, v, (0 : E α)]
+  guard := λ _ b v => .call Op.ternary ![b, v, (0 : E α)]
 
 instance : Guard (S ι α) where guard := λ v b s =>
 {s with
@@ -20,7 +20,7 @@ instance : Guard (S ι α) where guard := λ v b s =>
 
 -- Returns an expression which evaluates to `true` iff `a.index' ≤ b.index'`
 def S_le (a : S ι α) (b : S ι β) (l : a.σ × b.σ) : E Bool :=
-  (.call O.neg ![b.valid l.2]) + (a.valid l.1 * (a.index l.1 <= b.index l.2))
+  (.call Op.neg ![b.valid l.2]) + (a.valid l.1 * (a.index l.1 <= b.index l.2))
 
 infixr:40 "≤ₛ" => S_le
 
@@ -28,13 +28,12 @@ def Prod.symm (f : α × β) := (f.2, f.1)
 
 -- Local temporary variables for `add`
 structure AddTmp (ι : Type) where
-(csucc : Var Bool)
 (cv₁ : Var Bool)
 (cv₂ : Var Bool)
 (ci : Var ι)
 
 def AddTmp.ofName (n : Name) : AddTmp ι :=
-⟨(Var.mk "csucc").fresh n, (Var.mk "cv1__").fresh n, (Var.mk "cv2__").fresh n, (Var.mk "ci").fresh n⟩
+⟨(Var.mk "cv1__").fresh n, (Var.mk "cv2__").fresh n, (Var.mk "ci").fresh n⟩
 
 def S.add [HAdd α β γ] [Guard α] [Guard β] (a : S ι α) (b : S ι β) : S ι γ where
   σ := (a.σ × b.σ) × AddTmp ι
@@ -46,7 +45,7 @@ def S.add [HAdd α β γ] [Guard α] [Guard β] (a : S ι α) (b : S ι β) : S 
     .decl t.ci i;;
     a.succ p.1 t.ci;; b.succ p.2 t.ci
   ready := λ (p, _) => (S_le a b p) * a.ready p.1 + (S_le b a p.symm) * b.ready p.2
-  index := λ (p, _) => .call O.ternary ![S_le a b p, a.index p.1, b.index p.2]
+  index := λ (p, _) => .call Op.ternary ![S_le a b p, a.index p.1, b.index p.2]
   valid := λ (p, _) => a.valid p.1 + b.valid p.2
   init  := λ n => let (i, s) := seqInit a b n; (i, (s, .ofName n))
 

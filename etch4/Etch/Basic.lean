@@ -19,6 +19,7 @@ notation "![" a "," b "," c "]" => Fin.mk3 a b c
 
 def rev_fmap_comp {f} [Functor f] (x : α → f β) (y : β → γ) := Functor.map y ∘ x
 infixr:90 "⊚" => rev_fmap_comp
+-- todo remove
 def rev_app : α → (α → β) → β := Function.swap (. $ .)
 infixr:9 "&" => rev_app
 

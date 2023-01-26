@@ -48,114 +48,116 @@ instance : OfNat RMax (nat_lit 1) := ⟨ default ⟩
 --attribute [irreducible] RMin
 --attribute [irreducible] RMax
 
-structure O (α : Type _) where
+structure Op (α : Type _) where
   arity : ℕ
   argTypes : Fin arity → Type
   spec : ((n : Fin arity) → argTypes n) → α
   opName : String
 
--- def O.name (f : O β) : String := f.tag ++ "_" ++ f.opName
+attribute [reducible] Op.argTypes
 
-def O.lt [Tagged α] [LT α] [DecidableRel (LT.lt : α → α → _) ] : O Bool where
+-- def Op.name (f : Op β) : String := f.tag ++ "_" ++ f.opName
+
+def Op.lt [Tagged α] [LT α] [DecidableRel (LT.lt : α → α → _) ] : Op Bool where
   argTypes := ![α, α]
   spec := λ a => a 0 < a 1
   opName := tag_mk_fun α "lt"
 
-def O.le [Tagged α] [LE α] [DecidableRel (LE.le : α → α → _) ] : O Bool where
+def Op.le [Tagged α] [LE α] [DecidableRel (LE.le : α → α → _) ] : Op Bool where
   argTypes := ![α, α]
   spec := λ a => a 0 ≤ a 1
   opName := tag_mk_fun α "le"
 
-def O.max [Tagged α] [Max α] : O α where
+def Op.max [Tagged α] [Max α] : Op α where
   argTypes := ![α, α]
   spec := λ a => Max.max (a 0) (a 1)
   opName := tag_mk_fun α "max"
 
-def O.min [Tagged α] [Min α] : O α where
+def Op.min [Tagged α] [Min α] : Op α where
   argTypes := ![α, α]
   spec := λ a => Min.min (a 0) (a 1)
   opName := tag_mk_fun α "min"
 
-def O.eq [Tagged α] [DecidableEq α] : O Bool where
+def Op.eq [Tagged α] [DecidableEq α] : Op Bool where
   argTypes := ![α, α]
   spec := λ a => a 0 = a 1
   opName := tag_mk_fun α "eq"
 
-def O.add [Tagged α] [Add α] : O α where
+def Op.add [Tagged α] [Add α] : Op α where
   argTypes := ![α, α]
   spec := λ a => a 0 + a 1
   opName := tag_mk_fun α "add"
 
-def O.sub [Tagged α] [Sub α] : O α where
+def Op.sub [Tagged α] [Sub α] : Op α where
   argTypes := ![α, α]
   spec := λ a => a 0 - a 1
   opName := tag_mk_fun α "sub"
 
-def O.mid : O ℕ where
+def Op.mid : Op ℕ where
   argTypes := ![ℕ, ℕ]
   spec := λ a => Nat.div (a 0 + a 1) 2
   opName := tag_mk_fun ℕ "mid"
 
-def O.mul [Tagged α] [Mul α] : O α where
+def Op.mul [Tagged α] [Mul α] : Op α where
   argTypes := ![α, α]
   spec := λ a => a 0 * a 1
   opName := tag_mk_fun α "mul"
 
-def O.neg : O Bool where
+def Op.neg : Op Bool where
   argTypes := ![Bool]
   spec := λ a => not $ a 0
   opName := tag_mk_fun Bool "neg"
 
-def O.one [Tagged α] [OfNat α 1] : O α where
+def Op.one [Tagged α] [OfNat α 1] : Op α where
   argTypes := ![]
   spec := λ _ => 1
   opName := tag_mk_fun α "one"
 
-def O.zero [Tagged α] [OfNat α 0] : O α where
+def Op.zero [Tagged α] [OfNat α 0] : Op α where
   argTypes := ![]
   spec := λ _ => 0
   opName := tag_mk_fun α "zero"
 
-def O.atoi : O ℕ where
+def Op.atoi : Op ℕ where
   argTypes := ![String]
   spec := λ _ => default
   opName := tag_mk_fun String "atoi"
 
-def O.atof : O R where
+def Op.atof : Op R where
   argTypes := ![String]
   spec := λ _ => default -- todo
   opName := tag_mk_fun String "atof"
 
-def O.ofBool [Tagged α] [OfNat α (nat_lit 0)] [OfNat α (nat_lit 1)] : O α where
+def Op.ofBool [Tagged α] [OfNat α (nat_lit 0)] [OfNat α (nat_lit 1)] : Op α where
   argTypes := ![Bool]
   spec := λ a => if a 0 then 1 else 0
   opName := tag_mk_fun α "ofBool"
 
-def O.toNum : O R where
+def Op.toNum : Op R where
   argTypes := ![ℕ]
   spec := λ _ => default
   opName := tag_mk_fun ℕ "toNum"
 
-def O.toMin : O RMin where
+def Op.toMin : Op RMin where
   argTypes := ![R]
   spec := λ a => RMin.ofR (a 0)
   opName := tag_mk_fun R "toMin"
 
-def O.toMax : O RMax where
+def Op.toMax : Op RMax where
   argTypes := ![R]
   spec := λ a => RMax.ofR (a 0)
   opName := tag_mk_fun R "toMax"
 
-def O.ternary : O α where
+def Op.ternary : Op α where
   argTypes := ![Bool, α, α]
   spec := λ a => bif (a 0) then a 1 else a 2
   opName := "macro_ternary"
 
-def O.udf : O RMin := { argTypes := ![ℕ, ℕ], spec := default, opName := "udf" }
-def O.udf_max : O RMax where argTypes := ![ℕ, ℕ]; spec := default; opName := "udf_max"
-def O.toGuard [Tagged α] [OfNat β 1] : O β where argTypes := ![α]; spec := λ _ => 1; opName := tag_mk_fun α "toGuard"
+def Op.udf : Op RMin := { argTypes := ![ℕ, ℕ], spec := default, opName := "udf" }
+def Op.udf_max : Op RMax where argTypes := ![ℕ, ℕ]; spec := default; opName := "udf_max"
+def Op.toGuard [Tagged α] [OfNat β 1] : Op β where argTypes := ![α]; spec := λ _ => 1; opName := tag_mk_fun α "toGuard"
 
-def O.access {ι α : Type} : O α :=
+def Op.access {ι α : Type} : Op α :=
 { argTypes := ![ι → α, ι],
   spec := λ x  => (x 0) (x 1),
   opName := "arr_access" }
