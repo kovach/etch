@@ -1,10 +1,8 @@
 import verification.stream_props
 
-section
-variables {α ι ι₁ ι₂ : Type}
-{n : ℕ} {v : α}
+variables {α ι : Type}
 
-open_locale classical
+section streams
 
 -- valid as long as the current index is in w
 @[simps]
@@ -17,26 +15,47 @@ def substream (s : Stream ι α) (w : set ι) : Stream ι α :=
   value := λ p h, s.value p h,
 }
 
--- lemma substream.state_eq (s : Stream ι α) (w : set ι) :
--- ∀ n x, s.next'^[n] = (substream s w).next'^[n]
+variables {s : Stream ι α} {w : set ι}
 
-lemma substream.bound_valid (s : Stream ι α) (B x) :
+@[simp]
+private lemma substream.next'_eq {x : s.σ} :
+(substream s w).valid x → (substream s w).next' x = s.next' x :=
+λ h, by rw [Stream.next'_val h, substream_next, Stream.next'_val]
+
+private lemma substream.valid_subsumes {n : ℕ} {x : s.σ} :
+(substream s w).valid ((substream s w).next'^[n] x) → s.valid (s.next'^[n] x) :=
+begin
+  induction n with n ih generalizing x,
+  { simp only [function.iterate_zero, substream_valid],
+    exact Exists.fst },
+  { intro h,
+    have hxv := Stream.next'_valid' _ h,
+    rw [function.iterate_succ_apply] at h,
+    simpa [hxv] using ih h }
+end
+
+private lemma substream.bound_valid {B : ℕ} {x : s.σ} :
 s.bound_valid B x → ∀ w, (substream s w).bound_valid B x :=
 begin
   simp_rw bound_valid_iff_next'_iterate,
-  induction B generalizing x,
+  induction B with n ih generalizing x,
   { simp_rw [function.iterate_zero_apply, substream_valid, not_exists],
-    intros,
-    contradiction },
-  { by_cases s.valid (s.next'^[B_n] x); intros hnv w,
-    { simp_rw [function.iterate_succ_apply'], sorry },
-    { sorry } }
+    intros; contradiction },
+  { intros hnv w,
+    exact mt substream.valid_subsumes hnv }
 end
+
+end streams
+
+section stream_exec
 
 @[simps]
 def Stream.split (r : ι → ι → Prop) (s : StreamExec ι α) : Stream (quot r) (StreamExec ι α) :=
 { σ := s.stream.σ × option (quot r), -- keep track of the last element seen
   valid := λ p, s.stream.valid p.1,
+  -- TODO: instead of making the stream merely non-ready while skipping,
+  -- we should change next to recurse until it reaches the next window.
+  -- Will need to prove well-foundedness using bound_valid.
   ready := λ p, s.stream.ready p.1 ∧
                 s.stream.bound_valid s.bound p.1 ∧ -- this is weird
                 ∃ hv, p.2 ≠ quot.mk r (s.stream.index p.1 hv),
@@ -46,14 +65,13 @@ def Stream.split (r : ι → ι → Prop) (s : StreamExec ι α) : Stream (quot 
     stream := substream s.stream (r (s.stream.index p.1 h.2.2.fst)),
     state := p.1,
     bound := s.bound,
-    bound_valid := begin
-      have := h.2.1,
-      sorry
-    end,
+    bound_valid := substream.bound_valid h.2.1 _,
   },
 }
 
-lemma Stream.split_state {r} {s : StreamExec ι α} {prev} :
+variables {r : ι → ι → Prop} {s : StreamExec ι α}
+
+lemma Stream.split_state {prev : option (quot r)} :
 ∀ (x: s.stream.σ) n,
 ((Stream.split r s).next'^[n] (x, prev)).1 = (s.stream.next'^[n] x) :=
 begin
@@ -84,4 +102,16 @@ def StreamExec.split (r : ι → ι → Prop) (s : StreamExec ι α) : StreamExe
   end,
 }
 
-end
+variables [add_comm_monoid α]
+
+/-
+TODOs:
+- do we need `r` to be an equivalence relation?
+- do we need a no-lookback hypothesis for `s` and `r`?
+ -/
+
+theorem StreamExec.split.spec :
+finsupp.sum_range (StreamExec.eval <$₂> StreamExec.split r s).eval = s.eval :=
+sorry
+
+end stream_exec

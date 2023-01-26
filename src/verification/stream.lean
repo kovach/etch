@@ -222,9 +222,43 @@ lemma Stream.next'_val_invalid {s : Stream ι α} {x : s.σ} (hx : ¬s.valid x) 
 lemma Stream.next'_val_invalid' {s : Stream ι α} {x : s.σ} (hx : ¬s.valid x) (n : ℕ) :
   s.next'^[n] x = x := function.iterate_fixed (Stream.next'_val_invalid hx) n
 
+lemma Stream.next'_valid {s : Stream ι α} {x : s.σ}
+  (h : s.valid (s.next' x)) : s.valid x :=
+by { contrapose h, rwa [Stream.next'_val_invalid h] }
+
+lemma Stream.next'_valid' {s : Stream ι α} {x : s.σ} (n : ℕ)
+  (h : s.valid (s.next'^[n] x)) : s.valid x :=
+begin
+  induction n with _ ih generalizing x,
+  { simpa using h },
+  { rw [function.iterate_succ_apply] at h,
+    exact Stream.next'_valid (ih h) }
+end
+
 lemma bound_valid_iff_next'_iterate {s : Stream ι α} {x : s.σ} {n : ℕ} :
   s.bound_valid n x ↔ ¬s.valid (s.next'^[n] x) :=
 by { induction n with n ih generalizing x, { simp, }, by_cases H : s.valid x; simp [ih, H, Stream.next'_val, Stream.next'_val_invalid, Stream.next'_val_invalid'], }
+
+theorem Stream.no_repeat_if_bound_valid' {s : Stream ι α} {x : s.σ} {B : ℕ}
+  (bv : s.bound_valid B x) (h : s.valid x) : ∀ (n : ℕ), s.next'^[n.succ] x ≠ x :=
+begin
+  contrapose bv, simp only [not_forall, not_not] at bv,
+  cases bv with k rep,
+  induction B with B ih generalizing x,
+  { simpa },
+  { suffices : ¬Stream.bound_valid B s (s.next' x), by simpa [h, ← Stream.next'_val h] using this,
+    apply ih,
+    { rw [function.iterate_succ_apply] at rep,
+      have h' := h, rw ← rep at h',
+      apply Stream.next'_valid' _ h', },
+    { rw [← function.iterate_succ_apply,
+          function.iterate_succ_apply',
+          rep] } }
+end
+
+theorem Stream.no_repeat_if_bound_valid {s : Stream ι α} {x : s.σ} {B : ℕ}
+  (bv : s.bound_valid B x) (h : s.valid x) : s.next' x ≠ x :=
+Stream.no_repeat_if_bound_valid' bv h 0
 
 lemma Stream.next'_ge_bound {s : Stream ι α} {σ₀ : s.σ} {n b : ℕ} (hb : s.bound_valid b σ₀) (hn : b ≤ n) :
   (s.next'^[n] σ₀) = (s.next'^[b] σ₀) :=
