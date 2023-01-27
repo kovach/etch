@@ -14,77 +14,86 @@ abbrev Addr := ℕ
 abbrev Val  := ℕ
 abbrev Ident := ℕ
 def Heap  := Addr → Option ℕ
-def Store := Ident → Option Val
 instance : EmptyCollection Heap := ⟨ fun _ ↦ none ⟩
-instance : EmptyCollection Store := ⟨ fun _ ↦ none ⟩
-instance : Membership (Ident × Val) Store where mem p s := s p.1 = some p.2
 instance : Membership (ℕ × Val) Heap where mem p s := s p.1 = some p.2
 instance (a b : Type) : Membership (a × b) (a → Option b) where mem p s := s p.1 = some p.2
 
-variable [DecidableEq α]
-def dom : (α → Option β) → Set α := fun h ↦ { n | ∃ v, h n = some v }
+def dom [DecidableEq α] : (α → Option β) → Set α := fun h ↦ { n | ∃ v, h n = some v }
+lemma mem_dom_update [DecidableEq α] (h : α → Option β) : a ∈ dom (Function.update h a (some v)) := by simp [dom]
 
-instance : Insert (Ident × Val) Store := ⟨ fun p s ↦ Function.update s p.1 p.2 ⟩
-instance : Singleton (Ident × Val) Store := ⟨ fun p ↦ Function.update (∅ : Store) p.1 p.2 ⟩
 instance : Insert (Addr × ℕ) Heap := ⟨ fun p s ↦ Function.update s p.1 p.2 ⟩
 instance : Singleton (Addr × ℕ) Heap := ⟨ fun p ↦ Function.update (∅ : Heap) p.1 p.2 ⟩
 notation a " ↦ " b => (a, b)
 --notation:max h "[" x " := " y "]" => Function.update h x (some y)
 
-@[ext]
-structure TypedStore {Var} (type : Var → Type) where
-  val : (v : Var) → type v
+class VariableType (Var : Type) where type : Var → Type
+attribute [reducible] VariableType.type
+open VariableType
 
-def TypedStore.update [DecidableEq V] (st : TypedStore type) (x : V) (y : type x) : TypedStore type :=
+variable (V) [VariableType V] [DecidableEq V]
+
+@[ext]
+structure TypedStore where
+  val : (v : V) → type v
+
+variable {V}
+
+def TypedStore.update (st : TypedStore V) (x : V) (y : type x) : TypedStore V :=
 ⟨ Function.update st.val x y ⟩
 
 notation:max h "[" x " := " y "]" => TypedStore.update h x y
 
+-- todo move
 @[simps]
 def Op.nat (n : ℕ) : Op ℕ where
   argTypes := ![]
   spec := fun _ ↦ n
   opName := "nat_lit"
 
-inductive E {V : Type} (type : V → Type) : Type → Type 1
-| call {α} (op : Op α) (args : (i : Fin op.arity) → E type (op.argTypes i)) : E type α
-| var    : (v : V) → E type (type v)
+variable (V)
+inductive E : Type → Type 1
+| call {α} (op : Op α) (args : (i : Fin op.arity) → E (op.argTypes i)) : E α
+| var    : (v : V) → E (type v)
 
-def E.eval (st : TypedStore type) : {α : Type} → E type α → α
+variable {V}
+def E.eval (st : TypedStore V) : {α : Type} → E V α → α
 | _, var v => st.val v
 | _, call op args => op.spec fun param ↦ (args param).eval st
 
-@[simp] theorem TypedStore.val_update_ne (V : Type) (x y : V) (type : V → Type) (v : type x) (l : TypedStore type) [DecidableEq V] (h : x ≠ y) : (l[x := v]).val y = l.val y := by
+@[simp] theorem TypedStore.val_update_ne (x y : V) (v : type x) (l : TypedStore V) (h : x ≠ y) : (l[x := v]).val y = l.val y := by
   simp [val, update, Function.update]
   intro h'
   exfalso
   apply h h'.symm
 
-@[simp] theorem TypedStore.val_update_eq (V : Type) (x : V) (type : V → Type) (v : type x) (l : TypedStore type) [DecidableEq V] : (l[x := v]).val x = v := by
+@[simp] theorem TypedStore.val_update_eq (x : V) (v : type x) (l : TypedStore V) [DecidableEq V] : (l[x := v]).val x = v := by
   simp [update, Function.update]
 
-example (V : Type) (x y : V) (type : V → Type) (v : type x) (l : TypedStore type) [DecidableEq V] (h : x ≠ y) : (l[x := v]).val y = l.val y := by simp [h]
+example (x y : V)  (v : type x) (l : TypedStore V) [DecidableEq V] (h : x ≠ y) : (l[x := v]).val y = l.val y := by simp [h]
 
-#check !true
+variable (st : TypedStore V)
+
 @[simp] theorem E.eval_nat : (E.call (.nat n) args).eval st = n := rfl
-@[simp] theorem E.eval_neg : (E.call .neg ![arg]).eval st = !arg.eval st := rfl
+@[simp] theorem E.eval_neg : (E.call .neg ![arg]).eval st = !arg.eval st := rfl -- by simp [E.eval]
 -- todo: this isn't automatically used by simp?
-@[simp] theorem E.asdf (a b : E type α) [Tagged α] [DecidableEq α] : E.eval l (E.call Op.eq ![a, b]) = decide (a.eval l = b.eval l) := rfl
-@[simp] theorem E.eval_lt {α} [Tagged α] [LT α] [DecidableRel (LT.lt : α → α → _) ] (a b : E type α) : (E.call .lt ![a, b]).eval st = true ↔ a.eval st < b.eval st := by simp [E.eval, Op.lt]
-@[simp] theorem E.eval_lt_false {α} [Tagged α] [LT α] [DecidableRel (LT.lt : α → α → _) ] (a b : E type α) : (E.call .lt ![a, b]).eval st = false ↔ ¬ (a.eval st < b.eval st) := by simp [E.eval, Op.lt]
+@[simp] theorem E.asdf (a b : E V α) [Tagged α] [DecidableEq α] : E.eval l (E.call Op.eq ![a, b]) = decide (a.eval l = b.eval l) := rfl
+@[simp] theorem E.eval_lt {α} [Tagged α] [LT α] [DecidableRel (LT.lt : α → α → _) ] (a b : E V α) : (E.call .lt ![a, b]).eval st = true ↔ a.eval st < b.eval st := by simp [E.eval, Op.lt]
+@[simp] theorem E.eval_lt_false {α} [Tagged α] [LT α] [DecidableRel (LT.lt : α → α → _) ] (a b : E V α) : (E.call .lt ![a, b]).eval st = false ↔ ¬ (a.eval st < b.eval st) := by simp [E.eval, Op.lt]
 
-inductive P {V} (type : V → Type)
---| store (x : V) (n : ℕ) (y : E type (type x))
-| store' {α} (lval : E type ℕ) (rval : E type α)
-| load  (lval : E type ℕ) (y : V)
-| put (x : V) (e : E type (type x))
-| seq (c₁ c₂ : P type) : P type
-| while (c : E type Bool) (body : P type)
+variable (V)
+
+inductive P
+| store {α} (lval : E V ℕ) (rval : E V α)
+| load  (lval : E V ℕ) (y : V)
+| put (x : V) (e : E V (type x))
+| seq (c₁ c₂ : P) : P
+| while (c : E V Bool) (body : P)
 | skip
 @[match_pattern] infixr:25 ";; " => P.seq
 
-def ConfigSet := Heap → Store → Prop
-def TypedConfigSet {V} type := Heap → @TypedStore V type → Prop
+def TypedConfigSet := Heap → TypedStore V → Prop
+
+variable {V}
 
 class Representable (α : Type _) where
   defines : α → Addr → Heap → Prop
@@ -95,7 +104,7 @@ class Storable (α : Type _) extends Representable α where
   valid (h a v) : defines v a (store h a v)
   frame (a loc v h) : a ∉ footprint v loc → (store h loc v) a = h a
 
-def exprDefines [Representable α] : α → E type Addr → Heap → TypedStore type → Prop :=
+def exprDefines [Representable α] : α → E V Addr → Heap → TypedStore V → Prop :=
   fun val a h s ↦ Representable.defines val (a.eval s) h
 notation "⦃" addr " ↪ " val "⦄" => exprDefines val addr
 
@@ -111,22 +120,15 @@ instance : Storable Val where
     split
     . contradiction
     . rfl
-variable
-{V : Type} [DecidableEq V]
-(type : V → Type)
 
---| storeNat (xNat : type x = ℕ)
---        (hh : (cast xNat (l.val x) + n) ∈ dom h)
---        : Q h[(cast xNat (l.val x) + n) := cast xNat $ y.eval l] l → Sem type (.store x n y) Q h l
-
-inductive Sem  : P type → TypedConfigSet type → Heap → TypedStore type → Prop
+inductive Sem  : P V → TypedConfigSet V → Heap → TypedStore V → Prop
 | skip : Q h l → Sem .skip Q h l
 | put  : Q h l[x := y.eval l] → Sem (.put x y) Q h l
-| store {α} {rval : E type α} (hr : Storable α)
+| store {α} {rval : E V α} (hr : Storable α)
         (h1 : lval.eval l ∈ dom h)
         : Q (Storable.store h (lval.eval l) (rval.eval l)) l →
-          Sem (.store' lval rval) Q h l
-| load (v : type y) {lval : E type ℕ} [hr : Representable (type y)]
+          Sem (.store lval rval) Q h l
+| load (v : type y) {lval : E V ℕ} [hr : Representable (type y)]
        (hv : ⦃lval ↪ v⦄ h l)
        : Q h l[y := v] → Sem (.load lval y) Q h l
 | seq : Sem c₁ (Sem c₂ Q) h l → Sem (c₁;; c₂) Q h l
@@ -136,29 +138,23 @@ inductive Sem  : P type → TypedConfigSet type → Heap → TypedStore type →
             : Sem c (Sem (.while x c) Q) h l →
               Sem (.while x c) Q h l
 
--- todo: make type an instance variable
-notation c " / " type ", " h ", " l " ⇓ " Q => Sem type c Q h l
+notation c " / " h ", " l " ⇓ " Q => Sem c Q h l
 
--- todo: use, maybe?
-/-
-class HasUpdate (l r : outParam Type) (h : Type) where
-  update : h → l → r → h
-instance : HasUpdate ℕ ℕ Heap where update h l r := Function.update h l (some r)
-instance : HasUpdate Ident Val Store where update h l r := Function.update h l (some r)
--/
-lemma mem_dom_update (h : α → Option β) : a ∈ dom (Function.update h a (some v)) := by simp [dom]
-lemma mem_update {h : α → Option β}  : (a, v) ∈ Function.update h a (some v) := by simp [Membership.mem, Function.update]
 end defs
 
-instance [Tagged α] [Add α] : Add (E type α) := ⟨ λ a b => E.call .add ![a, b] ⟩
-instance [Tagged α] [Sub α] : Sub (E type α) := ⟨ λ a b => E.call .sub ![a, b] ⟩
-instance [Tagged α] [Mul α] : Mul (E type α) := ⟨ λ a b => E.call .mul ![a, b] ⟩
-instance [Tagged α] [OfNat α (nat_lit 1)] : OfNat (E type α) (nat_lit 1) := ⟨ E.call .one ![] ⟩
-instance : OfNat (E type ℕ) n := ⟨ E.call (.nat n) ![] ⟩
-abbrev zero : E type ℕ := 0
-instance (V) (type : V → Type) : Coe ℕ (E type ℕ) := ⟨ fun n => E.call (.nat n) ![] ⟩
+section instances
+variable {V} [VariableType V] [DecidableEq V]
+open VariableType
 
-@[simp] theorem E.eval_nat' : (0 : E type ℕ).eval st = 0 := rfl
+instance [Tagged α] [Add α] : Add (E V α) := ⟨ λ a b => E.call .add ![a, b] ⟩
+instance [Tagged α] [Sub α] : Sub (E V α) := ⟨ λ a b => E.call .sub ![a, b] ⟩
+instance [Tagged α] [Mul α] : Mul (E V α) := ⟨ λ a b => E.call .mul ![a, b] ⟩
+instance [Tagged α] [OfNat α (nat_lit 1)] : OfNat (E V α) (nat_lit 1) := ⟨ E.call .one ![] ⟩
+instance : OfNat (E V ℕ) n := ⟨ E.call (.nat n) ![] ⟩
+abbrev zero : E V ℕ := 0
+instance : Coe ℕ (E V ℕ) := ⟨ fun n => E.call (.nat n) ![] ⟩
+
+@[simp] theorem E.eval_nat' : E.eval st (0 : E V ℕ) = 0 := rfl
 
 infixr:35 " ∧ₕ " => fun a b h ↦ a h ∧ b h
 
@@ -173,28 +169,29 @@ infixr:40 " << " => λ a b => E.call Op.lt ![a, b]
 infixr:40 " != " => λ a b => E.call Op.neg ![E.call Op.eq ![a, b]]
 
 namespace tests₁
-inductive V₁ | x | y
-deriving DecidableEq
-abbrev V₁.type : V₁ → Type | x => ℕ | y => ℕ
-def V₁.var : (v : V₁) → E V₁.type v.type  := E.var
+
+inductive V₁ | x | y deriving DecidableEq
+@[reducible] instance : VariableType V₁ := ⟨ fun | .x => ℕ | .y => ℕ ⟩
+def V₁.var : (v : V₁) → E V₁ (type v)  := E.var
 open V₁
 
-def l₁ : TypedStore type := ⟨fun |x => 2 |y => 7⟩
-example : (.store' x.var y.var;; .skip) / V₁.type, {2 ↦ 0} , l₁ ⇓ (fun h _ ↦ ⦃2↪7⦄ h l₁) := by
+def l₁ : TypedStore V₁ := ⟨fun |.x => 2 |.y => 7⟩
+
+example : (.store x.var y.var;; .skip) / {2 ↦ 0} , l₁ ⇓ (fun h _ ↦ ⦃2↪7⦄ h l₁) := by
   apply Sem.seq
   apply Sem.store
   . apply mem_dom_update
   . apply Sem.skip
     apply Storable.valid
 
-example : (.store' (x.var + 1) (y.var * 3);; .skip) / V₁.type, {3 ↦ 0} , l₁ ⇓ (fun h _ ↦ ⦃3↪21⦄ h l₁) := by
+example : (.store (x.var + 1) (y.var * 3);; .skip) / {3 ↦ 0} , l₁ ⇓ (fun h _ ↦ ⦃3↪21⦄ h l₁) := by
   apply Sem.seq
   apply Sem.store
   . apply mem_dom_update
   . apply Sem.skip
     apply Storable.valid
 
-example : (.while (x.var << (3 : E type ℕ)) (.put x (x.var + 1))) / V₁.type, {}, ⟨fun |x |y => 0⟩ ⇓ fun _ _ ↦ True := by
+example : (P.while (x.var << (3 : E V₁ ℕ)) (.put x (x.var + 1))) /  {}, ⟨fun |x |y => (0 : ℕ)⟩ ⇓ fun _ _ ↦ True := by
   apply Sem.whileLoop
   . simp only
   apply Sem.put
@@ -208,9 +205,8 @@ example : (.while (x.var << (3 : E type ℕ)) (.put x (x.var + 1))) / V₁.type,
   . simp only
   trivial
 
-theorem cong_locals (V) [DecidableEq V] (type : V → Type) (Q : TypedConfigSet type) (c : P type) (l₁ l₂) (hl : l₁ = l₂) : (c / type, h, l₁ ⇓ Q) ↔ (c / type, h, l₂ ⇓ Q) := by rw [hl]
-
-example (k : ℕ) : (.while (x.var != zero) (.put x (x.var - 1))) / V₁.type, {}, ⟨fun |x => k |y => 0⟩ ⇓ fun _ l ↦ l.val x = 0 := by
+lemma cong_locals (Q : TypedConfigSet V) (c : P V) (l₁ l₂) (hl : l₁ = l₂) : (c / h, l₁ ⇓ Q) ↔ (c / h, l₂ ⇓ Q) := by rw [hl]
+example (k : ℕ) : (.while (x.var != zero) (.put x (x.var - 1))) /  {}, ⟨fun |x => k |y => (0 : ℕ)⟩ ⇓ fun _ l ↦ l.val x = (0 : ℕ) := by
   induction k
   . apply Sem.whileDone
     . simp
@@ -224,37 +220,40 @@ example (k : ℕ) : (.while (x.var != zero) (.put x (x.var - 1))) / V₁.type, {
       . ext z; cases z <;> rfl
 
 end tests₁
+end instances
 
 section tests₂
 
-inductive V | ctr | v | total | base deriving DecidableEq
+open VariableType
 
-abbrev V.type : V → Type | ctr | base => ℕ | v => ℕ | total => ℕ
-def V.var : (v : V) → E V.type v.type  := E.var
-def V.initial : TypedStore type := ⟨fun | ctr | v | total | base => 0⟩
+inductive V | ctr | v | total | base deriving DecidableEq
+@[reducible] instance V.VariableType : VariableType V := ⟨ fun | ctr => ℕ | base => ℕ | v => ℕ | total => ℕ ⟩
+
+def V.var : (v : V) → E V (type v)  := E.var
+def V.initial : TypedStore V := ⟨fun | ctr | v | total | base => (0 : ℕ)⟩
 open V
 
 -- see "bug?" below
-@[simp] theorem duplicate_of_succ_sub_succ_eq_sub (l : List ℕ) : Nat.succ (List.length l) - 1 = (List.length l) := by simp?
+@[simp] theorem duplicate_of_succ_sub_succ_eq_sub (l : List ℕ) : Nat.succ (List.length l) - 1 = (List.length l) := by simp
 
 def List.sum [Zero α] [Add α] (l : List α) : α := l.foldr (f := (. + .)) 0
 @[simp] theorem List.sum_cons [Zero α] [Add α] (x : α) : (x :: xs).sum = x + xs.sum := rfl
 
-def loopSum : P type :=
-.while (ctr.var != zero)
+def loopSum : P V :=
+.while (ctr.var != 0)
   (.load base.var v;; .put total (total.var + v.var);; .put base (base.var + 1);; .put ctr (ctr.var - 1))
 
 example (array : List ℕ) (hlen : ctr.var.eval l = array.length) (hArr : ⦃base.var ↪ array⦄ h l)
-  : loopSum / type, h, l ⇓ fun _ l' ↦ total.var.eval l' = total.var.eval l + array.sum := by
+  : loopSum / h, l ⇓ fun _ l' ↦ total.var.eval l' = total.var.eval l + array.sum := by
   induction array generalizing l with
   | nil =>
     --cases hlen
     apply Sem.whileDone
-    . simp at hlen; rw [E.eval_neg, E.asdf, hlen]; rfl
+    . simp [E.eval] at hlen; simp [E.eval, hlen]
     . trivial
   | cons x xs ih =>
     apply Sem.whileLoop
-    . simp at hlen; rw [E.eval_neg, E.asdf, hlen]; simp -- fix asdf, simp should close
+    . simp [E.eval] at hlen; simp [E.eval, hlen]
     . apply Sem.seq
       apply Sem.load
       . exact hArr.1
@@ -265,8 +264,8 @@ example (array : List ℕ) (hlen : ctr.var.eval l = array.length) (hArr : ⦃bas
       simp [E.eval, TypedStore.val, hlen]
       rw [← add_assoc]
       set l' := l[v := x][total := TypedStore.val l total + x][base := TypedStore.val l base + 1][ctr := Nat.succ (List.length xs) - 1]
+      change (loopSum / _, l' ⇓ _) -- not necessary
       have h : l.val total + x = l'.val total := by simp
-      --change (loopSum / _, _, l' ⇓ _)
       rw [h]
       apply ih
       . simp [E.eval]

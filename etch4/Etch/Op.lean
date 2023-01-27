@@ -79,7 +79,7 @@ def Op.min [Tagged α] [Min α] : Op α where
   spec := λ a => Min.min (a 0) (a 1)
   opName := tag_mk_fun α "min"
 
-@[simps]
+@[simps, reducible]
 def Op.eq [Tagged α] [DecidableEq α] : Op Bool where
   argTypes := ![α, α]
   spec := λ a => a 0 = a 1
@@ -107,6 +107,7 @@ def Op.mul [Tagged α] [Mul α] : Op α where
   spec := λ a => a 0 * a 1
   opName := tag_mk_fun α "mul"
 
+@[simps]
 def Op.neg : Op Bool where
   argTypes := ![Bool]
   spec := λ a => not $ a 0
