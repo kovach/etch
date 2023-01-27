@@ -3,6 +3,7 @@ import data.finsupp.basic
 import data.finsupp.pointwise
 import data.list.basic
 import data.list.range
+import data.list.fin_range
 import data.option.basic
 import data.pfun
 import data.prod.lex
