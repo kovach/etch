@@ -1,7 +1,7 @@
-import verification.stream_props
-import verification.stream_zero
+import verification.semantics.stream_props
+import verification.semantics.stream_zero
 import verification.misc
-import verification.finsuppeval
+import verification.semantics.finsuppeval
 import tactic.zify
 import tactic.linarith
 import tactic.abel

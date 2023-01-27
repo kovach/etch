@@ -1,5 +1,5 @@
 import verification.misc
-import verification.stream
+import verification.semantics.stream
 
 
 open_locale classical
