@@ -1,29 +1,27 @@
 import verification.stream_props
 
-variables {α ι : Type}
+variables {α ι₁ ι₂ : Type}
 
 section streams
 
--- valid as long as the current index is in w
 @[simps]
-def substream (s : Stream ι α) (w : set ι) : Stream ι α :=
+def substream (s : Stream (ι₁ × ι₂) α) (i₁ : ι₁) : Stream ι₂ α :=
 { σ := s.σ,
-  valid := λ p, ∃ h, s.index p h ∈ w,
+  valid := λ p, ∃ (h : s.valid p), (s.index p h).1 = i₁,
   ready := λ p, s.ready p,
   next := λ p h, s.next p h.fst,
-  index := λ p h, s.index p h.fst,
+  index := λ p h, (s.index p h.fst).2,
   value := λ p h, s.value p h,
 }
 
-variables {s : Stream ι α} {w : set ι}
+variables {s : Stream (ι₁ × ι₂) α} {i₁ : ι₁}
 
-@[simp]
-private lemma substream.next'_eq {x : s.σ} :
-(substream s w).valid x → (substream s w).next' x = s.next' x :=
+@[simp] lemma substream.next'_eq {x : s.σ} :
+(substream s i₁).valid x → (substream s i₁).next' x = s.next' x :=
 λ h, by rw [Stream.next'_val h, substream_next, Stream.next'_val]
 
-private lemma substream.valid_subsumes {n : ℕ} {x : s.σ} :
-(substream s w).valid ((substream s w).next'^[n] x) → s.valid (s.next'^[n] x) :=
+lemma substream.valid_subsumes {n : ℕ} {x : s.σ} :
+(substream s i₁).valid ((substream s i₁).next'^[n] x) → s.valid (s.next'^[n] x) :=
 begin
   induction n with n ih generalizing x,
   { simp only [function.iterate_zero, substream_valid],
@@ -34,14 +32,14 @@ begin
     simpa [hxv] using ih h }
 end
 
-private lemma substream.bound_valid {B : ℕ} {x : s.σ} :
-s.bound_valid B x → ∀ w, (substream s w).bound_valid B x :=
+lemma substream.bound_valid {B : ℕ} {x : s.σ} :
+s.bound_valid B x → ∀ i₁, (substream s i₁).bound_valid B x :=
 begin
   simp_rw bound_valid_iff_next'_iterate,
   induction B with n ih generalizing x,
   { simp_rw [function.iterate_zero_apply, substream_valid, not_exists],
     intros; contradiction },
-  { intros hnv w,
+  { intros hnv _,
     exact mt substream.valid_subsumes hnv }
 end
 
@@ -49,56 +47,60 @@ end streams
 
 section stream_exec
 
+structure split_state (s : StreamExec (ι₁ × ι₂) α) :=
+(state : s.stream.σ)
+(last : option ι₁)
+(remaining : ℕ)
+(bound_valid : s.stream.bound_valid remaining state)
+
 @[simps]
-def Stream.split (r : ι → ι → Prop) (s : StreamExec ι α) : Stream (quot r) (StreamExec ι α) :=
-{ σ := s.stream.σ × option (quot r), -- keep track of the last element seen
+def Stream.split (s : StreamExec (ι₁ × ι₂) α) : Stream ι₁ (StreamExec ι₂ α) :=
+{ σ := split_state s,
   valid := λ p, s.stream.valid p.1,
-  -- TODO: instead of making the stream merely non-ready while skipping,
-  -- we should change next to recurse until it reaches the next window.
-  -- Will need to prove well-foundedness using bound_valid.
   ready := λ p, s.stream.ready p.1 ∧
-                s.stream.bound_valid s.bound p.1 ∧ -- this is weird
-                ∃ hv, p.2 ≠ quot.mk r (s.stream.index p.1 hv),
-  next := λ p h, (s.stream.next p.1 h, quot.mk r (s.stream.index p.1 h)),
-  index := λ p h, quot.mk r (s.stream.index p.1 h),
+                ∃ hv, p.last ≠ (s.stream.index p.1 hv).1,
+  next := λ p h, ⟨s.stream.next p.1 h,
+                  (s.stream.index p.1 h).1,
+                  p.remaining.pred,
+                  show s.stream.bound_valid p.remaining.pred _, by {
+                    apply Stream.bound_valid_succ.1,
+                    cases hp : p.remaining,
+                    { have := p.bound_valid, rw hp at this,
+                      cases this, contradiction, },
+                    { simpa [hp] using p.bound_valid }
+                  }⟩,
+  index := λ p h, (s.stream.index p.1 h).1,
   value := λ p h, {
-    stream := substream s.stream (r (s.stream.index p.1 h.2.2.fst)),
+    stream := substream s.stream (s.stream.index p.1 h.2.fst).1,
     state := p.1,
-    bound := s.bound,
-    bound_valid := substream.bound_valid h.2.1 _,
+    bound := p.remaining,
+    bound_valid := substream.bound_valid p.bound_valid _,
   },
 }
 
-variables {r : ι → ι → Prop} {s : StreamExec ι α}
+variables {s : StreamExec (ι₁ × ι₂) α}
 
-lemma Stream.split_state {prev : option (quot r)} :
-∀ (x: s.stream.σ) n,
-((Stream.split r s).next'^[n] (x, prev)).1 = (s.stream.next'^[n] x) :=
+@[simp] lemma Stream.split_next'_state (p : split_state s) :
+((Stream.split s).next' p).state = s.stream.next' p.state :=
+by { by_cases H : s.stream.valid p.state, { simpa [H] }, { simp [H] } }
+
+@[simp] lemma Stream.split_next'_state' (x : split_state s) (n) :
+((Stream.split s).next'^[n] x).state = (s.stream.next'^[n] x.state) :=
 begin
-  intros,
-  induction n with _ ih generalizing x prev,
+  induction n with _ ih generalizing x,
   { simp },
-  { simp_rw function.iterate_succ_apply,
-    rw ← ih (s.stream.next' x),
-    suffices : (s.stream.next' x, _) = (Stream.split r s).next' (x, prev), by rw this,
-    suffices : s.stream.next' x = ((Stream.split r s).next' (x, prev)).1, by ext; simp [this],
-    unfold Stream.next',
-    split_ifs,
-    { dunfold Stream.split, simp },
-    { simp } }
+  { simp_rw [function.iterate_succ_apply, ← Stream.split_next'_state],
+    exact ih _ }
 end
 
-def StreamExec.split (r : ι → ι → Prop) (s : StreamExec ι α) : StreamExec (quot r) (StreamExec ι α) :=
-{ stream := Stream.split r s,
-  state := (s.state, none),
+def StreamExec.split (s : StreamExec (ι₁ × ι₂) α) : StreamExec ι₁ (StreamExec ι₂ α) :=
+{ stream := Stream.split s,
+  state := ⟨s.state, none, s.bound, s.bound_valid⟩,
   bound := s.bound,
   bound_valid := begin
     have bv := s.bound_valid,
     rw bound_valid_iff_next'_iterate at ⊢ bv,
-    induction eq : s.bound,
-    { simpa [eq] using bv },
-    { simp_rw [Stream.split_valid, Stream.split_state],
-      simpa [eq] using bv }
+    induction eq : s.bound; simpa [eq] using bv,
   end,
 }
 
@@ -106,12 +108,11 @@ variables [add_comm_monoid α]
 
 /-
 TODOs:
-- do we need `r` to be an equivalence relation?
-- do we need a no-lookback hypothesis for `s` and `r`?
+- do we need a no-lookback hypothesis for `i₁`?
  -/
 
-theorem StreamExec.split.spec :
-finsupp.sum_range (StreamExec.eval <$₂> StreamExec.split r s).eval = s.eval :=
+theorem StreamExec.split.spec (i₁ i₂) :
+(StreamExec.eval <$₂> StreamExec.split s).eval i₁ i₂ = s.eval (i₁, i₂) :=
 sorry
 
 end stream_exec
