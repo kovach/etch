@@ -55,6 +55,7 @@ structure Op (α : Type _) where
   opName : String
 
 attribute [reducible] Op.argTypes
+attribute [simp] Op.spec
 
 -- def Op.name (f : Op β) : String := f.tag ++ "_" ++ f.opName
 
@@ -78,16 +79,19 @@ def Op.min [Tagged α] [Min α] : Op α where
   spec := λ a => Min.min (a 0) (a 1)
   opName := tag_mk_fun α "min"
 
+@[simps]
 def Op.eq [Tagged α] [DecidableEq α] : Op Bool where
   argTypes := ![α, α]
   spec := λ a => a 0 = a 1
   opName := tag_mk_fun α "eq"
 
+@[simps]
 def Op.add [Tagged α] [Add α] : Op α where
   argTypes := ![α, α]
   spec := λ a => a 0 + a 1
   opName := tag_mk_fun α "add"
 
+@[simps]
 def Op.sub [Tagged α] [Sub α] : Op α where
   argTypes := ![α, α]
   spec := λ a => a 0 - a 1
