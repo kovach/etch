@@ -9,10 +9,13 @@ if current index < (i, b), must advance; may advance up to first ready index ≥
 
 /-- Returns the set of `q` that `s` could skip to if the current state is `x` 
   and it is supposed to skip past `(i, b)` -/
-def is_valid_skip {ι α : Type*} [linear_order ι] (s : Stream ι α) (x : s.σ) (i : ι) (b : bool) : set s.σ :=
-{q | s.to_order x ≤ (i, b) → (s.to_order x < s.to_order q ∧
-  ∀ q' : s.σ, s.to_order x < s.to_order q' → s.to_order q' < s.to_order q → ¬s.ready q')}
+def skip_set {ι α : Type*} [linear_order ι] (s : Stream ι α) (x : s.σ) (i : ι) (b : bool) : set s.σ :=
+{q | ∃ (n : ℕ), q = (s.next'^[n] x) ∧ (s.to_order x ≤ (i, b) ↔ 0 < n) ∧
+      ∀ m, 0 < m → m < n → s.valid (s.next'^[m] x) → s.ready (s.next'^[m] x) → s.to_order (s.next'^[m] x) ≤ (i, b)}
 
-structure SkipStream (ι α : Type*) extends Stream ι α :=
+structure SkipStream (ι α : Type*) [linear_order ι] extends Stream ι α :=
 (skip : Π x, valid x → ι → bool → σ)
+(hskip : ∀ x hx i b, skip x hx i b ∈ skip_set _ x i b)
+
+
 
