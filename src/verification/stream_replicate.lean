@@ -1,14 +1,19 @@
 import data.finsupp.basic
 import data.fintype.basic
+import logic.equiv.fintype
 import logic.function.iterate
 import tactic.basic
 import verification.stream_props
+import verification.finsuppeval
 
 /- ### Definitions -/
 
 variables {α : Type}
-[add_zero_class α]
 {n : ℕ} {v : α}
+
+section
+
+variable [add_zero_class α]
 
 @[simps]
 def Stream.replicate (n : ℕ) (v : α) : Stream (fin n) α :=
@@ -20,7 +25,8 @@ def Stream.replicate (n : ℕ) (v : α) : Stream (fin n) α :=
   value := λ _ _, v,
 }
 
-instance : has_zero (Stream.replicate n v).σ := ⟨⟨0, nat.zero_lt_succ _⟩⟩
+instance Stream.replicate.σ.has_zero : has_zero (Stream.replicate n v).σ :=
+⟨⟨0, nat.zero_lt_succ _⟩⟩
 
 /- ### StreamExec -/
 
@@ -70,7 +76,6 @@ def StreamExec.replicate (n : ℕ) (v : α) : StreamExec (fin n) α :=
 
 lemma Stream.replicate.reduced : (Stream.replicate n v).reduced :=
 begin
-  rw Stream.reduced,
   intros r hv hr,
   rw [Stream.index'_val hv, Stream.index'],
   split_ifs,
@@ -80,7 +85,6 @@ end
 
 lemma Stream.replicate.monotonic : (Stream.replicate n v).monotonic :=
 begin
-  rw Stream.monotonic,
   intros r hv,
   rw [Stream.index'_val hv, Stream.index'],
   split_ifs,
@@ -94,8 +98,7 @@ def Stream.replicate.simple : (Stream.replicate n v).simple :=
 }
 
 def SimpleStream.replicate (n : ℕ) (v : α) : SimpleStream (fin n) α :=
-{ simple := Stream.replicate.simple,
-  ..(StreamExec.replicate n v) }
+{ StreamExec.replicate n v with simple := Stream.replicate.simple }
 
 /- ### Correctness -/
 
@@ -179,5 +182,110 @@ begin
   simpa using le_of_lt (nat.lt_succ_self n)
 end
 
+theorem Stream.replicate.spec_apply (i : fin n) : (Stream.replicate n v).eval_steps n.succ 0 i = v :=
+by rw Stream.replicate.spec; simp [finsupp.const]
+
 theorem StreamExec.replicate.spec : (StreamExec.replicate n v).eval = finsupp.const v :=
 Stream.replicate.spec
+
+end
+
+/- ### replicate': replicate for any type -/
+
+section
+
+variables {ι : Type} [add_comm_monoid α]
+
+section replicate'
+
+variables {m : fin n ↪ ι}
+
+def Stream.replicate' (m : fin n ↪ ι) (v : α) : Stream ι α :=
+m <$₁> Stream.replicate n v
+
+instance Stream.replicate'.σ.has_zero : has_zero (Stream.replicate' m v).σ :=
+⟨⟨0, nat.zero_lt_succ _⟩⟩
+
+def StreamExec.replicate' (m : fin n ↪ ι) (v : α) : StreamExec ι α :=
+m <$₁> StreamExec.replicate n v
+
+def SimpleStream.replicate' [linear_order ι] (m : fin n ↪o ι) (v : α) : SimpleStream ι α :=
+m <§₁> SimpleStream.replicate n v
+
+end replicate'
+
+/- ### Specs -/
+
+section spec
+
+section
+variables {m : fin n ↪ ι}
+
+open_locale classical
+
+theorem Stream.replicate'.spec (i : ι) :
+(Stream.replicate' m v).eval_steps n.succ 0 i = if i ∈ set.range m then v else 0 :=
+begin
+  dunfold Stream.replicate',
+  rw imap_eval_steps_spec _ _ _ _,
+
+  split_ifs with h_range h_range,
+  { cases set.mem_range.mp h_range with x hx,
+    have : (Stream.replicate n v).eval_steps n.succ 0 x = v,
+    { rw Stream.replicate.spec, simp [finsupp.const] },
+    conv { congr, { rw ← hx }, { rw ← this } },
+    exact finsupp.map_domain_apply m.inj' _ _ },
+  { exact finsupp.map_domain_notin_range _ _ h_range }
+end
+
+theorem StreamExec.replicate'.spec (i : ι) :
+(StreamExec.replicate' m v).eval i = if i ∈ set.range m then v else 0 :=
+begin
+  unfold StreamExec.eval,
+  erw imap_stream_eval,
+  exact Stream.replicate'.spec i,
+end
+
+theorem SimpleStream.replicate'.spec [linear_order ι] {m : fin n ↪o ι} (i : ι) :
+(SimpleStream.replicate' m v : StreamExec ι α).eval i = if i ∈ set.range m then v else 0 :=
+StreamExec.replicate'.spec i
+
+end
+
+/- #### Convenience specs for `fin n ≃ ι` -/
+
+section
+
+variable {m : fin n ≃ ι}
+
+instance ι.fintype : fintype ι := fintype.of_equiv _ m
+
+@[reducible, simp]
+noncomputable def const' (m : fin n ≃ ι) : α → ι →₀ α :=
+@finsupp.const α _ ι (fintype.of_equiv _ m)
+
+theorem Stream.replicate'.spec_equiv :
+(Stream.replicate' (m : fin n ↪ ι) v).eval_steps n.succ 0 = const' m v :=
+begin
+  ext i, rw Stream.replicate'.spec i,
+  have : i ∈ set.range m, from set.mem_range.mpr ⟨m.inv_fun i, by simp⟩,
+  simp [this, finsupp.const]
+end
+
+theorem StreamExec.replicate'.spec_equiv :
+(StreamExec.replicate' (m : fin n ↪ ι) v).eval = const' m v :=
+begin
+  ext i, rw StreamExec.replicate'.spec i,
+  have : i ∈ set.range m, from set.mem_range.mpr ⟨m.inv_fun i, by simp⟩,
+  simp [this, finsupp.const]
+end
+
+theorem SimpleStream.replicate'.spec_equiv [linear_order ι] {m : fin n ≃o ι} :
+(SimpleStream.replicate' (m : fin n ↪o ι) v : StreamExec ι α).eval = const' m.to_equiv v :=
+StreamExec.replicate'.spec_equiv
+
+end
+
+end spec
+
+end
