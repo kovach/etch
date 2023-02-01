@@ -153,6 +153,21 @@ end
   (s.bimap f g).bound_valid n x ↔ s.bound_valid n x :=
 by { induction n with n ih generalizing x; simp [*]; refl, }
 
+instance bimap_σ.has_zero {f : ι → ι'} {g : α → β} {s : Stream ι α} [z : has_zero s.σ] :
+has_zero (s.bimap f g).σ := z
+
+@[simp] lemma Stream.bifunctor_bimap_valid (s : Stream ι α) (f : ι → ι') (g : α → β) :
+  (s.bimap f g).valid = s.valid := rfl
+
+@[simp] lemma Stream.bifunctor_bimap_valid_apply (s : Stream ι α) (f : ι → ι') (g : α → β) (x : s.σ) :
+  (s.bimap f g).valid x ↔ s.valid x := iff.rfl
+
+@[simp] lemma Stream.bifunctor_bimap_ready (s : Stream ι α) (f : ι → ι') (g : α → β) :
+  (s.bimap f g).ready = s.ready := rfl
+
+@[simp] lemma Stream.bifunctor_bimap_ready_apply (s : Stream ι α) (f : ι → ι') (g : α → β) (x : s.σ) :
+  (s.bimap f g).ready x ↔ s.ready x := iff.rfl
+
 @[simps]
 def StreamExec.bimap (s : StreamExec ι α) (f : ι → ι') (g : α → β) : StreamExec ι' β :=
 { s with stream := s.stream.bimap f g, bound_valid := by simpa using s.bound_valid }
@@ -247,6 +262,14 @@ lemma Stream.bimap_value'_apply [has_zero α] [has_zero β] (s : Stream ι α) (
   (s.bimap f g).value' x = g (s.value' x) :=
 by rwa Stream.bimap_value'
 
+lemma Stream.bimap_index'_eq_apply (s : Stream ι α) (f : ι → ι') (g : α → β) (x : s.σ) :
+  (s.bimap f g).index' x = with_top.map f (s.index' x) :=
+by unfold Stream.index'; split_ifs; split; simp
+
+lemma Stream.bimap_index'_eq (s : Stream ι α) (f : ι → ι') (g : α → β) :
+  (s.bimap f g).index' = with_top.map f ∘ s.index' :=
+by ext; rw function.comp_app; simp [Stream.bimap_index'_eq_apply]
+
 end defs
 
 open_locale big_operators
@@ -314,6 +337,7 @@ begin
   congr; { simp [min_eq_right i.prop.le], },
 end
 
+@[simps]
 def range (n : ℕ) : Stream ℕ ℕ :=
 { σ := ℕ,
   next  := λ k _, k+1,
@@ -321,5 +345,21 @@ def range (n : ℕ) : Stream ℕ ℕ :=
   value := λ k _, k,
   ready := λ _, true,
   valid := λ k, k < n, }
+
+@[simp] lemma range_iterate {n : ℕ} (i : ℕ) :
+  ((range n).next'^[i] 0 : ℕ) = min n i :=
+begin
+  induction i with i ih, { simp [range], },
+  rw [function.iterate_succ_apply', ih],
+  simp [Stream.next', min_def, nat.succ_eq_add_one], clear ih,
+  split_ifs; linarith,
+end
+
+@[simps]
+def range_exec (n : ℕ) : StreamExec ℕ ℕ :=
+{ stream := range n,
+  state := (0 : ℕ),
+  bound := n,
+  bound_valid := by simp [bound_valid_iff_next'_iterate] }
 
 end primitives
