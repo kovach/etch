@@ -251,6 +251,15 @@ end defs
 
 open_locale big_operators
 
+lemma Stream.eval_steps_add [add_comm_monoid α] (s : Stream ι α) (m n : ℕ) (q : s.σ) :
+  s.eval_steps (m + n) q = s.eval_steps m q + s.eval_steps n (s.next'^[m] q) :=
+begin
+  induction m with m ih generalizing q, { simp, },
+  by_cases H : s.valid q,
+  { simp [nat.succ_add, ih, H, Stream.next'_val], abel, },
+  { simp only [Stream.eval_invalid H, Stream.next'_val_invalid' H, add_zero], },
+end
+
 lemma Stream.spec_of_iterate [add_comm_monoid α] (s : Stream ι α)
   (B : ℕ) (σ₀ : s.σ) (h : ∀ i < B, s.valid (s.next'^[i] σ₀)) :
   s.eval_steps B σ₀ = ∑ i : fin B, finsupp.single (s.index (s.next'^[i] σ₀) (h i i.prop)) (s.value' (s.next'^[i] σ₀)) :=
