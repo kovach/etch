@@ -159,7 +159,7 @@ begin
   apply Stream.mul_induction ha hb (λ x y k₁ k₂ N, (a * b).eval_steps N (x, y) = (a.eval_steps k₁ x) * (b.eval_steps k₂ y)); clear_except hsa hsb,
   { intros, simp, },
   { intros x y B₁ B₂ N H h ha hb,
-    cases h; simp [Stream.eval_invalid h, Stream.eval_invalid H, Stream.next'_val_invalid' H], },
+    cases h; simp [H, Stream.eval_invalid h, Stream.eval_invalid H], },
   { intros x y k₁ k₂ n H h he,
     simp [H, H.1, h, he, add_mul], congr,
     simp [H.2, mul_add, Stream.mul_eq_zero hsb H.1 H.2 h, Stream.mul_eval₀], },
