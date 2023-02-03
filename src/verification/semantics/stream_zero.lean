@@ -1,5 +1,5 @@
-import verification.stream
-import verification.stream_props
+import verification.semantics.stream
+import verification.semantics.stream_props
 
 variables {ι : Type} {α β : Type*}
 

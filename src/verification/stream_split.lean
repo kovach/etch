@@ -1,4 +1,4 @@
-import verification.stream_props
+import verification.semantics.stream_props
 
 variables {α ι₁ ι₂ : Type}
 

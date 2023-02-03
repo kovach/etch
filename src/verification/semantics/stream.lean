@@ -3,6 +3,7 @@ import finsupp_lemmas
 import algebra.big_operators.fin
 import data.nat.succ_pred
 import tactic.linarith
+import dynamics.periodic_pts
 
 open_locale classical
 noncomputable theory
@@ -129,7 +130,6 @@ lemma Stream.eval₀_support [has_zero α] (s : Stream ι α) (x : s.σ) (h : s.
   (s.eval₀ x h).support ⊆ {s.index x h} :=
 by { rw Stream.eval₀, split_ifs, { exact finsupp.support_single_subset, }, simp, }
 
--- See also [Stream.bound_valid_iterate] later
 @[simp] lemma Stream.bound_valid_succ {s : Stream ι α} {n : ℕ} {σ₀ : s.σ} :
   s.bound_valid (n + 1) σ₀ ↔ (∀ (h : s.valid σ₀), s.bound_valid n (s.next σ₀ h)) :=
 ⟨λ h, by { cases h, { intro, contradiction, }, intro, assumption, }, λ h, if H : s.valid σ₀ then step H (h H) else start _ H⟩
@@ -238,47 +238,10 @@ lemma Stream.value'_val [has_zero α] {s : Stream ι α} {x : s.σ} (h : s.ready
 @[simp] lemma Stream.next'_val_invalid' {s : Stream ι α} {x : s.σ} (hx : ¬s.valid x) (n : ℕ) :
   s.next'^[n] x = x := function.iterate_fixed (Stream.next'_val_invalid hx) n
 
-lemma Stream.next'_valid {s : Stream ι α} {x : s.σ}
-  (h : s.valid (s.next' x)) : s.valid x :=
-by { contrapose h, rwa [Stream.next'_val_invalid h] }
-
-lemma Stream.next'_valid' {s : Stream ι α} {x : s.σ} (n : ℕ)
-  (h : s.valid (s.next'^[n] x)) : s.valid x :=
-begin
-  induction n with _ ih generalizing x,
-  { simpa using h },
-  { rw [function.iterate_succ_apply] at h,
-    exact Stream.next'_valid (ih h) }
-end
 
 lemma bound_valid_iff_next'_iterate {s : Stream ι α} {x : s.σ} {n : ℕ} :
   s.bound_valid n x ↔ ¬s.valid (s.next'^[n] x) :=
 by { induction n with n ih generalizing x, { simp, }, by_cases H : s.valid x; simp [ih, H, Stream.next'_val, Stream.next'_val_invalid, Stream.next'_val_invalid'], }
-
-lemma Stream.bound_valid_iterate {s : Stream ι α} {n N : ℕ} {σ₀ : s.σ} :
-  s.bound_valid (n + N) σ₀ ↔ s.bound_valid n (s.next'^[N] σ₀) :=
-by simp_rw [bound_valid_iff_next'_iterate, function.iterate_add_apply]
-
-theorem Stream.no_repeat_if_bound_valid' {s : Stream ι α} {x : s.σ} {B : ℕ}
-  (bv : s.bound_valid B x) (h : s.valid x) : ∀ (n : ℕ), s.next'^[n.succ] x ≠ x :=
-begin
-  contrapose bv, simp only [not_forall, not_not] at bv,
-  cases bv with k rep,
-  induction B with B ih generalizing x,
-  { simpa },
-  { suffices : ¬s.bound_valid B (s.next' x), by simpa [h] using this,
-    apply ih,
-    { rw [function.iterate_succ_apply] at rep,
-      have h' := h, rw ← rep at h',
-      apply Stream.next'_valid' _ h', },
-    { rw [← function.iterate_succ_apply,
-          function.iterate_succ_apply',
-          rep] } }
-end
-
-theorem Stream.no_repeat_if_bound_valid {s : Stream ι α} {x : s.σ} {B : ℕ}
-  (bv : s.bound_valid B x) (h : s.valid x) : s.next' x ≠ x :=
-Stream.no_repeat_if_bound_valid' bv h 0
 
 lemma Stream.next'_ge_bound {s : Stream ι α} {σ₀ : s.σ} {n b : ℕ} (hb : s.bound_valid b σ₀) (hn : b ≤ n) :
   (s.next'^[n] σ₀) = (s.next'^[b] σ₀) :=
@@ -292,6 +255,41 @@ end
 lemma Stream.next'_min_bound {s : Stream ι α} {σ₀ : s.σ} {n b : ℕ} (hb : s.bound_valid b σ₀) :
   (s.next'^[min b n] σ₀) = (s.next'^[n] σ₀) :=
 by { rw min_def, split_ifs, { rw Stream.next'_ge_bound hb h, }, refl, }
+
+lemma Stream.bound_valid.next'_iff {s : Stream ι α} {x : s.σ} {B : ℕ} (hB : s.bound_valid B x) :
+  ¬s.valid x ↔ s.next'.is_fixed_pt x :=
+⟨Stream.next'_val_invalid, λ h₁, by simpa [bound_valid_iff_next'_iterate, function.iterate_fixed h₁] using hB⟩
+
+lemma Stream.bound_valid.iterate_is_fixed_point {s : Stream ι α} {x : s.σ} {B : ℕ} (hB : s.bound_valid B x) :
+  s.next'.is_fixed_pt (s.next'^[B] x) :=
+by simpa [function.iterate_succ'] using Stream.next'_ge_bound hB B.le_succ
+
+lemma Stream.bound_valid.fixed_pt_iff_periodic_pt {s : Stream ι α} {x : s.σ} {B : ℕ} (hB : s.bound_valid B x) :
+  s.next'.is_fixed_pt x ↔ x ∈ s.next'.periodic_pts :=
+⟨λ h, function.mk_mem_periodic_pts zero_lt_one h, λ h, begin
+  have hB' := function.is_fixed_point_iff_minimal_period_eq_one.mpr hB.iterate_is_fixed_point,
+  simpa [hB', function.is_fixed_point_iff_minimal_period_eq_one] using (function.minimal_period_apply_iterate h B).symm,
+end⟩
+
+lemma Stream.next'_valid {s : Stream ι α} {x : s.σ}
+  (h : s.valid (s.next' x)) : s.valid x :=
+by { contrapose h, rwa [Stream.next'_val_invalid h] }
+
+lemma Stream.next'_valid' {s : Stream ι α} {x : s.σ} (n : ℕ)
+  (h : s.valid (s.next'^[n] x)) : s.valid x :=
+begin
+  induction n with _ ih generalizing x,
+  { simpa using h },
+  { rw [function.iterate_succ_apply] at h,
+    exact Stream.next'_valid (ih h) }
+end
+
+theorem Stream.bound_valid.no_repeat' {s : Stream ι α} {x : s.σ} {B : ℕ}
+  (bv : s.bound_valid B x) (h : s.valid x) (n : ℕ) : s.next'^[n.succ] x ≠ x :=
+λ h', bv.fixed_pt_iff_periodic_pt.not.mp (bv.next'_iff.not_right.mp h) ⟨n + 1, nat.zero_lt_succ _, h'⟩
+
+theorem Stream.bound_valid.no_repeat {s : Stream ι α} {x : s.σ} {B : ℕ}
+  (bv : s.bound_valid B x) (h : s.valid x) : s.next' x ≠ x := bv.no_repeat' h 0
 
 lemma Stream.bimap_value' [has_zero α] [has_zero β] (s : Stream ι α) (f : ι → ι') (g : α → β) (hg : g 0 = 0) :
   (s.bimap f g).value' = g ∘ s.value' :=
@@ -312,6 +310,15 @@ by ext; rw function.comp_app; simp [Stream.bimap_index'_eq_apply]
 end defs
 
 open_locale big_operators
+
+lemma Stream.eval_steps_add [add_comm_monoid α] (s : Stream ι α) (m n : ℕ) (q : s.σ) :
+  s.eval_steps (m + n) q = s.eval_steps m q + s.eval_steps n (s.next'^[m] q) :=
+begin
+  induction m with m ih generalizing q, { simp, },
+  by_cases H : s.valid q,
+  { simp [nat.succ_add, ih, H, Stream.next'_val], abel, },
+  { simp only [Stream.eval_invalid H, Stream.next'_val_invalid' H, add_zero], },
+end
 
 lemma Stream.spec_of_iterate [add_comm_monoid α] (s : Stream ι α)
   (B : ℕ) (σ₀ : s.σ) (h : ∀ i < B, s.valid (s.next'^[i] σ₀)) :

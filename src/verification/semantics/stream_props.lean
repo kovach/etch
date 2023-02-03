@@ -1,5 +1,5 @@
 import verification.misc
-import verification.stream
+import verification.semantics.stream
 
 
 open_locale classical
@@ -37,6 +37,16 @@ def Stream.monotonic (q : Stream ι α) : Prop :=
 structure Stream.simple (q : Stream ι α) : Prop :=
 (monotonic : q.monotonic)
 (reduced : q.reduced)
+
+lemma Stream.monotonic.le_index_iterate {s : Stream ι α} (hs : s.monotonic) (q : s.σ) (n : ℕ) :
+  s.index' q ≤ s.index' (s.next'^[n] q) :=
+begin
+  induction n with n ih generalizing q, { simp, },
+  by_cases h : s.valid q, swap,
+  { simp [Stream.next'_val_invalid' h], },
+  refine (hs h).trans _,
+  simpa [Stream.next'_val h] using ih _,
+end
 
 lemma Stream.monotonic.index_le_support [add_zero_class α] {q : Stream ι α} (hq : q.monotonic) {x : q.σ} {n : ℕ} :
   ∀ i ∈ (q.eval_steps n x).support, q.index' x ≤ ↑i :=

@@ -1,7 +1,7 @@
-import verification.stream_add
-import verification.stream_multiply
-import verification.stream_replicate
-import verification.stream_props
+import verification.semantics.stream_add
+import verification.semantics.stream_multiply
+import verification.semantics.stream_replicate
+import verification.semantics.stream_props
 
 local infixr ` ↠ `:50 := SimpleStream
 

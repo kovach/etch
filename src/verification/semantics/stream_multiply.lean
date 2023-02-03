@@ -2,8 +2,8 @@ import tactic
 import data.finsupp.basic
 import control.bifunctor
 import verification.misc
-import verification.stream_props
-import verification.finsuppeval
+import verification.semantics.stream_props
+import verification.semantics.finsuppeval
 
 open_locale classical
 noncomputable theory

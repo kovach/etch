@@ -3,8 +3,8 @@ import data.fintype.basic
 import logic.equiv.fintype
 import logic.function.iterate
 import tactic.basic
-import verification.stream_props
-import verification.finsuppeval
+import verification.semantics.stream_props
+import verification.semantics.finsuppeval
 
 /- ### Definitions -/
 
