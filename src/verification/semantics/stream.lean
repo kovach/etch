@@ -231,11 +231,11 @@ lemma Stream.index'_invalid {s : Stream ι α} {x : s.σ} (h : ¬s.valid x) : s.
 
 lemma Stream.value'_val [has_zero α] {s : Stream ι α} {x : s.σ} (h : s.ready x) : s.value' x = s.value x h := dif_pos h
 
-lemma Stream.next'_val {s : Stream ι α} {x : s.σ} (hx) : s.next' x = s.next x hx := dif_pos hx
+@[simp] lemma Stream.next'_val {s : Stream ι α} {x : s.σ} (hx) : s.next' x = s.next x hx := dif_pos hx
 
-lemma Stream.next'_val_invalid {s : Stream ι α} {x : s.σ} (hx : ¬s.valid x) : s.next' x = x := dif_neg hx
+@[simp] lemma Stream.next'_val_invalid {s : Stream ι α} {x : s.σ} (hx : ¬s.valid x) : s.next' x = x := dif_neg hx
 
-lemma Stream.next'_val_invalid' {s : Stream ι α} {x : s.σ} (hx : ¬s.valid x) (n : ℕ) :
+@[simp] lemma Stream.next'_val_invalid' {s : Stream ι α} {x : s.σ} (hx : ¬s.valid x) (n : ℕ) :
   s.next'^[n] x = x := function.iterate_fixed (Stream.next'_val_invalid hx) n
 
 
@@ -270,6 +270,26 @@ lemma Stream.bound_valid.fixed_pt_iff_periodic_pt {s : Stream ι α} {x : s.σ} 
   have hB' := function.is_fixed_point_iff_minimal_period_eq_one.mpr hB.iterate_is_fixed_point,
   simpa [hB', function.is_fixed_point_iff_minimal_period_eq_one] using (function.minimal_period_apply_iterate h B).symm,
 end⟩
+
+lemma Stream.next'_valid {s : Stream ι α} {x : s.σ}
+  (h : s.valid (s.next' x)) : s.valid x :=
+by { contrapose h, rwa [Stream.next'_val_invalid h] }
+
+lemma Stream.next'_valid' {s : Stream ι α} {x : s.σ} (n : ℕ)
+  (h : s.valid (s.next'^[n] x)) : s.valid x :=
+begin
+  induction n with _ ih generalizing x,
+  { simpa using h },
+  { rw [function.iterate_succ_apply] at h,
+    exact Stream.next'_valid (ih h) }
+end
+
+theorem Stream.bound_valid.no_repeat' {s : Stream ι α} {x : s.σ} {B : ℕ}
+  (bv : s.bound_valid B x) (h : s.valid x) (n : ℕ) : s.next'^[n.succ] x ≠ x :=
+λ h', bv.fixed_pt_iff_periodic_pt.not.mp (bv.next'_iff.not_right.mp h) ⟨n + 1, nat.zero_lt_succ _, h'⟩
+
+theorem Stream.bound_valid.no_repeat {s : Stream ι α} {x : s.σ} {B : ℕ}
+  (bv : s.bound_valid B x) (h : s.valid x) : s.next' x ≠ x := bv.no_repeat' h 0
 
 lemma Stream.bimap_value' [has_zero α] [has_zero β] (s : Stream ι α) (f : ι → ι') (g : α → β) (hg : g 0 = 0) :
   (s.bimap f g).value' = g ∘ s.value' :=
