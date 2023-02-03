@@ -3,6 +3,7 @@ import finsupp_lemmas
 import algebra.big_operators.fin
 import data.nat.succ_pred
 import tactic.linarith
+import dynamics.periodic_pts
 
 open_locale classical
 noncomputable theory
@@ -237,6 +238,7 @@ lemma Stream.next'_val_invalid {s : Stream ι α} {x : s.σ} (hx : ¬s.valid x) 
 lemma Stream.next'_val_invalid' {s : Stream ι α} {x : s.σ} (hx : ¬s.valid x) (n : ℕ) :
   s.next'^[n] x = x := function.iterate_fixed (Stream.next'_val_invalid hx) n
 
+
 lemma bound_valid_iff_next'_iterate {s : Stream ι α} {x : s.σ} {n : ℕ} :
   s.bound_valid n x ↔ ¬s.valid (s.next'^[n] x) :=
 by { induction n with n ih generalizing x, { simp, }, by_cases H : s.valid x; simp [ih, H, Stream.next'_val, Stream.next'_val_invalid, Stream.next'_val_invalid'], }
@@ -253,6 +255,21 @@ end
 lemma Stream.next'_min_bound {s : Stream ι α} {σ₀ : s.σ} {n b : ℕ} (hb : s.bound_valid b σ₀) :
   (s.next'^[min b n] σ₀) = (s.next'^[n] σ₀) :=
 by { rw min_def, split_ifs, { rw Stream.next'_ge_bound hb h, }, refl, }
+
+lemma Stream.bound_valid.next'_iff {s : Stream ι α} {x : s.σ} {B : ℕ} (hB : s.bound_valid B x) :
+  ¬s.valid x ↔ s.next'.is_fixed_pt x :=
+⟨Stream.next'_val_invalid, λ h₁, by simpa [bound_valid_iff_next'_iterate, function.iterate_fixed h₁] using hB⟩
+
+lemma Stream.bound_valid.iterate_is_fixed_point {s : Stream ι α} {x : s.σ} {B : ℕ} (hB : s.bound_valid B x) :
+  s.next'.is_fixed_pt (s.next'^[B] x) :=
+by simpa [function.iterate_succ'] using Stream.next'_ge_bound hB B.le_succ
+
+lemma Stream.bound_valid.fixed_pt_iff_periodic_pt {s : Stream ι α} {x : s.σ} {B : ℕ} (hB : s.bound_valid B x) :
+  s.next'.is_fixed_pt x ↔ x ∈ s.next'.periodic_pts :=
+⟨λ h, function.mk_mem_periodic_pts zero_lt_one h, λ h, begin
+  have hB' := function.is_fixed_point_iff_minimal_period_eq_one.mpr hB.iterate_is_fixed_point,
+  simpa [hB', function.is_fixed_point_iff_minimal_period_eq_one] using (function.minimal_period_apply_iterate h B).symm,
+end⟩
 
 lemma Stream.bimap_value' [has_zero α] [has_zero β] (s : Stream ι α) (f : ι → ι') (g : α → β) (hg : g 0 = 0) :
   (s.bimap f g).value' = g ∘ s.value' :=
