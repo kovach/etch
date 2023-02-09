@@ -4,7 +4,7 @@ import Etch.LVal
 import Etch.Add
 import Etch.Mul
 import Etch.Compile
-import Etch.ShapeInference
+--import Etch.ShapeInference
 
 def E.toMin (e : E R) : E RMin := E.call Op.toMin ![e]
 def E.toMax (e : E R) : E RMax := E.call Op.toMax ![e]
@@ -28,10 +28,63 @@ def TACO.interval (pos : Var ℕ) (lower upper : E ℕ) : ι →ₛ (E ℕ) wher
   valid pos := pos.expr << upper
   init  n   := let p := pos.fresh n; (p.decl lower, p)
 
-def csr.level' : csr ι ℕ → E ℕ → ι →ₛ E ℕ := λ csr loc => TACO.interval csr.i csr.var (.access csr.v loc) (csr.v.access (loc+1)) -- 1
+def csr.level' : csr ι ℕ → E ℕ → (ι →ₛ E ℕ) :=
+  fun csr loc ↦ TACO.interval csr.i csr.var (csr.v.access loc) (csr.v.access <| loc+1) -- 1
+
 def TACO.level {f} [Functor f] : csr ι ℕ → f (E ℕ) → f (ι →ₛ (E ℕ)) := Functor.map ∘ csr.level'
 
+-- generalize ι with ι ≃ Fin n typeclass
+-- todo now: freshen temps
+-- todo: fix correspondence between MemLoc/E
+
+--def ValPair {f : Type → Type _ → Type _} (α ι β) := α → (lvl ι β) × (f ι β)
+
+---- scalar
+--def valuePair (vals : ArrayVar α) : E ℕ → (MemLoc α) × (MemLoc α) := fun loc ↦ (⟨vals, loc⟩, ⟨vals, loc⟩)
+
+-- sparse; interval → interval
+def sii (n : Name) : MemLoc ℕ → (lvl ι (MemLoc ℕ)) × (ι →ₛ MemLoc ℕ) :=
+  let ind_array := Var.mk "ind" |>.fresh n
+  let pos_array := Var.mk "pos" |>.fresh n
+  fun interval ↦ (with_values (sparse_il ind_array) (interval_vl pos_array) interval,
+                  let (lower, upper) := interval.interval
+                  MemLoc.mk pos_array <$> TACO.interval ind_array "todo" lower upper)
+                  --csr.level' {i := ind_array, v := pos_array, var := ""} interval.access)
+
+-- sparse; interval → value
+def siv [Zero α] [Tagged α] (n : Name) : MemLoc ℕ → (lvl ι (MemLoc α)) × (ι →ₛ MemLoc α) :=
+  let ind_array := Var.mk "ind" |>.fresh n
+  let val_array := Var.mk "pos" |>.fresh n
+  fun interval ↦ (with_values (sparse_il ind_array) (dense_vl val_array) interval,
+                  let (lower, upper) := interval.interval
+                  MemLoc.mk val_array <$> TACO.interval ind_array "todo" lower upper)
+
+-- dense; logical position(?) → interval
+def dci (dim : E ℕ) (n : Name) : E ℕ → lvl ℕ (MemLoc ℕ) × (ℕ →ₐ MemLoc ℕ) :=
+  let ctr := Var.mk "counter" |>.fresh n
+  let pos_array := Var.mk "pos" |>.fresh n
+  fun i  ↦ (with_values (dense_il dim ctr) (interval_vl pos_array) i,
+            MemLoc.mk pos_array <$> range)
+
+instance [Functor f] [Functor g] : Functor (λ x => f x × g x) where map v x := x.map (v <$> .) (v <$> .)
+def cmp [Functor F] [Functor G] (f : α → F β × G β) (g : β → γ × γ') : α → F γ × G γ' :=
+  let g₁ := Prod.fst ∘ g
+  let g₂ := Prod.snd ∘ g
+  fun a ↦ (f a).map (g₁ <$> .) (g₂ <$> .)
+
+variable (is : ArrayVar ι) (ps : ArrayVar ℕ) {α} [Zero α] [Tagged α] (vs : ArrayVar α)
+
+infixr:90 " ;;; " => cmp
+def defMemLoc : MemLoc ℕ := ⟨"f", 0⟩
+
+-- ss
+#check defMemLoc |> sii (emptyName.fresh 0) ;;; siv (emptyName.fresh 1)
+-- ds
+#check 0 |> dci 10 (emptyName.fresh 0) ;;; siv (emptyName.fresh 1)
+-- sss
+#check sii emptyName ;;; sii (emptyName.fresh 0) ;;; siv (emptyName.fresh 1) $ defMemLoc
 end TACO
+
 
 def List.sequence [Monad m] : List (m α) → m (List α) := List.mapM id
 
@@ -83,11 +136,11 @@ def exp0 (ι : Type _) : α → ι →ₐ α := λ (v : α) => λ _ => v
 def exp1 (ι'' : Type _) : (ι' →ₛ α) → (ι' →ₛ (ι'' →ₐ α)) := Functor.map $ exp0 ι''
 def exp2 (ι'' : Type _) : S ι (S ι' α) → S ι (S ι' (Fun ι'' α)) := Functor.map $ exp1 ι''
 
-
 --def S.snd [Tagged α] [Zero α] [Tagged β] [Zero β] : β →ₛ α →ₛ (E α) := S.function "f1_" ⊚ S.function "f2_" $ λ _ x => x
 --def S.fst [Tagged α] [Zero α] [Tagged β] [Zero β] : α →ₛ β →ₛ (E α) := S.function "f1_" ⊚ S.function "f2_" $ λ x _ => x
 --def S.attr [Tagged α] [Zero α] : α →ₛ (E α) := S.function "f1_" id
-def S.attr (i : ℕ × Type _) : i ↠ (E i.2) := Str.fun id
+--def S.attr (i : ℕ × Type _) : i ↠ (E i.2) := Str.fun id
+def S.attr (i : Type) : i →ₐ E i := id
 
 section funs
 variable
@@ -96,7 +149,6 @@ variable
 
 def toGuard {α β} [OfNat β (nat_lit 1)] : α → β := λ _ => 1
 def binOp (f : E ι → E ι' → E α) : ι →ₛ ι' →ₛ E α := S.function "f1_" ⊚ S.function "f2_" $ f
-#check (1 : R)
 def S.lt  : ℕ →ₛ ℕ →ₛ E R := binOp (. <ᵣ .)
 def S.udf : ℕ →ₛ ℕ →ₛ E RMax := binOp λ a b => E.call .udf_max ![a,b]
 end funs
@@ -120,6 +172,7 @@ def dsB' := taco_dsMat "dsB"
 def dV   := dVec "V"
 def sV   := sVec "sV"
 example : HMul (ℕ →ₛ ℕ →ₐ E R) (ℕ →ₛ ℕ →ₛ E R) (ℕ →ₛ ℕ →ₛ E R) := inferInstance
+
 --def mulAB := ((exp0 ℕ <$> .) <$> ssA) * (exp0 ℕ ssB)
 
 --?def mulAB' := (exp2 ℕ ssA) * (exp0 ℕ ssB)
@@ -157,6 +210,9 @@ def names := [
   "sum_ttm"
 ]
 
+def arrow {f : Type → Type _ → Type _} : Type → Type _ → Type _ := f
+infixr:25 " ↠ " => arrow
+
 def ssA      : i ↠ j ↠ E R      := taco_mat "ssA"
 def dsA      : i ↠ j ↠ E R      := taco_dsMat "dsA"
 def ssB_ij   : i ↠ j ↠ E R     := taco_mat "ssB"
@@ -182,6 +238,7 @@ def mttkrp    := ∑ i, j, k, l: sssC * (dsA' : j ↠ l ↠ E R) * (dsB' : k ↠
 def mul_inner := ∑ i, j, k: (ssA' : i ↠ k ↠ E R) * (ssB' : j ↠ k ↠ E R)
 def udf       := ((λ _ : E R => 1) <$$> dsR) * (S.udf : i ↠ j ↠ E RMax)
 def add_ss    := ∑ i, j: ((ssA' + ssB') : i ↠ j ↠ E R)
+--def add_ss'    := ∑ i, j: (S.add' (ssA' : i ↠ j ↠ E R) (ssB' : i ↠ j ↠ E R))
 def inner     := ∑ i, j: ssA * ssB_ij
 
 def threshold : E R := "threshold"
@@ -209,7 +266,8 @@ structure TacoTest where
 def taco_ops : List (String × String × String) :=
 [
 let fn := "inner2ss"; ("inner2ss", fn, compile_fun fn $ [go outVal inner]),
-let fn := "sum_add2"; (fn, fn, compile_fun fn $ [go outVal add_ss]),
+let fn := "sum_add2"; (fn, fn, compile_fun fn $ [go outVal add_ss, go outVal (sum2 ssA'), go outVal (sum2 ssB')]),
+--let fn := "sum_add2_"; ("sum_add2", fn, compile_fun fn $ [go outVal add_ss]),
 let fn := "sum_mul2_csr"; ("sum_mul2_csr", fn, compile_fun "sum_mul2_csr" $ [go outVal mul]),
 let fn := "sum_mul2"; ("sum_mul2", fn, compile_fun "sum_mul2" $ [go outVal mul_ss]),
 let fn := "mttkrp"; ("mttkrp", fn, compile_fun "mttkrp" [go outVal $ mttkrp ]),

@@ -4,7 +4,7 @@ import Etch.Stream
 variable
 (ι : Type _) [Tagged ι] [DecidableEq ι]
 [LE ι] [DecidableRel (LE.le : ι → ι → _)] [LT ι] [DecidableRel (LT.lt : ι → ι → _)]
-{α : Type _} [Tagged α] [OfNat α (nat_lit 0)]
+{α : Type _} [Tagged α] [Zero α]
 
 abbrev loc := E ℕ
 structure il (ι : Type _) := (push' : (loc → P) → E ι → P × loc)
@@ -22,6 +22,18 @@ infixl:20 "||" => Add.add
 structure MemLoc (α : Type) := (arr : Var (ℕ → α)) (ind : E ℕ)
 
 def MemLoc.access (m : MemLoc α) : E α := m.arr.access m.ind
+def MemLoc.deref (m : MemLoc α) : E α := m.arr.access m.ind
+def MemLoc.incr_array (m : MemLoc ℕ) : P := m.arr.incr_array m.ind
+def MemLoc.interval (m : MemLoc ℕ) : E ℕ × E ℕ  := (m.arr.access m.ind, m.arr.access $ m.ind + 1)
+
+def sparse_il' (ind_array : Var (ℕ → ι)) (lower upper : MemLoc ℕ) : il ι :=
+  let loc   := upper.deref - 1
+  let current := ind_array.access loc
+  { push' := λ init i =>
+      let prog := P.if1 (lower.deref == upper.deref || i != current)
+                    (upper.incr_array;; init loc);;
+                    P.store_mem ind_array loc i
+      (prog, loc) }
 
 def sparse_il (ind_array : Var (ℕ → ι)) (bounds : MemLoc ℕ) : il ι :=
   let array := bounds.arr
@@ -78,7 +90,7 @@ def dense_mat (d₁ d₂ : E ℕ) : lvl ℕ (lvl ℕ (MemLoc ℕ)) := (0 : E ℕ
 def cube_lvl (d₁ d₂ d₃ : E ℕ) := 0 |>
   (with_values (dense_il d₁ "i1") implicit_vl) ⊚
   (with_values (dense_il d₂ "i2") implicit_vl) ⊚
-  (with_values (dense_il d₃ "i3") $ dense_vl "values")
+  (with_values (dense_il d₃ "i3") $ dense_vl ("values" : ArrayVar α))
 --def sparse_vec : lvl ℕ (MemLoc α) := ⟨("size" : Var ℕ), (0 : E ℕ)⟩ &
 --  (with_values (sparse_il ("A1_crd" : Var ℕ)) (dense_vl "A_vals"))
 

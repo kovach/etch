@@ -85,7 +85,7 @@ def Op.eq [Tagged α] [DecidableEq α] : Op Bool where
   spec := λ a => a 0 = a 1
   opName := tag_mk_fun α "eq"
 
-@[simps]
+@[simps, reducible]
 def Op.add [Tagged α] [Add α] : Op α where
   argTypes := ![α, α]
   spec := λ a => a 0 + a 1

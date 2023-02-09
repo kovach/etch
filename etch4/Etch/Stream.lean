@@ -18,6 +18,19 @@ inductive E : Type → Type 1
 | access : Var (ℕ → α) → E ℕ → E α
 | intLit : ℕ → E ℕ
 
+-- todo remove
+def E.vars' : E α → List ((α : Type) × (Var α))
+| .var v => [⟨_, v⟩]
+| .call _ args => List.ofFn (fun n ↦ (args n).vars') |>.join
+| .access v e => ⟨_, v⟩ :: e.vars'
+| .intLit _ => []
+
+def E.vars : E α → List String
+| .var v => [v]
+| .call _ args => List.ofFn (fun n ↦ (args n).vars) |>.join
+| .access v e => v :: e.vars
+| .intLit _ => []
+
 def E.v (α) (v : String) : E α := E.var v
 
 structure HeapContext where
@@ -62,6 +75,15 @@ inductive P
 | store_var : Var α → E α → P
 | store_mem : Var (ℕ → α) → E ℕ → E α → P
 
+def P.vars : P → List String
+| seq a b         => a.vars ++ b.vars
+| .while c b      => c.vars ++ b.vars
+| branch e t f    => e.vars ++ t.vars ++ f.vars
+| skip            => []
+| decl  v e       => v :: e.vars
+| store_var l r   => l :: r.vars
+| store_mem v i r => v :: (i.vars ++ r.vars)
+
 -- needs to come after P to avoid injectivity_lemma issue
 attribute [irreducible] Var
 
@@ -83,6 +105,11 @@ def Name.fresh (n : Name) (new : ℕ) : Name := new :: n
 def Name.freshen (n : Name) : Name := n.fresh 0
 def emptyName : Name := []
 
+structure Index where
+  type : Type
+  bound : Option ℕ
+  rank : ℕ
+
 structure S (ι : Type _) (α : Type _) where
   σ     : Type
   -- next_weak/next_strict?
@@ -94,8 +121,25 @@ structure S (ι : Type _) (α : Type _) where
   index : σ → E ι
   valid : σ → E Bool
   init  : Name → P × σ
+  -- cont : (σ → P)
+
+structure S' (ι : Type _) (α : Type _) where
+  σ     : Type
+  skip  : σ → E ι → P
+  succ  : σ → E ι → P
+  value : σ → α
+  ready : σ → E Bool
+  index : σ → E ι
+  valid : σ → E Bool
 
 infixr:25 " →ₛ " => S
+
+--def S.vars : (ι →ₛ α) → List String := fun s ↦ _
+
+
+
+--def StreamExec  (ι : Type _) (α : Type _) := (s : ι →ₛ α) × (P × s.σ)
+--infixr:25 " →ₛ. " => StreamExec
 
 section ι
 
@@ -105,7 +149,7 @@ variable {ι : Type} [Tagged ι] [DecidableEq ι] [LT ι] [DecidableRel (LT.lt :
 (is : ArrayVar ι)
 
 def Var.access := E.access v
-def Var.incr [Tagged α] [Add α] [OfNat α 1] (v : Var α) : P := .store_var v $ E.var v + 1
+def Var.incr [Tagged α] [Add α] [One α] (v : Var α) : P := .store_var v $ E.var v + 1
 def Var.incr_array [Tagged α] [Add α] [OfNat α 1] (ind : E ℕ) : P := .store_mem v ind $ v.access ind + 1
 def Var.expr (v : Var α) : E α := E.var v
 def Var.fresh (v : Var α) (n : Name) : Var α := Var.mk (v.toString ++ n.toString)
@@ -115,6 +159,7 @@ def Var.decl (v : Var α) := P.decl v
 instance : Coe (Var α) (E α) := ⟨E.var⟩
 
 instance : Functor (S ι) where map := λ f s => {s with value := f ∘ s.value }
+instance : Functor (S' ι) where map := λ f s => {s with value := f ∘ s.value }
 
 def simpleSkip (pos : Var ℕ) (max_pos : E ℕ) (tgt : E ι) :=
   .store_var "temp" tgt;;
@@ -160,11 +205,15 @@ def S.interval (h : IterMethod) (pos : Var ℕ) (lower upper : E ℕ) : S ι (E 
 -- todo: use instead of zero
 --class Bot (α : Type _) := (bot : α)
 --notation "⊥"  => Bot.bot
-def S.univ [Zero ι] [Add ι] [OfNat ι 1] (max l : Var ι) : S ι (E ι) where
+
+
+#check LawfulApplicative
+
+def S.univ [Zero ι] [Add ι] [One ι] (max l : Var ι) : S ι (E ι) where
   value last := last.expr
   succ  last i := .if1 (last.expr <= i) last.incr  -- imprecise but ok
   ready _    := 1
-  skip  last := λ i => .store_var last i
+  skip  last := .store_var last
   index last := last.expr
   valid last := last.expr << max.expr
   init  n    := let v := l.fresh n; (v.decl 0, v)
@@ -221,3 +270,43 @@ def seqInit (a : S ι α) (b : S ι β) (n : Name) :=
 let (ai, as) := a.init (n.fresh 0);
 let (bi, bs) := b.init (n.fresh 1);
 (ai ;; bi, (as, bs))
+
+def S.precompose  (s : ι →ₛ α) (f : σ' → s.σ) : S' ι α where
+  σ := σ'
+  value := s.value ∘ f
+  succ  := s.skip ∘ f
+  ready := s.ready ∘ f
+  skip  := s.skip ∘ f
+  index := s.index ∘ f
+  valid := s.valid ∘ f
+
+class Stateful (α : Type _) where
+  σ : α → Type
+class Init (α : Type _) extends Stateful α where
+  init' : Name → (v : α) → P × σ v
+
+instance : Init (E α) where
+  σ _ := Unit
+  init' _ _ := (.skip, ())
+
+instance : Init (ι →ₛ α) where
+  σ v := v.σ
+  init' n v := v.init n
+
+instance : Stateful (S' ι α) where
+  σ v := v.σ
+
+instance : Init (Contraction α) where
+  σ v := v.2.σ
+  init' n v := v.2.init n
+
+structure Sequence (α β : Type _) [Stateful α] [Stateful β] where
+  (a : α) (b : β)
+  f : Stateful.σ a → Stateful.σ b
+
+instance [Stateful α] [Stateful β] : Stateful (Sequence α β) where
+  σ v := Stateful.σ v.a
+
+instance [Init α] [Stateful β] : Init (Sequence α β) where
+  σ v := Stateful.σ v.a
+  init' n v := Init.init' n v.a

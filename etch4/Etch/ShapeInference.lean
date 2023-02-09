@@ -5,8 +5,8 @@ import Etch.Add
 import Etch.Mul
 
 class NatLt (m n : ℕ) where proof : m < n
-instance NatLt.one (n : ℕ) : NatLt 0 n.succ := ⟨Nat.succ_pos _⟩
-instance NatLt.trans (m n : ℕ) [h : NatLt m n] : NatLt (m+1) (n+1) :=
+instance NatLt.zero (n : ℕ) : NatLt 0 n.succ := ⟨Nat.succ_pos _⟩
+instance NatLt.succ (m n : ℕ) [h : NatLt m n] : NatLt (m+1) (n+1) :=
 ⟨Nat.succ_lt_succ h.proof⟩
 
 --instance i1 : NatLt 3 2 := inferInstance -- no
@@ -53,6 +53,7 @@ end Instances
 
 instance {α β γ : Type _} [Merge α β γ] [Mul γ] : HMul α β γ := ⟨λ a b => merge1 β a * merge2 α b⟩
 instance {α β γ : Type _} [Merge α β γ] [Add γ] : HAdd α β γ := ⟨λ a b => merge1 β a + merge2 α b⟩
+--instance {α β γ : Type _} [Merge α β γ] [HAdd' γ γ γ] : HAdd' α β γ := ⟨λ a b => HAdd'.add (merge1 β a) (merge2 α b)⟩
 
 @[reducible] def Ind (_ : ℕ) (ι : Type _) := ι
 
