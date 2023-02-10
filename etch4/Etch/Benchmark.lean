@@ -6,6 +6,56 @@ import Etch.Mul
 import Etch.Compile
 import Etch.ShapeInference
 
+/- TODO:
+
+https://docs.google.com/document/d/1kQFwU0STbcasz0ZPLxK6S4F-RDIvZLUuAg6UF6ga_TI/edit#heading=h.y6ikm63g5ns
+
+especially
+https://github.com/TimoKersten/db-engine-paradigms/blob/master/src/benchmarks/tpch/queries/q5.cpp
+
+Note: If we have column A(a, b), convert it to A : a → b → Bool
+If b is the key and a is the value, then actually rewrite it as A : b → a
+
+for each table we want, make callback (SQLite)
+  0, 1, 2, ... are column names  
+
+VSQLCallback is basically ℕ →ₛ E R
+The last one is the value type
+
+orders(o_custkey, o_orderkey, o_orderdate)
+customer(c_custkey, c_nationkey)
+lineitem(l_orderkey, l_suppkey, (l_extendedprice, l_discount))
+supplier(s_suppkey, s_nationkey)
+nation(n_nationkey, n_regionkey, n_name)
+region(r_regionkey, r_name)
+
+∑(suppkey) lineitem * supplier
+
+// select
+//  n_name,
+//  sum(l_extendedprice * (1 - l_discount)) as revenue
+// from
+//   customer,
+//   orders,
+//   lineitem,
+//   supplier,
+//   nation,
+//   region
+// where
+//   c_custkey = o_custkey
+//   and l_orderkey = o_orderkey
+//   and l_suppkey = s_suppkey
+//   and c_nationkey = s_nationkey
+//   and s_nationkey = n_nationkey
+//   and n_regionkey = r_regionkey
+//   and r_name = 'ASIA'
+//   and o_orderdate >= date '1994-01-01'
+//   and o_orderdate < date '1995-01-01'
+// group by
+//  n_name
+
+-/
+
 def E.toMin (e : E R) : E RMin := E.call Op.toMin ![e]
 def E.toMax (e : E R) : E RMax := E.call Op.toMax ![e]
 def E.ofNat (e : E ℕ) : E R    := E.call Op.toNum ![e]
@@ -191,6 +241,78 @@ def filter_spmv := ∑ i, j: filter_v * ssA
 def fires : year ↠ objid ↠ E R := mat "ssF"
 def range_06_08 : year ↠ E R := (S.predRange (2006 : E ℕ) 2008 : ℕ →ₛ E R)
 def count_range := ∑ year, objid: range_06_08 * fires
+
+def E.succ {α} [Tagged α] [Add α] [OfNat α (nat_lit 1)] (e : E α) : E α :=
+  E.call .add ![e, (1 : E α)]
+
+namespace TPCH
+
+instance [Tagged α] : HMul (E Unit) (E α) (E α) := ⟨ λ _ b => b ⟩
+instance [Tagged α] : HMul (E α) (E Unit) (E α) := ⟨ λ a _ => a ⟩
+instance [Tagged α] : HMul Unit α α := ⟨ λ _ b => b ⟩
+instance [Tagged α] : HMul α Unit α := ⟨ λ a _ => a ⟩
+instance : OfNat Unit (nat_lit 0) := ⟨ () ⟩
+instance : OfNat Unit (nat_lit 1) := ⟨ () ⟩
+instance : Zero Unit := ⟨ () ⟩
+instance : One Unit := ⟨ () ⟩
+
+instance : ToIgnore (E Unit) := ⟨⟩
+
+section
+
+variable [Tagged ι] [DecidableEq ι] [Max ι]
+
+example : HMul (S ι Unit) (S ι R) (S ι R) := inferInstance
+example : HMul (i ↠ E R) (i ↠ E R) (i ↠ E R) := inferInstance
+example : HMul (i ↠ E R) (i ↠ E Unit) (i ↠ E R) := inferInstance
+example : HMul (i ↠ E Unit) (i ↠ E R) (i ↠ E R) := inferInstance
+
+example : HMul (i ↠ E R) (j ↠ E R) (i ↠ j ↠ E R) := inferInstance
+example : Merge (i ↠ E R) (j ↠ E R) (i ↠ j ↠ E R) := inferInstance
+
+example : HMul (i ↠ E Unit) (j ↠ E R) (i ↠ j ↠ E R) := inferInstance
+example : Merge (i ↠ E Unit) (j ↠ E R) (i ↠ j ↠ E R) := inferInstance
+
+example : Atomic (E Unit) := inferInstance
+example : Merge (i ↠ E R) (E Unit) (i ↠ E R) := inferInstance
+example : Merge (E R) (E Unit) (E R) := inferInstance
+example : Merge (E R) (j ↠ E Unit) (j ↠ E R) := inferInstance
+example : Merge (i ↠ E Unit) (j ↠ E R) (i ↠ j ↠ E R) := Gen.Merge.lt
+example : Merge (i ↠ E R) (j ↠ E Unit) (i ↠ j ↠ E R) := Gen.Merge.lt
+
+example : HMul (i ↠ j ↠ E R) (i ↠ E Unit) (i ↠ j ↠ E R) := inferInstance
+example : Merge (i ↠ j ↠ E R) (i ↠ E Unit) (i ↠ j ↠ E R) := inferInstance
+
+example : One (E R) := inferInstance
+
+end
+
+abbrev custkey   := (0, ℕ)
+abbrev orderkey  := (1, ℕ)
+abbrev nationkey := (2, ℕ)
+abbrev suppkey   := (3, ℕ)
+abbrev regionkey := (4, ℕ)
+
+def tbl1 (f : String) : ℕ →ₛ E Unit := (csr.of f 1).level .step 0 |> S.leaf (f ++ "_vals")
+def tbl2 (f : String) : ℕ →ₛ ℕ →ₛ E Unit := (csr.of f 1).level .step 0 |> S.level .step (csr.of f 2) ⊚ S.leaf (f ++ "_vals")
+
+def orders   : custkey   ↠ orderkey  ↠ E Unit := tbl2 "tpch_orders"
+def customer : custkey   ↠ nationkey ↠ E Unit := tbl2 "tpch_customer"
+def lineitem : orderkey  ↠ suppkey   ↠ E R    := mat "tpch_lineitem"  -- R = extendedprice
+def supplier : nationkey ↠ suppkey   ↠ E Unit := tbl2 "tpch_supplier"
+def nation   : nationkey ↠ regionkey ↠ E Unit := tbl2 "tpch_nation" 
+def region   : regionkey ↠ E Unit              := tbl1 "tpch_region"
+
+def us_const : E ℕ := .var (.mk "US")
+def us : nationkey ↠ E Unit := (S.predRange us_const us_const.succ : ℕ →ₛ E Unit)
+
+def asia_const : E ℕ := .var (.mk "ASIA")
+def asia : regionkey ↠ E Unit := (S.predRange asia_const asia_const.succ : ℕ →ₛ E Unit)
+
+def q5 := ∑ custkey, orderkey, nationkey, suppkey, regionkey: lineitem * asia * orders * customer * supplier * nation * region
+#check q5
+
+end TPCH
 /- end examples -/
 
 #check (mat "f" : i ↠ j ↠ E R)
@@ -208,13 +330,13 @@ structure TacoTest where
 
 def taco_ops : List (String × String × String) :=
 [
-let fn := "inner2ss"; ("inner2ss", fn, compile_fun fn $ [go outVal inner]),
-let fn := "sum_add2"; (fn, fn, compile_fun fn $ [go outVal add_ss]),
-let fn := "sum_mul2_csr"; ("sum_mul2_csr", fn, compile_fun "sum_mul2_csr" $ [go outVal mul]),
-let fn := "sum_mul2"; ("sum_mul2", fn, compile_fun "sum_mul2" $ [go outVal mul_ss]),
-let fn := "mttkrp"; ("mttkrp", fn, compile_fun "mttkrp" [go outVal $ mttkrp ]),
-let fn := "spmv"; ("spmv", fn, compile_fun "spmv" $ [go outVal spmv]),
-let fn := "filter_spmv"; ("filter_spmv", fn, compile_fun "filter_spmv" $ [go outVal filter_spmv])
+-- let fn := "inner2ss";     (fn, fn, compile_fun fn [go outVal inner]),
+-- let fn := "sum_add2";     (fn, fn, compile_fun fn [go outVal add_ss]),
+-- let fn := "sum_mul2_csr"; (fn, fn, compile_fun fn [go outVal mul]),
+-- let fn := "sum_mul2";     (fn, fn, compile_fun fn [go outVal mul_ss]),
+-- let fn := "mttkrp";       (fn, fn, compile_fun fn [go outVal mttkrp ]),
+-- let fn := "spmv";         (fn, fn, compile_fun fn [go outVal spmv]),
+-- let fn := "filter_spmv";  (fn, fn, compile_fun fn [go outVal filter_spmv])
 ]
 --("sum_mul2_inner_ss", compile_fun "sum_mul2_inner_ss" $ [go outVal mul_inner]),
 --("sum_add2", compile_fun "sum_add2" $ [go outVal $ sum2 $ ssA, go outVal $ sum2 $ ssB]),
@@ -222,6 +344,7 @@ let fn := "filter_spmv"; ("filter_spmv", fn, compile_fun "filter_spmv" $ [go out
 
 def sql_ops : List (String × String) :=
 [
+let fn := "q5"; (fn, compile_fun fn [go outVal TPCH.q5])
 --  ("count_range", compile_fun "count_range" $ [go outVal count_range]),
 --  ("triangle", compile_fun "triangle" $ [go outVal $ ∑ i, j, k : dsR * dsS * dsT ]),
 --  ("udf", compile_fun "udf" $ [go outVal_max $ ∑ i, j: udf])

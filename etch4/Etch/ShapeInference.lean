@@ -16,6 +16,8 @@ universe u v
 
 class Atomic (α : Type u)
 
+class ToIgnore (α : Type u)
+
 class Rectangle (f : ℕ → Type _ → Type _) :=
   (map {α β : Type _} (i : ℕ) : (α → β) → f i α → f i β)
   (repl {α : Type _}  (i : ℕ) : α → f i α)
@@ -36,15 +38,22 @@ variable
 {α β γ : Type u}
 
 instance Gen.Merge.one {ρ} [Atomic ρ] : Merge ρ ρ ρ := ⟨id, id⟩
+instance Gen.Merge.unit_l {ρ γ} [Atomic ρ] [One ρ] [ToIgnore γ] : Merge γ ρ ρ := ⟨λ _ => 1, id⟩
+instance Gen.Merge.unit_r {ρ γ} [Atomic ρ] [One ρ] [ToIgnore γ] : Merge ρ γ ρ := ⟨id, λ _ => 1⟩
 instance Gen.Merge.succ {i : ℕ} [Merge α β γ] : Merge (Gen i α) (Gen i β) (Gen i γ) :=
 ⟨map i (merge1 β), map i (merge2 α)⟩
+-- TODO: nondeterministic search?
 instance Gen.Merge.scalar_r {i : ℕ} {ρ} [Atomic ρ] [Merge α ρ α] : Merge (Gen i α) ρ (Gen i α) :=
 ⟨id, repl i ∘ merge2 α⟩
+instance Gen.Merge.scalar_r' {i : ℕ} {ρ} [Atomic ρ] [Merge α ρ ρ] : Merge (Gen i α) ρ (Gen i ρ) :=
+⟨map i (merge1 ρ), repl i ∘ merge2 α⟩
 instance Gen.Merge.lt {i j : ℕ} [NatLt i j] [Merge α (Gen' j β) γ] : Merge (Gen i α) (Gen' j β) (Gen i γ) :=
 ⟨map i (merge1 (Gen' j β)), repl i ∘ merge2 α⟩
 instance Gen.Merge.scalar_l {j : ℕ} {ρ} [Atomic ρ] [Merge ρ β β] : Merge ρ (Gen j β) (Gen j β) :=
 ⟨repl j ∘ merge1 β, id⟩
-instance Gen.merge.gt {i j : ℕ} [NatLt j i] [Merge (Gen' i α) β γ] : Merge (Gen' i α) (Gen j β) (Gen j γ) :=
+instance Gen.Merge.scalar_l' {j : ℕ} {ρ} [Atomic ρ] [Merge ρ β ρ] : Merge ρ (Gen j β) (Gen j ρ) :=
+⟨repl j ∘ merge1 β, map j (merge2 ρ)⟩
+instance Gen.Merge.gt {i j : ℕ} [NatLt j i] [Merge (Gen' i α) β γ] : Merge (Gen' i α) (Gen j β) (Gen j γ) :=
 ⟨repl j ∘ merge1 β, map j (merge2 (Gen' i α))⟩
 
 def merge {α β γ} [Merge α β γ] : α → β → (γ × γ) := λ a b => (merge1 β a, merge2 α b)
@@ -103,13 +112,13 @@ abbrev l := (3, ℕ)
 
 -- instance Stream.has_mul {α} {i} [has_mul α] : has_mul (StreamGen' i α) := ⟨StreamGen.mul⟩
 
-instance Str.Mul {γ} {i} [Mul γ] : Mul (i × ι ⟶ γ) := ⟨λ a b =>
-match a, b with
+instance Str.HMul {γ φ ψ} {i} [HMul γ φ ψ] : HMul (i × ι ⟶ γ) (i × ι ⟶ φ) (i × ι ⟶ ψ) where hMul
 | .fun a, .fun b => Str.fun $ a*b
 | .str a, .fun b => Str.str $ a*b
 | .fun a, .str b => Str.str $ a*b
 | .str a, .str b => Str.str $ a*b
-⟩
+
+instance Str.Mul {γ} {i} [Mul γ] : Mul (i × ι ⟶ γ) := ⟨HMul.hMul⟩
 
 --instance : Inhabited (E R)
 --instance : Coe (ι →ₛ α) (n×ι ⟶ α) := ⟨.str⟩
@@ -158,6 +167,7 @@ notation:35 "∑" i:34 ":" v:34 => SumIndex.sum i.1 v
 notation:35 "∑" i:34 "," j:34 ":" v:34 => SumIndex.sum i.1 (SumIndex.sum j.1 v)
 notation:35 "∑" i:34 "," j:34 "," k:34 ":" v:34 => SumIndex.sum i.1 (SumIndex.sum j.1 (SumIndex.sum k.1 v))
 notation:35 "∑" i:34 "," j:34 "," k:34 "," l:34 ":" v:34 => SumIndex.sum i.1 (SumIndex.sum j.1 (SumIndex.sum k.1 (SumIndex.sum l.1 v)))
+notation:35 "∑" i:34 "," j:34 "," k:34 "," l:34 "," m:34 ":" v:34 => SumIndex.sum i.1 (SumIndex.sum j.1 (SumIndex.sum k.1 (SumIndex.sum l.1 (SumIndex.sum m.1 v))))
 --macro "∑" i:term ws j:term "," v:term : term => `(SumIndex.sum $i.1 (SumIndex.sum $j.1 $v))
 --macro "∑" i:term "," v:term : term => `(SumIndex.sum $i.1 $v)
 --macro "∑" i:term+ "," v:term : term => `(SumIndex.sum $(i[0]!).1 $v)
