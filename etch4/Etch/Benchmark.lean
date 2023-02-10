@@ -247,67 +247,30 @@ def E.succ {α} [Tagged α] [Add α] [OfNat α (nat_lit 1)] (e : E α) : E α :=
 
 namespace TPCH
 
-instance [Tagged α] : HMul (E Unit) (E α) (E α) := ⟨ λ _ b => b ⟩
-instance [Tagged α] : HMul (E α) (E Unit) (E α) := ⟨ λ a _ => a ⟩
-instance [Tagged α] : HMul Unit α α := ⟨ λ _ b => b ⟩
-instance [Tagged α] : HMul α Unit α := ⟨ λ a _ => a ⟩
-instance : OfNat Unit (nat_lit 0) := ⟨ () ⟩
-instance : OfNat Unit (nat_lit 1) := ⟨ () ⟩
-instance : Zero Unit := ⟨ () ⟩
-instance : One Unit := ⟨ () ⟩
-
-instance : ToIgnore (E Unit) := ⟨⟩
-
-section
-
-variable [Tagged ι] [DecidableEq ι] [Max ι]
-
-example : HMul (S ι Unit) (S ι R) (S ι R) := inferInstance
-example : HMul (i ↠ E R) (i ↠ E R) (i ↠ E R) := inferInstance
-example : HMul (i ↠ E R) (i ↠ E Unit) (i ↠ E R) := inferInstance
-example : HMul (i ↠ E Unit) (i ↠ E R) (i ↠ E R) := inferInstance
-
-example : HMul (i ↠ E R) (j ↠ E R) (i ↠ j ↠ E R) := inferInstance
-example : Merge (i ↠ E R) (j ↠ E R) (i ↠ j ↠ E R) := inferInstance
-
-example : HMul (i ↠ E Unit) (j ↠ E R) (i ↠ j ↠ E R) := inferInstance
-example : Merge (i ↠ E Unit) (j ↠ E R) (i ↠ j ↠ E R) := inferInstance
-
-example : Atomic (E Unit) := inferInstance
-example : Merge (i ↠ E R) (E Unit) (i ↠ E R) := inferInstance
-example : Merge (E R) (E Unit) (E R) := inferInstance
-example : Merge (E R) (j ↠ E Unit) (j ↠ E R) := inferInstance
-example : Merge (i ↠ E Unit) (j ↠ E R) (i ↠ j ↠ E R) := Gen.Merge.lt
-example : Merge (i ↠ E R) (j ↠ E Unit) (i ↠ j ↠ E R) := Gen.Merge.lt
-
-example : HMul (i ↠ j ↠ E R) (i ↠ E Unit) (i ↠ j ↠ E R) := inferInstance
-example : Merge (i ↠ j ↠ E R) (i ↠ E Unit) (i ↠ j ↠ E R) := inferInstance
-
-example : One (E R) := inferInstance
-
-end
-
 abbrev custkey   := (0, ℕ)
 abbrev orderkey  := (1, ℕ)
 abbrev nationkey := (2, ℕ)
 abbrev suppkey   := (3, ℕ)
 abbrev regionkey := (4, ℕ)
 
-def tbl1 (f : String) : ℕ →ₛ E Unit := (csr.of f 1).level .step 0 |> S.leaf (f ++ "_vals")
-def tbl2 (f : String) : ℕ →ₛ ℕ →ₛ E Unit := (csr.of f 1).level .step 0 |> S.level .step (csr.of f 2) ⊚ S.leaf (f ++ "_vals")
+def S.always0 {f} [Functor f] [Zero (E α)] : f (E ℕ) → f (E α) := Functor.map (λ _ => 0)
+def S.always1 {f} [Functor f] [One (E α)] : f (E ℕ) → f (E α) := Functor.map (λ _ => 1)
 
-def orders   : custkey   ↠ orderkey  ↠ E Unit := tbl2 "tpch_orders"
-def customer : custkey   ↠ nationkey ↠ E Unit := tbl2 "tpch_customer"
-def lineitem : orderkey  ↠ suppkey   ↠ E R    := mat "tpch_lineitem"  -- R = extendedprice
-def supplier : nationkey ↠ suppkey   ↠ E Unit := tbl2 "tpch_supplier"
-def nation   : nationkey ↠ regionkey ↠ E Unit := tbl2 "tpch_nation" 
-def region   : regionkey ↠ E Unit              := tbl1 "tpch_region"
+def tbl1 (f : String) : ℕ →ₛ E R := (csr.of f 1).level .step 0 |> S.always1
+def tbl2 (f : String) : ℕ →ₛ ℕ →ₛ E R := (csr.of f 1).level .step 0 |> S.level .step (csr.of f 2) ⊚ S.always1
+
+def orders   : custkey   ↠ orderkey  ↠ E R := tbl2 "tpch_orders"
+def customer : custkey   ↠ nationkey ↠ E R := tbl2 "tpch_customer"
+def lineitem : orderkey  ↠ suppkey   ↠ E R := mat "tpch_lineitem"  -- R = extendedprice
+def supplier : nationkey ↠ suppkey   ↠ E R := tbl2 "tpch_supplier"
+def nation   : nationkey ↠ regionkey ↠ E R := tbl2 "tpch_nation" 
+def region   : regionkey ↠ E R              := tbl1 "tpch_region"
 
 def us_const : E ℕ := .var (.mk "US")
-def us : nationkey ↠ E Unit := (S.predRange us_const us_const.succ : ℕ →ₛ E Unit)
+def us : nationkey ↠ E R := (S.predRange us_const us_const.succ : ℕ →ₛ E R)
 
 def asia_const : E ℕ := .var (.mk "ASIA")
-def asia : regionkey ↠ E Unit := (S.predRange asia_const asia_const.succ : ℕ →ₛ E Unit)
+def asia : regionkey ↠ E R := (S.predRange asia_const asia_const.succ : ℕ →ₛ E R)
 
 def q5 := ∑ custkey, orderkey, nationkey, suppkey, regionkey: lineitem * asia * orders * customer * supplier * nation * region
 #check q5

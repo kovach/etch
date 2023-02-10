@@ -16,8 +16,6 @@ universe u v
 
 class Atomic (α : Type u)
 
-class ToIgnore (α : Type u)
-
 class Rectangle (f : ℕ → Type _ → Type _) :=
   (map {α β : Type _} (i : ℕ) : (α → β) → f i α → f i β)
   (repl {α : Type _}  (i : ℕ) : α → f i α)
@@ -38,21 +36,14 @@ variable
 {α β γ : Type u}
 
 instance Gen.Merge.one {ρ} [Atomic ρ] : Merge ρ ρ ρ := ⟨id, id⟩
-instance Gen.Merge.unit_l {ρ γ} [Atomic ρ] [One ρ] [ToIgnore γ] : Merge γ ρ ρ := ⟨λ _ => 1, id⟩
-instance Gen.Merge.unit_r {ρ γ} [Atomic ρ] [One ρ] [ToIgnore γ] : Merge ρ γ ρ := ⟨id, λ _ => 1⟩
 instance Gen.Merge.succ {i : ℕ} [Merge α β γ] : Merge (Gen i α) (Gen i β) (Gen i γ) :=
 ⟨map i (merge1 β), map i (merge2 α)⟩
--- TODO: nondeterministic search?
 instance Gen.Merge.scalar_r {i : ℕ} {ρ} [Atomic ρ] [Merge α ρ α] : Merge (Gen i α) ρ (Gen i α) :=
 ⟨id, repl i ∘ merge2 α⟩
-instance Gen.Merge.scalar_r' {i : ℕ} {ρ} [Atomic ρ] [Merge α ρ ρ] : Merge (Gen i α) ρ (Gen i ρ) :=
-⟨map i (merge1 ρ), repl i ∘ merge2 α⟩
 instance Gen.Merge.lt {i j : ℕ} [NatLt i j] [Merge α (Gen' j β) γ] : Merge (Gen i α) (Gen' j β) (Gen i γ) :=
 ⟨map i (merge1 (Gen' j β)), repl i ∘ merge2 α⟩
 instance Gen.Merge.scalar_l {j : ℕ} {ρ} [Atomic ρ] [Merge ρ β β] : Merge ρ (Gen j β) (Gen j β) :=
 ⟨repl j ∘ merge1 β, id⟩
-instance Gen.Merge.scalar_l' {j : ℕ} {ρ} [Atomic ρ] [Merge ρ β ρ] : Merge ρ (Gen j β) (Gen j ρ) :=
-⟨repl j ∘ merge1 β, map j (merge2 ρ)⟩
 instance Gen.Merge.gt {i j : ℕ} [NatLt j i] [Merge (Gen' i α) β γ] : Merge (Gen' i α) (Gen j β) (Gen j γ) :=
 ⟨repl j ∘ merge1 β, map j (merge2 (Gen' i α))⟩
 
