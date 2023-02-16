@@ -54,6 +54,24 @@ region(r_regionkey, r_name)
 // group by
 //  n_name
 
+select
+ sum(l_extendedprice * (1 - l_discount)) as revenue
+from
+  customer,
+  orders,
+  lineitem,
+  supplier,
+  nation,
+  region
+where
+  c_custkey = o_custkey
+  and l_orderkey = o_orderkey
+  and l_suppkey = s_suppkey
+  and c_nationkey = s_nationkey
+  and s_nationkey = n_nationkey
+  and n_regionkey = r_regionkey
+  and r_name = 'ASIA'
+
 -/
 
 def E.toMin (e : E R) : E RMin := E.call Op.toMin ![e]
@@ -190,21 +208,8 @@ def input_data :=
   ("gen_query_fires.c", [go l_ssF FSQLCallback]),
   ("gen_query_wcoj_R.c", [ go l_dsR FSQLCallback ]),
   ("gen_query_wcoj_S.c", [ go l_dsS FSQLCallback ]),
-  ("gen_query_wcoj_T.c", [ go l_dsT FSQLCallback ]) ]
-
--- todo
-def names := [
-  "add2",
-  "inner2ss",
-  "mul2_inner",
-  "sum_add2",
-  "sum_B_csr",
-  "sum_inner3",
-  "sum_mttkrp",
-  "sum_mul2",
-  "sum_mul2_csr",
-  "sum_mul2_inner",
-  "sum_ttm"
+  ("gen_query_wcoj_T.c", [ go l_dsT FSQLCallback ])
+  -- ("", [go ])
 ]
 
 def ssA      : i ↠ j ↠ E R      := taco_mat "ssA"
@@ -256,15 +261,16 @@ abbrev regionkey := (4, ℕ)
 def S.always0 {f} [Functor f] [Zero (E α)] : f (E ℕ) → f (E α) := Functor.map (λ _ => 0)
 def S.always1 {f} [Functor f] [One (E α)] : f (E ℕ) → f (E α) := Functor.map (λ _ => 1)
 
+def ssMat (f : String) : ℕ →ₛ ℕ →ₛ E R := (csr.of f 1).level .step 0 & S.level .step (csr.of f 2) ⊚ S.leaf (f ++ "_vals")
 def tbl1 (f : String) : ℕ →ₛ E R := (csr.of f 1).level .step 0 |> S.always1
-def tbl2 (f : String) : ℕ →ₛ ℕ →ₛ E R := (csr.of f 1).level .step 0 |> S.level .step (csr.of f 2) ⊚ S.always1
+def ssTbl2 (f : String) : ℕ →ₛ ℕ →ₛ E R := (csr.of f 1).level .step 0 |> S.level .step (csr.of f 2) ⊚ S.always1
+def dsTbl2 (f : String) : ℕ →ₐ ℕ →ₛ E R := range & S.level .step (csr.of f 2) ⊚ S.always1
 
-def orders   : custkey   ↠ orderkey  ↠ E R := tbl2 "tpch_orders"
-def customer : custkey   ↠ nationkey ↠ E R := tbl2 "tpch_customer"
-def lineitem : orderkey  ↠ suppkey   ↠ E R := mat "tpch_lineitem"  -- R = extendedprice
-def supplier : nationkey ↠ suppkey   ↠ E R := tbl2 "tpch_supplier"
-def nation   : nationkey ↠ regionkey ↠ E R := tbl2 "tpch_nation" 
-def region   : regionkey ↠ E R              := tbl1 "tpch_region"
+def orders   : custkey   ↠ orderkey  ↠ E R := ssTbl2 "tpch_orders"
+def customer : custkey   ↠ nationkey ↠ E R := dsTbl2 "tpch_customer"
+def lineitem : orderkey  ↠ suppkey   ↠ E R := ssMat "tpch_lineitem"  -- R = l_extendedprice * (1 - l_discount)
+def supplier : nationkey ↠ suppkey   ↠ E R := ssTbl2 "tpch_supplier"
+def nation   : nationkey ↠ regionkey ↠ E R := dsTbl2 "tpch_nation"
 
 def us_const : E ℕ := .var (.mk "US")
 def us : nationkey ↠ E R := (S.predRange us_const us_const.succ : ℕ →ₛ E R)
@@ -272,7 +278,7 @@ def us : nationkey ↠ E R := (S.predRange us_const us_const.succ : ℕ →ₛ E
 def asia_const : E ℕ := .var (.mk "ASIA")
 def asia : regionkey ↠ E R := (S.predRange asia_const asia_const.succ : ℕ →ₛ E R)
 
-def q5 := ∑ custkey, orderkey, nationkey, suppkey, regionkey: lineitem * asia * orders * customer * supplier * nation * region
+def q5 := ∑ custkey, orderkey, nationkey, suppkey, regionkey: lineitem * asia * orders * customer * supplier * nation
 #check q5
 
 end TPCH

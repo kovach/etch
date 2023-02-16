@@ -20,6 +20,7 @@
 #define num_toNum(x) (x)
 
 #define nat_add(a, b) (a + b)
+#define nat_sub(a, b) (a - b)
 #define nat_mul(a, b) (a * b)
 #define nat_one() 1
 #define nat_zero() 0
