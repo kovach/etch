@@ -40,11 +40,10 @@ void time(F f, char const* tag, int reps) {
   auto as_fsec = [](auto dur) { return std::chrono::duration_cast<fsec>(dur); };
 
   std::chrono::high_resolution_clock::duration total_dur(0);
-  double val;
 
   for (int i = 0; i < reps; i++) {
     auto rep_start = std::chrono::high_resolution_clock::now();
-    val = f();
+    auto val = f();
     auto rep_end = std::chrono::high_resolution_clock::now();
     std::cout << tag << " val: " << val << std::endl;
     std::cout << tag << " took: " << as_fsec(rep_end-rep_start) << std::endl;
@@ -331,7 +330,7 @@ int main() {
   rc = sqlite3_open("/home/scott/Dropbox/2022/pldi.db", &db);
 #endif
 #ifdef ETCH_TPCH
-  rc = sqlite3_open("TPC-H-small.db", &db);
+  rc = sqlite3_open("TPC-H.db", &db);
 #endif
 
   if(rc) { fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db)); return(0);
@@ -351,7 +350,8 @@ int main() {
   //return 0;
 
 #ifdef ETCH_TPCH
-  populate_tpch(db);
+  // populate_tpch(db);
+  time([]() { return populate_tpch(db); }, "populate_tpch", 1);
   printf("Loaded\n");
 #endif
 

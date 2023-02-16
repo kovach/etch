@@ -9,7 +9,7 @@ SQLITE_URL := https://www.sqlite.org/2022/$(SQLITE_ZIP)
 SQLITE_SHA256 := 49112cc7328392aa4e3e5dae0b2f6736d0153430143d21f69327788ff4efe734
 
 # todo, compile Main.lean, run
-out: main.cpp sqlite3.o sqlite3.h decls.c decls_tpch.cpp
+out: main.cpp sqlite3.o sqlite3.h decls.c decls_tpch.cpp gen_funs.c
 	$(CXX) -o out $(CXXFLAGS) main.cpp sqlite3.o
 
 gen_funs_readable.c: gen_funs.c impls_readable.h

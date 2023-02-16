@@ -132,7 +132,7 @@ int populate_tpch(sqlite3* db) {
 #define GET_MAT(tbl_name, col1, col2, col3)                                  \
   rc = sqlite3_exec(db,                                                      \
                     "SELECT " #col1 ", " #col2 ", " #col3 " FROM " #tbl_name \
-                    " ORDER BY " #col1 ", " #col2,                           \
+                    " ORDER BY " #col1 ", " #col2 "",           \
                     gen_tpch_##tbl_name##_callback, (void*)data, &zErrMsg);  \
   if (rc != SQLITE_OK) {                                                     \
     printf("%s:%d: %s\n", __FILE__, __LINE__, zErrMsg);                      \

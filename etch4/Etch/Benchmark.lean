@@ -261,12 +261,14 @@ abbrev regionkey := (4, ℕ)
 def S.always0 {f} [Functor f] [Zero (E α)] : f (E ℕ) → f (E α) := Functor.map (λ _ => 0)
 def S.always1 {f} [Functor f] [One (E α)] : f (E ℕ) → f (E α) := Functor.map (λ _ => 1)
 
-def ssMat (f : String) : ℕ →ₛ ℕ →ₛ E R := (csr.of f 1).level .step 0 & S.level .step (csr.of f 2) ⊚ S.leaf (f ++ "_vals")
+def ssMat (f : String) : ℕ →ₛ ℕ →ₛ E R := (csr.of f 1).level .search 0 & S.level .step (csr.of f 2) ⊚ S.leaf (f ++ "_vals")
 def tbl1 (f : String) : ℕ →ₛ E R := (csr.of f 1).level .step 0 |> S.always1
 def ssTbl2 (f : String) : ℕ →ₛ ℕ →ₛ E R := (csr.of f 1).level .step 0 |> S.level .step (csr.of f 2) ⊚ S.always1
 def dsTbl2 (f : String) : ℕ →ₐ ℕ →ₛ E R := range & S.level .step (csr.of f 2) ⊚ S.always1
 
-def orders   : custkey   ↠ orderkey  ↠ E R := ssTbl2 "tpch_orders"
+def ssTbl2_skip (f : String) : ℕ →ₛ ℕ →ₛ E R := (csr.of f 1).level .step 0 |> S.level .search (csr.of f 2) ⊚ S.always1
+
+def orders   : custkey   ↠ orderkey  ↠ E R := ssTbl2_skip "tpch_orders"
 def customer : custkey   ↠ nationkey ↠ E R := dsTbl2 "tpch_customer"
 def lineitem : orderkey  ↠ suppkey   ↠ E R := ssMat "tpch_lineitem"  -- R = l_extendedprice * (1 - l_discount)
 def supplier : nationkey ↠ suppkey   ↠ E R := ssTbl2 "tpch_supplier"
