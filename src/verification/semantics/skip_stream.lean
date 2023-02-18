@@ -90,3 +90,20 @@ begin
   exact s.not_ready_of_skipped_of_monotonic hs q h _,
 end
 
+lemma SkipStream.eval_skip_eq_of_bounded [add_comm_monoid α] (s : SkipStream ι α) (hs : s.monotonic) (q : s.σ)
+  {B : ℕ} (hB : s.bound_valid B q) : s.eval_skip B q = s.eval_steps B q :=
+by { obtain ⟨m, hm₁, hm₂⟩ := s.eval_skip_eq hs q B, rw [hm₂, Stream.eval_ge_bound hB hm₁], } 
+
+/-- `next` is always a valid skip function -/
+def Stream.default_skip (s : Stream ι α) (q : s.σ) (hq : s.valid q)
+  (i : ι) (b : bool) : s.σ :=
+if s.to_order q ≤ (i, b) then s.next q hq
+else q
+
+lemma Stream.default_skip_valid (s : Stream ι α) (q : s.σ) (hq : s.valid q)
+  (i : ι) (b : bool) : s.default_skip q hq i b ∈ skip_set s q i b :=
+begin
+  rw [Stream.default_skip], split_ifs with H,
+  { exact ⟨1, by simp [hq], by simpa, λ m hm₁ hm₂, (ne_of_lt hm₁ (nat.lt_one_iff.mp hm₂).symm).elim⟩, },
+  { exact ⟨0, rfl, by simpa using H, by simp⟩, }
+end
