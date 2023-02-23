@@ -21,14 +21,12 @@ double tpch_lineitem_vals[TPCH_ARRAY_SIZE];
 int tpch_customer2_pos[TPCH_ARRAY_SIZE];  // nationkey
 int tpch_customer2_crd[TPCH_ARRAY_SIZE];
 
-int tpch_orders1_pos[TPCH_ARRAY_SIZE];  // custkey
-int tpch_orders1_crd[TPCH_ARRAY_SIZE];
-int tpch_orders2_pos[TPCH_ARRAY_SIZE];  // orderkey
+// tpch_orders1 = orderkey (dense)
+int tpch_orders2_pos[TPCH_ARRAY_SIZE];  // custkey
 int tpch_orders2_crd[TPCH_ARRAY_SIZE];
 
-int tpch_supplier1_pos[TPCH_ARRAY_SIZE];  // nationkey
-int tpch_supplier1_crd[TPCH_ARRAY_SIZE];
-int tpch_supplier2_pos[TPCH_ARRAY_SIZE];  // suppkey
+// tpch_supplier1 = suppkey (dense)
+int tpch_supplier2_pos[TPCH_ARRAY_SIZE];  // nationkey
 int tpch_supplier2_crd[TPCH_ARRAY_SIZE];
 
 // tpch_nation1 = nationkey (dense)
@@ -110,8 +108,8 @@ int tpch_nation2_crd[TPCH_ARRAY_SIZE];
 
 GEN_MAT(tpch_lineitem)
 GEN_DSTBL2(tpch_customer)
-GEN_SSTBL2(tpch_orders)
-GEN_SSTBL2(tpch_supplier)
+GEN_DSTBL2(tpch_orders)
+GEN_DSTBL2(tpch_supplier)
 GEN_DSTBL2(tpch_nation)
 
 static int gen_ASIA_callback(void* data,
@@ -160,8 +158,8 @@ int populate_tpch(sqlite3* db) {
 
   GET_MAT(lineitem, l_orderkey, l_suppkey, l_extendedprice * (1 - l_discount))
   GET_TBL2(customer, c_custkey, c_nationkey)
-  GET_TBL2(orders, o_custkey, o_orderkey)
-  GET_TBL2(supplier, s_nationkey, s_suppkey)
+  GET_TBL2(orders, o_orderkey, o_custkey)
+  GET_TBL2(supplier, s_suppkey, s_nationkey)
   GET_TBL2(nation, n_nationkey, n_regionkey)
 
   return rc;

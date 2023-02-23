@@ -252,10 +252,10 @@ def E.succ {α} [Tagged α] [Add α] [OfNat α (nat_lit 1)] (e : E α) : E α :=
 
 namespace TPCH
 
-abbrev custkey   := (0, ℕ)
-abbrev orderkey  := (1, ℕ)
-abbrev nationkey := (2, ℕ)
-abbrev suppkey   := (3, ℕ)
+abbrev orderkey  := (0, ℕ)
+abbrev custkey   := (1, ℕ)
+abbrev suppkey   := (2, ℕ)
+abbrev nationkey := (3, ℕ)
 abbrev regionkey := (4, ℕ)
 
 def S.always0 {f} [Functor f] [Zero (E α)] : f (E ℕ) → f (E α) := Functor.map (λ _ => 0)
@@ -268,10 +268,10 @@ def dsTbl2 (f : String) : ℕ →ₐ ℕ →ₛ E R := range & S.level .step (cs
 
 def ssTbl2_skip (f : String) : ℕ →ₛ ℕ →ₛ E R := (csr.of f 1).level .step 0 |> S.level .search (csr.of f 2) ⊚ S.always1
 
-def orders   : custkey   ↠ orderkey  ↠ E R := ssTbl2_skip "tpch_orders"
+def orders   : orderkey  ↠ custkey   ↠ E R := dsTbl2 "tpch_orders"
 def customer : custkey   ↠ nationkey ↠ E R := dsTbl2 "tpch_customer"
 def lineitem : orderkey  ↠ suppkey   ↠ E R := ssMat "tpch_lineitem"  -- R = l_extendedprice * (1 - l_discount)
-def supplier : nationkey ↠ suppkey   ↠ E R := ssTbl2 "tpch_supplier"
+def supplier : suppkey   ↠ nationkey ↠ E R := dsTbl2 "tpch_supplier"
 def nation   : nationkey ↠ regionkey ↠ E R := dsTbl2 "tpch_nation"
 
 def us_const : E ℕ := .var (.mk "US")
@@ -280,7 +280,7 @@ def us : nationkey ↠ E R := (S.predRange us_const us_const.succ : ℕ →ₛ E
 def asia_const : E ℕ := .var (.mk "ASIA")
 def asia : regionkey ↠ E R := (S.predRange asia_const asia_const.succ : ℕ →ₛ E R)
 
-def q5 := ∑ custkey, orderkey, nationkey, suppkey, regionkey: lineitem * asia * orders * customer * supplier * nation
+def q5 := ∑ orderkey, custkey, suppkey, nationkey, regionkey: lineitem * asia * orders * customer * supplier * nation
 #check q5
 
 end TPCH
