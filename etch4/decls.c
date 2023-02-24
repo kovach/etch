@@ -1,10 +1,5 @@
 // sorry
-#define num double
-#define ind int
-
 int size[] = {0,0};
-
-int array_size = 105000;
 
 ind* out1_crd = (ind*)calloc(array_size, sizeof(ind));
 ind* out1_pos = (ind*)calloc(array_size, sizeof(ind));

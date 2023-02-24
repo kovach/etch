@@ -6,9 +6,9 @@ import Etch.Mul
 import Etch.Compile
 --import Etch.ShapeInference
 
-def E.toMin (e : E R) : E RMin := E.call Op.toMin ![e]
-def E.toMax (e : E R) : E RMax := E.call Op.toMax ![e]
-def E.ofNat (e : E ℕ) : E R    := E.call Op.toNum ![e]
+def E.toMin (e : E R) : E RMin := .call .toMin ![e]
+def E.toMax (e : E R) : E RMax := .call .toMax ![e]
+def E.ofNat (e : E ℕ) : E R    := .call .toNum ![e]
 
 section TACO
 
@@ -35,15 +35,18 @@ def TACO.level {f} [Functor f] : csr ι ℕ → f (E ℕ) → f (ι →ₛ (E �
 
 -- generalize ι with ι ≃ Fin n typeclass
 -- todo now: freshen temps
--- todo: fix correspondence between MemLoc/E
-
---def ValPair {f : Type → Type _ → Type _} (α ι β) := α → (lvl ι β) × (f ι β)
 
 ---- scalar
 --def valuePair (vals : ArrayVar α) : E ℕ → (MemLoc α) × (MemLoc α) := fun loc ↦ (⟨vals, loc⟩, ⟨vals, loc⟩)
 
 -- sparse; interval → interval
-def sii (n : Name) : MemLoc ℕ → (lvl ι (MemLoc ℕ)) × (ι →ₛ MemLoc ℕ) :=
+variable (ι)
+
+inductive LevelType | sii | siv | dci
+
+def LevelFormat α ι β := α → lvl ι β × (ι →ₛ β)
+
+def sii (n : Name) : LevelFormat (MemLoc ℕ) ι (MemLoc ℕ) :=
   let ind_array := Var.mk "ind" |>.fresh n
   let pos_array := Var.mk "pos" |>.fresh n
   fun interval ↦ (with_values (sparse_il ind_array) (interval_vl pos_array) interval,
@@ -52,21 +55,28 @@ def sii (n : Name) : MemLoc ℕ → (lvl ι (MemLoc ℕ)) × (ι →ₛ MemLoc �
                   --csr.level' {i := ind_array, v := pos_array, var := ""} interval.access)
 
 -- sparse; interval → value
-def siv [Zero α] [Tagged α] (n : Name) : MemLoc ℕ → (lvl ι (MemLoc α)) × (ι →ₛ MemLoc α) :=
+def siv (α) [Zero α] [Tagged α] (n : Name) : LevelFormat (MemLoc ℕ) ι (MemLoc α) :=
   let ind_array := Var.mk "ind" |>.fresh n
-  let val_array := Var.mk "pos" |>.fresh n
+  let val_array := Var.mk "val" |>.fresh n
   fun interval ↦ (with_values (sparse_il ind_array) (dense_vl val_array) interval,
                   let (lower, upper) := interval.interval
                   MemLoc.mk val_array <$> TACO.interval ind_array "todo" lower upper)
 
 -- dense; logical position(?) → interval
-def dci (dim : E ℕ) (n : Name) : E ℕ → lvl ℕ (MemLoc ℕ) × (ℕ →ₐ MemLoc ℕ) :=
+-- not a levelformat bc →ₐ; todo abstract
+def dci [Add ι] [Mul ι] [Sized ι] (n : Name) : E ℕ → lvl ι (MemLoc ℕ) × (ι →ₐ MemLoc ℕ) :=
   let ctr := Var.mk "counter" |>.fresh n
   let pos_array := Var.mk "pos" |>.fresh n
-  fun i  ↦ (with_values (dense_il dim ctr) (interval_vl pos_array) i,
-            MemLoc.mk pos_array <$> range)
+  fun i  ↦ (with_values (dense_il ctr) (interval_vl pos_array) i,
+            MemLoc.mk pos_array <$> (range ∘ Sized.toNat))
+
+def LevelType.denote : LevelType → Type
+| sii => _
+
+variable {ι}
 
 instance [Functor f] [Functor g] : Functor (λ x => f x × g x) where map v x := x.map (v <$> .) (v <$> .)
+
 def cmp [Functor F] [Functor G] (f : α → F β × G β) (g : β → γ × γ') : α → F γ × G γ' :=
   let g₁ := Prod.fst ∘ g
   let g₂ := Prod.snd ∘ g
@@ -77,14 +87,89 @@ variable (is : ArrayVar ι) (ps : ArrayVar ℕ) {α} [Zero α] [Tagged α] (vs :
 infixr:90 " ;;; " => cmp
 def defMemLoc : MemLoc ℕ := ⟨"f", 0⟩
 
--- ss
-#check defMemLoc |> sii (emptyName.fresh 0) ;;; siv (emptyName.fresh 1)
--- ds
-#check 0 |> dci 10 (emptyName.fresh 0) ;;; siv (emptyName.fresh 1)
+--instance : LE String := ⟨fun a b ↦ a.data ≤ b.data⟩
+
+-- ss (dcsr)
+def ss_nnr := defMemLoc |> sii ℕ (emptyName.fresh 0) ;;; siv ℕ R (emptyName.fresh 1)
+-- ds (csr)
+def ds_nnr := 0 |> dci (Bounded 10) (emptyName.fresh 0) ;;; siv ℕ R (emptyName.fresh 1)
 -- sss
-#check sii emptyName ;;; sii (emptyName.fresh 0) ;;; siv (emptyName.fresh 1) $ defMemLoc
+def sss_nnnr := defMemLoc |> sii ℕ emptyName ;;; sii ℕ (emptyName.fresh 0) ;;; siv ℕ R (emptyName.fresh 1)
 end TACO
 
+def eg1 :=
+  let (lval, rval) := ss_nnr;
+  Compile.compile rval default lval
+
+def printList [ToString α] : List α → IO Unit := List.forM (f := IO.println)
+
+#eval printList $ eg1.vars' |>.eraseDups.map fun b ↦ (repr b.2.1.decl, b.2.toString)
+
+def CType.scalarTypeString : CType → String
+| .none => ""
+| .int => "int"
+| .double => "double"
+| .char => "char"
+| .bool => "bool"
+| .array t => t.scalarTypeString
+
+def CType.arrayNesting : CType → ℕ
+| .array t => 1 + t.arrayNesting
+| _ => 0
+
+partial def Var.toDecl (v : Var α) : String :=
+let ⟨instTagged, varName⟩ := v
+let ct : CType := instTagged.decl
+let tag := ct.scalarTypeString
+let stars := String.replicate ct.arrayNesting '*'
+let init := if ct.arrayNesting > 0 then s!" = ({tag}*)calloc(array_size, sizeof({tag}))" else ""
+s!"{tag}{stars} {varName}{init};"
+
+#eval printList $ eg1.vars' |>.eraseDups.map fun x ↦ x.2.toDecl
+
+abbrev ColumnName := String
+structure Column where mk' ::
+  name : ColumnName
+  type : Type
+  inst : Tagged type
+  selector : E type
+
+inductive Schema
+| one
+| value (c : Column)
+| level (t : LevelType) (c : Column) (v : Schema)
+
+def Schema.denote : Schema → Type _
+| one => E R
+| value c => E c.type
+| level _ c v => E c.type × v.denote
+
+def argv : ArrayVar String := "argv"
+
+def Schema.queryTerm_aux (n : ℕ) : (s : Schema) → s.denote
+| one => (1 : E R)
+| value c => c.selector
+| level _ c v => (.call (@Op.ofString c.type c.inst _) ![.access argv n], v.queryTerm_aux n.succ)
+
+def Schema.queryTerm : (s : Schema) → s.denote := fun s ↦ s.queryTerm_aux 0
+
+section test_schema
+open Schema
+
+-- todo now: generate callback obj
+-- todo now: automate selector
+-- todo now: generate query text
+def eg2 := Schema.level .siv ⟨"l_field", ℕ, (.call .ofString ![.access "argv" 0])⟩ $ .value ⟨"l_value", R, 1⟩
+#check eg2
+def eg3 := (Schema.level .sii ⟨"foo", String, "argv"⟩ eg2)
+#reduce eg3.denote
+#check eg3.queryTerm
+
+
+
+end test_schema
+
+#exit
 
 def List.sequence [Monad m] : List (m α) → m (List α) := List.mapM id
 

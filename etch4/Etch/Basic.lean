@@ -1,6 +1,7 @@
 --set_option trace.Meta.synthInstance.instances true
 --set_option pp.all true
 import Mathlib.Algebra.Ring.Basic
+import Mathlib.Data.Vector
 
 instance : Add Bool := ⟨ or ⟩
 instance : Mul Bool := ⟨ and ⟩
@@ -23,4 +24,4 @@ infixr:90 " ⊚ " => rev_fmap_comp
 def rev_app : α → (α → β) → β := Function.swap (. $ .)
 infixr:9 " & " => rev_app
 
-example : Add ℕ := inferInstance
+def Function.singleton {ι α : Type _} [Zero α] [DecidableEq ι] (i : ι) (v : α) := fun i' ↦ if i = i' then v else 0

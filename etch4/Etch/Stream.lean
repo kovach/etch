@@ -6,32 +6,46 @@ import Etch.Basic
 --notation "𝟚"  => Bool
 
 -- marked irreducible later
-def Var (_ : Type _) := String
-abbrev ArrayVar (α : Type _) := Var (ℕ → α)
-def Var.mk : String → Var α := id
-def Var.toString : Var α → String := id
-instance : Coe String (Var α) := ⟨Var.mk⟩
+--def Var (_ : Type _) := String
+structure Var (α : Type _) where
+  mk' ::
+    instTagged : Tagged α
+    data : String
+abbrev ArrayVar (α : Type _) [Tagged α] := Var (ℕ → α)
+def Var.mk [Tagged α] : String → Var α := fun s ↦ ⟨inferInstance, s⟩
+def Var.toString : Var α → String := Var.data
+instance [Tagged α] : Coe String (Var α) := ⟨Var.mk⟩
 
+-- an expression language of variables, array access, and fully applied operators
 inductive E : Type → Type 1
-| call {α} (op : Op α) (args : (i : Fin op.arity) → E (op.argTypes i)) : E α
 | var    : (v : Var α) → E α
 | access : Var (ℕ → α) → E ℕ → E α
-| intLit : ℕ → E ℕ
+| call {α} (op : Op α) (args : (i : Fin op.arity) → E (op.argTypes i)) : E α
+-- | intLit : ℕ → E ℕ
 
--- todo remove
-def E.vars' : E α → List ((α : Type) × (Var α))
-| .var v => [⟨_, v⟩]
+structure TypedVar where
+  α : Type
+  value : Var α
+
+instance : Inhabited TypedVar := ⟨ℕ, "ERROR_DEFAULT_VAR"⟩
+
+instance : BEq TypedVar where
+  beq a b := a.value.toString == b.value.toString
+
+def E.vars' : E α → List TypedVar
+| E.var v => [⟨_, v⟩]
 | .call _ args => List.ofFn (fun n ↦ (args n).vars') |>.join
 | .access v e => ⟨_, v⟩ :: e.vars'
-| .intLit _ => []
+-- | .intLit _ => []
 
+-- todo remove
 def E.vars : E α → List String
-| .var v => [v]
+| .var v => [v.toString]
 | .call _ args => List.ofFn (fun n ↦ (args n).vars) |>.join
-| .access v e => v :: e.vars
-| .intLit _ => []
+| .access v e => v.toString :: e.vars
+-- | .intLit _ => []
 
-def E.v (α) (v : String) : E α := E.var v
+def E.v (α) [Tagged α] (v : String) : E α := E.var $ Var.mk v
 
 structure HeapContext where
   store : Var α → α
@@ -41,16 +55,15 @@ def E.eval (c : HeapContext) : E α → α
 | call f args => f.spec (λ i => (args i).eval c)
 | var v => c.store v
 | access arr arg => c.heap arr (arg.eval c)
-| intLit x => x
+-- | intLit x => x
 
-instance : OfNat Bool (nat_lit 0) := ⟨ false ⟩
-instance : OfNat Bool (nat_lit 1) := ⟨ .true ⟩
 instance [Tagged α] [Add α] : Add (E α) := ⟨ λ a b => E.call .add ![a, b] ⟩
 instance [Tagged α] [Sub α] : Sub (E α) := ⟨ λ a b => E.call .sub ![a, b] ⟩
 instance [Tagged α] [Mul α] : Mul (E α) := ⟨ λ a b => E.call .mul ![a, b] ⟩
 instance [Tagged α] [OfNat α (nat_lit 0)] : OfNat (E α) (nat_lit 0) := ⟨ E.call .zero ![] ⟩
 instance [Tagged α] [OfNat α (nat_lit 1)] : OfNat (E α) (nat_lit 1) := ⟨ E.call .one ![] ⟩
-instance : OfNat (E ℕ) n := ⟨ .intLit n ⟩
+--instance : OfNat (E ℕ) n := ⟨ .intLit n ⟩
+instance : OfNat (E ℕ) n := ⟨ E.call (.nat n) ![] ⟩
 instance : Inhabited (E R) := ⟨ 0 ⟩
 --def E.ext (f : String) : E Unit := E.call (O.voidCall f) ![]
 
@@ -58,7 +71,7 @@ def E.compile : E α → Expr
 | @call _ op args => Expr.call op.opName $ List.ofFn λ i => E.compile (args i)
 | access base i => Expr.index (Expr.var base.toString) [i.compile]
 | var v => Expr.var v.toString
-| intLit x => Expr.lit x
+-- | intLit x => Expr.lit x
 
 infixr:40 " << " => λ a b => E.call Op.lt ![a, b]
 infixr:40 " <ᵣ " => λ a b => E.call Op.ofBool ![E.call Op.lt ![a, b]]
@@ -75,14 +88,23 @@ inductive P
 | store_var : Var α → E α → P
 | store_mem : Var (ℕ → α) → E ℕ → E α → P
 
+def P.vars' : P → List TypedVar
+| seq a b         => a.vars' ++ b.vars'
+| .while c b      => c.vars' ++ b.vars'
+| branch e t f    => e.vars' ++ t.vars' ++ f.vars'
+| skip            => []
+| decl  v e       => ⟨_, v⟩ :: e.vars'
+| store_var l r   => ⟨_, l⟩ :: r.vars'
+| store_mem v i r => ⟨_, v⟩ :: (i.vars' ++ r.vars')
+
 def P.vars : P → List String
 | seq a b         => a.vars ++ b.vars
 | .while c b      => c.vars ++ b.vars
 | branch e t f    => e.vars ++ t.vars ++ f.vars
 | skip            => []
-| decl  v e       => v :: e.vars
-| store_var l r   => l :: r.vars
-| store_mem v i r => v :: (i.vars ++ r.vars)
+| decl  v e       => v.toString :: e.vars
+| store_var l r   => l.toString :: r.vars
+| store_mem v i r => v.toString :: (i.vars ++ r.vars)
 
 -- needs to come after P to avoid injectivity_lemma issue
 attribute [irreducible] Var
@@ -105,6 +127,8 @@ def Name.fresh (n : Name) (new : ℕ) : Name := new :: n
 def Name.freshen (n : Name) : Name := n.fresh 0
 def emptyName : Name := []
 
+instance : Inhabited Name := ⟨emptyName⟩
+
 structure Index where
   type : Type
   bound : Option ℕ
@@ -121,7 +145,16 @@ structure S (ι : Type _) (α : Type _) where
   index : σ → E ι
   valid : σ → E Bool
   init  : Name → P × σ
-  -- cont : (σ → P)
+
+class LVal (ι : Type _) (α : Type _) where
+  loc : Type
+  start : α → P
+  push : σ → E ι → P × E loc
+
+structure LVS (ι : Type _) (α : Type _) [LVal ι α] extends S ι α, LVal ι α
+
+instance LVal Unit (MemLoc α) where
+  start :=  v _ l := (.store_mem l.arr l.ind (l.access + v.access), ())
 
 structure S' (ι : Type _) (α : Type _) where
   σ     : Type
@@ -134,9 +167,8 @@ structure S' (ι : Type _) (α : Type _) where
 
 infixr:25 " →ₛ " => S
 
---def S.vars : (ι →ₛ α) → List String := fun s ↦ _
-
-
+instance : Functor (S ι) where map := λ f s => {s with value := f ∘ s.value }
+instance : Functor (S' ι) where map := λ f s => {s with value := f ∘ s.value }
 
 --def StreamExec  (ι : Type _) (α : Type _) := (s : ι →ₛ α) × (P × s.σ)
 --infixr:25 " →ₛ. " => StreamExec
@@ -152,18 +184,22 @@ def Var.access := E.access v
 def Var.incr [Tagged α] [Add α] [One α] (v : Var α) : P := .store_var v $ E.var v + 1
 def Var.incr_array [Tagged α] [Add α] [OfNat α 1] (ind : E ℕ) : P := .store_mem v ind $ v.access ind + 1
 def Var.expr (v : Var α) : E α := E.var v
-def Var.fresh (v : Var α) (n : Name) : Var α := Var.mk (v.toString ++ n.toString)
+def Var.fresh [Tagged α] (v : Var α) (n : Name) : Var α := Var.mk (v.toString ++ n.toString)
 def Var.store_var (v : Var α) := P.store_var v
 def Var.decl (v : Var α) := P.decl v
 
 instance : Coe (Var α) (E α) := ⟨E.var⟩
 
-instance : Functor (S ι) where map := λ f s => {s with value := f ∘ s.value }
-instance : Functor (S' ι) where map := λ f s => {s with value := f ∘ s.value }
+structure MemLoc (α : Type) := (arr : Var (ℕ → α)) (ind : E ℕ)
+
+def MemLoc.access (m : MemLoc α) : E α := m.arr.access m.ind
+def MemLoc.deref (m : MemLoc α) : E α := m.arr.access m.ind
+def MemLoc.incr_array (m : MemLoc ℕ) : P := m.arr.incr_array m.ind
+def MemLoc.interval (m : MemLoc ℕ) : E ℕ × E ℕ  := (m.arr.access m.ind, m.arr.access $ m.ind + 1)
 
 def simpleSkip (pos : Var ℕ) (max_pos : E ℕ) (tgt : E ι) :=
   .store_var "temp" tgt;;
-  .while ((pos.expr << max_pos) * (is.access pos << "temp")) pos.incr
+  .while ((pos.expr << max_pos) * (is.access pos << ("temp" : E ι))) pos.incr
 
 def searchSkip (pos : Var ℕ) (max_pos : E ℕ) (i : E ι) : P :=
 let hi : Var ℕ := "hi"; let lo : Var ℕ := "lo"; let m  : Var ℕ := "m";
@@ -192,6 +228,8 @@ def S.predRange [One α] (lower upper : E ι) : S ι α where
   valid pos := pos.expr << upper
   init  n   := let p := .fresh "pos" n; (p.decl lower, p)
 
+#check instOfNatE
+#synth OfNat (E Bool) (nat_lit 0)
 def S.interval (h : IterMethod) (pos : Var ℕ) (lower upper : E ℕ) : S ι (E ℕ) where
   σ := Var ℕ
   value pos := pos.expr
@@ -202,12 +240,29 @@ def S.interval (h : IterMethod) (pos : Var ℕ) (lower upper : E ℕ) : S ι (E 
   valid pos := pos.expr << upper
   init  n   := let p := pos.fresh n; (p.decl lower, p)
 
--- todo: use instead of zero
---class Bot (α : Type _) := (bot : α)
---notation "⊥"  => Bot.bot
+-- this is meant to characterize a type that is equivalent to (Fin dimension)
+class Sized (ι : Type) [Tagged ι] [Add ι] [Mul ι] where
+  dimension : E ℕ
+  toNat : E ι → E ℕ
 
+def Bounded (_ : ℕ) := ℕ
 
-#check LawfulApplicative
+instance : Tagged (Bounded n) := instTaggedNat
+instance : Add (Bounded n) := instAddNat
+instance : Mul (Bounded n) := instMulNat
+
+instance : Sized (Bounded n) where
+  dimension := E.call (Op.nat n) ![]
+  toNat := id
+
+def S.univ' [Add ι] [Mul ι] [Zero ι] [One ι] [Sized ι]  (l : Var ι) : S ι (E ι) where
+  value last := last.expr
+  succ  last i := .if1 (last.expr <= i) last.incr  -- imprecise but ok
+  ready _    := 1
+  skip  last := .store_var last
+  index last := last.expr
+  valid last := Sized.toNat last.expr <= Sized.dimension ι
+  init  n    := let v := l.fresh n; (v.decl 0, v)
 
 def S.univ [Zero ι] [Add ι] [One ι] (max l : Var ι) : S ι (E ι) where
   value last := last.expr
@@ -236,8 +291,9 @@ def S.function [Zero ι] [Add ι] [OfNat ι 1] (last : Var ι) (f : E ι → α)
 
 structure csr (ι α : Type _) := (i : Var (ℕ → ι)) (v : Var (ℕ → α)) (var : Var ℕ)
 
-def csr.of (name : String) (n : ℕ) (ι := ℕ) : csr ι ℕ :=
-  let field {ι} (x : String) : Var ι := Var.mk $ name ++ n.repr ++ x
+-- todo remove
+def csr.of (name : String) (n : ℕ) (ι := ℕ) [Tagged ι] : csr ι ℕ :=
+  let field {ι} [Tagged ι] (x : String) : Var ι := Var.mk $ name ++ n.repr ++ x
   { i := field "_crd", v := field "_pos", var := field "_i" }
 
 def csr.level (h : IterMethod) (vars : csr ι ℕ) (loc : E ℕ) : ι →ₛ (E ℕ) :=
@@ -245,15 +301,15 @@ def csr.level (h : IterMethod) (vars : csr ι ℕ) (loc : E ℕ) : ι →ₛ (E 
 def S.level {f} [Functor f] (h : IterMethod) : csr ι ℕ → f (E ℕ) → f (ι →ₛ (E ℕ)) := Functor.map ∘ csr.level h
 def S.leaf  {f} [Functor f] : Var (ℕ → α) → f (E ℕ) → f (E α) := Functor.map ∘ E.access
 --def S.leaf' : Var α → E ℕ → E α := E.access
-def Contraction (α : Type _) := (ι : Type) × S ι α
+structure Contraction (ι : Type) (α : Type _) where stream : ι →ₛ α
 --structure Contraction (α : Type _) where
 --  f : Type _ → Type _
 --  h : Functor f
 --  v  : f α
 --def Contraction {f : Type → Type _ → Type _} (α : Type _) := (ι : Type) × f ι α
 --instance : Functor Contraction where map := λ f ⟨F, h, v⟩ => ⟨F, h, f <$> v⟩
-instance : Functor Contraction where map := λ f ⟨ι, v⟩ => ⟨ι, f <$> v⟩
-def S.contract (s : S ι α) : Contraction α := ⟨_, s⟩
+instance : Functor (Contraction ι) where map := fun f ⟨val⟩ ↦ ⟨f <$> val⟩
+def S.contract (s : S ι α) : Contraction ι α := ⟨s⟩
 
 end ι
 
@@ -282,10 +338,15 @@ def S.precompose  (s : ι →ₛ α) (f : σ' → s.σ) : S' ι α where
 
 class Stateful (α : Type _) where
   σ : α → Type
+
 class Init (α : Type _) extends Stateful α where
   init' : Name → (v : α) → P × σ v
 
 instance : Init (E α) where
+  σ _ := Unit
+  init' _ _ := (.skip, ())
+
+instance : Init (MemLoc α) where
   σ _ := Unit
   init' _ _ := (.skip, ())
 
@@ -296,9 +357,9 @@ instance : Init (ι →ₛ α) where
 instance : Stateful (S' ι α) where
   σ v := v.σ
 
-instance : Init (Contraction α) where
-  σ v := v.2.σ
-  init' n v := v.2.init n
+instance : Init (Contraction ι α) where
+  σ v := v.1.σ
+  init' n v := v.1.init n
 
 structure Sequence (α β : Type _) [Stateful α] [Stateful β] where
   (a : α) (b : β)

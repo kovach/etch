@@ -19,13 +19,6 @@ variable {ι}
 
 infixl:20 "||" => Add.add
 
-structure MemLoc (α : Type) := (arr : Var (ℕ → α)) (ind : E ℕ)
-
-def MemLoc.access (m : MemLoc α) : E α := m.arr.access m.ind
-def MemLoc.deref (m : MemLoc α) : E α := m.arr.access m.ind
-def MemLoc.incr_array (m : MemLoc ℕ) : P := m.arr.incr_array m.ind
-def MemLoc.interval (m : MemLoc ℕ) : E ℕ × E ℕ  := (m.arr.access m.ind, m.arr.access $ m.ind + 1)
-
 def sparse_il' (ind_array : Var (ℕ → ι)) (lower upper : MemLoc ℕ) : il ι :=
   let loc   := upper.deref - 1
   let current := ind_array.access loc
@@ -48,11 +41,11 @@ def sparse_il (ind_array : Var (ℕ → ι)) (bounds : MemLoc ℕ) : il ι :=
                     P.store_mem ind_array loc i
       (prog, loc) }
 
-def dense_il (dim : E ℕ) (counter : Var ℕ) (base : E ℕ) : il ℕ :=
+def dense_il [Add ι] [Mul ι] [Sized ι] (counter : Var ℕ) (base : E ℕ) : il ι :=
   { push' := λ init i =>
-      let l (i : E ℕ)  : loc := base * dim + i
-      let prog : P := P.while (counter.expr <= i) (init (l counter);; counter.incr)
-      (prog, l i) }
+      let l (i : E ℕ)  : loc := base * Sized.dimension ι + i
+      let prog : P := P.while (counter.expr <= Sized.toNat i) (init (l counter);; counter.incr)
+      (prog, l (Sized.toNat i)) }
 
 def interval_vl (array : ArrayVar ℕ) : vl (MemLoc ℕ) :=
   { value := λ loc =>  ⟨array, loc⟩,
@@ -62,57 +55,8 @@ def dense_vl  (array : ArrayVar α) : vl (MemLoc α) :=
     init  := λ loc => .store_mem array loc 0 }
 def implicit_vl : vl (E ℕ) := { value := id, init := λ _ => P.skip }
 
+-- a function of type α → lvl ι β is essentially a level format
 -- this combinator combines an il with a vl to form a lvl.
 -- the extra parameter α is used to thread the primary argument to a level through ⊚.
 --   see dcsr/csr_mat/dense below
-def with_values : (α → il ι) → vl β → α → lvl ι β := λ i v e => lvl.of (i e) v
-
-def dcsr (l : String) : lvl ℕ (lvl ℕ (MemLoc α)) :=
-  (interval_vl $ l ++ "1_pos").value 0 |>
-  (with_values (sparse_il (l ++ "1_crd" : ArrayVar ℕ)) (interval_vl $ l ++ "2_pos")) ⊚
-  (with_values (sparse_il (l ++ "2_crd" : ArrayVar ℕ)) (dense_vl $ l ++ "_vals"))
-
-def csr_mat (l dim i : String) : lvl ℕ (lvl ℕ (MemLoc α)) := 0 |>
-  (with_values (dense_il dim i) (interval_vl $ l ++ "2_pos")) ⊚
-  (with_values (sparse_il $ l ++ "2_crd") (dense_vl $ l ++ "_vals"))
-
-def dense_vec (l : String) (d₁ : E ℕ) (i : String) : lvl ℕ (MemLoc α) := (0 : E ℕ) |>
-  (with_values (dense_il d₁ i) $ dense_vl $ l ++ "_vals")
-
-def sparse_vec (l : String) : lvl ℕ (MemLoc α) :=
-  (interval_vl $ l ++ "1_pos").value 0 |>
-  (with_values (sparse_il $ l ++ "1_crd") $ dense_vl $ l ++ "_vals")
-
-def dense_mat (d₁ d₂ : E ℕ) : lvl ℕ (lvl ℕ (MemLoc ℕ)) := (0 : E ℕ) |>
-  (with_values (dense_il d₁ "i1") implicit_vl) ⊚
-  (with_values (dense_il d₂ "i2") $ dense_vl "values")
-
-def cube_lvl (d₁ d₂ d₃ : E ℕ) := 0 |>
-  (with_values (dense_il d₁ "i1") implicit_vl) ⊚
-  (with_values (dense_il d₂ "i2") implicit_vl) ⊚
-  (with_values (dense_il d₃ "i3") $ dense_vl ("values" : ArrayVar α))
---def sparse_vec : lvl ℕ (MemLoc α) := ⟨("size" : Var ℕ), (0 : E ℕ)⟩ &
---  (with_values (sparse_il ("A1_crd" : Var ℕ)) (dense_vl "A_vals"))
-
-def tcsr (l : String) : lvl ℕ (lvl ℕ (lvl ℕ (MemLoc α))) :=
-  (interval_vl $ l ++ "1_pos").value 0 |>
-  (with_values (sparse_il (l ++ "1_crd" : ArrayVar ℕ)) (interval_vl $ l ++ "2_pos")) ⊚
-  (with_values (sparse_il (l ++ "2_crd" : ArrayVar ℕ)) (interval_vl $ l ++ "3_pos")) ⊚
-  (with_values (sparse_il (l ++ "3_crd" : ArrayVar ℕ)) (dense_vl $ l ++ "_vals"))
-
-#exit
---todo
-inductive LevelType | s | d
-def trieType' (α : Type) : List LevelType → Type _
-| [] => α → α
-| _ :: xs => α → lvl ℕ (trieType' α xs)
-
-def trieType (α : Type) : List LevelType → Type _
-| [] => MemLoc α
-| _ :: xs => lvl ℕ (trieType α xs)
-
-#check @trieType
-def object (l : String) : (t : List LevelType) → MemLoc ℕ → trieType α t
-| [] => ⟨"no", 0⟩
-| [x] => λ e =>
-  (with_values (sparse_il (l ++ "1_crd" : ArrayVar ℕ)) (dense_vl $ l ++ "_vals"))
+def with_values : (α → il ι) → vl β → (α → lvl ι β) := λ i v e => lvl.of (i e) v

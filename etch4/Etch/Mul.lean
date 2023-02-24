@@ -29,23 +29,24 @@ instance [Rank α m] [Rank β n] [NatLT m n] : TypeLT α β := ⟨⟩
 class Prism (F : Type → Type _ → Type _) where
   map {ι} (f : α → β) : F ι α → F ι β
 
-section Prism
+section instances
+open Prism
 
 variable
 (f₁ f₂ : Type → Type _ → Type _)
 [Prism f₁] [Prism f₂]
 
 instance [TypeLT ι₁ ι₂] [HMul α₁ (f₂ ι₂ α₂) γ] : HMul (f₁ ι₁ α₁) (f₂ ι₂ α₂) (f₁ ι₁ γ)
-  where hMul a b := Prism.map (. * b) a
+  where hMul a b := map (. * b) a
 instance [TypeLT ι₂ ι₁] [HMul (f₁ ι₁ α₁) α₂ γ] : HMul (f₁ ι₁ α₁) (f₂ ι₂ α₂) (f₂ ι₂ γ)
-  where hMul a b := Prism.map (a * .) b
+  where hMul a b := map (a * .) b
 
 instance [HMul β (E α) γ] : HMul (f₁ ι₁ β) (E α) (f₁ ι₁ γ)
-  where hMul a b := Prism.map (. * b) a
+  where hMul a b := map (. * b) a
 instance [HMul (E α) β γ] : HMul (E α) (f₁ ι₁ β) (f₁ ι₁ γ)
-  where hMul a b := Prism.map (a * .) b
+  where hMul a b := map (a * .) b
 
-end Prism
+end instances
 
 instance [HMul α β γ] : HMul (ι →ₛ α) (ι →ₛ β) (ι →ₛ γ) := ⟨S.mul⟩
 instance [HMul α β γ] : HMul (ι →ₐ α) (ι →ₐ β) (ι →ₐ γ) := ⟨fun a b v ↦ a v * b v⟩

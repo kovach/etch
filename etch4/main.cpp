@@ -11,6 +11,10 @@
 
 int dim = 10000;
 
+#define num double
+#define ind int
+int array_size = 105000;
+
 #include "decls.c"
 
 double threshold = 0.1;
@@ -96,9 +100,15 @@ static inline bool    bool_neg(bool x) { return !x; }
 static inline bool   str_lt(const char* a, const char* b) { return strcmp(a, b) < 0; }
 static inline bool   str_le(const char* a, const char* b) { return strcmp(a, b) <= 0; }
 static inline bool   str_eq(const char* a, const char* b) { return strcmp(a, b) == 0; }
-static inline int    str_atoi(char* a) { return atoi(a); }
-static inline double str_atof(char* a) { return atof(a); }
 
+//static inline int    str_atoi(char* a) { return atoi(a); }
+//static inline double str_atof(char* a) { return atof(a); }
+
+static inline int nat_lit(int n) { return n; }
+
+static inline int    nat_of_str(char* a) { return atoi(a); }
+static inline float  num_of_str(char* a) { return atof(a); }
+static inline char*  str_of_str(char* a) { return strdup(a); }
 
 int i1_;
 int i2_;

@@ -568,7 +568,9 @@ structure externSparseVecCond (ctx : EContext) : Prop :=
 (vals_len : (ctx.heap.get reserved∷ᵣvals).length = ctx.store.get reserved∷ₙlen)
 
 lemma externSparseVec_tr_to_stream (scratch : NameSpace) (c : EContext) {l : ℕ} (is : vector ℕ l) (vs : vector R l)
-  (hc₁ : c.heap.get reserved∷ₙind₀ = is.to_list) (hc₂ : c.heap.get reserved∷ᵣvals = vs.to_list) (hc₃ : c.store.get reserved∷ₙlen = l) :
+  (hc₁ : c.heap.get reserved∷ₙind₀ = is.to_list)
+  (hc₂ : c.heap.get reserved∷ᵣvals = vs.to_list)
+  (hc₃ : c.store.get reserved∷ₙlen = l) :
   tr_to_stream (externSparseVec scratch) (primitives.externSparseVec_stream is vs)
     (λ ctx, ctx.store.get scratch∷ₙVars.i) c :=
 { hvalid := by simp [externSparseVec, primitives.externSparseVec_stream, hc₁, hc₂, hc₃],
@@ -579,7 +581,10 @@ lemma externSparseVec_tr_to_stream (scratch : NameSpace) (c : EContext) {l : ℕ
 
 def externSparseVec_tr (scratch : NameSpace) (hs : reserved ≠ scratch) (c : EContext)
   (hc : externSparseVecCond c) :
-  tr_to (externSparseVec scratch) (primitives.externSparseVec ⟨c.heap.get reserved∷ₙind₀, hc.inds_len⟩ ⟨c.heap.get reserved∷ᵣvals, hc.vals_len⟩)
+  tr_to (externSparseVec scratch)
+        (primitives.externSparseVec
+          ⟨c.heap.get reserved∷ₙind₀, hc.inds_len⟩
+          ⟨c.heap.get reserved∷ᵣvals, hc.vals_len⟩)
     (λ ctx, ctx.store.get scratch∷ₙVars.i) c :=
 { inv := c.unmodified reserved,
   to_stream := λ c' hc', by apply externSparseVec_tr_to_stream scratch c'; simp [hc'.h, hc'.s],
