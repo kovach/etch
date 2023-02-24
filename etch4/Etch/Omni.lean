@@ -484,6 +484,8 @@ theorem Sem.frame_lemma (conf : Config V) (h : c / conf ⇓ Q) (hDis : conf.1.di
     apply Sem.whileLoop
     . simpa [*] using a
     sorry
+  sorry
+  sorry
 
 structure IndexedStream (ι : Type) (α : Type _) where
   σ : Type
@@ -618,9 +620,9 @@ structure SyntacticIndexedStream.represents [Represents V α α']
 instance [Represents V α α'] : Represents V (SyntacticIndexedStream V ι α) (IndexedStreamExec ι α') where
   defines ss s conf := ∃ aligned, aligned s.state conf ∧ ss.represents s.toIndexedStream aligned
 
-instance [Represents V α α'] [Add α'] [Zero α'] : Represents V (SyntacticIndexedStream V ι α) (ι → α') where
-  defines ss f conf := ∃ (s : IndexedStreamExec ι α') (aligned : _), aligned s.state conf
-    ∧ ss.represents s.toIndexedStream aligned ∧ s.eval = f
+--instance [Represents V α α'] [Add α'] [Zero α'] : Represents V (SyntacticIndexedStream V ι α) (ι → α') where
+--  defines ss f conf := ∃ (s : IndexedStreamExec ι α') (aligned : _), aligned s.state conf
+--    ∧ ss.represents s.toIndexedStream aligned ∧ s.eval = f
 
 abbrev UR := ℕ
 @[reducible] instance : VariableType UR := ⟨ fun _ ↦ ℕ ⟩
@@ -786,8 +788,8 @@ theorem post_weaken' {P Q : Set (Config V)} (h : P ⊆ Q) : sem c P ⊆ sem c Q 
     intro conf s;
     cases s;
     . constructor <;> aesop;
-    . apply Sem.whileLoop; assumption; apply h1; rotate_left 3; sorry
-  . intro conf s; cases s; constructor <;> aesop
+    . apply Sem.whileLoop; assumption; apply h1; rotate_left 3; sorry; sorry; sorry
+  . intro conf s; cases s; constructor <;> aesop; sorry
 
 theorem post_weaken {P Q : Set (Config V)} (s : c / conf ⇓ P) (h : P ⊆ Q) : c / conf ⇓ Q := by
   --cases s; all_goals (constructor <;> aesop)
@@ -798,9 +800,9 @@ theorem post_weaken {P Q : Set (Config V)} (s : c / conf ⇓ P) (h : P ⊆ Q) : 
   . constructor <;> aesop
   . constructor; sorry
   . constructor <;> aesop
-  . apply Sem.whileLoop <;> aesop
+  . apply Sem.whileLoop <;> aesop; sorry
   . constructor <;> aesop
-  . constructor <;> aesop
+  . constructor <;> aesop; sorry; sorry
 
   --apply a_ih
 -- e.g.
