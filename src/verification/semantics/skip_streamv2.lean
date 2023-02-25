@@ -14,14 +14,14 @@ structure Stream (ι : Type) (α : Type u) : Type (max 1 u) :=
 (skip  : Π x, valid x → ι → bool → σ)
 (index : Π (x : σ), valid x → ι)
 (value : Π (x : σ), ready x → α)
-(wf : σ → σ → Prop)
+(wf_rel : σ → σ → Prop)
 
 
 @[ext]
 lemma Stream.ext {ι α} {s₁ s₂ : Stream ι α} (h₀ : s₁.σ = s₂.σ)
   (h₁ : ∀ x y, x == y → (s₁.valid x ↔ s₂.valid y)) (h₂ : ∀ x y, x == y → (s₁.ready x ↔ s₂.ready y)) (h₃ : ∀ x y H₁ H₂ i b, x == y → s₁.skip x H₁ i b == s₂.skip y H₂ i b)
   (h₄ : ∀ x y H₁ H₂, x == y → s₁.index x H₁ == s₂.index y H₂) (h₅ : ∀ x y H₁ H₂, x == y → s₁.value x H₁ == s₂.value y H₂) 
-  (h₆ : ∀ x₁ y₁ x₂ y₂, x₁ == y₁ → x₂ == y₂ → (s₁.wf x₁ x₂ ↔ s₂.wf y₁ y₂)) :
+  (h₆ : ∀ x₁ y₁ x₂ y₂, x₁ == y₁ → x₂ == y₂ → (s₁.wf_rel x₁ x₂ ↔ s₂.wf_rel y₁ y₂)) :
   s₁ = s₂ :=
 begin
   cases s₁ with σ₁ v₁ r₁ n₁ i₁ l₁, cases s₂ with σ₂ v₂ r₂ n₂ i₂ l₂, dsimp only at *,
@@ -61,10 +61,10 @@ if h : s.ready x then s.value _ h else 0
 
 @[simp] lemma Stream.next_invalid {s : Stream ι α} {x : s.σ} (h : ¬s.valid x) : s.next x = x := dif_neg h
 
-local notation a ` ≺ `:50 b := Stream.wf _ a b 
+local notation a ` ≺ `:50 b := Stream.wf_rel _ a b 
 
 def Stream.valid_wf (s : Stream ι α) : Prop :=
-well_founded s.wf ∧ ∀ q, s.valid q → (s.next q) ≺ q 
+well_founded s.wf_rel ∧ ∀ q, s.valid q → (s.next q) ≺ q 
 
 noncomputable def Stream.eval [add_zero_class α] (s : Stream ι α) (wf : s.valid_wf) : s.σ → ι →₀ α
 | q := 
@@ -94,25 +94,42 @@ def stream_order (ι : Type) : Type := with_top ι ×ₗ bool
 def Stream.to_order (s : Stream ι α) (x : s.σ) : stream_order ι :=
 ⟨s.index' x, s.ready x⟩
 
-def Stream.skip_valid_wf [has_le ι] (s : Stream ι α) : Prop :=
-well_founded s.wf ∧ ∀ ⦃q hq i b⦄, ((↑i, b) : stream_order ι) ≤ s.to_order q → (s.skip q hq i b) ≺ q
+variable [linear_order ι]
 
-def Stream.skip_valid_wf.to_valid_wf [preorder ι] {s : Stream ι α} (h : s.skip_valid_wf) :
+structure Stream.skip_valid_wf (s : Stream ι α) : Prop :=
+(wf : well_founded s.wf_rel)
+(no_backward : ∀ (q hq i b), ((s.skip q hq i b) ≺ q) ∨ (
+    /- Not sure why this is necessary; it should just be (↑i, b) < s.to_order q -/
+    @has_lt.lt (stream_order ι) _ (↑i, b) (s.to_order q) 
+    ∧ (s.skip q hq i b) = q))
+
+lemma Stream.skip_valid_wf.progress {s : Stream ι α} (h : s.skip_valid_wf) :
+  ∀ ⦃q hq i b⦄, s.to_order q ≤ (↑i, b) → (s.skip q hq i b) ≺ q :=
+begin
+  intros q hq i b,
+  cases h.no_backward q hq i b with H H,
+  { intro, assumption, }, { intro not_H, cases H.1.not_le not_H, },
+end
+
+lemma Stream.skip_valid_wf.no_backward' {s : Stream ι α} (h : s.skip_valid_wf) (q hq i b) : 
+  ((s.skip q hq i b) ≺ q) ∨ ((s.skip q hq i b) = q) :=
+(h.no_backward q hq i b).imp_right and.right
+
+def Stream.skip_valid_wf.to_valid_wf {s : Stream ι α} (h : s.skip_valid_wf) :
   s.valid_wf :=
-⟨h.1, λ q hq, by { rw [Stream.next_val hq], refine h.2 (le_of_eq _), simp [Stream.to_order, hq], }⟩ 
+⟨h.wf, λ q hq, by { rw [Stream.next_val hq], refine h.progress (le_of_eq _), simp [Stream.to_order, hq], }⟩ 
 
 structure LawfulStream (ι : Type) (α : Type*) [linear_order ι] [add_comm_monoid α] extends Stream ι α := 
 (skip_wf : Stream.skip_valid_wf to_Stream)
-(skip_spec : ∀ q hq i b j, ((↑i, b) : stream_order ι) ≤ (↑j, ff) → Stream.eval _ skip_wf.to_valid_wf (skip q hq i b) j = Stream.eval _ skip_wf.to_valid_wf q j)
+(skip_spec : ∀ q hq i b j, @has_le.le (stream_order ι) _ (↑i, b) (↑j, ff) → Stream.eval _ skip_wf.to_valid_wf (skip q hq i b) j = Stream.eval _ skip_wf.to_valid_wf q j)
 (mono : ∀ (q : σ) hq i b, Stream.to_order _ q ≤ Stream.to_order _ (skip q hq i b))
 
 -- def Stream.strict_mono (s : Stream ι α) : Prop :=
 -- ∀ ⦃r⦄, s.valid r → s.ready r → s.index' r ≠ s.index' (s.next r)
-
 structure StrictLawfulStream (ι : Type) (α : Type*) [linear_order ι] [add_comm_monoid α] extends LawfulStream ι α :=
 (strict_mono : ∀ ⦃r⦄, valid r → ready r → Stream.index' _ r ≠ Stream.index' _ (Stream.next _ r))
 
-variables [linear_order ι] [add_comm_monoid α]
+variables [add_comm_monoid α]
 
 def LawfulStream.eval (s : LawfulStream ι α) : s.σ → ι →₀ α := Stream.eval _ s.skip_wf.to_valid_wf  
 
@@ -136,7 +153,7 @@ end
 lemma LawfulStream.index_le_of_mem_support {s : LawfulStream ι α} {q : s.σ } :
   ∀ (i : ι), i ∈ (s.eval q).support → s.index' q ≤ i :=
 begin
-  refine well_founded.induction s.skip_wf.1 q _,
+  refine well_founded.induction s.skip_wf.wf q _,
   intros q ih i hi,
   by_cases H : s.valid q, swap, { exfalso, simpa [H] using hi, },
   rw [s.eval_valid _ H] at hi,
@@ -156,7 +173,13 @@ end
 
 (a * b).skip (i, b)
 
-
+a.eval * b.eval = (a.eval * b.eval)|_{(j, ff) < to_order} + (a.eval * b.eval)|_{to_order ≤ (j, ff)}
+                = (a * b).eval₀ + (a.eval * b.eval)|_{to_order ≤ (j, ff)}
+(a.eval * b.eval)|_{(i, b) ≤ (j, ff)} 
+  = a.eval|_{(i, b) ≤ (j, ff)} * b.eval|_{to_order ≤ (i, ff)}
+  = (a.eval (skip (i, b)))|_{(i, b) ≤ (j, ff)} * (b.eval.skip (i, b))|_{(i, b) ≤ (j, ff)}
+  = (a.eval (skip ..) * b.eval (skip ..))|_{(i, b) ≤ (j, ff)}
+  
 -/
 end stream_defs
 

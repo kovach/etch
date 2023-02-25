@@ -89,6 +89,8 @@ by { subst hn, simp [finset.univ, fintype.elems], erw list.map_nth_le, }
 @[simp] lemma le_ff_iff {b : bool} : b ≤ ff ↔ b = ff :=
 by cases b; simp
 
+lemma bool.min_eq_and {a b : bool} : min a b = a && b := rfl
+
 lemma ne_min_of_ne_and_ne {ι : Type*} [linear_order ι] {a x y : ι} (hx : a ≠ x) (hy : a ≠ y) :
   a ≠ min x y := by cases min_choice x y with h; rw h; assumption
 
@@ -123,6 +125,24 @@ by { rw prod.lex.le_iff' at h, cases h, { exact h.le, }, { exact h.1.le, }, }
 lemma prod.lex.fst_lt_of_lt_of_le {α β : Type} [preorder α] [partial_order β] {x y : α ×ₗ β}
   (h : x < y) (h' : y.2 ≤ x.2) : x.1 < y.1 :=
 by { rw prod.lex.lt_iff' at h, cases h, { exact h, }, cases h.2.not_le h', }
+
+lemma prod.lex.fst_mono {α β : Type} [preorder α] [preorder β] :
+  @monotone (α ×ₗ β) α _ _ prod.fst := λ x y, prod.lex.fst_le_of_le
+
+lemma prod.lex.min_fst {α β : Type} [linear_order α] [linear_order β] (x y : α ×ₗ β) :
+  (min x y).1 = min x.1 y.1 := monotone.map_min prod.lex.fst_mono
+
+lemma prod.lex.mk_min {α β : Type} [linear_order α] [linear_order β] (x : α) (y₁ y₂ : β) :
+  @min (α ×ₗ β) _ (x, y₁) (x, y₂) = (x, min y₁ y₂) :=
+(@monotone.map_min _ (α ×ₗ β) _ _ (λ y, (x, y)) y₁ y₂ $
+  λ y₁ y₂ h, prod.lex.le_iff'.mpr $ or.inr ⟨rfl, h⟩).symm
+
+@[simp] lemma max_le_min_iff {α : Type} [linear_order α] {x y : α} :
+  max x y ≤ min x y ↔ x = y := by simpa using le_antisymm_iff.symm
+
+@[simp] lemma max_eq_min_iff {α : Type} [linear_order α] {x y : α} :
+   min x y = max x y ↔ x = y :=
+⟨λ h, max_le_min_iff.mp h.symm.le, λ h, by simp [h]⟩ 
 
 @[simp, norm_cast] lemma prod.with_top.coe_inj {α : Type} (x y : α) : (x : with_top α) = y ↔ x = y :=
 option.some_inj
