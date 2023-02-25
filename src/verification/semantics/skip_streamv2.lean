@@ -14,21 +14,17 @@ structure Stream (ι : Type) (α : Type u) : Type (max 1 u) :=
 (skip  : Π x, valid x → ι → bool → σ)
 (index : Π (x : σ), valid x → ι)
 (value : Π (x : σ), ready x → α)
-(wf_rel : σ → σ → Prop)
-
 
 @[ext]
 lemma Stream.ext {ι α} {s₁ s₂ : Stream ι α} (h₀ : s₁.σ = s₂.σ)
   (h₁ : ∀ x y, x == y → (s₁.valid x ↔ s₂.valid y)) (h₂ : ∀ x y, x == y → (s₁.ready x ↔ s₂.ready y)) (h₃ : ∀ x y H₁ H₂ i b, x == y → s₁.skip x H₁ i b == s₂.skip y H₂ i b)
-  (h₄ : ∀ x y H₁ H₂, x == y → s₁.index x H₁ == s₂.index y H₂) (h₅ : ∀ x y H₁ H₂, x == y → s₁.value x H₁ == s₂.value y H₂) 
-  (h₆ : ∀ x₁ y₁ x₂ y₂, x₁ == y₁ → x₂ == y₂ → (s₁.wf_rel x₁ x₂ ↔ s₂.wf_rel y₁ y₂)) :
-  s₁ = s₂ :=
+  (h₄ : ∀ x y H₁ H₂, x == y → s₁.index x H₁ == s₂.index y H₂) (h₅ : ∀ x y H₁ H₂, x == y → s₁.value x H₁ == s₂.value y H₂) :  s₁ = s₂ :=
 begin
   cases s₁ with σ₁ v₁ r₁ n₁ i₁ l₁, cases s₂ with σ₂ v₂ r₂ n₂ i₂ l₂, dsimp only at *,
   subst h₀, simp only [heq_iff_eq] at *,
   obtain rfl : v₁ = v₂ := funext (λ x, propext $ h₁ x x rfl), obtain rfl : r₁ = r₂ := funext (λ x, propext $ h₂ x x rfl),
-  refine ⟨rfl, rfl, rfl, _, _, _, _⟩; try { simp only [heq_iff_eq] at * }; ext, { apply h₃ x x _ _ _ _ rfl; assumption, }, { apply h₄ x x _ _ rfl; assumption, },
-  { apply h₅ x x _ _ rfl; assumption, }, { apply h₆; refl, },
+  refine ⟨rfl, rfl, rfl, _, _, _⟩; try { simp only [heq_iff_eq] at * }; ext, { apply h₃ x x _ _ _ _ rfl; assumption, }, { apply h₄ x x _ _ rfl; assumption, },
+  { apply h₅ x x _ _ rfl; assumption, },
 end
 
 
@@ -61,26 +57,27 @@ if h : s.ready x then s.value _ h else 0
 
 @[simp] lemma Stream.next_invalid {s : Stream ι α} {x : s.σ} (h : ¬s.valid x) : s.next x = x := dif_neg h
 
-local notation a ` ≺ `:50 b := Stream.wf_rel _ a b 
+structure BoundedStream (ι : Type) (α : Type*) extends Stream ι α :=
+(wf_rel : σ → σ → Prop)
+(wf : well_founded wf_rel)
+-- TODO: should this just be replaced by the stronger "wf_skip_valid"?
+(wf_valid : ∀ q, valid q → wf_rel (Stream.next _ q) q)
 
-def Stream.valid_wf (s : Stream ι α) : Prop :=
-well_founded s.wf_rel ∧ ∀ q, s.valid q → (s.next q) ≺ q 
-
-noncomputable def Stream.eval [add_zero_class α] (s : Stream ι α) (wf : s.valid_wf) : s.σ → ι →₀ α
+noncomputable def BoundedStream.eval [add_zero_class α] (s : BoundedStream ι α) : s.σ → ι →₀ α
 | q := 
   if h : s.valid q then
-    have s.next q ≺ q, from wf.2 _ h,
-    s.eval₀ q h + Stream.eval (s.next q) 
+    have s.wf_rel (s.next q) q, from s.wf_valid _ h,
+    s.eval₀ q h + BoundedStream.eval (s.next q) 
   else 0
-  using_well_founded {rel_tac := λ _ _, `[exact ⟨_, wf.1⟩], dec_tac := `[assumption]}
+  using_well_founded {rel_tac := λ _ _, `[exact ⟨_, s.wf⟩], dec_tac := `[assumption]}
 
-lemma Stream.eval_invalid [add_zero_class α] (s : Stream ι α) (wf : s.valid_wf) (q : s.σ) (h : ¬s.valid q) :
-  s.eval wf q = 0 :=
-by rwa [Stream.eval, dif_neg]
+@[simp] lemma BoundedStream.eval_invalid [add_zero_class α] (s : BoundedStream ι α) (q : s.σ) (h : ¬s.valid q) :
+  s.eval q = 0 :=
+by rwa [BoundedStream.eval, dif_neg]
 
-lemma Stream.eval_valid [add_zero_class α] (s : Stream ι α) (wf : s.valid_wf) (q : s.σ) (h : s.valid q) :
-  s.eval wf q = s.eval₀ q h + s.eval wf (s.next q) :=
-by rw [Stream.eval, dif_pos]
+@[simp] lemma BoundedStream.eval_valid [add_zero_class α] (s : BoundedStream ι α) (q : s.σ) (h : s.valid q) :
+  s.eval q = s.eval₀ q h + s.eval (s.next q) :=
+by rw [BoundedStream.eval, dif_pos]
 
 lemma Stream.eval₀_support [has_zero α] (s : Stream ι α) (x : s.σ) (h : s.valid x) :
   (s.eval₀ x h).support ⊆ {s.index x h} :=
@@ -96,73 +93,73 @@ def Stream.to_order (s : Stream ι α) (x : s.σ) : stream_order ι :=
 
 variable [linear_order ι]
 
-structure Stream.skip_valid_wf (s : Stream ι α) : Prop :=
-(wf : well_founded s.wf_rel)
-(no_backward : ∀ (q hq i b), ((s.skip q hq i b) ≺ q) ∨ (
-    /- Not sure why this is necessary; it should just be (↑i, b) < s.to_order q -/
-    @has_lt.lt (stream_order ι) _ (↑i, b) (s.to_order q) 
-    ∧ (s.skip q hq i b) = q))
+local notation a ` <ₗ `:50 b := @has_lt.lt (stream_order _) _ a b
+local notation a ` ≤ₗ `:50 b := @has_le.le (stream_order _) _ a b
 
-lemma Stream.skip_valid_wf.progress {s : Stream ι α} (h : s.skip_valid_wf) :
+section
+
+def Stream.skip_valid_wf (s : Stream ι α) (rel : s.σ → s.σ → Prop) : Prop :=
+∀ (q hq i b), (rel (s.skip q hq i b) q) ∨ 
+  (((↑i, b) <ₗ s.to_order q) ∧ (s.skip q hq i b) = q)
+
+variables {s : Stream ι α} {rel : s.σ → s.σ → Prop}
+local notation a ` ≺ `:50 b := rel a b
+
+lemma Stream.skip_valid_wf.progress (h : s.skip_valid_wf rel) :
   ∀ ⦃q hq i b⦄, s.to_order q ≤ (↑i, b) → (s.skip q hq i b) ≺ q :=
 begin
   intros q hq i b,
-  cases h.no_backward q hq i b with H H,
+  cases h q hq i b with H H,
   { intro, assumption, }, { intro not_H, cases H.1.not_le not_H, },
 end
 
-lemma Stream.skip_valid_wf.no_backward' {s : Stream ι α} (h : s.skip_valid_wf) (q hq i b) : 
+lemma Stream.skip_valid_wf.to_valid_wf (h : s.skip_valid_wf rel) 
+  (q : s.σ) (hq : s.valid q) : (s.next q) ≺ q :=
+by { rw [Stream.next_val hq], refine h.progress (le_of_eq _), simp [Stream.to_order, hq], }
+
+lemma Stream.skip_valid_wf.no_backward (h : s.skip_valid_wf rel) (q hq i b) : 
   ((s.skip q hq i b) ≺ q) ∨ ((s.skip q hq i b) = q) :=
-(h.no_backward q hq i b).imp_right and.right
+(h q hq i b).imp_right and.right
 
-def Stream.skip_valid_wf.to_valid_wf {s : Stream ι α} (h : s.skip_valid_wf) :
-  s.valid_wf :=
-⟨h.wf, λ q hq, by { rw [Stream.next_val hq], refine h.progress (le_of_eq _), simp [Stream.to_order, hq], }⟩ 
+end
 
-structure LawfulStream (ι : Type) (α : Type*) [linear_order ι] [add_comm_monoid α] extends Stream ι α := 
-(skip_wf : Stream.skip_valid_wf to_Stream)
-(skip_spec : ∀ q hq i b j, @has_le.le (stream_order ι) _ (↑i, b) (↑j, ff) → Stream.eval _ skip_wf.to_valid_wf (skip q hq i b) j = Stream.eval _ skip_wf.to_valid_wf q j)
-(mono : ∀ (q : σ) hq i b, Stream.to_order _ q ≤ Stream.to_order _ (skip q hq i b))
+def Stream.is_monotonic (s : Stream ι α) : Prop :=
+∀ q hq i b, s.to_order q ≤ s.to_order (s.skip q hq i b)
 
--- def Stream.strict_mono (s : Stream ι α) : Prop :=
--- ∀ ⦃r⦄, s.valid r → s.ready r → s.index' r ≠ s.index' (s.next r)
-structure StrictLawfulStream (ι : Type) (α : Type*) [linear_order ι] [add_comm_monoid α] extends LawfulStream ι α :=
-(strict_mono : ∀ ⦃r⦄, valid r → ready r → Stream.index' _ r ≠ Stream.index' _ (Stream.next _ r))
+section mono
 
-variables [add_comm_monoid α]
-
-def LawfulStream.eval (s : LawfulStream ι α) : s.σ → ι →₀ α := Stream.eval _ s.skip_wf.to_valid_wf  
-
-@[simp] lemma LawfulStream.eval_invalid (s : LawfulStream ι α) (q : s.σ) (h : ¬s.valid q) :
-  s.eval q = 0 := Stream.eval_invalid _ _ q h
-
-@[simp] lemma LawfulStream.eval_valid (s : LawfulStream ι α) (q : s.σ) (h : s.valid q) :
-  s.eval q = s.eval₀ q h + s.eval (s.next q) := Stream.eval_valid _ _ q h
-
-lemma LawfulStream.rel_next (s : LawfulStream ι α) (q : s.σ) (h : s.valid q) : (s.next q) ≺ q :=
-s.skip_wf.to_valid_wf.2 q h
-
-lemma LawfulStream.next_mono (s : LawfulStream ι α) (q : s.σ) :
+lemma Stream.is_monotonic.index_le_index_next {s : Stream ι α} (h : s.is_monotonic) (q : s.σ) :
   s.index' q ≤ s.index' (s.next q) :=
 begin
   by_cases H : s.valid q, swap, { simp [H], },
-  convert prod.lex.fst_le_of_le (s.mono _ H (s.index q H) (s.ready q)),
+  convert prod.lex.fst_le_of_le (h _ H (s.index q H) (s.ready q)),
   simp [H],
 end
 
-lemma LawfulStream.index_le_of_mem_support {s : LawfulStream ι α} {q : s.σ } :
+lemma Stream.is_monotonic.index_le_of_mem_support [add_zero_class α] {s : BoundedStream ι α} (hs : s.is_monotonic) {q : s.σ } :
   ∀ (i : ι), i ∈ (s.eval q).support → s.index' q ≤ i :=
 begin
-  refine well_founded.induction s.skip_wf.wf q _,
+  refine well_founded.induction s.wf q _,
   intros q ih i hi,
   by_cases H : s.valid q, swap, { exfalso, simpa [H] using hi, },
   rw [s.eval_valid _ H] at hi,
   cases finset.mem_union.mp (finsupp.support_add hi) with hi hi,
   { rw finset.mem_singleton.mp (s.eval₀_support _ H hi), exact (le_of_eq (Stream.index'_val _)), },
-  exact trans (s.next_mono q) (ih (s.next q) (s.rel_next _ H) i hi),
+  exact trans (hs.index_le_index_next q) (ih (s.next q) (s.wf_valid _ H) i hi),
 end
 
+end mono
 
+def Stream.is_strict_mono (s : Stream ι α) : Prop :=
+∀ ⦃q⦄, s.valid q → s.ready q → s.index' q ≠ s.index' (s.next q) 
+
+structure LawfulStream (ι : Type) (α : Type*) [linear_order ι] [add_comm_monoid α] extends BoundedStream ι α :=
+(wf_valid' : to_Stream.skip_valid_wf wf_rel)
+(mono : to_Stream.is_monotonic)
+(skip_spec : ∀ q hq i b j, ((↑i, b) ≤ₗ ((↑j : with_top ι), ff)) → to_BoundedStream.eval (skip q hq i b) j = to_BoundedStream.eval q j)
+
+structure StrictLawfulStream (ι : Type) (α : Type*) [linear_order ι] [add_comm_monoid α] extends LawfulStream ι α :=
+(strict_mono : to_Stream.is_strict_mono)
 
 /-
 (a * b).eval = (a * b).eval₀ + (a * b).next.eval
