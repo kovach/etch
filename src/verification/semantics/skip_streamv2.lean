@@ -179,7 +179,12 @@ a.eval * b.eval = (a.eval * b.eval)|_{(j, ff) < to_order} + (a.eval * b.eval)|_{
   = a.eval|_{(i, b) ≤ (j, ff)} * b.eval|_{to_order ≤ (i, ff)}
   = (a.eval (skip (i, b)))|_{(i, b) ≤ (j, ff)} * (b.eval.skip (i, b))|_{(i, b) ≤ (j, ff)}
   = (a.eval (skip ..) * b.eval (skip ..))|_{(i, b) ≤ (j, ff)}
-  
+
+(a + b).eval = (a + b).eval₀ + (a + b).next.eval
+             = a.eval₀|_{(j, ff) < (i, b)} + b.eval₀|_{(j, ff) < (i, b)}
+                + (a.skip (i, b)).eval + (b.skip (i, b)).eval
+
+
 -/
 end stream_defs
 
