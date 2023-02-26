@@ -25,6 +25,7 @@ subrelation.wf rprod_eq_sub_lex (lex_wf h₁ h₂)
 
 end prod
 
+open_locale streams
 variables {ι : Type} [linear_order ι] {α : Type*}
 
 @[mk_iff]
@@ -34,8 +35,6 @@ structure Stream.mul.ready {ι : Type} (a : Stream ι α) (b : Stream ι α) (s 
 (r₁ : a.ready s.1)
 (r₂ : b.ready s.2)
 (index : a.index s.1 v₁ = b.index s.2 v₂)
-
-local notation a ` ≺ `:50 b := Stream.wf_rel _ a b 
 
 @[simps]
 def Stream.mul [has_mul α] (a b : Stream ι α) : Stream ι α :=
@@ -68,8 +67,12 @@ begin
   erw not_and_distrib at h, cases h; simp [h],
 end
 
+lemma order_eq_of_mul_ready {a b : Stream ι α} {x y} (h : (a.mul b).ready (x, y)) :
+  a.to_order x = (a.mul b).to_order (x, y) ∧ b.to_order y = (a.mul b).to_order (x, y) :=
+by { split; simp only [Stream.to_order, h, h.r₁, h.r₂]; simp [Stream.mul_index', Stream.mul.ready.index' h], } 
+
 /-- This lemma takes a surprising amount of effort to prove -/
-lemma Stream.min_to_order_le (a b : Stream ι α) (q : a.σ × b.σ) (hv : (a.mul b).valid q) :
+lemma min_to_order_le (a b : Stream ι α) (q : a.σ × b.σ) (hv : (a.mul b).valid q) :
   min (a.to_order q.1) (b.to_order q.2) ≤ (a.mul b).to_order q :=
 begin
   rw prod.lex.le_iff'', 
@@ -84,20 +87,62 @@ begin
   simpa [hv.1, hv.2] using h,
 end
 
-lemma mul_rel_wf (a b : BoundedStream ι α) : well_founded (prod.rprod_eq a.wf_rel b.wf_rel) :=
-prod.rprod_eq_wf a.wf b.wf
+def BoundedStream.mul (a b : BoundedStream ι α) : BoundedStream ι α :=
+{ wf_rel := prod.rprod_eq a.wf_rel b.wf_rel,
+  wf := prod.rprod_eq_wf a.wf b.wf,
+  wf_valid := λ q hq i r, begin
+    rcases a.wf_valid q.1 hq.1 i r with (h|⟨ha₁, ha₂⟩),
+    { exact or.inl (or.inl ⟨h, b.no_backward _ _ _ _⟩), },
+    rcases b.wf_valid q.2 hq.2 i r with (h|⟨hb₁, hb₂⟩),
+    { exact or.inl (or.inr ⟨h, a.no_backward _ _ _ _⟩), },
+    right, split, swap,
+    { dsimp, simp [ha₂, hb₂], },
+    exact lt_of_lt_of_le (lt_min ha₁ hb₁) (min_to_order_le _ _ _ hq),
+  end ,
+  ..(a.mul b.to_Stream) }
 
-lemma mul_is_skip_valid {a b : BoundedStream ι α} (ha : a.skip_valid_wf a.wf_rel) (hb : b.skip_valid_wf b.wf_rel) :
-  (a.mul b.to_Stream).skip_valid_wf (prod.rprod_eq a.wf_rel b.wf_rel) :=
-begin
-  intros q hq i r,
-  rcases ha q.1 hq.1 i r with (h|⟨ha₁, ha₂⟩),
-  { exact or.inl (or.inl ⟨h, hb.no_backward _ _ _ _⟩), },
-  rcases hb q.2 hq.2 i r with (h|⟨hb₁, hb₂⟩),
-  { exact or.inl (or.inr ⟨h, ha.no_backward _ _ _ _⟩), },
-  right, split, swap,
-  { dsimp, simp [ha₂, hb₂], },
-  exact lt_of_lt_of_le (lt_min ha₁ hb₁) (Stream.min_to_order_le _ _ _ hq),
-end
+@[simp] lemma BoundedStream.mul_to_Stream (a b : BoundedStream ι α) :
+  (a.mul b).to_Stream = a.to_Stream.mul b.to_Stream := rfl
 
 end index_lemmas
+
+section value_lemmas
+variables [non_unital_non_assoc_semiring α]
+
+lemma mul_eval₀_of_neq {a : Stream ι α} {b : Stream ι α} {x y} (h : a.to_order x ≠ b.to_order y) (H) :
+  (a.mul b).eval₀ (x, y) H = 0 :=
+by { contrapose! h, apply Stream.mul.ready.order_eq, simp [Stream.eval₀] at h, exact h.fst, }
+
+lemma mul_eval₀ (a b : Stream ι α) (x : a.σ) (y : b.σ) (H) :
+  (a.mul b).eval₀ (x, y) H = (a.eval₀ x H.1) * (b.eval₀ y H.2) :=
+begin
+  rw [Stream.eval₀], split_ifs with hr,
+  { simp [Stream.eval₀, hr.r₁, hr.r₂, hr.index], },
+  simp [Stream.mul.ready_iff, H.1, H.2] at hr,
+  simp [Stream.eval₀], split_ifs with h₁ h₂; try { simp },
+  rw finsupp.mul_single_eq_zero _ _ (hr h₁ h₂),
+end
+
+lemma mul_eval₀_spec (a b : BoundedStream ι α)
+  (ha : a.is_strict_mono) (hb : b.is_strict_mono) (q : (a.mul b).σ) (hv : Stream.valid _ q) :
+  (a.mul b).eval₀ q hv = ((a.eval q.1) * (b.eval q.2)).filter (λ i, (↑i, ff) <ₗ (a.mul b).to_order q) :=
+begin
+  classical,
+  by_cases H : (a.mul b).ready q,
+  { cases q with qa qb,
+    calc (a.mul b).eval₀ (qa, qb) hv 
+        = (a.eval₀ qa hv.1) * (b.eval₀ qb hv.2) : by { dsimp, rw [mul_eval₀], }
+    ... = (a.eval qa).filter (λ i, (↑i, ff) <ₗ a.to_order qa) *
+            (b.eval qb).filter (λ i, (↑i, ff) <ₗ b.to_order qb) : by rw [ha.eval₀_eq_eval_filter, hb.eval₀_eq_eval_filter]
+    ... = ((a.eval qa) * (b.eval qb)).filter (λ i, (↑i, ff) <ₗ min (a.to_order qa) (b.to_order qb)) : by simp only [finsupp.mul_filter, lt_min_iff]
+    ... = ((a.eval qa) * (b.eval qb)).filter (λ i, (↑i, ff) <ₗ (a.mul b).to_order (qa, qb)) : 
+            by { congr, ext i, simp [(order_eq_of_mul_ready H).1, (order_eq_of_mul_ready H).2], refl, } },
+  { symmetry,
+    simp only [Stream.eval₀, H, dif_neg, not_false_iff, finsupp.filter_eq_zero_iff, Stream.to_order], dsimp only [BoundedStream.mul_to_Stream],
+    simp only [to_bool_false_eq_ff, prod.lex.mk_snd_mono_lt_iff, finsupp.mul_apply, Stream.mul_index', lt_max_iff],
+    intros i hi, cases hi.imp (ha.1.eq_zero_of_lt_index i) (hb.1.eq_zero_of_lt_index i) with h h; simp [h], }
+end
+
+
+
+end value_lemmas

@@ -109,45 +109,67 @@ variables {ι : Type} [partial_order ι]
   x.is_some ↔ x < ⊤ :=
 by { rw [← not_iff_not, eq_ff_eq_not_eq_tt, option.not_is_some, option.is_none_iff_eq_none, lt_top_iff_ne_top, ne, not_not], refl, }
 
-lemma prod.lex.le_iff' {α β : Type} [has_lt α] [has_le β] {x y : α ×ₗ β} :
-  x ≤ y ↔ x.1 < y.1 ∨ (x.1 = y.1 ∧ x.2 ≤ y.2) := prod.lex_def _ _
-
-lemma prod.lex.le_iff'' {α β : Type} [partial_order α] [preorder β] {x y : α ×ₗ β} :
-  x ≤ y ↔ x.1 ≤ y.1 ∧ (x.1 = y.1 → x.2 ≤ y.2) :=
-by { rw [prod.lex.le_iff', le_iff_lt_or_eq], have := @ne_of_lt _ _ x.1 y.1, tauto!, }
-
-lemma prod.lex.lt_iff' {α β : Type} [has_lt α] [has_lt β] {x y : α ×ₗ β} :
-  x < y ↔ x.1 < y.1 ∨ (x.1 = y.1 ∧ x.2 < y.2) := prod.lex_def _ _
-
-lemma prod.lex.fst_le_of_le {α β : Type} [preorder α] [preorder β] {x y : α ×ₗ β} (h : x ≤ y) : x.1 ≤ y.1 :=
-by { rw prod.lex.le_iff' at h, cases h, { exact h.le, }, { exact h.1.le, }, }
-
-lemma prod.lex.fst_lt_of_lt_of_le {α β : Type} [preorder α] [partial_order β] {x y : α ×ₗ β}
-  (h : x < y) (h' : y.2 ≤ x.2) : x.1 < y.1 :=
-by { rw prod.lex.lt_iff' at h, cases h, { exact h, }, cases h.2.not_le h', }
-
-lemma prod.lex.fst_mono {α β : Type} [preorder α] [preorder β] :
-  @monotone (α ×ₗ β) α _ _ prod.fst := λ x y, prod.lex.fst_le_of_le
-
-lemma prod.lex.min_fst {α β : Type} [linear_order α] [linear_order β] (x y : α ×ₗ β) :
-  (min x y).1 = min x.1 y.1 := monotone.map_min prod.lex.fst_mono
-
-lemma prod.lex.mk_min {α β : Type} [linear_order α] [linear_order β] (x : α) (y₁ y₂ : β) :
-  @min (α ×ₗ β) _ (x, y₁) (x, y₂) = (x, min y₁ y₂) :=
-(@monotone.map_min _ (α ×ₗ β) _ _ (λ y, (x, y)) y₁ y₂ $
-  λ y₁ y₂ h, prod.lex.le_iff'.mpr $ or.inr ⟨rfl, h⟩).symm
-
-@[simp] lemma max_le_min_iff {α : Type} [linear_order α] {x y : α} :
-  max x y ≤ min x y ↔ x = y := by simpa using le_antisymm_iff.symm
-
-@[simp] lemma max_eq_min_iff {α : Type} [linear_order α] {x y : α} :
-   min x y = max x y ↔ x = y :=
-⟨λ h, max_le_min_iff.mp h.symm.le, λ h, by simp [h]⟩ 
-
 @[simp, norm_cast] lemma prod.with_top.coe_inj {α : Type} (x y : α) : (x : with_top α) = y ↔ x = y :=
 option.some_inj
 
 end with_top
+
+namespace prod.lex
+variables {α β : Type*}
+
+local notation a ` <ₗ `:50 b := @has_lt.lt (α ×ₗ β) _ a b
+local notation a ` ≤ₗ `:50 b := @has_le.le (α ×ₗ β) _ a b
+
+lemma le_iff' [has_lt α] [has_le β] {x y : α ×ₗ β} :
+  x ≤ y ↔ x.1 < y.1 ∨ (x.1 = y.1 ∧ x.2 ≤ y.2) := prod.lex_def _ _
+
+lemma le_iff'' [partial_order α] [preorder β] {x y : α ×ₗ β} :
+  x ≤ y ↔ x.1 ≤ y.1 ∧ (x.1 = y.1 → x.2 ≤ y.2) :=
+by { rw [prod.lex.le_iff', le_iff_lt_or_eq], have := @ne_of_lt _ _ x.1 y.1, tauto!, }
+
+lemma lt_iff' [has_lt α] [has_lt β] {x y : α ×ₗ β} :
+  x < y ↔ x.1 < y.1 ∨ (x.1 = y.1 ∧ x.2 < y.2) := prod.lex_def _ _
+
+lemma fst_le_of_le [preorder α] [preorder β] {x y : α ×ₗ β} (h : x ≤ y) : x.1 ≤ y.1 :=
+by { rw prod.lex.le_iff' at h, cases h, { exact h.le, }, { exact h.1.le, }, }
+
+lemma fst_lt_of_lt_of_le [preorder α] [partial_order β] {x y : α ×ₗ β}
+  (h : x < y) (h' : y.2 ≤ x.2) : x.1 < y.1 :=
+by { rw prod.lex.lt_iff' at h, cases h, { exact h, }, cases h.2.not_le h', }
+
+lemma fst_mono [preorder α] [preorder β] :
+  @monotone (α ×ₗ β) α _ _ prod.fst := λ x y, fst_le_of_le
+
+lemma min_fst [linear_order α] [linear_order β] (x y : α ×ₗ β) :
+  (min x y).1 = min x.1 y.1 := monotone.map_min fst_mono
+
+@[simp] lemma mk_fst_mono_iff [preorder α] [preorder β]
+  {x : α} {y₁ y₂ : β} : ((x, y₁) ≤ₗ (x, y₂)) ↔ y₁ ≤ y₂ := by simp [le_iff']
+
+@[simp] lemma mk_fst_mono_lt_iff [preorder α] [preorder β]
+  {x : α} {y₁ y₂ : β} : ((x, y₁) <ₗ (x, y₂)) ↔ y₁ < y₂ := by simp [lt_iff']
+
+@[simp] lemma mk_snd_mono_le_iff [partial_order α] [preorder β]
+  {x₁ x₂ : α} {y : β} : ((x₁, y) ≤ₗ (x₂, y)) ↔ x₁ ≤ x₂ := by simp [le_iff'']
+
+@[simp] lemma mk_snd_mono_lt_iff [preorder α] [preorder β]
+  {x₁ x₂ : α} {y : β} : ((x₁, y) <ₗ (x₂, y)) ↔ x₁ < x₂ := by simp [lt_iff']
+
+@[simp] lemma mk_ff_lt_mk_tt_iff [partial_order α] {x₁ x₂ : α} :
+  (@has_lt.lt (α ×ₗ bool) _ (x₁, ff) (x₂, tt)) ↔ x₁ ≤ x₂ := by simp [lt_iff', le_iff_lt_or_eq]
+
+lemma mk_min [linear_order α] [linear_order β] (x : α) (y₁ y₂ : β) :
+  @min (α ×ₗ β) _ (x, y₁) (x, y₂) = (x, min y₁ y₂) :=
+(@monotone.map_min _ (α ×ₗ β) _ _ (λ y, (x, y)) y₁ y₂ $ λ y₁ y₂, by simp).symm
+
+end prod.lex
+
+@[simp] lemma max_le_min_iff {α : Type*} [linear_order α] {x y : α} :
+  max x y ≤ min x y ↔ x = y := by simpa using le_antisymm_iff.symm
+
+@[simp] lemma max_eq_min_iff {α : Type*} [linear_order α] {x y : α} :
+   min x y = max x y ↔ x = y :=
+⟨λ h, max_le_min_iff.mp h.symm.le, λ h, by simp [h]⟩ 
 
 /- NOTE: This stuff is already in mathlib (`data.finsupp.pointwise`) -/
 
@@ -191,6 +213,17 @@ end
 lemma finsupp.mul_single_eq_zero {ι β : Type*} [mul_zero_class β] (i₁ i₂ : ι) (hi : i₁ ≠ i₂) (x y : β) :
   (finsupp.single i₁ x) * (finsupp.single i₂ y) = 0 :=
 by { classical, rw [finsupp.mul_eq_zero_of_disjoint_support], simp [finset.disjoint_iff_ne, finsupp.mem_support_single], intros, exact hi, }
+
+lemma finsupp.mul_filter {ι β : Type*} [mul_zero_class β] (P Q : ι → Prop) (f g : ι →₀ β) :
+  (f.filter P) * (g.filter Q) = (f * g).filter (λ i, P i ∧ Q i) :=
+by { ext i, by_cases h₁ : P i; by_cases h₂ : Q i; simp [h₁, h₂], }
+
+lemma finsupp.mul_filter' {ι β : Type*} [mul_zero_class β] (P : ι → Prop) (f g : ι →₀ β) :
+  (f * g).filter P = (f.filter P) * (g.filter P) := by simp [finsupp.mul_filter]
+
+lemma finsupp.filter_ext_iff {ι β : Type*} [add_zero_class β] (P : ι → Prop) (f g : ι →₀ β) :
+  (f.filter P = g.filter P) ↔ (∀ a, P a → f a = g a) :=
+by { classical, simp [fun_like.ext_iff, finsupp.filter_apply, apply_ite2 (=), ← imp_iff_not_or], }
 
 set_option pp.implicit true
 
