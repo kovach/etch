@@ -165,8 +165,9 @@ lemma mul_strict_mono {a b : Stream ι α} (ha : a.is_strict_mono) (hb : b.is_st
   refine max_lt_max (ha.lt _ _ _ _ _ hr.r₁) (hb.lt _ _ _ _ _ hr.r₂);
   simpa [order_eq_of_mul_ready hr],
 end⟩
--- lemma skip_eval_mul_eq (a b : LawfulStream ι α) (q : (a.to_Stream.mul b.to_Stream).σ) (hq :  (a.to_Stream.mul b.to_Stream).valid q) {i j : ι} {b : bool} (h : (↑i, b) ≤ₗ ((↑j : with_top ι), ff)) :
---   a.eval (a.skip q.1 hq.1 i b) j = a.eval q j 
+
+lemma bmul_strict_mono {a b : BoundedStream ι α} (ha : a.is_strict_mono) (hb : b.is_strict_mono) :
+  (a.mul b).is_strict_mono := mul_strict_mono ha hb
 
 local notation ` ↑ₛ `:1000 a := a.to_BoundedStream
 
@@ -183,7 +184,7 @@ begin
   change (a.eval (a.skip _ _ _ _) j) * (b.eval (b.skip _ _ _ _) j) = 0,
   rw not_le at hj,
   cases (le_max_iff.mp $ to_order_le_max _ _ _ hv) with hj' hj',
-  { have := a.strict_mono.eq_zero_of_lt_index hv.1, }
+  { rw Stream.to_order_val hv.1 at hj',   }
 end
 
 lemma mul_spec (a b : StrictLawfulStream ι α) (q : ((↑ₛa).mul (↑ₛb)).σ) :

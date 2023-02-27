@@ -65,6 +65,9 @@ def stream_order (ι : Type) : Type := with_top ι ×ₗ bool
 def Stream.to_order (s : Stream ι α) (x : s.σ) : stream_order ι :=
 ⟨s.index' x, s.ready x⟩
 
+lemma Stream.to_order_val {s : Stream ι α} {x : s.σ} (h : s.valid x) :
+  s.to_order x = (s.index x h, s.ready x) := by simp [Stream.to_order, h]
+
 localized "notation a ` <ₗ `:50 b := @has_lt.lt (stream_order _) _ a b" in streams
 localized "notation a ` ≤ₗ `:50 b := @has_le.le (stream_order _) _ a b" in streams
 
