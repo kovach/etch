@@ -87,6 +87,16 @@ begin
   simpa [hv.1, hv.2] using h,
 end
 
+lemma to_order_le_max (a b : Stream ι α) (q : a.σ × b.σ) (hv : (a.mul b).valid q) :
+  (a.mul b).to_order q ≤ max (a.to_order q.1) (b.to_order q.2) :=
+begin
+  rw prod.lex.le_iff', right, split,
+  { simp [monotone.map_max (@prod.lex.fst_mono (with_top ι) bool _ _), Stream.mul_index'], },
+  simp only [bool.le_iff_imp, Stream.to_order_snd, bool.of_to_bool_iff],
+  intro hr, cases q with qa qb,
+  simpa [order_eq_of_mul_ready hr],
+end
+
 def BoundedStream.mul (a b : BoundedStream ι α) : BoundedStream ι α :=
 { wf_rel := prod.rprod_eq a.wf_rel b.wf_rel,
   wf := prod.rprod_eq_wf a.wf b.wf,
@@ -143,6 +153,47 @@ begin
     intros i hi, cases hi.imp (ha.1.eq_zero_of_lt_index i) (hb.1.eq_zero_of_lt_index i) with h h; simp [h], }
 end
 
+lemma mul_mono {a b : Stream ι α} (ha : a.is_monotonic) (hb : b.is_monotonic) :
+  (a.mul b).is_monotonic :=
+by { intros q hv i r, simp only [Stream.mul_index'], exact max_le_max (ha _ _ _ _) (hb _ _ _ _), }
 
+lemma mul_strict_mono {a b : Stream ι α} (ha : a.is_strict_mono) (hb : b.is_strict_mono) :
+  (a.mul b).is_strict_mono :=
+⟨mul_mono ha.1 hb.1, λ q hv i r H hr, ne_of_lt begin
+  simp only [Stream.mul_index'],
+  cases q with qa qb,
+  refine max_lt_max (ha.lt _ _ _ _ _ hr.r₁) (hb.lt _ _ _ _ _ hr.r₂);
+  simpa [order_eq_of_mul_ready hr],
+end⟩
+-- lemma skip_eval_mul_eq (a b : LawfulStream ι α) (q : (a.to_Stream.mul b.to_Stream).σ) (hq :  (a.to_Stream.mul b.to_Stream).valid q) {i j : ι} {b : bool} (h : (↑i, b) ≤ₗ ((↑j : with_top ι), ff)) :
+--   a.eval (a.skip q.1 hq.1 i b) j = a.eval q j 
+
+local notation ` ↑ₛ `:1000 a := a.to_BoundedStream
+
+lemma next_eval_mul_eq (a b : StrictLawfulStream ι α) (q : ((↑ₛa).mul (↑ₛb)).σ) (hv : Stream.valid _ q) :
+  (a.eval $ (((↑ₛa).mul (↑ₛb)).next q).1) * (b.eval $ (((↑ₛa).mul (↑ₛb)).next q).2) =
+    ((a.eval q.1) * (b.eval q.2)).filter (λ i, ((↑ₛa).mul (↑ₛb)).to_order q ≤ (↑i, ff)) :=
+begin
+  ext j,
+  simp only [finsupp.mul_apply, finsupp.filter_apply, Stream.next_val hv],
+  split_ifs with hj,
+  { simp only [Stream.to_order, Stream.index'_val hv] at hj,
+    dsimp only [BoundedStream.mul_to_Stream, Stream.mul_skip] at hj ⊢,
+    rw [a.skip_spec q.1 hv.1 _ _ _ hj, b.skip_spec q.2 hv.2 _ _ _ hj], },
+  change (a.eval (a.skip _ _ _ _) j) * (b.eval (b.skip _ _ _ _) j) = 0,
+  rw not_le at hj,
+  cases (le_max_iff.mp $ to_order_le_max _ _ _ hv) with hj' hj',
+  { have := a.strict_mono.eq_zero_of_lt_index hv.1, }
+end
+
+lemma mul_spec (a b : StrictLawfulStream ι α) (q : ((↑ₛa).mul (↑ₛb)).σ) :
+  (BoundedStream.eval _ q) = (a.eval q.1) * (b.eval q.2) :=
+begin
+  refine @well_founded.induction _ (a.to_BoundedStream.mul b.to_BoundedStream).wf_rel (a.to_BoundedStream.mul b.to_BoundedStream).wf _ q _,
+  clear q, intros q ih,
+  by_cases hv : ((↑ₛa).mul (↑ₛb)).valid q, swap,
+  { cases not_and_distrib.mp hv with hv' hv'; simp [hv, hv'], },
+  rw [BoundedStream.eval_valid _ _ hv, ih _ (((↑ₛa).mul (↑ₛb)).next_wf q hv)],
+end
 
 end value_lemmas

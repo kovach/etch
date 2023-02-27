@@ -108,8 +108,16 @@ lemma Stream.eval₀_support [has_zero α] (s : Stream ι α) (x : s.σ) (h : s.
   (s.eval₀ x h).support ⊆ {s.index x h} :=
 by { rw Stream.eval₀, split_ifs, { exact finsupp.support_single_subset, }, simp, }
 
+lemma Stream.eval₀_support' [has_zero α] (s : Stream ι α) {x : s.σ} (h₁ : s.valid x) {i : ι}
+  (h₂ : s.eval₀ x h₁ i ≠ 0) : s.to_order x = (i, tt) :=
+begin
+  obtain rfl := finset.eq_of_mem_singleton (s.eval₀_support x h₁ (finsupp.mem_support_iff.mpr h₂)),
+  rw [Stream.eval₀] at h₂, split_ifs at h₂ with hr,
+  { simpa [Stream.to_order, Stream.index'_val h₁], }, { simpa using h₂, }
+end
+
 def Stream.is_monotonic (s : Stream ι α) : Prop :=
-∀ q hq i b, s.to_order q ≤ s.to_order (s.skip q hq i b)
+∀ q hq i b, s.index' q ≤ s.index' (s.skip q hq i b)
 
 section mono
 
@@ -117,7 +125,7 @@ lemma Stream.is_monotonic.index_le_index_next {s : Stream ι α} (h : s.is_monot
   s.index' q ≤ s.index' (s.next q) :=
 begin
   by_cases H : s.valid q, swap, { simp [H], },
-  convert prod.lex.fst_le_of_le (h _ H (s.index q H) (s.ready q)),
+  convert h _ H (s.index q H) (s.ready q),
   simp [H],
 end
 
@@ -136,33 +144,47 @@ end
 lemma Stream.is_monotonic.eq_zero_of_lt_index [add_zero_class α] {s : BoundedStream ι α} (hs : s.is_monotonic) {q : s.σ} (i : ι) :
   ↑i < s.index' q → s.eval q i = 0 := by { contrapose!, exact hs.index_le_of_mem_support i, }
 
-def Stream.is_strict_mono (s : Stream ι α) : Prop :=
-s.is_monotonic ∧ ∀ ⦃q⦄, s.valid q → s.ready q → s.index' q ≠ s.index' (s.next q) 
 
-lemma Stream.is_strict_mono.spec {s : Stream ι α} (hs : s.is_strict_mono) (q : s.σ) (hv : s.valid q) :
-  s.to_order q ≤ (s.index' (s.next q), ff) :=
-prod.lex.le_iff''.mpr ⟨hs.1.index_le_index_next q, by { contrapose, simpa using hs.2 hv, }⟩
+def Stream.is_strict_mono (s : Stream ι α) : Prop :=
+s.is_monotonic ∧ ∀ (q hq i b), s.to_order q ≤ (↑i, b) → s.ready q → s.index' q ≠ s.index' (s.skip q hq i b)
+
+lemma Stream.is_strict_mono.lt {s : Stream ι α} (hs : s.is_strict_mono) (q hq i b) (H : s.to_order q ≤ (↑i, b)) (hr : s.ready q) :
+  s.index' q < s.index' (s.skip q hq i b) := lt_of_le_of_ne (hs.1 _ _ _ _) (hs.2 _ _ _ _ H hr)
+
+lemma Stream.is_strict_mono.next_ne {s : Stream ι α} (hs : s.is_strict_mono)
+  {q : s.σ} (hq : s.valid q) (hr : s.ready q) : s.index' q ≠ s.index' (s.next q) :=
+by { rw [Stream.next_val hq], refine hs.2 q hq _ _ (le_of_eq _) hr, rw [← Stream.index'_val hq], refl, }
+
+lemma Stream.is_strict_mono.spec {s : Stream ι α} (hs : s.is_strict_mono) (q : s.σ) (hv : s.valid q) {i b} (hi : s.to_order q ≤ (↑i, b)) :
+  s.to_order q ≤ (s.index' (s.skip q hv i b), ff) :=
+prod.lex.le_iff''.mpr ⟨by { dsimp, exact (hs.1 q hv i b), }, by { dsimp, contrapose, simpa using hs.2 q hv i b hi, }⟩
 
 lemma Stream.is_strict_mono.index_le_of_mem_support [add_zero_class α] {s : BoundedStream ι α}
-  (hs : s.is_strict_mono) {q : s.σ} : ∀ (i : ι), s.eval (s.next q) i ≠ 0 → s.to_order q ≤ (i, ff) :=
-if hv : s.valid q then 
-  (λ i hi, (hs.spec q hv).trans $ by simpa using hs.1.index_le_of_mem_support i hi)
-else by simp [hv]
+  (hs : s.is_strict_mono) {q : s.σ} (hv) {i b} (hi : s.to_order q ≤ (↑i, b)) : ∀ (j : ι), s.eval (s.skip q hv i b) j ≠ 0 → s.to_order q ≤ (↑j, ff) :=
+λ j hj, (hs.spec q hv hi).trans $ by simpa using hs.1.index_le_of_mem_support j hj
+
+lemma Stream.is_strict_mono.eq_zero_of_lt_index [add_zero_class α] {s : BoundedStream ι α}
+  (hs : s.is_strict_mono) {q : s.σ} (hv) {i b} (hi : s.to_order q ≤ (↑i, b)) (j : ι) : ((↑j, ff) <ₗ s.to_order q) → s.eval (s.skip q hv i b) j = 0 :=
+by { contrapose!, exact hs.index_le_of_mem_support hv hi j, }
 
 lemma Stream.is_strict_mono.eval₀_eq_eval_filter [add_comm_monoid α] {s : BoundedStream ι α} (hs : s.is_strict_mono) (q : s.σ) (hv : s.valid q) :
   s.eval₀ q hv = (s.eval q).filter (λ i, (↑i, ff) <ₗ s.to_order q) :=
 begin
   rw [s.eval_valid _ hv, finsupp.filter_add],
   convert (add_zero _).symm,
-  { rw [finsupp.filter_eq_self_iff],
-    intros i hi,
-    by_cases hr : s.ready q, swap, { simpa [Stream.eval₀, hr] using hi, },
-    obtain (⟨rfl, _⟩ : i = s.index q hv ∧ _) := by simpa [Stream.eval₀, hr, finsupp.single_apply_eq_zero] using hi,
-    simp [Stream.to_order, hr, hv], },
-  rw [finsupp.filter_eq_zero_iff],
-  intros i hi, contrapose! hi,
-  exact hs.index_le_of_mem_support i hi,
+  { rw [finsupp.filter_eq_self_iff], intros i hi, rw s.eval₀_support' hv hi, simp, },
+  { rw [finsupp.filter_eq_zero_iff], intros i hi, rw [Stream.next_val hv], refine hs.eq_zero_of_lt_index hv (le_of_eq _) i hi, rw [← Stream.index'_val hv], refl, },
 end
+
+-- lemma Stream.is_strict_mono.eval_next_eq_eval_filter [add_comm_monoid α] {s : BoundedStream ι α} (hs : s.is_strict_mono) (q : s.σ) :
+--   s.eval (s.next q) = (s.eval q).filter (λ i, s.to_order q ≤ (↑i, ff)) :=
+-- begin
+--   by_cases hv : s.valid q, swap, { simp [hv, finsupp.filter_zero], },
+--   rw [s.eval_valid _ hv, finsupp.filter_add],
+--   convert (zero_add _).symm,
+--   { rw [finsupp.filter_eq_zero_iff], intros i hi, contrapose! hi, rw s.eval₀_support' hv hi, simp, },
+--   { rw [finsupp.filter_eq_self_iff], intros i hi, exact hs.index_le_of_mem_support i hi, },
+-- end
 
 end mono
 
@@ -195,6 +217,7 @@ a.eval * b.eval = (a.eval * b.eval)|_{(j, ff) < to_order} + (a.eval * b.eval)|_{
   = a.eval|_{(i, b) ≤ (j, ff)} * b.eval|_{to_order ≤ (i, ff)}
   = (a.eval (skip (i, b)))|_{(i, b) ≤ (j, ff)} * (b.eval.skip (i, b))|_{(i, b) ≤ (j, ff)}
   = (a.eval (skip ..) * b.eval (skip ..))|_{(i, b) ≤ (j, ff)}
+  = (a.eval (next ) * (b.eval (next)))
 
 (a + b).eval = (a + b).eval₀ + (a + b).next.eval
              = a.eval₀|_{(j, ff) < (i, b)} + b.eval₀|_{(j, ff) < (i, b)}
