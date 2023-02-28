@@ -166,9 +166,6 @@ lemma mul_strict_mono {a b : Stream ι α} (ha : a.is_strict_mono) (hb : b.is_st
   simpa [order_eq_of_mul_ready hr],
 end⟩
 
-lemma bmul_strict_mono {a b : BoundedStream ι α} (ha : a.is_strict_mono) (hb : b.is_strict_mono) :
-  (a.mul b).is_strict_mono := mul_strict_mono ha hb
-
 local notation ` ↑ₛ `:1000 a := a.to_BoundedStream
 
 lemma next_eval_mul_eq (a b : StrictLawfulStream ι α) (q : ((↑ₛa).mul (↑ₛb)).σ) (hv : Stream.valid _ q) :
@@ -184,7 +181,11 @@ begin
   change (a.eval (a.skip _ _ _ _) j) * (b.eval (b.skip _ _ _ _) j) = 0,
   rw not_le at hj,
   cases (le_max_iff.mp $ to_order_le_max _ _ _ hv) with hj' hj',
-  { rw Stream.to_order_val hv.1 at hj',   }
+  { rw [a.strict_mono.eval_skip_eq_zero, zero_mul],
+    { convert hj, rw [Stream.index'_val hv], }, { convert hj', rw ← Stream.index'_val, refl, }, },
+  { rw [b.strict_mono.eval_skip_eq_zero, mul_zero],
+    { convert hj, rw [Stream.index'_val hv], }, { convert hj', rw ← Stream.index'_val, refl, }, },
+  
 end
 
 lemma mul_spec (a b : StrictLawfulStream ι α) (q : ((↑ₛa).mul (↑ₛb)).σ) :
@@ -194,7 +195,24 @@ begin
   clear q, intros q ih,
   by_cases hv : ((↑ₛa).mul (↑ₛb)).valid q, swap,
   { cases not_and_distrib.mp hv with hv' hv'; simp [hv, hv'], },
-  rw [BoundedStream.eval_valid _ _ hv, ih _ (((↑ₛa).mul (↑ₛb)).next_wf q hv)],
+  rw [BoundedStream.eval_valid _ _ hv, ih _ (((↑ₛa).mul (↑ₛb)).next_wf q hv),
+    next_eval_mul_eq _ _ _ hv, mul_eval₀_spec _ _ a.strict_mono b.strict_mono _ hv],
+  convert finsupp.filter_pos_add_filter_neg _ _,
+  simp,
 end
+
+lemma mul_skip_spec (a b : StrictLawfulStream ι α) (q : ((↑ₛa).mul (↑ₛb)).σ) (hq : Stream.valid _ q)
+  (i : ι) (r : bool) (j : ι) (h : ((↑i : with_top ι), r) ≤ₗ (↑j, ff)) :
+  ((↑ₛa).mul (↑ₛb)).eval (((↑ₛa).mul (↑ₛb)).skip q hq i r) j = ((↑ₛa).mul (↑ₛb)).eval q j :=
+begin
+  simp only [finsupp.mul_apply, mul_spec], congr' 1;
+  { dsimp, rw LawfulStream.skip_spec, assumption, }
+end
+
+def StrictLawfulStream.mul (a b : StrictLawfulStream ι α) : StrictLawfulStream ι α :=
+{ skip_spec := mul_skip_spec a b,
+  mono := (mul_strict_mono a.strict_mono b.strict_mono).1,
+  strict_mono := mul_strict_mono a.strict_mono b.strict_mono,
+  ..(a.to_BoundedStream.mul b.to_BoundedStream) }
 
 end value_lemmas

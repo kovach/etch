@@ -170,6 +170,21 @@ lemma Stream.is_strict_mono.eq_zero_of_lt_index [add_zero_class α] {s : Bounded
   (hs : s.is_strict_mono) {q : s.σ} (hv) {i b} (hi : s.to_order q ≤ (↑i, b)) (j : ι) : ((↑j, ff) <ₗ s.to_order q) → s.eval (s.skip q hv i b) j = 0 :=
 by { contrapose!, exact hs.index_le_of_mem_support hv hi j, }
 
+lemma fst_lt_of_lt_of_lt {α : Type*} [preorder α] :
+  ∀ {x y z : α ×ₗ bool}, x < y → y < z → x.1 < z.1
+| x y ⟨z, ff⟩ h₁ h₂ := prod.lex.fst_lt_of_lt_of_le (h₁.trans h₂) (by simp)
+| x ⟨y, tt⟩ ⟨z, tt⟩ h₁ h₂ := lt_of_le_of_lt (show x.1 ≤ y, from prod.lex.fst_le_of_le h₁.le) (by simpa using h₂)
+| x ⟨y, ff⟩ ⟨z, tt⟩ h₁ h₂ := lt_of_lt_of_le (show x.1 < y, from prod.lex.fst_lt_of_lt_of_le h₁ (by simp)) (prod.lex.fst_le_of_le h₂.le)
+
+lemma Stream.is_strict_mono.eval_skip_eq_zero [add_zero_class α] {s : BoundedStream ι α} (hs : s.is_strict_mono) {q : s.σ} (hv : s.valid q) {i j : ι} {b : bool}
+  (h₁ : ((↑j : with_top ι), ff) <ₗ (↑i, b)) (h₂ : (↑i, b) ≤ₗ s.to_order q) :
+  s.eval (s.skip q hv i b) j = 0 :=
+begin
+  cases eq_or_lt_of_le h₂ with h₂ h₂,
+  { refine hs.eq_zero_of_lt_index _ h₂.symm.le _ _, rwa ← h₂, },
+  { apply hs.1.eq_zero_of_lt_index, refine lt_of_lt_of_le _ (hs.1 _ _ _ _), exact fst_lt_of_lt_of_lt h₁ h₂, }
+end
+
 lemma Stream.is_strict_mono.eval₀_eq_eval_filter [add_comm_monoid α] {s : BoundedStream ι α} (hs : s.is_strict_mono) (q : s.σ) (hv : s.valid q) :
   s.eval₀ q hv = (s.eval q).filter (λ i, (↑i, ff) <ₗ s.to_order q) :=
 begin
@@ -203,6 +218,7 @@ variables [add_zero_class α]
 lemma LawfulStream.skip_spec' (s : LawfulStream ι α) (q : s.σ) (hq : s.valid q) (i : ι) (b : bool) : 
   (s.eval (s.skip q hq i b)).filter (λ j, (↑i, b) ≤ₗ ((↑j : with_top ι), ff)) = (s.eval q).filter (λ j, (↑i, b) ≤ₗ ((↑j : with_top ι), ff)) :=
 by { rw finsupp.filter_ext_iff, exact s.skip_spec q hq i b, }
+
 /-
 (a * b).eval = (a * b).eval₀ + (a * b).next.eval
              = (a.eval₀ * b.eval₀ or 0) + (a.skip (i, b) * b.skip (i, b)).eval
