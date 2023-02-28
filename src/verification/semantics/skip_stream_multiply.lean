@@ -215,4 +215,10 @@ def StrictLawfulStream.mul (a b : StrictLawfulStream ι α) : StrictLawfulStream
   strict_mono := mul_strict_mono a.strict_mono b.strict_mono,
   ..(a.to_BoundedStream.mul b.to_BoundedStream) }
 
+instance : has_mul (StrictLawfulStream ι α) := ⟨StrictLawfulStream.mul⟩
+
+@[simp] lemma StrictLawfulStream.mul_spec (a b : StrictLawfulStream ι α) (q : (a * b).σ) :
+  (a * b).eval q = (a.eval q.1) * (b.eval q.2) :=
+by { change (a.to_BoundedStream.mul b.to_BoundedStream).eval q = _, rw mul_spec, }
+
 end value_lemmas
