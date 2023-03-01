@@ -130,6 +130,10 @@ by { rw [prod.lex.le_iff', le_iff_lt_or_eq], have := @ne_of_lt _ _ x.1 y.1, taut
 lemma lt_iff' [has_lt α] [has_lt β] {x y : α ×ₗ β} :
   x < y ↔ x.1 < y.1 ∨ (x.1 = y.1 ∧ x.2 < y.2) := prod.lex_def _ _
 
+lemma lt_iff'' [partial_order α] [preorder β] {x y : α ×ₗ β} :
+  x < y ↔ x.1 ≤ y.1 ∧ (x.1 = y.1 → x.2 < y.2) :=
+by { rw [lt_iff', le_iff_lt_or_eq], have : x.1 < y.1 → ¬(x.1 = y.1) := ne_of_lt, tauto, }
+
 lemma fst_le_of_le [preorder α] [preorder β] {x y : α ×ₗ β} (h : x ≤ y) : x.1 ≤ y.1 :=
 by { rw prod.lex.le_iff' at h, cases h, { exact h.le, }, { exact h.1.le, }, }
 

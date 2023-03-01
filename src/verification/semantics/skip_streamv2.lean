@@ -194,16 +194,6 @@ begin
   { rw [finsupp.filter_eq_zero_iff], intros i hi, rw [Stream.next_val hv], refine hs.eq_zero_of_lt_index hv (le_of_eq _) i hi, rw [← Stream.index'_val hv], refl, },
 end
 
--- lemma Stream.is_strict_mono.eval_next_eq_eval_filter [add_comm_monoid α] {s : BoundedStream ι α} (hs : s.is_strict_mono) (q : s.σ) :
---   s.eval (s.next q) = (s.eval q).filter (λ i, s.to_order q ≤ (↑i, ff)) :=
--- begin
---   by_cases hv : s.valid q, swap, { simp [hv, finsupp.filter_zero], },
---   rw [s.eval_valid _ hv, finsupp.filter_add],
---   convert (zero_add _).symm,
---   { rw [finsupp.filter_eq_zero_iff], intros i hi, contrapose! hi, rw s.eval₀_support' hv hi, simp, },
---   { rw [finsupp.filter_eq_self_iff], intros i hi, exact hs.index_le_of_mem_support i hi, },
--- end
-
 end mono
 
 structure LawfulStream (ι : Type) (α : Type*) [linear_order ι] [add_zero_class α] extends BoundedStream ι α :=
@@ -218,6 +208,27 @@ variables [add_zero_class α]
 lemma LawfulStream.skip_spec' (s : LawfulStream ι α) (q : s.σ) (hq : s.valid q) (i : ι) (b : bool) : 
   (s.eval (s.skip q hq i b)).filter (λ j, (↑i, b) ≤ₗ ((↑j : with_top ι), ff)) = (s.eval q).filter (λ j, (↑i, b) ≤ₗ ((↑j : with_top ι), ff)) :=
 by { rw finsupp.filter_ext_iff, exact s.skip_spec q hq i b, }
+
+section sanity_check
+
+def Stream.denseVec {n : ℕ} (vals : vector α n) : BoundedStream (fin n) α :=
+{ σ := fin (n + 1),
+  valid := λ i, ↑i < n,
+  ready := λ i, ↑i < n,
+  skip := λ i hi j b, max i (cond b j.succ ↑j),
+  index := λ i hi, i.cast_lt hi,
+  value := λ i hi, vals.nth (i.cast_lt hi),
+  wf_rel := (>),
+  wf := finite.preorder.well_founded_gt,
+  wf_valid := λ (i : fin (n + 1)) (hi : ↑i < n) (j : fin n) (b : bool), begin
+    simp [Stream.to_order, hi],
+    cases b, { rw prod.lex.lt_iff'', simp, norm_cast, sorry, },
+    simp, sorry,
+  end }
+
+
+
+end sanity_check
 
 /-
 (a * b).eval = (a * b).eval₀ + (a * b).next.eval
