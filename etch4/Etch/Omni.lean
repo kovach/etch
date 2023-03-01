@@ -707,7 +707,7 @@ structure StreamLValue' (ι : Type) (α : Type _) extends SyntacticIndexedStream
   commit : E V ι → P V
 
 -- maybe generalize spec for insert? -- modify : (ι → α') → (ι → α') → (ι → α')
-structure StreamLValue (ι : Type) (α α' γ : Type _) [AddZeroClass γ] [Represents V α α'] [Eval α' γ] [DecidableEq ι] extends StreamLValue' V ι α where
+structure StreamLValue (ι : Type) [DecidableEq ι] (α α' γ : Type _) [AddZeroClass γ] [Represents V α α'] [Eval α' γ] extends StreamLValue' V ι α where
   --reset : P V
   --reset_spec (v : ι → α') (v' : α') (e : E V ι) :
   --  ⦃ value, v' ⦄ conf → reset / conf ⇓ ⦃ value, (0 : α') ⦄
