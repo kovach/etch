@@ -98,7 +98,7 @@ def toGuard {α β} [OfNat β (nat_lit 1)] : α → β := λ _ => 1
 def binOp (f : E ι → E ι' → E α) : ι →ₛ ι' →ₛ E α := S.function "f1_" ⊚ S.function "f2_" $ f
 #check (1 : R)
 def S.lt  : ℕ →ₛ ℕ →ₛ E R := binOp (. <ᵣ .)
-def S.udf : ℕ →ₛ ℕ →ₛ E RMax := binOp λ a b => E.call .udf_max ![a,b]
+def S.udf : ℕ →ₛ ℕ →ₛ E RMax := binOp λ a b => E.call .udf ![a,b]
 end funs
 
 def sVec   (f : String) : ℕ →ₛ E R := (csr.of f 1).level .step 0 & S.leaf (f ++ "_vals")
@@ -213,8 +213,12 @@ let fn := "sum_add2"; (fn, fn, compile_fun fn $ [go outVal add_ss]),
 let fn := "sum_mul2_csr"; ("sum_mul2_csr", fn, compile_fun "sum_mul2_csr" $ [go outVal mul]),
 let fn := "sum_mul2"; ("sum_mul2", fn, compile_fun "sum_mul2" $ [go outVal mul_ss]),
 let fn := "mttkrp"; ("mttkrp", fn, compile_fun "mttkrp" [go outVal $ mttkrp ]),
-let fn := "spmv"; ("spmv", fn, compile_fun "spmv" $ [go outVal spmv]),
-let fn := "filter_spmv"; ("filter_spmv", fn, compile_fun "filter_spmv" $ [go outVal filter_spmv])
+let fn := "spmv"; ("spmv", fn, compile_fun "spmv" $ [go outVal spmv])
+--let fn := "filter_spmv"; ("filter_spmv", fn, compile_fun "filter_spmv" $ [go outVal filter_spmv])
+]
+
+def aux_functions : List String := [
+  compile_fun "filter_spmv" $ [go outVal filter_spmv]
 ]
 --("sum_mul2_inner_ss", compile_fun "sum_mul2_inner_ss" $ [go outVal mul_inner]),
 --("sum_add2", compile_fun "sum_add2" $ [go outVal $ sum2 $ ssA, go outVal $ sum2 $ ssB]),
@@ -222,9 +226,9 @@ let fn := "filter_spmv"; ("filter_spmv", fn, compile_fun "filter_spmv" $ [go out
 
 def sql_ops : List (String × String) :=
 [
---  ("count_range", compile_fun "count_range" $ [go outVal count_range]),
---  ("triangle", compile_fun "triangle" $ [go outVal $ ∑ i, j, k : dsR * dsS * dsT ]),
---  ("udf", compile_fun "udf" $ [go outVal_max $ ∑ i, j: udf])
+  ("count_range", compile_fun "count_range" $ [go outVal count_range]),
+  --("triangle", compile_fun "triangle" $ [go outVal $ ∑ i, j, k : dsR * dsS * dsT ])
+  ("udf", compile_fun "udf" $ [go outVal_max $ ∑ i, j: udf])
   --("triangle", compile_fun "triangle" $ [go outVal $ ∑ i, j, k : dsR * dsS * dsT  ])
 ]
 
@@ -233,16 +237,20 @@ def main : IO Unit := do
   let mut main := ""
   let mut reps := 5
   let mut main_taco := s!"printf(\"RUNNING {reps} iterations per test\\n\");"
+  let mut main_sql := ""
   for (taco_name, etch_name, etch_body) in taco_ops do
     funs := funs.append (etch_body ++ "\n")
     main_taco := main_taco.append $ s!"printf(\"{taco_name}\\n\");time(&taco_{taco_name}_, \"taco\", {reps}); time({etch_name}, \"etch\", {reps});\nprintf(\"\\n\");"
+  for etch_body in aux_functions do
+    funs := funs.append $ etch_body ++ "\n"
   reps := 10
   for x in sql_ops do
     funs := funs.append (x.2 ++ "\n")
-    main := main.append $ s!"printf(\"{x.1}\\n\"); time({x.1}, \"etch\", {reps});\nprintf(\"\\n\");"
-    --main := main.append $ s!"printf(\"{x.1}\\n\");time(&sql_{x.1}_, \"sql \", {reps}); time({x.1}, \"etch\", {reps});\nprintf(\"\\n\");"
+    --main := main.append $ s!"printf(\"{x.1}\\n\"); time({x.1}, \"etch\", {reps});\nprintf(\"\\n\");"
+    main_sql := main_sql.append $ s!"printf(\"{x.1}\\n\");time(&sql_{x.1}_, \"sql \", {reps}); time({x.1}, \"etch\", {reps});\nprintf(\"\\n\");"
   IO.FS.writeFile "gen_funs.c" funs
   IO.FS.writeFile "gen_out.c" main
   IO.FS.writeFile "gen_out_taco.c" main_taco
+  IO.FS.writeFile "gen_out_sql.c" main_sql
 
 #eval main

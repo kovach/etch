@@ -43,7 +43,7 @@ static void sqlite_udf(sqlite3_context *context, int argc, sqlite3_value **argv)
 }
 
 //static inline double    nat_udf(int a, int b) {  /*printf("|%d,%d:%f|", a, b, sqrt(abs(a+b)));*/ return sqrt(abs(a + b)); }
-static inline double    nat_udf_max(int a, int b) { return sqrt(abs(a - b)); }
+static inline double    udf(int a, int b) { return sqrt(abs(a - b)); }
 
 static inline double    num_add(double a, double b) {  return a + b; }
 //#define num_add(a, b) (a + b)
@@ -164,8 +164,16 @@ return 0;
 }
 static int count___ = 0;
 static int count_callback(void *data, int argc, char **argv, char **azColName){
-  printf("\n!!\n");
+  //printf("\n!!\n");
   count___ = atoi(argv[0]);
+  //printf("count: %d\n", count___);
+  return 0;
+}
+static double max___ = 0.0;
+static int udf_callback(void *data, int argc, char **argv, char **azColName){
+  //printf("\n!!\n");
+  max___ = atof(argv[0]);
+  //printf("count: %d\n", count___);
   return 0;
 }
 static int gen_callback_fires(void *data, int argc, char **argv, char **azColName){
@@ -247,21 +255,13 @@ double taco_filter_spmv_() {
 //load_sV();
 //load_dsA();
 //#include "taco/spmv.c"
+printf("! dummy function; unrelated to paper results !");
 return 0.0;
 }
 /* here end */
 
 static sqlite3* db;
-
-double sql_count_range_() {
-  char* zErrMsg = 0;
-  char* data;
-  char const* sql = "(select * from fires order by objectid limit 10000)";
-  count___ = 0;
-  sqlite3_exec(db, sql, count_callback, (void*)data, &zErrMsg);
-  //printf("HUH: %d\n",
-  return count___;
-}
+static sqlite3* db_fire;
 
 static int callback(void *data, int argc, char **argv, char **azColName){
    for(int i = 0; i<argc; i++){
@@ -305,34 +305,26 @@ void load_data_of_size(sqlite3* db, int limit)
     rc = sqlite3_exec(db, sql, gen_callback_graph_sV, (void*)data, &zErrMsg);
 }
 
-//void test_sample_mv(sqlite3* db) {
-//  load_data_of_size(db, 100000);
-//
-//  double limits[] = {0, 0.2, 0.4, 0.6, 0.8, 1.0};
-//  for(int i = 0; i < 6; i++) {
-//    printf("testing thresh %f\n", limits[i]);
-//    threshold = limits[i];
-//    time(&filter_spmv, "etch", 10);
-//  }
-//}
+void test_sample_mv(sqlite3* db) {
+  printf("\n\n\n/*** START TEST ***/\n");
+  printf("   this tests ETCH's scaling for a filtered operation.\n");
+  printf("   cf: Figure 15: Filtered SpMV\n");
+  load_data_of_size(db, 100000);
 
-void test_taco(sqlite3* db) {
-  char sql[256];
-  //char const*sq;
-  char* zErrMsg = 0;
-  int rc;
-  char* data;
-
-  //int sizes[] = {1000, 10000, 20000, 50000, 100000};
-  int sizes[] = {50000};
-  for(int i = 0; i < 1; i++) {
-    printf("TESTING SIZE: %d\n\n", sizes[i]);
-    load_data_of_size(db, sizes[i]);
-#include "gen_out_taco.c"
+  double init = threshold;
+  double limits[] = {0, 0.2, 0.4, 0.6, 0.8, 1.0};
+  for(int i = 0; i < 6; i++) {
+    printf("testing thresh %f\n", limits[i]);
+    threshold = limits[i];
+    time(&filter_spmv, "etch", 10);
   }
+  threshold = init;
 }
 
-void test_sql(sqlite3* db) {
+void test_taco(sqlite3* db) {
+  printf("\n\n\n/*** START TEST ***/\n");
+  printf("   this tests ETCH's perf relative to TACO\n");
+  printf("   cf: Figure 13\n");
   char sql[256];
   //char const*sq;
   char* zErrMsg = 0;
@@ -340,20 +332,66 @@ void test_sql(sqlite3* db) {
   char* data;
 
   int sizes[] = {1000, 10000, 20000, 50000, 100000};
-  sprintf(sql, "SELECT MAX(udf(a,b)) from R ");
-  auto t1 = std::chrono::high_resolution_clock::now();
-  rc = sqlite3_exec(db, sql, gen_callback_udf, (void*)data, &zErrMsg);
-  if (rc) printf("\nNOT OK: %s\n", zErrMsg);
-  auto t2 = std::chrono::high_resolution_clock::now();
-  //std::cout << "val: " << val << std::endl;
-  std::cout << "sql took: " << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count() << "μ" << std::endl;
+  //int sizes[] = {50000};
+  for(int i = 0; i < 5; i++) {
+    printf("TESTING SIZE: %d\n\n", sizes[i]);
+    load_data_of_size(db, sizes[i]);
+#include "gen_out_taco.c"
+  }
 }
+
+double sql_count_range_() {
+  char* zErrMsg = 0;
+  char* data;
+  char const* sql = //"(select * from fires order by objectid limit 10000)";
+    "select COUNT(*) from fires_small WHERE 2006 <= fire_year and fire_year < 2008";
+  count___ = 0;
+  sqlite3_exec(db_fire, sql, count_callback, (void*)data, &zErrMsg);
+  //printf("HUH: %d\n",
+  return count___;
+}
+
+double sql_udf_() {
+  char* zErrMsg = 0;
+  char* data;
+  //char const* sql = "SELECT count(*) from R";
+  char const* sql = "SELECT MAX(udf(a,b)) from R";
+  max___ = 0;
+  int rc = sqlite3_exec(db, sql, udf_callback, (void*)data, &zErrMsg);
+  if (rc) { fprintf(stderr, "SQL error: %s\n", zErrMsg); }
+  return max___;
+}
+
+void test_sql(sqlite3* db) {
+  printf("\n\n\n/*** START TEST ***/\n");
+  printf("   this tests ETCH's perf relative to SQLite\n");
+  printf("   cf: Section 9.2\n");
+#include "gen_out_sql.c"
+}
+
+//void test_sql(sqlite3* db) {
+//
+//  char sql[256];
+//  //char const*sq;
+//  char* zErrMsg = 0;
+//  int rc;
+//  char* data;
+//
+//  int sizes[] = {1000, 10000, 20000, 50000, 100000};
+//  sprintf(sql, "SELECT MAX(udf(a,b)) from R ");
+//  auto t1 = std::chrono::high_resolution_clock::now();
+//  rc = sqlite3_exec(db, sql, gen_callback_udf, (void*)data, &zErrMsg);
+//  if (rc) printf("\nNOT OK: %s\n", zErrMsg);
+//  auto t2 = std::chrono::high_resolution_clock::now();
+//  //std::cout << "val: " << val << std::endl;
+//  std::cout << "sql took: " << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count() << "μ" << std::endl;
+//}
 int main() {
   char* zErrMsg = 0;
   int rc;
   char* data;
 
-  rc = sqlite3_open("/home/scott/Dropbox/2022/pldi.db", &db);
+  rc = sqlite3_open("./data/pldi.db", &db);
 
   if(rc) { fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db)); return(0);
   } else { fprintf(stderr, "Opened database successfully\n");
@@ -368,12 +406,6 @@ int main() {
   //rc = sqlite3_exec(db, sql, gen_callback_graph_dsB, (void*)data, &zErrMsg);
 
 
-  //test_sample_mv(db);
-  //return 0;
-
-  // HEY
-  test_taco(db);
-
   //sqlite3_close(db);
 
   rc = sqlite3_exec(db, "SELECT * from R order by A, B", gen_callback_wcoj_R, (void*)data, &zErrMsg);
@@ -383,20 +415,41 @@ int main() {
   rc = sqlite3_exec(db, "SELECT * from T order by A, C", gen_callback_wcoj_T, (void*)data, &zErrMsg);
   if (rc) printf("nope");
 
-  if (false) {
-    sqlite3_open("/home/scott/Dropbox/2022/etch/etch4/data/FPA_FOD_20170508.sqlite", &db);
-    if(rc) { fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db)); return(1);
+  if (true) {
+    sqlite3_open("/home/scott/Dropbox/2022/etch/etch4/data/FPA_FOD_20170508.sqlite", &db_fire);
+    if(rc) { fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db_fire)); return(1);
     } else { fprintf(stderr, "Opened database successfully\n"); }
     //sql = "SELECT stat_cause_code, objectid from fires ORDER BY stat_cause_code, objectid LIMIT 100";
     //sql = "SELECT stat_cause_code, fire_year from fires ORDER BY stat_cause_code, fire_year LIMIT 100";
-    sql = "SELECT fire_year, objectid from (select * from fires order by objectid limit 50000) ORDER BY fire_year, objectid";
-    rc = sqlite3_exec(db, sql, gen_callback_fires, (void*)data, &zErrMsg);
-    sql = "insert into fires_small SELECT fire_year, objectid from (select * from fires order by objectid limit 10000) ORDER BY fire_year, objectid";
-    rc = sqlite3_exec(db, "DELETE FROM fires_small", noop, (void*)data, &zErrMsg);
-    rc = sqlite3_exec(db, sql, noop, (void*)data, &zErrMsg);
+
+    // incorrect
+    //sql = "SELECT fire_year, objectid from (select * from fires order by objectid limit 50000) ORDER BY fire_year, objectid";
+    //rc = sqlite3_exec(db, sql, gen_callback_fires, (void*)data, &zErrMsg);
+    //sql = "insert into fires_small SELECT fire_year, objectid from (select * from fires order by objectid limit 10000) ORDER BY fire_year, objectid";
+    //rc = sqlite3_exec(db, "DELETE FROM fires_small", noop, (void*)data, &zErrMsg);
+    //rc = sqlite3_exec(db, sql, noop, (void*)data, &zErrMsg);
+
+
+    rc = sqlite3_exec(db_fire, "DELETE FROM fires_small", noop, (void*)data, &zErrMsg);
+    rc = sqlite3_exec(db_fire, sql, noop, (void*)data, &zErrMsg);
+    sql = "insert into fires_small SELECT fire_year, objectid from (select * from fires order by objectid limit 50000) ORDER BY fire_year, objectid";
+    rc = sqlite3_exec(db_fire, sql, noop, (void*)data, &zErrMsg);
+    sql = "SELECT * from fires_small ORDER BY fire_year, objectid";
+    rc = sqlite3_exec(db_fire, sql, gen_callback_fires, (void*)data, &zErrMsg);
   }
 
   sqlite3_create_function(db, "udf", 2, SQLITE_UTF8, NULL, &sqlite_udf, NULL, NULL);
+
+  /* HEY */
+  test_sql(db);
+
+  test_taco(db);
+
+  test_sample_mv(db);
+  /* HEY */
+
+  // hey
+  return 0;
 
   if( rc != SQLITE_OK ) {
      fprintf(stderr, "SQL error: %s\n", zErrMsg);
@@ -408,9 +461,6 @@ int main() {
   start();
 
   printf("the answer: %f\n", taco_wcoj());
-
-  //HEY
-  //test_sql(db);
 
 // warmup?
 //  fout = 0;
