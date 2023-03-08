@@ -11,7 +11,7 @@ structure Var (α : Type _) where
   mk' ::
     instTagged : Tagged α
     data : String
-abbrev ArrayVar (α : Type _) [Tagged α] := Var (ℕ → α)
+abbrev ArrayVar (α : Type _) /-[Tagged α]-/ := Var (ℕ → α)
 def Var.mk [Tagged α] : String → Var α := fun s ↦ ⟨inferInstance, s⟩
 def Var.toString : Var α → String := Var.data
 instance [Tagged α] : Coe String (Var α) := ⟨Var.mk⟩
@@ -146,15 +146,13 @@ structure S (ι : Type _) (α : Type _) where
   valid : σ → E Bool
   init  : Name → P × σ
 
-class LVal (ι : Type _) (α : Type _) where
-  loc : Type
-  start : α → P
-  push : σ → E ι → P × E loc
-
-structure LVS (ι : Type _) (α : Type _) [LVal ι α] extends S ι α, LVal ι α
-
-instance LVal Unit (MemLoc α) where
-  start :=  v _ l := (.store_mem l.arr l.ind (l.access + v.access), ())
+--class LVal (ι : Type _) (α : Type _) where
+--  loc : Type
+--  start : α → P
+--  push : σ → E ι → P × E loc
+--structure LVS (ι : Type _) (α : Type _) [LVal ι α] extends S ι α, LVal ι α
+--instance : LVal Unit (MemLoc α) where
+--  start :=  v _ l := (.store_mem l.arr l.ind (l.access + v.access), ())
 
 structure S' (ι : Type _) (α : Type _) where
   σ     : Type
@@ -194,8 +192,9 @@ structure MemLoc (α : Type) := (arr : Var (ℕ → α)) (ind : E ℕ)
 
 def MemLoc.access (m : MemLoc α) : E α := m.arr.access m.ind
 def MemLoc.deref (m : MemLoc α) : E α := m.arr.access m.ind
-def MemLoc.incr_array (m : MemLoc ℕ) : P := m.arr.incr_array m.ind
+def MemLoc.incr (m : MemLoc ℕ) : P := m.arr.incr_array m.ind
 def MemLoc.interval (m : MemLoc ℕ) : E ℕ × E ℕ  := (m.arr.access m.ind, m.arr.access $ m.ind + 1)
+def MemLoc.store (m : MemLoc α) (v : E α) : P := .store_mem m.arr m.ind v
 
 def simpleSkip (pos : Var ℕ) (max_pos : E ℕ) (tgt : E ι) :=
   .store_var "temp" tgt;;
@@ -228,8 +227,6 @@ def S.predRange [One α] (lower upper : E ι) : S ι α where
   valid pos := pos.expr << upper
   init  n   := let p := .fresh "pos" n; (p.decl lower, p)
 
-#check instOfNatE
-#synth OfNat (E Bool) (nat_lit 0)
 def S.interval (h : IterMethod) (pos : Var ℕ) (lower upper : E ℕ) : S ι (E ℕ) where
   σ := Var ℕ
   value pos := pos.expr

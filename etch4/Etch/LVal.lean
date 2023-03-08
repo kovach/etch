@@ -1,6 +1,58 @@
 import Etch.Basic
 import Etch.Stream
 
+section LVal
+
+class Rep (σ : Type _) (α : Type _) := code : α → σ
+class HasReset (σ : Type _) where reset : P
+open HasReset
+
+structure StreamLVal (ι : Type) (σ α : Type _) extends HasReset σ where
+  --reset : P -- before compile
+  accumulator : α
+  commit : E ι → P
+
+structure ScalarLVal (α : Type _) extends HasReset α where
+  --reset : P -- before compile
+  accumulator : α
+  commit : P
+
+abbrev Interval := MemLoc ℕ
+abbrev Ptr := MemLoc
+instance : HAdd (Ptr α) (E ℕ) (Ptr α) := ⟨ fun ⟨arr, ind⟩ x ↦ ⟨arr, ind + x⟩ ⟩
+def Interval.upper (x : Interval) : MemLoc ℕ := ⟨x.arr, x.ind + 1⟩
+def Interval.lower (x : Interval) : MemLoc ℕ := ⟨x.arr, x.ind⟩
+
+variable  (α : Type _) [Tagged α] [Zero α] [Add α] [HasReset α]
+(ι : Type _) [Tagged ι] [DecidableEq ι]
+[LE ι] [DecidableRel (LE.le : ι → ι → _)] [LT ι] [DecidableRel (LT.lt : ι → ι → _)]
+
+def sparse [Rep (Ptr σ) β] (indices : ArrayVar ι) (values : ArrayVar σ) (entry : Ptr σ → β) (x : Interval) : StreamLVal ι Interval β where
+  reset := .store_mem x.arr (x.ind + 1) x.access
+  accumulator := entry ⟨values, x.upper.access⟩
+  commit ind := .store_mem indices x.upper.access ind;; x.upper.incr
+
+--instance : Rep Interval (StreamLVal ι Interval α)
+
+def dense [Add ι] [Mul ι] [Sized ι] (values : Ptr σ) (max_ctr : Var ℕ) (entry : E ℕ → β) : StreamLVal ι (Var ℕ) β where
+  reset := .store_var max_ctr 0
+  accumulator := entry (MemLoc.access ⟨values.arr, values.ind * Sized.dimension ι + max⟩)
+  commit ind := .while (max_ctr.expr << Sized.toNat ind) (reset (values + max_ctr.expr);; max_ctr.incr)
+
+--def dense [Add ι] [Mul ι] [Sized ι] (max_ctr : Var ℕ) (values : Ptr α) : StreamLVal ι (Ptr α) where
+--  reset max_ctr := .store_var max_ctr 0
+--  accumulator := ⟨values.arr, values.ind * Sized.dimension ι + max⟩
+--  commit ind := .while (max_ctr.expr << Sized.toNat ind) (reset (values + max_ctr.expr);; max_ctr.incr)
+
+def value (acc : Var α) : ScalarLVal (E α) where
+  reset := .store_var acc 0
+  accumulator := acc
+  commit := .skip
+
+end LVal
+
+#exit
+
 variable
 (ι : Type _) [Tagged ι] [DecidableEq ι]
 [LE ι] [DecidableRel (LE.le : ι → ι → _)] [LT ι] [DecidableRel (LT.lt : ι → ι → _)]
