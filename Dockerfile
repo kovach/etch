@@ -18,7 +18,13 @@ RUN pip install mathlibtools
 COPY . .
 
 ENV PATH "/root/.elan/bin:${PATH}"
+# return with no error -> no incomplete proofs
 RUN leanproject build
 
 WORKDIR "/etch4"
-RUN lake build
+RUN elan self update
+RUN lake update
+RUN lake exe cache get
+#RUN lake build
+RUN lake exe bench
+RUN make

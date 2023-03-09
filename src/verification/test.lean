@@ -15,12 +15,12 @@ local notation `∑ᵢ ` s := s.contract
 
 local notation (name := bool_add) a ` && ` b := a + b
 
--- 
+--
 noncomputable instance SimpleStream.AddZeroEval_weird :
   AddZeroEval (ι₁ ↠ ι₂ ↠ ι₃ ↠ R) ι₁ (ι₂ →₀ ι₃ →₀ R) :=
   SimpleStream.AddZeroEval
 
-example (a b c d : ι₁ ↠ ι₂ ↠ ι₃ ↠ R)  : 
+example (a b c d : ι₁ ↠ ι₂ ↠ ι₃ ↠ R)  :
   eval (a * (b + c) * d) =
   (eval a) * ((eval b) + (eval c)) * (eval d) :=
 by simp
@@ -96,14 +96,5 @@ Eval (StreamExec unit (ι ↠ R)) unit (ι →₀ R) := infer_instance
 
 noncomputable def matmul (a : ι₁ ↠ ι₂ ↠ R) (b : ι₂ ↠ ι₃ ↠ R) :=
 (λ (r : ι₂ ↠ R), ∑ᵢ ((⇑₃ <§₂> r) * b)) <§₂> a
-
-example (a : ι₁ ↠ ι₂ ↠ R) (b : ι₂ ↠ ι₃ ↠ R) (i : ι₁) (k : ι₃) :
-  eval3 (matmul m₃ a b) i () k =
-    ∑ j in (eval a i).support ∪ (eval b).support,
-    (eval a i j * eval b j k) :=
-begin
-  simp_rw [eval, eval3],
-  sorry -- TODO: one day, hopefully soon
-end
 
 end
