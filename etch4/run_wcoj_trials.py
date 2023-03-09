@@ -33,10 +33,20 @@ def go_(con, n):
 def fig(scales, sql, se, etch):
     def norm(arr):
         return np.array(arr)/arr[-1]
-    plt.plot(scales, norm(sql), label='sqlite')
-    plt.plot(se, norm(etch)*2, label='etch')
-    plt.plot(se, norm(np.array(se**(1.0)))*2, label='n^1')
-    plt.plot(scales, norm(np.array(scales**2)), label='n^2')
+    def norm2(arr, s):
+        return np.array(arr)/arr[-1]*s
+    etch_reps = 5000
+    sql_reps = 2
+    etch = np.array(etch) / etch_reps
+    sql = np.array(sql) / sql_reps
+    plt.plot(scales, norm(scales**2)*sql[-1], label='n^2')
+    plt.plot(scales, (sql), label='sqlite')
+    plt.plot(se, norm(se**(1.0))*etch[-1], label='n^1')
+    plt.plot(se, (etch), label='etch')
+    #plt.plot(scales, norm(sql), label='sqlite')
+    #plt.plot(se, norm(etch)*2, label='etch')
+    #plt.plot(se, norm(np.array(se**(1.0)))*2, label='n^1')
+    #plt.plot(scales, norm(np.array(scales**2)), label='n^2')
     plt.xscale('log')
     plt.yscale('log')
     plt.legend()
