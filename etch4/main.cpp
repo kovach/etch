@@ -321,6 +321,12 @@ void test_sample_mv(sqlite3* db) {
   threshold = init;
 }
 
+void test_triangle(sqlite3* db) {
+  time(&triangle, "etch", 10);
+
+  // HERE
+}
+
 void test_taco(sqlite3* db) {
   printf("\n\n\n/*** START TEST ***/\n");
   printf("   this tests ETCH's perf relative to TACO\n");
@@ -416,7 +422,7 @@ int main() {
   if (rc) printf("nope");
 
   if (true) {
-    sqlite3_open("/home/scott/Dropbox/2022/etch/etch4/data/FPA_FOD_20170508.sqlite", &db_fire);
+    sqlite3_open("./data/FPA_FOD_20170508.sqlite", &db_fire);
     if(rc) { fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db_fire)); return(1);
     } else { fprintf(stderr, "Opened database successfully\n"); }
     //sql = "SELECT stat_cause_code, objectid from fires ORDER BY stat_cause_code, objectid LIMIT 100";

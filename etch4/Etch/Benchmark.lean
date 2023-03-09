@@ -218,18 +218,17 @@ let fn := "spmv"; ("spmv", fn, compile_fun "spmv" $ [go outVal spmv])
 ]
 
 def aux_functions : List String := [
-  compile_fun "filter_spmv" $ [go outVal filter_spmv]
+  compile_fun "filter_spmv" $ [go outVal filter_spmv],
+  compile_fun "triangle" $ [go outVal $ ∑ i, j, k : dsR * dsS * dsT ]
 ]
 --("sum_mul2_inner_ss", compile_fun "sum_mul2_inner_ss" $ [go outVal mul_inner]),
 --("sum_add2", compile_fun "sum_add2" $ [go outVal $ sum2 $ ssA, go outVal $ sum2 $ ssB]),
 
 
-def sql_ops : List (String × String) :=
-[
+def sql_ops : List (String × String) := [
   ("count_range", compile_fun "count_range" $ [go outVal count_range]),
-  --("triangle", compile_fun "triangle" $ [go outVal $ ∑ i, j, k : dsR * dsS * dsT ])
   ("udf", compile_fun "udf" $ [go outVal_max $ ∑ i, j: udf])
-  --("triangle", compile_fun "triangle" $ [go outVal $ ∑ i, j, k : dsR * dsS * dsT  ])
+  --("triangle", compile_fun "triangle" $ [go outVal $ ∑ i, j, k : dsR * dsS * dsT ]),
 ]
 
 def main : IO Unit := do
