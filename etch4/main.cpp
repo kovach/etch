@@ -437,11 +437,15 @@ int main() {
 
 
     rc = sqlite3_exec(db_fire, "DELETE FROM fires_small", noop, (void*)data, &zErrMsg);
+    if (rc) { fprintf(stderr, "SQL error: %s\n", zErrMsg); }
     rc = sqlite3_exec(db_fire, sql, noop, (void*)data, &zErrMsg);
+    if (rc) { fprintf(stderr, "SQL error: %s\n", zErrMsg); }
     sql = "insert into fires_small SELECT fire_year, objectid from (select * from fires order by objectid limit 50000) ORDER BY fire_year, objectid";
     rc = sqlite3_exec(db_fire, sql, noop, (void*)data, &zErrMsg);
+    if (rc) { fprintf(stderr, "SQL error: %s\n", zErrMsg); }
     sql = "SELECT * from fires_small ORDER BY fire_year, objectid";
     rc = sqlite3_exec(db_fire, sql, gen_callback_fires, (void*)data, &zErrMsg);
+    if (rc) { fprintf(stderr, "SQL error: %s\n", zErrMsg); }
   }
 
   sqlite3_create_function(db, "udf", 2, SQLITE_UTF8, NULL, &sqlite_udf, NULL, NULL);

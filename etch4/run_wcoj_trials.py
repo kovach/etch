@@ -1,7 +1,7 @@
 import sqlite3
-import random
-from scipy.sparse import csr_matrix
-import scipy.sparse
+#import random
+#from scipy.sparse import csr_matrix
+#import scipy.sparse
 import numpy as np
 from matplotlib import pyplot as plt
 import subprocess
@@ -48,9 +48,9 @@ def parse_stdout(b):
 def main():
     global con
     con = sqlite3.connect("./data/pldi.db")
-    print("\n\n\n/*** START TEST ***/\n")
-    print("   this tests ETCH's scaling for the triangle query.\n");
-    print("   cf: Figure 14: Worst-case optimal join\n");
+    print("\n\n\n/*** START TEST ***/")
+    print("   this tests ETCH's scaling for the triangle query.");
+    print("   cf: Figure 14: Worst-case optimal join");
     #for sn in [10, 20]:
     results = []
     #scales = [10,20,30,40,50,60,70,80,90,100]
