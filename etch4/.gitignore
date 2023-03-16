@@ -1,0 +1,14 @@
+lake-packages
+
+*.o
+out
+
+# data files (see Makefile)
+sqlite3.c
+sqlite3.h
+sqlite-amalgamation-*
+duckdb_cli-*
+duckdb/
+tmp.duckdb
+TPC-H-x1.db
+tpch-csv-x1-q5/

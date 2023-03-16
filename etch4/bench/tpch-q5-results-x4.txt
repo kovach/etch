@@ -1,0 +1,156 @@
+Intel(R) Core(TM) i7-8700 CPU
+6 cores, 12 threads
+SSD: Samsung SSD 980 1TB
+RAM: 16 GB
+swap off
+
+
+# ETCH
+
+Memory usage (/usr/bin/time -v, max RSS): 691316 kbytes =  0.69GB
+
+Opened database successfully
+populate_tpch val: 0
+populate_tpch took: 39.675615s
+populate_tpch took (avg): 39.675615s
+Loaded
+q5 val: 1056125675.004801
+q5 took: 0.135618s
+q5 val: 1056125675.004801
+q5 took: 0.133288s
+q5 val: 1056125675.004801
+q5 took: 0.132673s
+q5 val: 1056125675.004801
+q5 took: 0.133024s
+q5 val: 1056125675.004801
+q5 took: 0.133021s
+q5 took (avg): 0.133525s
+
+Opened database successfully
+populate_tpch val: 0
+populate_tpch took: 39.944092s
+populate_tpch took (avg): 39.944092s
+Loaded
+q5 val: 1056125675.004801
+q5 took: 0.148065s
+q5 val: 1056125675.004801
+q5 took: 0.139263s
+q5 val: 1056125675.004801
+q5 took: 0.137987s
+q5 val: 1056125675.004801
+q5 took: 0.136586s
+q5 val: 1056125675.004801
+q5 took: 0.132107s
+q5 took (avg): 0.138802s
+
+Opened database successfully
+populate_tpch val: 0
+populate_tpch took: 39.831488s
+populate_tpch took (avg): 39.831488s
+Loaded
+q5 val: 1056125675.004801
+q5 took: 0.135812s
+q5 val: 1056125675.004801
+q5 took: 0.133071s
+q5 val: 1056125675.004801
+q5 took: 0.139188s
+q5 val: 1056125675.004801
+q5 took: 0.135274s
+q5 val: 1056125675.004801
+q5 took: 0.133062s
+q5 took (avg): 0.135281s
+
+Opened database successfully
+populate_tpch val: 0
+populate_tpch took: 40.164316s
+populate_tpch took (avg): 40.164316s
+Loaded
+q5 val: 1056125675.004801
+q5 took: 0.136241s
+q5 val: 1056125675.004801
+q5 took: 0.133226s
+q5 val: 1056125675.004801
+q5 took: 0.133220s
+q5 val: 1056125675.004801
+q5 took: 0.133373s
+q5 val: 1056125675.004801
+q5 took: 0.133233s
+q5 took (avg): 0.133859s
+
+
+# DUCKDB
+
+Memory usage (PRAGMA database_size): 4.6GB
+this includes the entire DB (not just the cols we need)
+
+LOADING:
+
+real	0m46.748s
+user	0m42.902s
+sys	0m3.434s
+
+real	0m45.841s
+user	0m42.086s
+sys	0m3.464s
+
+real	0m45.808s
+user	0m42.498s
+sys	0m3.227s
+
+real	0m46.383s
+user	0m42.971s
+sys	0m3.351s
+
+real	0m46.184s
+user	0m42.702s
+sys	0m3.427s
+
+
+ACTUAL:
+
+┌────────────────────┐
+│      revenue       │
+│       double       │
+├────────────────────┤
+│ 1056125675.004799  │
+│ 1056125675.0047991 │
+│ 1056125675.0047992 │
+│ 1056125675.0047994 │
+│ 1056125675.0047995 │
+│ 1056125675.0047996 │
+│ 1056125675.0047997 │
+│ 1056125675.0047998 │
+│ 1056125675.0048    │
+│ 1056125675.0048001 │
+└────────────────────┘
+
+Run Time (s): real 0.155 user 0.847386 sys 0.013000
+Run Time (s): real 0.118 user 0.645495 sys 0.006981
+Run Time (s): real 0.135 user 0.729650 sys 0.008369
+Run Time (s): real 0.113 user 0.682333 sys 0.007374
+Run Time (s): real 0.111 user 0.634417 sys 0.003325
+
+
+Run Time (s): real 0.115 user 0.700382 sys 0.004479
+Run Time (s): real 0.113 user 0.643429 sys 0.002351
+Run Time (s): real 0.118 user 0.632901 sys 0.011539
+Run Time (s): real 0.118 user 0.705142 sys 0.006193
+Run Time (s): real 0.117 user 0.633954 sys 0.010137
+
+Run Time (s): real 0.112 user 0.638117 sys 0.016378
+Run Time (s): real 0.116 user 0.702464 sys 0.000000
+Run Time (s): real 0.112 user 0.679631 sys 0.006491
+Run Time (s): real 0.141 user 0.745042 sys 0.009127
+Run Time (s): real 0.116 user 0.639381 sys 0.009662
+
+Run Time (s): real 0.118 user 0.708746 sys 0.012512
+Run Time (s): real 0.119 user 0.650205 sys 0.000000
+Run Time (s): real 0.137 user 0.739788 sys 0.001166
+Run Time (s): real 0.115 user 0.636160 sys 0.007032
+Run Time (s): real 0.133 user 0.727308 sys 0.007122
+
+Run Time (s): real 0.120 user 0.703592 sys 0.014553
+Run Time (s): real 0.116 user 0.683637 sys 0.015524
+Run Time (s): real 0.115 user 0.693524 sys 0.002286
+Run Time (s): real 0.114 user 0.690065 sys 0.003656
+Run Time (s): real 0.116 user 0.687349 sys 0.008346

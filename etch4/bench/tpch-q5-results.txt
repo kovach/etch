@@ -1,0 +1,143 @@
+Intel(R) Core(TM) i7-8700 CPU
+6 cores, 12 threads
+SSD: Samsung SSD 980 1TB
+RAM: 16 GB
+swap off
+
+
+# ETCH
+
+Memory usage (/usr/bin/time -v, max RSS): 178100 kbytes
+
+Opened database successfully
+populate_tpch val: 0
+populate_tpch took: 9.847514s
+populate_tpch took (avg): 9.847514s
+Loaded
+q5 val: 261967310.118602
+q5 took: 0.031255s
+q5 val: 261967310.118602
+q5 took: 0.030770s
+q5 val: 261967310.118602
+q5 took: 0.030857s
+q5 val: 261967310.118602
+q5 took: 0.031020s
+q5 val: 261967310.118602
+q5 took: 0.030914s
+q5 took (avg): 0.030963s
+
+Opened database successfully
+populate_tpch val: 0
+populate_tpch took: 9.852184s
+populate_tpch took (avg): 9.852184s
+Loaded
+q5 val: 261967310.118602
+q5 took: 0.030786s
+q5 val: 261967310.118602
+q5 took: 0.030318s
+q5 val: 261967310.118602
+q5 took: 0.030293s
+q5 val: 261967310.118602
+q5 took: 0.030313s
+q5 val: 261967310.118602
+q5 took: 0.030222s
+q5 took (avg): 0.030386s
+
+Opened database successfully
+populate_tpch val: 0
+populate_tpch took: 9.975105s
+populate_tpch took (avg): 9.975105s
+Loaded
+q5 val: 261967310.118602
+q5 took: 0.031200s
+q5 val: 261967310.118602
+q5 took: 0.030179s
+q5 val: 261967310.118602
+q5 took: 0.030056s
+q5 val: 261967310.118602
+q5 took: 0.029989s
+q5 val: 261967310.118602
+q5 took: 0.030051s
+q5 took (avg): 0.030295s
+
+Opened database successfully
+populate_tpch val: 0
+populate_tpch took: 9.845351s
+populate_tpch took (avg): 9.845351s
+Loaded
+q5 val: 261967310.118602
+q5 took: 0.030536s
+q5 val: 261967310.118602
+q5 took: 0.030661s
+q5 val: 261967310.118602
+q5 took: 0.030173s
+q5 val: 261967310.118602
+q5 took: 0.030061s
+q5 val: 261967310.118602
+q5 took: 0.030161s
+q5 took (avg): 0.030318s
+
+
+# DUCKDB
+
+Memory usage (PRAGMA database_size / memory_usage): 1.1GB 
+this includes the entire DB (not just the cols we need)
+
+LOADING:
+
+real	0m10.371s
+user	0m9.542s
+sys	0m0.823s
+
+real	0m10.196s
+user	0m9.298s
+sys	0m0.892s
+
+real	0m10.217s
+user	0m9.438s
+sys	0m0.773s
+
+real	0m10.277s
+user	0m9.419s
+sys	0m0.843s
+
+
+
+ACTUAL:
+
+┌────────────────────┐
+│      revenue       │
+│       double       │
+├────────────────────┤
+│ 261967310.11859986 │
+│ 261967310.1185999  │
+│ 261967310.11859992 │
+│ 261967310.11859995 │
+│ 261967310.11859998 │
+└────────────────────┘
+
+actual answer: 261967310.1186
+
+Run Time (s): real 0.031 user 0.161247 sys 0.007077
+Run Time (s): real 0.036 user 0.165654 sys 0.005629
+Run Time (s): real 0.029 user 0.153746 sys 0.002141
+Run Time (s): real 0.030 user 0.155274 sys 0.000000
+Run Time (s): real 0.030 user 0.154619 sys 0.002742
+
+Run Time (s): real 0.031 user 0.148623 sys 0.016573
+Run Time (s): real 0.030 user 0.154316 sys 0.003454
+Run Time (s): real 0.036 user 0.163250 sys 0.005478
+Run Time (s): real 0.028 user 0.154457 sys 0.000000
+Run Time (s): real 0.036 user 0.167673 sys 0.000429
+
+Run Time (s): real 0.031 user 0.136662 sys 0.017552
+Run Time (s): real 0.029 user 0.154857 sys 0.003062
+Run Time (s): real 0.029 user 0.142857 sys 0.000968
+Run Time (s): real 0.035 user 0.164666 sys 0.002663
+Run Time (s): real 0.032 user 0.158609 sys 0.000133
+
+Run Time (s): real 0.031 user 0.130316 sys 0.038497
+Run Time (s): real 0.035 user 0.160317 sys 0.006055
+Run Time (s): real 0.028 user 0.142921 sys 0.000000
+Run Time (s): real 0.036 user 0.168534 sys 0.000118
+Run Time (s): real 0.029 user 0.152632 sys 0.002753

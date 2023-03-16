@@ -4,6 +4,7 @@
 #endif
 
 #define num_add(a, b) (a + b)
+#define num_sub(a, b) (a - b)
 #define num_mul(a, b) (a * b)
 #define num_one() 1
 #define num_zero() 0
@@ -32,8 +33,23 @@
 #define nat_succ(a) (a + 1)
 #define nat_neg(a) (!a)
 
+#define int_add(a, b) (a + b)
+#define int_sub(a, b) (a - b)
+#define int_mul(a, b) (a * b)
+#define int_one() 1
+#define int_zero() 0
+#define int_lt(a, b) (a < b)
+#define int_le(a, b) (a <= b)
+#define int_eq(a, b) (a == b)
+#define int_max(a, b) max(a, b)
+#define int_min(a, b) min(a, b)
+#define int_succ(a) (a + 1)
+
 #define bool_add(a, b) (a || b)
 #define bool_mul(a, b) (a && b)
 #define bool_one() true
 #define bool_zero() false
 #define bool_neg(a) (!a)
+
+#define macro_ternary(c, x, y) ((c) ? x : y)
+#define index_str_map(m, s) &m[s]

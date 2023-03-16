@@ -5,6 +5,7 @@
 #include <chrono>
 #include <float.h>
 #include <math.h>
+#include <unordered_map>
 
 #include "sqlite3.h"
 
@@ -34,6 +35,14 @@ double threshold = 0.1;
 //  std::cout << y << " took: " << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count() << "μ" << std::endl; \
 //  std::cout << y << " took: " << std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count() << "ms" << std::endl;
 
+template <typename T, typename U>
+std::ostream& operator<<(std::ostream& os, const std::unordered_map<T, U>& m) {
+  for (auto&& p : m) {
+    os << p.first << ": " << p.second << '\n';
+  }
+  return os;
+}
+
 template <typename F>
 void time(F f, char const* tag, int reps) {
   using fsec = std::chrono::duration<double>;
@@ -45,7 +54,7 @@ void time(F f, char const* tag, int reps) {
     auto rep_start = std::chrono::high_resolution_clock::now();
     auto val = f();
     auto rep_end = std::chrono::high_resolution_clock::now();
-    std::cout << tag << " val: " << val << std::endl;
+    std::cout << tag << " val: " << std::fixed << val << std::endl;
     std::cout << tag << " took: " << as_fsec(rep_end-rep_start) << std::endl;
     total_dur += rep_end - rep_start;
   }
@@ -63,13 +72,13 @@ static void sqlite_udf(sqlite3_context *context, int argc, sqlite3_value **argv)
 //static inline double    nat_udf(int a, int b) {  /*printf("|%d,%d:%f|", a, b, sqrt(abs(a+b)));*/ return sqrt(abs(a + b)); }
 static inline double    nat_udf_max(int a, int b) { return sqrt(abs(a - b)); }
 
-static inline double    num_add(double a, double b) {  return a + b; }
-//#define num_add(a, b) (a + b)
+static inline double    num_add(double a, double b) { return a + b; }
+static inline double    num_sub(double a, double b) { return a - b; }
 static inline double    num_mul(double a, double b) { return a * b; }
-//#define num_mul(a, b) (a * b)
 static inline double    num_one() { return 1; }
 static inline double    num_zero() { return 0; }
 static inline double    num_lt(double a, double b) { return a < b; }
+static inline double    num_le(double a, double b) { return a <= b; }
 //static inline double    num_lt(double a, double b) { printf("%f < %f\n", a, b); return a < b; }
 
 static inline double    num_ofBool(bool x) { return x ? 1 : 0; }
@@ -101,7 +110,22 @@ static inline bool   nat_neg(int a) { return !a; }
 static inline int    nat_mid(int a, int b) { return (a + b) / 2; }
 static inline int    nat_one() { return 1; }
 static inline int    nat_zero() { return 0; }
-static inline double nat_ofBool(bool x) { return x; }
+static inline int    nat_ofBool(bool x) { return x; }
+
+static inline int    int_add(int a, int b) { return a + b; }
+static inline int    int_mul(int a, int b) { return a * b; }
+static inline int    int_sub(int a, int b) { return a - b; }
+static inline bool   int_lt(int a, int b) { return a < b; }
+static inline bool   int_le(int a, int b) { return a <= b; }
+static inline bool   int_eq(int a, int b) { return a == b; }
+static inline int    int_max(int a, int b) { return a < b ? b : a; }
+static inline int    int_min(int a, int b) { return a < b ? a : b; }
+static inline int    int_succ(int a) { return a + 1; }
+static inline bool   int_neg(int a) { return !a; }
+static inline int    int_mid(int a, int b) { return (a + b) / 2; }
+static inline int    int_one() { return 1; }
+static inline int    int_zero() { return 0; }
+static inline int    int_ofBool(bool x) { return x; }
 
 static inline bool    bool_add(bool a, bool b) { return a || b; }
 //#define bool_add(a, b) (a || b)
@@ -113,9 +137,18 @@ static inline bool    bool_neg(bool x) { return !x; }
 
 static inline bool   str_lt(const char* a, const char* b) { return strcmp(a, b) < 0; }
 static inline bool   str_le(const char* a, const char* b) { return strcmp(a, b) <= 0; }
+static inline int    str_find(const char* haystack, const char* needle) {
+  const char* res = strstr(haystack, needle);
+  if (!res) return -1;
+  return res - haystack;
+}
+static inline const char* str_max(const char* a, const char* b) { return str_lt(a, b) ? b : a; }
+static inline const char* str_min(const char* a, const char* b) { return str_lt(a, b) ? a : b; }
 static inline bool   str_eq(const char* a, const char* b) { return strcmp(a, b) == 0; }
-static inline int    str_atoi(char* a) { return atoi(a); }
-static inline double str_atof(char* a) { return atof(a); }
+static inline int    str_atoi(const char* a) { return atoi(a); }
+static inline double str_atof(const char* a) { return atof(a); }
+
+static inline double* index_str_map(std::unordered_map<const char*, double>& m, const char* s) { return &m[s]; }
 
 
 #ifdef ETCH_MATH

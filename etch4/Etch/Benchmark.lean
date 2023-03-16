@@ -6,6 +6,12 @@ import Etch.Mul
 import Etch.Compile
 import Etch.ShapeInference
 
+/-
+Tags:
+ For type T to be usable as an index type, it needs to be Tagged and TaggedC.
+ For type T to be usable as a value type, it needs to be Tagged and a semiring.
+-/
+
 /- TODO:
 
 https://docs.google.com/document/d/1kQFwU0STbcasz0ZPLxK6S4F-RDIvZLUuAg6UF6ga_TI/edit#heading=h.y6ikm63g5ns
@@ -17,7 +23,7 @@ Note: If we have column A(a, b), convert it to A : a → b → Bool
 If b is the key and a is the value, then actually rewrite it as A : b → a
 
 for each table we want, make callback (SQLite)
-  0, 1, 2, ... are column names  
+  0, 1, 2, ... are column names
 
 VSQLCallback is basically ℕ →ₛ E R
 The last one is the value type
@@ -78,6 +84,11 @@ def E.toMin (e : E R) : E RMin := E.call Op.toMin ![e]
 def E.toMax (e : E R) : E RMax := E.call Op.toMax ![e]
 def E.ofNat (e : E ℕ) : E R    := E.call Op.toNum ![e]
 
+instance : TaggedC R := ⟨⟨"double"⟩⟩
+instance : Mul R := ⟨fun _ _ => default⟩
+instance : DecidableEq R := fun .mk .mk => .isTrue (by simp)
+instance : Max R := ⟨fun _ _ => default⟩
+
 section TACO
 
 variable {ι : Type} [Tagged ι] [DecidableEq ι]
@@ -88,8 +99,8 @@ variable {ι : Type} [Tagged ι] [DecidableEq ι]
 -- todo: replace default interval
 def TACO.interval (pos : Var ℕ) (lower upper : E ℕ) : ι →ₛ (E ℕ) where
   σ := Var ℕ
-  succ pos i := .store_var pos $ pos + .call Op.ofBool ![(E.access is pos.expr <= i)]
-  skip pos i := .store_var pos $ pos + .call Op.ofBool ![(E.access is pos.expr << i)]
+  succ _ pos i := .store_var pos $ pos + .call Op.ofBool ![(E.access is pos.expr <= i)]
+  skip _ pos i := .store_var pos $ pos + .call Op.ofBool ![(E.access is pos.expr << i)]
   value pos := pos.expr
   ready _   := 1
   index pos := .access is pos.expr
@@ -144,9 +155,9 @@ def outVar : Var R := "fout"
 def outVal : Var R := "val"
 def outVal_min : Var RMin := "val"
 def outVal_max : Var RMax := "val"
-def sum1 : S ι α → Contraction α := S.contract
-def sum2 : S ι (S ι' α) → Contraction (Contraction α) := S.contract ⊚ sum1
-def sum3 : S ι (S ι' (S ι'' α)) → Contraction (Contraction (Contraction α)) := S.contract ⊚ sum2
+def sum1 [TaggedC ι] : S ι α → Contraction α := S.contract
+def sum2 [TaggedC ι] [TaggedC ι'] : S ι (S ι' α) → Contraction (Contraction α) := S.contract ⊚ sum1
+def sum3 [TaggedC ι] [TaggedC ι'] [TaggedC ι''] : S ι (S ι' (S ι'' α)) → Contraction (Contraction (Contraction α)) := S.contract ⊚ sum2
 def exp0 (ι : Type _) : α → ι →ₐ α := λ (v : α) => λ _ => v
 def exp1 (ι'' : Type _) : (ι' →ₛ α) → (ι' →ₛ (ι'' →ₐ α)) := Functor.map $ exp0 ι''
 def exp2 (ι'' : Type _) : S ι (S ι' α) → S ι (S ι' (Fun ι'' α)) := Functor.map $ exp1 ι''
@@ -159,8 +170,8 @@ def S.attr (i : ℕ × Type _) : i ↠ (E i.2) := Str.fun id
 
 section funs
 variable
-{ι : Type} [Tagged ι] [DecidableEq ι] [LE ι] [DecidableRel (LE.le : ι → ι → _)] [LT ι] [DecidableRel (LT.lt : ι → ι → _)] [OfNat ι 0] [OfNat ι 1] [Add ι]
-{ι' : Type} [Tagged ι'] [DecidableEq ι'] [LE ι'] [DecidableRel (LE.le : ι' → ι' → _)] [LT ι'] [DecidableRel (LT.lt : ι' → ι' → _)] [OfNat ι' 0] [OfNat ι' 1] [Add ι']
+{ι : Type} [Tagged ι] [TaggedC ι] [DecidableEq ι] [LE ι] [DecidableRel (LE.le : ι → ι → _)] [LT ι] [DecidableRel (LT.lt : ι → ι → _)] [OfNat ι 0] [OfNat ι 1] [Add ι]
+{ι' : Type} [Tagged ι'] [TaggedC ι'] [DecidableEq ι'] [LE ι'] [DecidableRel (LE.le : ι' → ι' → _)] [LT ι'] [DecidableRel (LT.lt : ι' → ι' → _)] [OfNat ι' 0] [OfNat ι' 1] [Add ι']
 
 def toGuard {α β} [OfNat β (nat_lit 1)] : α → β := λ _ => 1
 def binOp (f : E ι → E ι' → E α) : ι →ₛ ι' →ₛ E α := S.function "f1_" ⊚ S.function "f2_" $ f
@@ -250,40 +261,147 @@ def count_range := ∑ year, objid: range_06_08 * fires
 def E.succ {α} [Tagged α] [Add α] [OfNat α (nat_lit 1)] (e : E α) : E α :=
   E.call .add ![e, (1 : E α)]
 
-namespace TPCH
+namespace String
 
-abbrev orderkey  := (0, ℕ)
-abbrev custkey   := (1, ℕ)
-abbrev suppkey   := (2, ℕ)
-abbrev nationkey := (3, ℕ)
-abbrev regionkey := (4, ℕ)
+instance instLEString : LE String := ⟨fun s₁ s₂ ↦ s₁ < s₂ || s₁ = s₂⟩
 
-def S.always0 {f} [Functor f] [Zero (E α)] : f (E ℕ) → f (E α) := Functor.map (λ _ => 0)
-def S.always1 {f} [Functor f] [One (E α)] : f (E ℕ) → f (E α) := Functor.map (λ _ => 1)
+instance decLe : @DecidableRel String (· ≤ ·)
+  | s₁, s₂ => if h₁ : s₁ < s₂ then isTrue (by simp [instLEString, h₁])
+              else if h₂ : s₁ = s₂ then isTrue (by simp [instLEString, h₂])
+              else isFalse (by simp [instLEString, h₁, h₂])
 
-def ssMat (f : String) : ℕ →ₛ ℕ →ₛ E R := (csr.of f 1).level .search 0 & S.level .step (csr.of f 2) ⊚ S.leaf (f ++ "_vals")
-def tbl1 (f : String) : ℕ →ₛ E R := (csr.of f 1).level .step 0 |> S.always1
-def ssTbl2 (f : String) : ℕ →ₛ ℕ →ₛ E R := (csr.of f 1).level .step 0 |> S.level .step (csr.of f 2) ⊚ S.always1
-def dsTbl2 (f : String) : ℕ →ₐ ℕ →ₛ E R := range & S.level .step (csr.of f 2) ⊚ S.always1
+instance zero : Zero String := ⟨""⟩
 
-def ssTbl2_skip (f : String) : ℕ →ₛ ℕ →ₛ E R := (csr.of f 1).level .step 0 |> S.level .search (csr.of f 2) ⊚ S.always1
+instance max : Max String := ⟨fun s₁ s₂ ↦ if s₁ < s₂ then s₂ else s₁⟩
 
-def orders   : orderkey  ↠ custkey   ↠ E R := dsTbl2 "tpch_orders"
+end String
+
+-- CSR, but assume pos[i] = i (inherit the position from the previous level)
+def csr.inherit
+  {ι : Type} [Tagged ι] [TaggedC ι] [LT ι] [@DecidableRel ι LT.lt] [LE ι] [@DecidableRel ι LE.le]
+  (vars : csr ι ℕ) (loc : E ℕ) : ι →ₛ (E ℕ) :=
+  S.interval vars.i .step vars.var loc (loc+1)
+
+namespace TPCHq5
+
+abbrev orderkey   := (0, ℕ)
+abbrev orderdate  := (1, ℕ)
+abbrev custkey    := (2, ℕ)
+abbrev suppkey    := (3, ℕ)
+abbrev nationkey  := (4, ℕ)
+abbrev regionkey  := (5, ℕ)
+abbrev nationname := (6, String)
+abbrev regionname := (7, String)
+abbrev extendedprice := (8, R)
+abbrev discount   := (9, R)
+
+variable
+{ι₁ : Type} [Tagged ι₁] [TaggedC ι₁] [LT ι₁] [@DecidableRel ι₁ LT.lt] [LE ι₁] [@DecidableRel ι₁ LE.le]
+{ι₂ : Type} [Tagged ι₂] [TaggedC ι₂] [LT ι₂] [@DecidableRel ι₂ LT.lt] [LE ι₂] [@DecidableRel ι₂ LE.le]
+{ι₃ : Type} [Tagged ι₃] [TaggedC ι₃] [LT ι₃] [@DecidableRel ι₃ LT.lt] [LE ι₃] [@DecidableRel ι₃ LE.le]
+{ι₄ : Type} [Tagged ι₄] [TaggedC ι₄] [LT ι₄] [@DecidableRel ι₄ LT.lt] [LE ι₄] [@DecidableRel ι₄ LE.le]
+
+def ss   (f : String) (leaf : E ℕ → α) : ι₁ →ₛ ι₂ →ₛ α :=
+  ((csr.of f 1 ι₁).level .search 0) |>
+  ((csr.of f 2 ι₂).level .step <$> ·) ⊚
+  Functor.map leaf
+def ds   (f : String) (leaf : E ℕ → α) : ℕ →ₐ ι₂ →ₛ α :=
+  range |>
+  ((csr.of f 2 ι₂).level .step <$> ·) ⊚
+  Functor.map leaf
+def dss  (f : String) (leaf : E ℕ → α) : ℕ →ₐ ι₂ →ₛ ι₃ →ₛ α :=
+  range |>
+  ((csr.of f 2 ι₂).level .search <$> ·) ⊚
+  ((csr.of f 3 ι₃).level .step <$> ·) ⊚
+  Functor.map leaf
+def ds_  (f : String) (leaf : E ℕ → α) : ℕ →ₐ ι₂ →ₛ ι₃ →ₛ α :=
+  range |>
+  ((csr.of f 2 ι₂).level .search <$> ·) ⊚
+  ((csr.of f 3 ι₃).inherit <$> ·) ⊚
+  Functor.map leaf
+def ss__ (f : String) (leaf : E ℕ → α) : ι₁ →ₛ ι₂ →ₛ ι₃ →ₛ ι₄ →ₛ α :=
+  ((csr.of f 1 ι₁).level .search 0) |>
+  ((csr.of f 2 ι₂).level .step <$> ·) ⊚
+  ((csr.of f 3 ι₃).inherit <$> ·) ⊚
+  ((csr.of f 4 ι₄).inherit <$> ·) ⊚
+  Functor.map leaf
+
+def dsTbl2     (f : String) : ℕ →ₐ ℕ →ₛ      E R := ds f fun _ => 1
+def dsTbl2_str (f : String) : ℕ →ₐ String →ₛ E R := ds f fun _ => 1
+def dssTbl3    (f : String) : ℕ →ₐ ℕ →ₛ ℕ →ₛ E R := dss f fun _ => 1
+def ds_Tbl3    (f : String) : ℕ →ₐ ℕ →ₛ String →ₛ E R := ds_ f fun _ => 1
+def ss__Tbl    (f : String) : ι₁ →ₛ ι₂ →ₛ ι₃ →ₛ ι₄ →ₛ E R := ss__ f fun _ => 1
+
+def lineitem : orderkey ↠ suppkey ↠ extendedprice ↠ discount ↠ E R :=
+  (ss__Tbl "tpch_lineitem" : ℕ →ₛ ℕ →ₛ R →ₛ R →ₛ E R)
+
+def revenue_calc' : R →ₐ R →ₐ E R := fun p d => p * (1 - d)
+def revenue_calc : extendedprice ↠ discount ↠ E R := revenue_calc'
+def lineitem_revenue : orderkey ↠ suppkey ↠ extendedprice ↠ discount ↠ E R := lineitem * revenue_calc
+
+def orders   : orderkey  ↠ orderdate ↠ custkey ↠ E R := dssTbl3 "tpch_orders"
 def customer : custkey   ↠ nationkey ↠ E R := dsTbl2 "tpch_customer"
-def lineitem : orderkey  ↠ suppkey   ↠ E R := ssMat "tpch_lineitem"  -- R = l_extendedprice * (1 - l_discount)
 def supplier : suppkey   ↠ nationkey ↠ E R := dsTbl2 "tpch_supplier"
-def nation   : nationkey ↠ regionkey ↠ E R := dsTbl2 "tpch_nation"
+def nation   : nationkey ↠ regionkey ↠ nationname ↠ E R := ds_Tbl3 "tpch_nation"
+def region   : regionkey ↠ regionname ↠ E R := dsTbl2_str "tpch_region"
 
-def us_const : E ℕ := .var (.mk "US")
-def us : nationkey ↠ E R := (S.predRange us_const us_const.succ : ℕ →ₛ E R)
+def asia_const := E.strLit "ASIA"
+def asia : regionname ↠ E R := (S.predRangeIncl asia_const asia_const : String →ₛ E R)
 
-def asia_const : E ℕ := .var (.mk "ASIA")
-def asia : regionkey ↠ E R := (S.predRange asia_const asia_const.succ : ℕ →ₛ E R)
+def year1994unix := E.intLit 757411200
+def year1995unix := E.intLit 788947200
+def orders1994 : orderdate ↠ E R := (S.predRange year1994unix year1995unix : ℕ →ₛ E R)
 
-def q5 := ∑ orderkey, custkey, suppkey, nationkey, regionkey: lineitem * asia * orders * customer * supplier * nation
-#check q5
+-- break things up to help type checker out
+def tmp1 := lineitem_revenue * orders * orders1994
+def tmp2 := instHMul_1.hMul (instHMul_1.hMul tmp1 customer) supplier
+def tmp3 := nation * region * asia
+-- #check tmp4
 
-end TPCH
+-- Really help type checker out
+-- def test : Merge
+--   (orderkey ↠ orderdate ↠ custkey ↠ suppkey ↠ nationkey ↠ extendedprice ↠ discount ↠ E R)
+--   (nationkey ↠ regionkey ↠ nationname ↠ regionname ↠ E R)
+--   (orderkey ↠ orderdate ↠ custkey ↠ suppkey ↠ nationkey ↠ regionkey ↠ nationname ↠ regionname ↠ extendedprice ↠ discount ↠ E R)
+-- := Gen.Merge.lt
+def tmp4' := @instHMul_1
+  (orderkey ↠ orderdate ↠ custkey ↠ suppkey ↠ nationkey ↠ extendedprice ↠ discount ↠ E R)
+  (nationkey ↠ regionkey ↠ nationname ↠ regionname ↠ E R)
+  _
+  inferInstance
+  inferInstance
+def tmp4 := tmp4'.hMul tmp2 tmp3
+
+-- def tmp4' := instHMul_1.hMul tmp2 tmp3
+
+-- HACK
+def Str.to_g_r {n} : (n × R ⟶ α) → (R →ₛ α)
+| .fun f => absurd trivial (by sorry)
+| .str a => a
+instance sum_eq_r (n : ℕ) : SumIndex n (n × R ⟶ α) (Contraction α) := ⟨S.contract ∘ Str.to_g_r⟩
+
+def q5 := ∑ orderkey, orderdate, custkey, suppkey, nationkey, regionkey: ∑ regionname, extendedprice, discount: tmp4
+
+def compile_fun (name : String) (body : List String) : String :=
+s!"std::unordered_map<const char*, double> {name}()\{\n
+     std::unordered_map<const char*, double> out;\n
+     double* out_loc;
+     {String.join body}
+     return out;\n
+   }"
+
+def Op.index_str_map : Op (ℕ → R) where
+  argTypes := ![String → R, String]
+  spec := λ _ _ => .mk
+  opName := "index_str_map"
+
+def outVal : lvl String (MemLoc R) where
+  push (s : E String) : P × MemLoc R :=
+    let out : Var (String → R) := "out";
+    let out_loc : Var (ℕ → R) := "out_loc";
+    (out_loc.store_var (.call Op.index_str_map ![out.expr, s]), ⟨out_loc, 0⟩)
+
+end TPCHq5
 /- end examples -/
 
 #check (mat "f" : i ↠ j ↠ E R)
@@ -312,10 +430,22 @@ def taco_ops : List (String × String × String) :=
 --("sum_mul2_inner_ss", compile_fun "sum_mul2_inner_ss" $ [go outVal mul_inner]),
 --("sum_add2", compile_fun "sum_add2" $ [go outVal $ sum2 $ ssA, go outVal $ sum2 $ ssB]),
 
+instance S.step' {L R} [Compile L R] [TaggedC ι] {n : ℕ} : Compile (lvl ι L) (n × ι ⟶ R) where
+  compile n l
+  | .str r =>
+      let (init, s) := r.init emptyName
+      let (push, position) := l.push (r.index s)
+      let temp := ("index_lower_bound" : Var ι).fresh n
+      init;; .while (r.valid s)
+        (.decl temp (r.index s);;
+        .branch (r.ready s)
+          (push;; Compile.compile (n.fresh 0) position (r.value s);; (r.succ (n.fresh 1) s temp))
+          (r.skip n.freshen s temp))
+  | .fun _ => .skip -- HACK
 
 def sql_ops : List (String × String) :=
 [
-let fn := "q5"; (fn, compile_fun fn [go outVal TPCH.q5])
+let fn := "q5"; (fn, TPCHq5.compile_fun fn [go TPCHq5.outVal TPCHq5.q5])
 --  ("count_range", compile_fun "count_range" $ [go outVal count_range]),
 --  ("triangle", compile_fun "triangle" $ [go outVal $ ∑ i, j, k : dsR * dsS * dsT ]),
 --  ("udf", compile_fun "udf" $ [go outVal_max $ ∑ i, j: udf])

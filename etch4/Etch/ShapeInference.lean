@@ -81,7 +81,7 @@ instance [Guard α] : Guard (n × ι ⟶ α) where guard n b := λ
 variable
 {α β γ : Type _}
 (n : ℕ)
-{ι : Type _} [Tagged ι] [DecidableEq ι]
+{ι : Type _} [Tagged ι] [TaggedC ι] [DecidableEq ι]
 [LT ι] [DecidableRel (LT.lt : ι → ι → _)] [Zero ι]
 [LE ι] [DecidableRel (LE.le : ι → ι → _)]
 [Max ι]
@@ -127,19 +127,25 @@ variable
 
 --#check f * f #check a * b example [HMul α α α] : Mul α := inferInstance example : Mul (i ↠ j ↠ E R) := inferInstance
 
-instance : Coe (ι →ₛ E α) (n × ι ⟶ E α) := ⟨.str⟩
-instance : Coe (ι →ₐ E α) (n × ι ⟶ E α) := ⟨.fun⟩
+instance : Coe (ι →ₛ α) (n × ι ⟶ α) := ⟨.str⟩
+instance : Coe (ι →ₐ α) (n × ι ⟶ α) := ⟨.fun⟩
 instance [Coe α β] : Coe (ι →ₛ α) (n × ι ⟶ β) := ⟨.str ∘ Functor.map Coe.coe⟩
 instance [Coe α β] : Coe (ι →ₐ α) (n × ι ⟶ β) := ⟨.fun ∘ Functor.map Coe.coe⟩
 
 class of_stream (α β : Type _) := (coe : α → β)
 instance base.of_stream : of_stream α α := ⟨id⟩
 
--- TODO!
+variable [TaggedC ι]
+
+-- TODO: this doesn't work for strings
 variable [Add ι] [OfNat ι 1]
 
-def Str.to_g {n} : (n × ι ⟶ α) → (ι →ₛ α) := λ s => match s with
+def Str.to_g {n} : (n × ι ⟶ α) → (ι →ₛ α)
 | .fun f => f <$> S.univ "dim" "u_" -- ??
+| .str a => a
+
+def Str.to_g_str {n} : (n × String ⟶ α) → (String →ₛ α)
+| .fun f => absurd trivial (by sorry)
 | .str a => a
 
 instance [of_stream α β] : of_stream (n × ι ⟶ α) (ι →ₛ β) := ⟨
@@ -151,6 +157,7 @@ def Stream.of [of_stream α β] : α → β := of_stream.coe
 
 class SumIndex (n : ℕ) (α : Type _) (β : outParam $ Type _) := (sum : α → β)
 instance sum_eq (n : ℕ) : SumIndex n (n × ι ⟶ α) (Contraction α) := ⟨S.contract ∘ Str.to_g⟩
+instance sum_eq_str (n : ℕ) : SumIndex n (n × String ⟶ α) (Contraction α) := ⟨S.contract ∘ Str.to_g_str⟩
 example : Inhabited $ E R := inferInstance
 instance sum_lt (m n : ℕ) [NatLt n m] [SumIndex m α β] : SumIndex m (n × ι ⟶ α) (n × ι ⟶ β) := ⟨Functor.map $ SumIndex.sum m⟩
 
@@ -159,6 +166,7 @@ notation:35 "∑" i:34 "," j:34 ":" v:34 => SumIndex.sum i.1 (SumIndex.sum j.1 v
 notation:35 "∑" i:34 "," j:34 "," k:34 ":" v:34 => SumIndex.sum i.1 (SumIndex.sum j.1 (SumIndex.sum k.1 v))
 notation:35 "∑" i:34 "," j:34 "," k:34 "," l:34 ":" v:34 => SumIndex.sum i.1 (SumIndex.sum j.1 (SumIndex.sum k.1 (SumIndex.sum l.1 v)))
 notation:35 "∑" i:34 "," j:34 "," k:34 "," l:34 "," m:34 ":" v:34 => SumIndex.sum i.1 (SumIndex.sum j.1 (SumIndex.sum k.1 (SumIndex.sum l.1 (SumIndex.sum m.1 v))))
+notation:35 "∑" i:34 "," j:34 "," k:34 "," l:34 "," m:34 "," n:34 ":" v:34 => SumIndex.sum i.1 (SumIndex.sum j.1 (SumIndex.sum k.1 (SumIndex.sum l.1 (SumIndex.sum m.1 (SumIndex.sum n.1 v)))))
 --macro "∑" i:term ws j:term "," v:term : term => `(SumIndex.sum $i.1 (SumIndex.sum $j.1 $v))
 --macro "∑" i:term "," v:term : term => `(SumIndex.sum $i.1 $v)
 --macro "∑" i:term+ "," v:term : term => `(SumIndex.sum $(i[0]!).1 $v)
@@ -174,6 +182,14 @@ class ApplyScalarFn (α β γ : Type _) (δ : outParam $ Type _) := (map : (E α
 instance : ApplyScalarFn α β (E α) (E β) := ⟨ (. $ .) ⟩
 instance [ApplyScalarFn α β α' β'] : ApplyScalarFn α β (n × ι ⟶ α') (n × ι ⟶ β') := ⟨ λ f x => ApplyScalarFn.map f <$> x ⟩
 infixr:10 " <$$> "  => ApplyScalarFn.map
+
+instance Str.HAdd {γ φ ψ} {i} [HAdd γ φ ψ] [Guard γ] [Guard φ] : HAdd (i × ι ⟶ γ) (i × ι ⟶ φ) (i × ι ⟶ ψ) where hAdd
+| .fun a, .fun b => Str.fun $ a+b
+| .str a, .fun b => Str.str $ a+b
+| .fun a, .str b => Str.str $ a+b
+| .str a, .str b => Str.str $ a+b
+
+instance Str.Add {γ} {i} [Add γ] [Guard γ] [Guard φ] : Add (i × ι ⟶ γ) := ⟨HAdd.hAdd⟩
 
 /-
 #check Nat.add
