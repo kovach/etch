@@ -258,6 +258,15 @@ example : [0,1].defines' 0 (({0 ↦ 0, 1 ↦ 1} : Heap), (⟨(nomatch .)⟩ : Ty
         . rfl
 
 
+inductive Foo
+def test : ℕ → Bool
+| 0 => True
+| _ => panic! "hi"
+
+#eval test 0
+
+#exit
+
 --variable (α : Type) [Zero α] [Add α]
 
 --inductive Sem' : P V → (Heap → TypedStore V → List α → Prop) → Heap → TypedStore V → List α → Prop
@@ -281,7 +290,8 @@ inductive Sem  : P V → Set (Config V) → Config V → Prop -- → Set (Config
        (hv : ⦃lval, v⦄ (h, l))
        : Q (h, l[y := v]) → Sem (.load lval y) Q (h, l)
 
-| seq : Sem c₁ (Sem c₂ Q) conf → Sem (c₁;; c₂) Q conf
+--Equivalent to : | seq : Sem c₁ (Sem c₂ Q) conf → Sem (c₁;; c₂) Q conf
+| seq (h : Sem c₁ Q₁ conf) : ∀ c, Q₁ c → Sem c₂ Q c → Sem (c₁;; c₂) Q conf
 
 | whileDone (condFalse : x.eval conf.2 = false)
             : Q conf → Sem (.while x c) Q conf
