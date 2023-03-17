@@ -53,7 +53,7 @@ tpch-csv-x1-q5: TPC-H-x1.db bench/tpch-q5-duckdb-export-to-csv.sql $(DUCKDB)
 	sed -e 's#TPC-H\.db#$<#g' -e 's#tpch-csv#$@#g' bench/tpch-q5-duckdb-export-to-csv.sql | $(DUCKDB) tmp.duckdb
 	rm tmp.duckdb
 
-.PHONY: run-duck-tpch-pq-x1-q5
+.PHONY: run-tpch-duckdb-x1-q5
 run-tpch-duckdb-x1-q5: tpch-csv-x1-q5 bench/tpch-q5-duckdb.sql $(DUCKDB)
 	sed -e 's#tpch-csv-q5#$<#g' bench/tpch-q5-duckdb.sql | $(DUCKDB)
 
