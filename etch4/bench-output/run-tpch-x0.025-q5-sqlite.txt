@@ -1,0 +1,1220 @@
+cat bench/tpch-q5-sqlite-prep.sql bench/tpch-q5-sqlite.sql | sed 's#TPC-H\.db#TPC-H-x0.025.db#g' | sqlite3/shell
+
+CREATE TABLE REGION  ( R_REGIONKEY  INTEGER NOT NULL,
+                            R_NAME       CHAR(25) NOT NULL,
+                            PRIMARY KEY (R_REGIONKEY));
+CREATE TABLE NATION  ( N_NATIONKEY  INTEGER NOT NULL,
+                            N_REGIONKEY  INTEGER NOT NULL REFERENCES REGION (R_REGIONKEY),
+                            N_NAME       CHAR(25) NOT NULL,
+                            PRIMARY KEY (N_NATIONKEY));
+CREATE TABLE SUPPLIER ( S_SUPPKEY     INTEGER NOT NULL,
+                             S_NATIONKEY   INTEGER NOT NULL REFERENCES NATION (N_NATIONKEY),
+                             PRIMARY KEY (S_SUPPKEY));
+CREATE TABLE CUSTOMER ( C_CUSTKEY     INTEGER NOT NULL,
+                             C_NATIONKEY   INTEGER NOT NULL REFERENCES NATION (N_NATIONKEY),
+                             PRIMARY KEY (C_CUSTKEY));
+CREATE TABLE ORDERS  ( O_ORDERKEY       INTEGER NOT NULL,
+                           O_CUSTKEY        INTEGER NOT NULL REFERENCES CUSTOMER (C_CUSTKEY),
+                           O_ORDERDATE      DATE NOT NULL,
+                           PRIMARY KEY (O_ORDERKEY));
+CREATE TABLE LINEITEM ( L_ORDERKEY    INTEGER NOT NULL REFERENCES SUPPLIER (O_ORDERKEY),
+                             L_SUPPKEY     INTEGER NOT NULL REFERENCES SUPPLIER (S_SUPPKEY),
+                             L_LINENUMBER  INTEGER NOT NULL,
+                             L_EXTENDEDPRICE  DOUBLE NOT NULL, -- actually DECIMAL(15,2), but etch uses double
+                             L_DISCOUNT    DOUBLE NOT NULL,
+                             PRIMARY KEY (L_ORDERKEY, L_LINENUMBER));
+
+CREATE INDEX REGION_idx_q5 ON REGION(R_REGIONKEY, R_NAME);
+CREATE INDEX NATION_idx_q5 ON NATION(N_NATIONKEY, N_REGIONKEY, N_NAME);
+CREATE INDEX SUPPLIER_idx_q5 ON SUPPLIER(S_SUPPKEY, S_NATIONKEY);
+CREATE INDEX ORDERS_idx_q5 ON ORDERS(O_ORDERKEY, O_ORDERDATE, O_CUSTKEY);
+CREATE INDEX CUSTOMER_idx_q5 ON CUSTOMER(C_CUSTKEY, C_NATIONKEY);
+CREATE INDEX LINEITEM_idx_q5 ON LINEITEM(L_ORDERKEY, L_SUPPKEY, L_EXTENDEDPRICE, L_DISCOUNT);
+
+ATTACH DATABASE 'TPC-H-x0.025.db' AS t;
+
+INSERT INTO region
+SELECT r_regionkey, r_name
+FROM t.region;
+
+INSERT INTO nation
+SELECT n_nationkey, n_regionkey, n_name
+FROM t.nation;
+
+INSERT INTO supplier
+SELECT s_suppkey, s_nationkey
+FROM t.supplier;
+
+INSERT INTO customer
+SELECT c_custkey, c_nationkey
+FROM t.customer;
+
+INSERT INTO orders
+SELECT o_orderkey, o_custkey, o_orderdate
+FROM t.orders;
+
+INSERT INTO lineitem
+SELECT l_orderkey, l_suppkey, l_linenumber, l_extendedprice, l_discount
+FROM t.lineitem;
+
+DETACH DATABASE t;
+
+SELECT page_count * page_size as size
+FROM pragma_page_count(), pragma_page_size();
+14536704
+.timer on
+
+select
+ n_name,
+ sum(l_extendedprice * (1 - l_discount)) as revenue
+from
+  customer,
+  orders,
+  lineitem,
+  supplier,
+  nation,
+  region
+where
+  c_custkey = o_custkey
+  and l_orderkey = o_orderkey
+  and l_suppkey = s_suppkey
+  and c_nationkey = s_nationkey
+  and s_nationkey = n_nationkey
+  and n_regionkey = r_regionkey
+  and r_name = 'ASIA'
+  and o_orderdate >= '1994-01-01'
+  and o_orderdate < '1995-01-01'
+group by
+ n_name;
+CHINA|1806042.2541
+INDIA|1689669.2325
+INDONESIA|1442190.8223
+JAPAN|1419929.4103
+VIETNAM|1220483.6314
+Run Time: real 0.025 user 0.024663 sys 0.000129
+
+select
+ n_name,
+ sum(l_extendedprice * (1 - l_discount)) as revenue
+from
+  customer,
+  orders,
+  lineitem,
+  supplier,
+  nation,
+  region
+where
+  c_custkey = o_custkey
+  and l_orderkey = o_orderkey
+  and l_suppkey = s_suppkey
+  and c_nationkey = s_nationkey
+  and s_nationkey = n_nationkey
+  and n_regionkey = r_regionkey
+  and r_name = 'ASIA'
+  and o_orderdate >= '1994-01-01'
+  and o_orderdate < '1995-01-01'
+group by
+ n_name;
+CHINA|1806042.2541
+INDIA|1689669.2325
+INDONESIA|1442190.8223
+JAPAN|1419929.4103
+VIETNAM|1220483.6314
+Run Time: real 0.025 user 0.024914 sys 0.000000
+
+select
+ n_name,
+ sum(l_extendedprice * (1 - l_discount)) as revenue
+from
+  customer,
+  orders,
+  lineitem,
+  supplier,
+  nation,
+  region
+where
+  c_custkey = o_custkey
+  and l_orderkey = o_orderkey
+  and l_suppkey = s_suppkey
+  and c_nationkey = s_nationkey
+  and s_nationkey = n_nationkey
+  and n_regionkey = r_regionkey
+  and r_name = 'ASIA'
+  and o_orderdate >= '1994-01-01'
+  and o_orderdate < '1995-01-01'
+group by
+ n_name;
+CHINA|1806042.2541
+INDIA|1689669.2325
+INDONESIA|1442190.8223
+JAPAN|1419929.4103
+VIETNAM|1220483.6314
+Run Time: real 0.023 user 0.023502 sys 0.000000
+
+select
+ n_name,
+ sum(l_extendedprice * (1 - l_discount)) as revenue
+from
+  customer,
+  orders,
+  lineitem,
+  supplier,
+  nation,
+  region
+where
+  c_custkey = o_custkey
+  and l_orderkey = o_orderkey
+  and l_suppkey = s_suppkey
+  and c_nationkey = s_nationkey
+  and s_nationkey = n_nationkey
+  and n_regionkey = r_regionkey
+  and r_name = 'ASIA'
+  and o_orderdate >= '1994-01-01'
+  and o_orderdate < '1995-01-01'
+group by
+ n_name;
+CHINA|1806042.2541
+INDIA|1689669.2325
+INDONESIA|1442190.8223
+JAPAN|1419929.4103
+VIETNAM|1220483.6314
+Run Time: real 0.024 user 0.023572 sys 0.000000
+
+select
+ n_name,
+ sum(l_extendedprice * (1 - l_discount)) as revenue
+from
+  customer,
+  orders,
+  lineitem,
+  supplier,
+  nation,
+  region
+where
+  c_custkey = o_custkey
+  and l_orderkey = o_orderkey
+  and l_suppkey = s_suppkey
+  and c_nationkey = s_nationkey
+  and s_nationkey = n_nationkey
+  and n_regionkey = r_regionkey
+  and r_name = 'ASIA'
+  and o_orderdate >= '1994-01-01'
+  and o_orderdate < '1995-01-01'
+group by
+ n_name;
+CHINA|1806042.2541
+INDIA|1689669.2325
+INDONESIA|1442190.8223
+JAPAN|1419929.4103
+VIETNAM|1220483.6314
+Run Time: real 0.023 user 0.023319 sys 0.000000
+
+.timer off
+
+EXPLAIN QUERY PLAN
+select
+ n_name,
+ sum(l_extendedprice * (1 - l_discount)) as revenue
+from
+  customer,
+  orders,
+  lineitem,
+  supplier,
+  nation,
+  region
+where
+  c_custkey = o_custkey
+  and l_orderkey = o_orderkey
+  and l_suppkey = s_suppkey
+  and c_nationkey = s_nationkey
+  and s_nationkey = n_nationkey
+  and n_regionkey = r_regionkey
+  and r_name = 'ASIA'
+  and o_orderdate >= '1994-01-01'
+  and o_orderdate < '1995-01-01'
+group by
+ n_name;
+QUERY PLAN
+|--SCAN lineitem USING COVERING INDEX LINEITEM_idx_q5
+|--SEARCH orders USING INTEGER PRIMARY KEY (rowid=?)
+|--SEARCH supplier USING INTEGER PRIMARY KEY (rowid=?)
+|--SEARCH customer USING COVERING INDEX CUSTOMER_idx_q5 (C_CUSTKEY=? AND C_NATIONKEY=? AND rowid=?)
+|--SEARCH nation USING INTEGER PRIMARY KEY (rowid=?)
+|--SEARCH region USING INTEGER PRIMARY KEY (rowid=?)
+`--USE TEMP B-TREE FOR GROUP BY
+cat bench/tpch-q5-sqlite-prep.sql bench/tpch-q5-sqlite.sql | sed 's#TPC-H\.db#TPC-H-x0.025.db#g' | sqlite3/shell
+
+CREATE TABLE REGION  ( R_REGIONKEY  INTEGER NOT NULL,
+                            R_NAME       CHAR(25) NOT NULL,
+                            PRIMARY KEY (R_REGIONKEY));
+CREATE TABLE NATION  ( N_NATIONKEY  INTEGER NOT NULL,
+                            N_REGIONKEY  INTEGER NOT NULL REFERENCES REGION (R_REGIONKEY),
+                            N_NAME       CHAR(25) NOT NULL,
+                            PRIMARY KEY (N_NATIONKEY));
+CREATE TABLE SUPPLIER ( S_SUPPKEY     INTEGER NOT NULL,
+                             S_NATIONKEY   INTEGER NOT NULL REFERENCES NATION (N_NATIONKEY),
+                             PRIMARY KEY (S_SUPPKEY));
+CREATE TABLE CUSTOMER ( C_CUSTKEY     INTEGER NOT NULL,
+                             C_NATIONKEY   INTEGER NOT NULL REFERENCES NATION (N_NATIONKEY),
+                             PRIMARY KEY (C_CUSTKEY));
+CREATE TABLE ORDERS  ( O_ORDERKEY       INTEGER NOT NULL,
+                           O_CUSTKEY        INTEGER NOT NULL REFERENCES CUSTOMER (C_CUSTKEY),
+                           O_ORDERDATE      DATE NOT NULL,
+                           PRIMARY KEY (O_ORDERKEY));
+CREATE TABLE LINEITEM ( L_ORDERKEY    INTEGER NOT NULL REFERENCES SUPPLIER (O_ORDERKEY),
+                             L_SUPPKEY     INTEGER NOT NULL REFERENCES SUPPLIER (S_SUPPKEY),
+                             L_LINENUMBER  INTEGER NOT NULL,
+                             L_EXTENDEDPRICE  DOUBLE NOT NULL, -- actually DECIMAL(15,2), but etch uses double
+                             L_DISCOUNT    DOUBLE NOT NULL,
+                             PRIMARY KEY (L_ORDERKEY, L_LINENUMBER));
+
+CREATE INDEX REGION_idx_q5 ON REGION(R_REGIONKEY, R_NAME);
+CREATE INDEX NATION_idx_q5 ON NATION(N_NATIONKEY, N_REGIONKEY, N_NAME);
+CREATE INDEX SUPPLIER_idx_q5 ON SUPPLIER(S_SUPPKEY, S_NATIONKEY);
+CREATE INDEX ORDERS_idx_q5 ON ORDERS(O_ORDERKEY, O_ORDERDATE, O_CUSTKEY);
+CREATE INDEX CUSTOMER_idx_q5 ON CUSTOMER(C_CUSTKEY, C_NATIONKEY);
+CREATE INDEX LINEITEM_idx_q5 ON LINEITEM(L_ORDERKEY, L_SUPPKEY, L_EXTENDEDPRICE, L_DISCOUNT);
+
+ATTACH DATABASE 'TPC-H-x0.025.db' AS t;
+
+INSERT INTO region
+SELECT r_regionkey, r_name
+FROM t.region;
+
+INSERT INTO nation
+SELECT n_nationkey, n_regionkey, n_name
+FROM t.nation;
+
+INSERT INTO supplier
+SELECT s_suppkey, s_nationkey
+FROM t.supplier;
+
+INSERT INTO customer
+SELECT c_custkey, c_nationkey
+FROM t.customer;
+
+INSERT INTO orders
+SELECT o_orderkey, o_custkey, o_orderdate
+FROM t.orders;
+
+INSERT INTO lineitem
+SELECT l_orderkey, l_suppkey, l_linenumber, l_extendedprice, l_discount
+FROM t.lineitem;
+
+DETACH DATABASE t;
+
+SELECT page_count * page_size as size
+FROM pragma_page_count(), pragma_page_size();
+14536704
+.timer on
+
+select
+ n_name,
+ sum(l_extendedprice * (1 - l_discount)) as revenue
+from
+  customer,
+  orders,
+  lineitem,
+  supplier,
+  nation,
+  region
+where
+  c_custkey = o_custkey
+  and l_orderkey = o_orderkey
+  and l_suppkey = s_suppkey
+  and c_nationkey = s_nationkey
+  and s_nationkey = n_nationkey
+  and n_regionkey = r_regionkey
+  and r_name = 'ASIA'
+  and o_orderdate >= '1994-01-01'
+  and o_orderdate < '1995-01-01'
+group by
+ n_name;
+CHINA|1806042.2541
+INDIA|1689669.2325
+INDONESIA|1442190.8223
+JAPAN|1419929.4103
+VIETNAM|1220483.6314
+Run Time: real 0.025 user 0.024535 sys 0.000000
+
+select
+ n_name,
+ sum(l_extendedprice * (1 - l_discount)) as revenue
+from
+  customer,
+  orders,
+  lineitem,
+  supplier,
+  nation,
+  region
+where
+  c_custkey = o_custkey
+  and l_orderkey = o_orderkey
+  and l_suppkey = s_suppkey
+  and c_nationkey = s_nationkey
+  and s_nationkey = n_nationkey
+  and n_regionkey = r_regionkey
+  and r_name = 'ASIA'
+  and o_orderdate >= '1994-01-01'
+  and o_orderdate < '1995-01-01'
+group by
+ n_name;
+CHINA|1806042.2541
+INDIA|1689669.2325
+INDONESIA|1442190.8223
+JAPAN|1419929.4103
+VIETNAM|1220483.6314
+Run Time: real 0.024 user 0.024298 sys 0.000000
+
+select
+ n_name,
+ sum(l_extendedprice * (1 - l_discount)) as revenue
+from
+  customer,
+  orders,
+  lineitem,
+  supplier,
+  nation,
+  region
+where
+  c_custkey = o_custkey
+  and l_orderkey = o_orderkey
+  and l_suppkey = s_suppkey
+  and c_nationkey = s_nationkey
+  and s_nationkey = n_nationkey
+  and n_regionkey = r_regionkey
+  and r_name = 'ASIA'
+  and o_orderdate >= '1994-01-01'
+  and o_orderdate < '1995-01-01'
+group by
+ n_name;
+CHINA|1806042.2541
+INDIA|1689669.2325
+INDONESIA|1442190.8223
+JAPAN|1419929.4103
+VIETNAM|1220483.6314
+Run Time: real 0.024 user 0.023476 sys 0.000000
+
+select
+ n_name,
+ sum(l_extendedprice * (1 - l_discount)) as revenue
+from
+  customer,
+  orders,
+  lineitem,
+  supplier,
+  nation,
+  region
+where
+  c_custkey = o_custkey
+  and l_orderkey = o_orderkey
+  and l_suppkey = s_suppkey
+  and c_nationkey = s_nationkey
+  and s_nationkey = n_nationkey
+  and n_regionkey = r_regionkey
+  and r_name = 'ASIA'
+  and o_orderdate >= '1994-01-01'
+  and o_orderdate < '1995-01-01'
+group by
+ n_name;
+CHINA|1806042.2541
+INDIA|1689669.2325
+INDONESIA|1442190.8223
+JAPAN|1419929.4103
+VIETNAM|1220483.6314
+Run Time: real 0.024 user 0.023845 sys 0.000000
+
+select
+ n_name,
+ sum(l_extendedprice * (1 - l_discount)) as revenue
+from
+  customer,
+  orders,
+  lineitem,
+  supplier,
+  nation,
+  region
+where
+  c_custkey = o_custkey
+  and l_orderkey = o_orderkey
+  and l_suppkey = s_suppkey
+  and c_nationkey = s_nationkey
+  and s_nationkey = n_nationkey
+  and n_regionkey = r_regionkey
+  and r_name = 'ASIA'
+  and o_orderdate >= '1994-01-01'
+  and o_orderdate < '1995-01-01'
+group by
+ n_name;
+CHINA|1806042.2541
+INDIA|1689669.2325
+INDONESIA|1442190.8223
+JAPAN|1419929.4103
+VIETNAM|1220483.6314
+Run Time: real 0.023 user 0.023361 sys 0.000000
+
+.timer off
+
+EXPLAIN QUERY PLAN
+select
+ n_name,
+ sum(l_extendedprice * (1 - l_discount)) as revenue
+from
+  customer,
+  orders,
+  lineitem,
+  supplier,
+  nation,
+  region
+where
+  c_custkey = o_custkey
+  and l_orderkey = o_orderkey
+  and l_suppkey = s_suppkey
+  and c_nationkey = s_nationkey
+  and s_nationkey = n_nationkey
+  and n_regionkey = r_regionkey
+  and r_name = 'ASIA'
+  and o_orderdate >= '1994-01-01'
+  and o_orderdate < '1995-01-01'
+group by
+ n_name;
+QUERY PLAN
+|--SCAN lineitem USING COVERING INDEX LINEITEM_idx_q5
+|--SEARCH orders USING INTEGER PRIMARY KEY (rowid=?)
+|--SEARCH supplier USING INTEGER PRIMARY KEY (rowid=?)
+|--SEARCH customer USING COVERING INDEX CUSTOMER_idx_q5 (C_CUSTKEY=? AND C_NATIONKEY=? AND rowid=?)
+|--SEARCH nation USING INTEGER PRIMARY KEY (rowid=?)
+|--SEARCH region USING INTEGER PRIMARY KEY (rowid=?)
+`--USE TEMP B-TREE FOR GROUP BY
+cat bench/tpch-q5-sqlite-prep.sql bench/tpch-q5-sqlite.sql | sed 's#TPC-H\.db#TPC-H-x0.025.db#g' | sqlite3/shell
+
+CREATE TABLE REGION  ( R_REGIONKEY  INTEGER NOT NULL,
+                            R_NAME       CHAR(25) NOT NULL,
+                            PRIMARY KEY (R_REGIONKEY));
+CREATE TABLE NATION  ( N_NATIONKEY  INTEGER NOT NULL,
+                            N_REGIONKEY  INTEGER NOT NULL REFERENCES REGION (R_REGIONKEY),
+                            N_NAME       CHAR(25) NOT NULL,
+                            PRIMARY KEY (N_NATIONKEY));
+CREATE TABLE SUPPLIER ( S_SUPPKEY     INTEGER NOT NULL,
+                             S_NATIONKEY   INTEGER NOT NULL REFERENCES NATION (N_NATIONKEY),
+                             PRIMARY KEY (S_SUPPKEY));
+CREATE TABLE CUSTOMER ( C_CUSTKEY     INTEGER NOT NULL,
+                             C_NATIONKEY   INTEGER NOT NULL REFERENCES NATION (N_NATIONKEY),
+                             PRIMARY KEY (C_CUSTKEY));
+CREATE TABLE ORDERS  ( O_ORDERKEY       INTEGER NOT NULL,
+                           O_CUSTKEY        INTEGER NOT NULL REFERENCES CUSTOMER (C_CUSTKEY),
+                           O_ORDERDATE      DATE NOT NULL,
+                           PRIMARY KEY (O_ORDERKEY));
+CREATE TABLE LINEITEM ( L_ORDERKEY    INTEGER NOT NULL REFERENCES SUPPLIER (O_ORDERKEY),
+                             L_SUPPKEY     INTEGER NOT NULL REFERENCES SUPPLIER (S_SUPPKEY),
+                             L_LINENUMBER  INTEGER NOT NULL,
+                             L_EXTENDEDPRICE  DOUBLE NOT NULL, -- actually DECIMAL(15,2), but etch uses double
+                             L_DISCOUNT    DOUBLE NOT NULL,
+                             PRIMARY KEY (L_ORDERKEY, L_LINENUMBER));
+
+CREATE INDEX REGION_idx_q5 ON REGION(R_REGIONKEY, R_NAME);
+CREATE INDEX NATION_idx_q5 ON NATION(N_NATIONKEY, N_REGIONKEY, N_NAME);
+CREATE INDEX SUPPLIER_idx_q5 ON SUPPLIER(S_SUPPKEY, S_NATIONKEY);
+CREATE INDEX ORDERS_idx_q5 ON ORDERS(O_ORDERKEY, O_ORDERDATE, O_CUSTKEY);
+CREATE INDEX CUSTOMER_idx_q5 ON CUSTOMER(C_CUSTKEY, C_NATIONKEY);
+CREATE INDEX LINEITEM_idx_q5 ON LINEITEM(L_ORDERKEY, L_SUPPKEY, L_EXTENDEDPRICE, L_DISCOUNT);
+
+ATTACH DATABASE 'TPC-H-x0.025.db' AS t;
+
+INSERT INTO region
+SELECT r_regionkey, r_name
+FROM t.region;
+
+INSERT INTO nation
+SELECT n_nationkey, n_regionkey, n_name
+FROM t.nation;
+
+INSERT INTO supplier
+SELECT s_suppkey, s_nationkey
+FROM t.supplier;
+
+INSERT INTO customer
+SELECT c_custkey, c_nationkey
+FROM t.customer;
+
+INSERT INTO orders
+SELECT o_orderkey, o_custkey, o_orderdate
+FROM t.orders;
+
+INSERT INTO lineitem
+SELECT l_orderkey, l_suppkey, l_linenumber, l_extendedprice, l_discount
+FROM t.lineitem;
+
+DETACH DATABASE t;
+
+SELECT page_count * page_size as size
+FROM pragma_page_count(), pragma_page_size();
+14536704
+.timer on
+
+select
+ n_name,
+ sum(l_extendedprice * (1 - l_discount)) as revenue
+from
+  customer,
+  orders,
+  lineitem,
+  supplier,
+  nation,
+  region
+where
+  c_custkey = o_custkey
+  and l_orderkey = o_orderkey
+  and l_suppkey = s_suppkey
+  and c_nationkey = s_nationkey
+  and s_nationkey = n_nationkey
+  and n_regionkey = r_regionkey
+  and r_name = 'ASIA'
+  and o_orderdate >= '1994-01-01'
+  and o_orderdate < '1995-01-01'
+group by
+ n_name;
+CHINA|1806042.2541
+INDIA|1689669.2325
+INDONESIA|1442190.8223
+JAPAN|1419929.4103
+VIETNAM|1220483.6314
+Run Time: real 0.024 user 0.024240 sys 0.000188
+
+select
+ n_name,
+ sum(l_extendedprice * (1 - l_discount)) as revenue
+from
+  customer,
+  orders,
+  lineitem,
+  supplier,
+  nation,
+  region
+where
+  c_custkey = o_custkey
+  and l_orderkey = o_orderkey
+  and l_suppkey = s_suppkey
+  and c_nationkey = s_nationkey
+  and s_nationkey = n_nationkey
+  and n_regionkey = r_regionkey
+  and r_name = 'ASIA'
+  and o_orderdate >= '1994-01-01'
+  and o_orderdate < '1995-01-01'
+group by
+ n_name;
+CHINA|1806042.2541
+INDIA|1689669.2325
+INDONESIA|1442190.8223
+JAPAN|1419929.4103
+VIETNAM|1220483.6314
+Run Time: real 0.024 user 0.024107 sys 0.000111
+
+select
+ n_name,
+ sum(l_extendedprice * (1 - l_discount)) as revenue
+from
+  customer,
+  orders,
+  lineitem,
+  supplier,
+  nation,
+  region
+where
+  c_custkey = o_custkey
+  and l_orderkey = o_orderkey
+  and l_suppkey = s_suppkey
+  and c_nationkey = s_nationkey
+  and s_nationkey = n_nationkey
+  and n_regionkey = r_regionkey
+  and r_name = 'ASIA'
+  and o_orderdate >= '1994-01-01'
+  and o_orderdate < '1995-01-01'
+group by
+ n_name;
+CHINA|1806042.2541
+INDIA|1689669.2325
+INDONESIA|1442190.8223
+JAPAN|1419929.4103
+VIETNAM|1220483.6314
+Run Time: real 0.024 user 0.023630 sys 0.000034
+
+select
+ n_name,
+ sum(l_extendedprice * (1 - l_discount)) as revenue
+from
+  customer,
+  orders,
+  lineitem,
+  supplier,
+  nation,
+  region
+where
+  c_custkey = o_custkey
+  and l_orderkey = o_orderkey
+  and l_suppkey = s_suppkey
+  and c_nationkey = s_nationkey
+  and s_nationkey = n_nationkey
+  and n_regionkey = r_regionkey
+  and r_name = 'ASIA'
+  and o_orderdate >= '1994-01-01'
+  and o_orderdate < '1995-01-01'
+group by
+ n_name;
+CHINA|1806042.2541
+INDIA|1689669.2325
+INDONESIA|1442190.8223
+JAPAN|1419929.4103
+VIETNAM|1220483.6314
+Run Time: real 0.024 user 0.023802 sys 0.000041
+
+select
+ n_name,
+ sum(l_extendedprice * (1 - l_discount)) as revenue
+from
+  customer,
+  orders,
+  lineitem,
+  supplier,
+  nation,
+  region
+where
+  c_custkey = o_custkey
+  and l_orderkey = o_orderkey
+  and l_suppkey = s_suppkey
+  and c_nationkey = s_nationkey
+  and s_nationkey = n_nationkey
+  and n_regionkey = r_regionkey
+  and r_name = 'ASIA'
+  and o_orderdate >= '1994-01-01'
+  and o_orderdate < '1995-01-01'
+group by
+ n_name;
+CHINA|1806042.2541
+INDIA|1689669.2325
+INDONESIA|1442190.8223
+JAPAN|1419929.4103
+VIETNAM|1220483.6314
+Run Time: real 0.024 user 0.023507 sys 0.000009
+
+.timer off
+
+EXPLAIN QUERY PLAN
+select
+ n_name,
+ sum(l_extendedprice * (1 - l_discount)) as revenue
+from
+  customer,
+  orders,
+  lineitem,
+  supplier,
+  nation,
+  region
+where
+  c_custkey = o_custkey
+  and l_orderkey = o_orderkey
+  and l_suppkey = s_suppkey
+  and c_nationkey = s_nationkey
+  and s_nationkey = n_nationkey
+  and n_regionkey = r_regionkey
+  and r_name = 'ASIA'
+  and o_orderdate >= '1994-01-01'
+  and o_orderdate < '1995-01-01'
+group by
+ n_name;
+QUERY PLAN
+|--SCAN lineitem USING COVERING INDEX LINEITEM_idx_q5
+|--SEARCH orders USING INTEGER PRIMARY KEY (rowid=?)
+|--SEARCH supplier USING INTEGER PRIMARY KEY (rowid=?)
+|--SEARCH customer USING COVERING INDEX CUSTOMER_idx_q5 (C_CUSTKEY=? AND C_NATIONKEY=? AND rowid=?)
+|--SEARCH nation USING INTEGER PRIMARY KEY (rowid=?)
+|--SEARCH region USING INTEGER PRIMARY KEY (rowid=?)
+`--USE TEMP B-TREE FOR GROUP BY
+cat bench/tpch-q5-sqlite-prep.sql bench/tpch-q5-sqlite.sql | sed 's#TPC-H\.db#TPC-H-x0.025.db#g' | sqlite3/shell
+
+CREATE TABLE REGION  ( R_REGIONKEY  INTEGER NOT NULL,
+                            R_NAME       CHAR(25) NOT NULL,
+                            PRIMARY KEY (R_REGIONKEY));
+CREATE TABLE NATION  ( N_NATIONKEY  INTEGER NOT NULL,
+                            N_REGIONKEY  INTEGER NOT NULL REFERENCES REGION (R_REGIONKEY),
+                            N_NAME       CHAR(25) NOT NULL,
+                            PRIMARY KEY (N_NATIONKEY));
+CREATE TABLE SUPPLIER ( S_SUPPKEY     INTEGER NOT NULL,
+                             S_NATIONKEY   INTEGER NOT NULL REFERENCES NATION (N_NATIONKEY),
+                             PRIMARY KEY (S_SUPPKEY));
+CREATE TABLE CUSTOMER ( C_CUSTKEY     INTEGER NOT NULL,
+                             C_NATIONKEY   INTEGER NOT NULL REFERENCES NATION (N_NATIONKEY),
+                             PRIMARY KEY (C_CUSTKEY));
+CREATE TABLE ORDERS  ( O_ORDERKEY       INTEGER NOT NULL,
+                           O_CUSTKEY        INTEGER NOT NULL REFERENCES CUSTOMER (C_CUSTKEY),
+                           O_ORDERDATE      DATE NOT NULL,
+                           PRIMARY KEY (O_ORDERKEY));
+CREATE TABLE LINEITEM ( L_ORDERKEY    INTEGER NOT NULL REFERENCES SUPPLIER (O_ORDERKEY),
+                             L_SUPPKEY     INTEGER NOT NULL REFERENCES SUPPLIER (S_SUPPKEY),
+                             L_LINENUMBER  INTEGER NOT NULL,
+                             L_EXTENDEDPRICE  DOUBLE NOT NULL, -- actually DECIMAL(15,2), but etch uses double
+                             L_DISCOUNT    DOUBLE NOT NULL,
+                             PRIMARY KEY (L_ORDERKEY, L_LINENUMBER));
+
+CREATE INDEX REGION_idx_q5 ON REGION(R_REGIONKEY, R_NAME);
+CREATE INDEX NATION_idx_q5 ON NATION(N_NATIONKEY, N_REGIONKEY, N_NAME);
+CREATE INDEX SUPPLIER_idx_q5 ON SUPPLIER(S_SUPPKEY, S_NATIONKEY);
+CREATE INDEX ORDERS_idx_q5 ON ORDERS(O_ORDERKEY, O_ORDERDATE, O_CUSTKEY);
+CREATE INDEX CUSTOMER_idx_q5 ON CUSTOMER(C_CUSTKEY, C_NATIONKEY);
+CREATE INDEX LINEITEM_idx_q5 ON LINEITEM(L_ORDERKEY, L_SUPPKEY, L_EXTENDEDPRICE, L_DISCOUNT);
+
+ATTACH DATABASE 'TPC-H-x0.025.db' AS t;
+
+INSERT INTO region
+SELECT r_regionkey, r_name
+FROM t.region;
+
+INSERT INTO nation
+SELECT n_nationkey, n_regionkey, n_name
+FROM t.nation;
+
+INSERT INTO supplier
+SELECT s_suppkey, s_nationkey
+FROM t.supplier;
+
+INSERT INTO customer
+SELECT c_custkey, c_nationkey
+FROM t.customer;
+
+INSERT INTO orders
+SELECT o_orderkey, o_custkey, o_orderdate
+FROM t.orders;
+
+INSERT INTO lineitem
+SELECT l_orderkey, l_suppkey, l_linenumber, l_extendedprice, l_discount
+FROM t.lineitem;
+
+DETACH DATABASE t;
+
+SELECT page_count * page_size as size
+FROM pragma_page_count(), pragma_page_size();
+14536704
+.timer on
+
+select
+ n_name,
+ sum(l_extendedprice * (1 - l_discount)) as revenue
+from
+  customer,
+  orders,
+  lineitem,
+  supplier,
+  nation,
+  region
+where
+  c_custkey = o_custkey
+  and l_orderkey = o_orderkey
+  and l_suppkey = s_suppkey
+  and c_nationkey = s_nationkey
+  and s_nationkey = n_nationkey
+  and n_regionkey = r_regionkey
+  and r_name = 'ASIA'
+  and o_orderdate >= '1994-01-01'
+  and o_orderdate < '1995-01-01'
+group by
+ n_name;
+CHINA|1806042.2541
+INDIA|1689669.2325
+INDONESIA|1442190.8223
+JAPAN|1419929.4103
+VIETNAM|1220483.6314
+Run Time: real 0.024 user 0.024600 sys 0.000144
+
+select
+ n_name,
+ sum(l_extendedprice * (1 - l_discount)) as revenue
+from
+  customer,
+  orders,
+  lineitem,
+  supplier,
+  nation,
+  region
+where
+  c_custkey = o_custkey
+  and l_orderkey = o_orderkey
+  and l_suppkey = s_suppkey
+  and c_nationkey = s_nationkey
+  and s_nationkey = n_nationkey
+  and n_regionkey = r_regionkey
+  and r_name = 'ASIA'
+  and o_orderdate >= '1994-01-01'
+  and o_orderdate < '1995-01-01'
+group by
+ n_name;
+CHINA|1806042.2541
+INDIA|1689669.2325
+INDONESIA|1442190.8223
+JAPAN|1419929.4103
+VIETNAM|1220483.6314
+Run Time: real 0.025 user 0.024175 sys 0.000072
+
+select
+ n_name,
+ sum(l_extendedprice * (1 - l_discount)) as revenue
+from
+  customer,
+  orders,
+  lineitem,
+  supplier,
+  nation,
+  region
+where
+  c_custkey = o_custkey
+  and l_orderkey = o_orderkey
+  and l_suppkey = s_suppkey
+  and c_nationkey = s_nationkey
+  and s_nationkey = n_nationkey
+  and n_regionkey = r_regionkey
+  and r_name = 'ASIA'
+  and o_orderdate >= '1994-01-01'
+  and o_orderdate < '1995-01-01'
+group by
+ n_name;
+CHINA|1806042.2541
+INDIA|1689669.2325
+INDONESIA|1442190.8223
+JAPAN|1419929.4103
+VIETNAM|1220483.6314
+Run Time: real 0.023 user 0.020501 sys 0.003085
+
+select
+ n_name,
+ sum(l_extendedprice * (1 - l_discount)) as revenue
+from
+  customer,
+  orders,
+  lineitem,
+  supplier,
+  nation,
+  region
+where
+  c_custkey = o_custkey
+  and l_orderkey = o_orderkey
+  and l_suppkey = s_suppkey
+  and c_nationkey = s_nationkey
+  and s_nationkey = n_nationkey
+  and n_regionkey = r_regionkey
+  and r_name = 'ASIA'
+  and o_orderdate >= '1994-01-01'
+  and o_orderdate < '1995-01-01'
+group by
+ n_name;
+CHINA|1806042.2541
+INDIA|1689669.2325
+INDONESIA|1442190.8223
+JAPAN|1419929.4103
+VIETNAM|1220483.6314
+Run Time: real 0.024 user 0.023457 sys 0.000038
+
+select
+ n_name,
+ sum(l_extendedprice * (1 - l_discount)) as revenue
+from
+  customer,
+  orders,
+  lineitem,
+  supplier,
+  nation,
+  region
+where
+  c_custkey = o_custkey
+  and l_orderkey = o_orderkey
+  and l_suppkey = s_suppkey
+  and c_nationkey = s_nationkey
+  and s_nationkey = n_nationkey
+  and n_regionkey = r_regionkey
+  and r_name = 'ASIA'
+  and o_orderdate >= '1994-01-01'
+  and o_orderdate < '1995-01-01'
+group by
+ n_name;
+CHINA|1806042.2541
+INDIA|1689669.2325
+INDONESIA|1442190.8223
+JAPAN|1419929.4103
+VIETNAM|1220483.6314
+Run Time: real 0.023 user 0.023318 sys 0.000022
+
+.timer off
+
+EXPLAIN QUERY PLAN
+select
+ n_name,
+ sum(l_extendedprice * (1 - l_discount)) as revenue
+from
+  customer,
+  orders,
+  lineitem,
+  supplier,
+  nation,
+  region
+where
+  c_custkey = o_custkey
+  and l_orderkey = o_orderkey
+  and l_suppkey = s_suppkey
+  and c_nationkey = s_nationkey
+  and s_nationkey = n_nationkey
+  and n_regionkey = r_regionkey
+  and r_name = 'ASIA'
+  and o_orderdate >= '1994-01-01'
+  and o_orderdate < '1995-01-01'
+group by
+ n_name;
+QUERY PLAN
+|--SCAN lineitem USING COVERING INDEX LINEITEM_idx_q5
+|--SEARCH orders USING INTEGER PRIMARY KEY (rowid=?)
+|--SEARCH supplier USING INTEGER PRIMARY KEY (rowid=?)
+|--SEARCH customer USING COVERING INDEX CUSTOMER_idx_q5 (C_CUSTKEY=? AND C_NATIONKEY=? AND rowid=?)
+|--SEARCH nation USING INTEGER PRIMARY KEY (rowid=?)
+|--SEARCH region USING INTEGER PRIMARY KEY (rowid=?)
+`--USE TEMP B-TREE FOR GROUP BY
+cat bench/tpch-q5-sqlite-prep.sql bench/tpch-q5-sqlite.sql | sed 's#TPC-H\.db#TPC-H-x0.025.db#g' | sqlite3/shell
+
+CREATE TABLE REGION  ( R_REGIONKEY  INTEGER NOT NULL,
+                            R_NAME       CHAR(25) NOT NULL,
+                            PRIMARY KEY (R_REGIONKEY));
+CREATE TABLE NATION  ( N_NATIONKEY  INTEGER NOT NULL,
+                            N_REGIONKEY  INTEGER NOT NULL REFERENCES REGION (R_REGIONKEY),
+                            N_NAME       CHAR(25) NOT NULL,
+                            PRIMARY KEY (N_NATIONKEY));
+CREATE TABLE SUPPLIER ( S_SUPPKEY     INTEGER NOT NULL,
+                             S_NATIONKEY   INTEGER NOT NULL REFERENCES NATION (N_NATIONKEY),
+                             PRIMARY KEY (S_SUPPKEY));
+CREATE TABLE CUSTOMER ( C_CUSTKEY     INTEGER NOT NULL,
+                             C_NATIONKEY   INTEGER NOT NULL REFERENCES NATION (N_NATIONKEY),
+                             PRIMARY KEY (C_CUSTKEY));
+CREATE TABLE ORDERS  ( O_ORDERKEY       INTEGER NOT NULL,
+                           O_CUSTKEY        INTEGER NOT NULL REFERENCES CUSTOMER (C_CUSTKEY),
+                           O_ORDERDATE      DATE NOT NULL,
+                           PRIMARY KEY (O_ORDERKEY));
+CREATE TABLE LINEITEM ( L_ORDERKEY    INTEGER NOT NULL REFERENCES SUPPLIER (O_ORDERKEY),
+                             L_SUPPKEY     INTEGER NOT NULL REFERENCES SUPPLIER (S_SUPPKEY),
+                             L_LINENUMBER  INTEGER NOT NULL,
+                             L_EXTENDEDPRICE  DOUBLE NOT NULL, -- actually DECIMAL(15,2), but etch uses double
+                             L_DISCOUNT    DOUBLE NOT NULL,
+                             PRIMARY KEY (L_ORDERKEY, L_LINENUMBER));
+
+CREATE INDEX REGION_idx_q5 ON REGION(R_REGIONKEY, R_NAME);
+CREATE INDEX NATION_idx_q5 ON NATION(N_NATIONKEY, N_REGIONKEY, N_NAME);
+CREATE INDEX SUPPLIER_idx_q5 ON SUPPLIER(S_SUPPKEY, S_NATIONKEY);
+CREATE INDEX ORDERS_idx_q5 ON ORDERS(O_ORDERKEY, O_ORDERDATE, O_CUSTKEY);
+CREATE INDEX CUSTOMER_idx_q5 ON CUSTOMER(C_CUSTKEY, C_NATIONKEY);
+CREATE INDEX LINEITEM_idx_q5 ON LINEITEM(L_ORDERKEY, L_SUPPKEY, L_EXTENDEDPRICE, L_DISCOUNT);
+
+ATTACH DATABASE 'TPC-H-x0.025.db' AS t;
+
+INSERT INTO region
+SELECT r_regionkey, r_name
+FROM t.region;
+
+INSERT INTO nation
+SELECT n_nationkey, n_regionkey, n_name
+FROM t.nation;
+
+INSERT INTO supplier
+SELECT s_suppkey, s_nationkey
+FROM t.supplier;
+
+INSERT INTO customer
+SELECT c_custkey, c_nationkey
+FROM t.customer;
+
+INSERT INTO orders
+SELECT o_orderkey, o_custkey, o_orderdate
+FROM t.orders;
+
+INSERT INTO lineitem
+SELECT l_orderkey, l_suppkey, l_linenumber, l_extendedprice, l_discount
+FROM t.lineitem;
+
+DETACH DATABASE t;
+
+SELECT page_count * page_size as size
+FROM pragma_page_count(), pragma_page_size();
+14536704
+.timer on
+
+select
+ n_name,
+ sum(l_extendedprice * (1 - l_discount)) as revenue
+from
+  customer,
+  orders,
+  lineitem,
+  supplier,
+  nation,
+  region
+where
+  c_custkey = o_custkey
+  and l_orderkey = o_orderkey
+  and l_suppkey = s_suppkey
+  and c_nationkey = s_nationkey
+  and s_nationkey = n_nationkey
+  and n_regionkey = r_regionkey
+  and r_name = 'ASIA'
+  and o_orderdate >= '1994-01-01'
+  and o_orderdate < '1995-01-01'
+group by
+ n_name;
+CHINA|1806042.2541
+INDIA|1689669.2325
+INDONESIA|1442190.8223
+JAPAN|1419929.4103
+VIETNAM|1220483.6314
+Run Time: real 0.024 user 0.024305 sys 0.000040
+
+select
+ n_name,
+ sum(l_extendedprice * (1 - l_discount)) as revenue
+from
+  customer,
+  orders,
+  lineitem,
+  supplier,
+  nation,
+  region
+where
+  c_custkey = o_custkey
+  and l_orderkey = o_orderkey
+  and l_suppkey = s_suppkey
+  and c_nationkey = s_nationkey
+  and s_nationkey = n_nationkey
+  and n_regionkey = r_regionkey
+  and r_name = 'ASIA'
+  and o_orderdate >= '1994-01-01'
+  and o_orderdate < '1995-01-01'
+group by
+ n_name;
+CHINA|1806042.2541
+INDIA|1689669.2325
+INDONESIA|1442190.8223
+JAPAN|1419929.4103
+VIETNAM|1220483.6314
+Run Time: real 0.025 user 0.024243 sys 0.000000
+
+select
+ n_name,
+ sum(l_extendedprice * (1 - l_discount)) as revenue
+from
+  customer,
+  orders,
+  lineitem,
+  supplier,
+  nation,
+  region
+where
+  c_custkey = o_custkey
+  and l_orderkey = o_orderkey
+  and l_suppkey = s_suppkey
+  and c_nationkey = s_nationkey
+  and s_nationkey = n_nationkey
+  and n_regionkey = r_regionkey
+  and r_name = 'ASIA'
+  and o_orderdate >= '1994-01-01'
+  and o_orderdate < '1995-01-01'
+group by
+ n_name;
+CHINA|1806042.2541
+INDIA|1689669.2325
+INDONESIA|1442190.8223
+JAPAN|1419929.4103
+VIETNAM|1220483.6314
+Run Time: real 0.023 user 0.023590 sys 0.000000
+
+select
+ n_name,
+ sum(l_extendedprice * (1 - l_discount)) as revenue
+from
+  customer,
+  orders,
+  lineitem,
+  supplier,
+  nation,
+  region
+where
+  c_custkey = o_custkey
+  and l_orderkey = o_orderkey
+  and l_suppkey = s_suppkey
+  and c_nationkey = s_nationkey
+  and s_nationkey = n_nationkey
+  and n_regionkey = r_regionkey
+  and r_name = 'ASIA'
+  and o_orderdate >= '1994-01-01'
+  and o_orderdate < '1995-01-01'
+group by
+ n_name;
+CHINA|1806042.2541
+INDIA|1689669.2325
+INDONESIA|1442190.8223
+JAPAN|1419929.4103
+VIETNAM|1220483.6314
+Run Time: real 0.024 user 0.023535 sys 0.000000
+
+select
+ n_name,
+ sum(l_extendedprice * (1 - l_discount)) as revenue
+from
+  customer,
+  orders,
+  lineitem,
+  supplier,
+  nation,
+  region
+where
+  c_custkey = o_custkey
+  and l_orderkey = o_orderkey
+  and l_suppkey = s_suppkey
+  and c_nationkey = s_nationkey
+  and s_nationkey = n_nationkey
+  and n_regionkey = r_regionkey
+  and r_name = 'ASIA'
+  and o_orderdate >= '1994-01-01'
+  and o_orderdate < '1995-01-01'
+group by
+ n_name;
+CHINA|1806042.2541
+INDIA|1689669.2325
+INDONESIA|1442190.8223
+JAPAN|1419929.4103
+VIETNAM|1220483.6314
+Run Time: real 0.023 user 0.023316 sys 0.000000
+
+.timer off
+
+EXPLAIN QUERY PLAN
+select
+ n_name,
+ sum(l_extendedprice * (1 - l_discount)) as revenue
+from
+  customer,
+  orders,
+  lineitem,
+  supplier,
+  nation,
+  region
+where
+  c_custkey = o_custkey
+  and l_orderkey = o_orderkey
+  and l_suppkey = s_suppkey
+  and c_nationkey = s_nationkey
+  and s_nationkey = n_nationkey
+  and n_regionkey = r_regionkey
+  and r_name = 'ASIA'
+  and o_orderdate >= '1994-01-01'
+  and o_orderdate < '1995-01-01'
+group by
+ n_name;
+QUERY PLAN
+|--SCAN lineitem USING COVERING INDEX LINEITEM_idx_q5
+|--SEARCH orders USING INTEGER PRIMARY KEY (rowid=?)
+|--SEARCH supplier USING INTEGER PRIMARY KEY (rowid=?)
+|--SEARCH customer USING COVERING INDEX CUSTOMER_idx_q5 (C_CUSTKEY=? AND C_NATIONKEY=? AND rowid=?)
+|--SEARCH nation USING INTEGER PRIMARY KEY (rowid=?)
+|--SEARCH region USING INTEGER PRIMARY KEY (rowid=?)
+`--USE TEMP B-TREE FOR GROUP BY
