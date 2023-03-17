@@ -88,6 +88,11 @@ def tcsr (l : String) : lvl ℕ (lvl ℕ (lvl ℕ (MemLoc α))) :=
   (with_values (sparse_il (l ++ "2_crd" : ArrayVar ℕ)) (interval_vl $ l ++ "3_pos")) ⊚
   (with_values (sparse_il (l ++ "3_crd" : ArrayVar ℕ)) (dense_vl $ l ++ "_vals"))
 
+def dss (l dim i : String) : lvl ℕ (lvl ℕ (lvl ℕ (MemLoc α))) := 0 |>
+  (with_values (dense_il dim i) (interval_vl $ l ++ "2_pos")) ⊚
+  (with_values (sparse_il (l ++ "2_crd" : ArrayVar ℕ)) (interval_vl $ l ++ "3_pos")) ⊚
+  (with_values (sparse_il (l ++ "3_crd" : ArrayVar ℕ)) (dense_vl $ l ++ "_vals"))
+
 #exit
 --todo
 inductive LevelType | s | d

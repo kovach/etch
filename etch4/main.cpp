@@ -1,19 +1,31 @@
-#include "stdbool.h"
-#include "string.h"
+#include <stdbool.h>
+#include <string.h>
 #include <iostream>
 #include <stdio.h>
-#include <sqlite3.h>
 #include <chrono>
 #include <float.h>
-#include "math.h"
+#include <math.h>
+#include <unordered_map>
+
+#include "sqlite3.h"
 
 #define macro_ternary(c, x, y) ((c) ? x : y)
 
+#define ETCH_TPCH 1
+// #undef ETCH_MATH
+// #undef ETCH_SQL
+
+#ifdef ETCH_MATH
 int dim = 10000;
 
 #include "decls.c"
 
 double threshold = 0.1;
+#endif
+
+#ifdef ETCH_TPCH
+#include "decls_tpch.cpp"
+#endif
 
 //#define time(x, y) \
 //  t1 = std::chrono::high_resolution_clock::now(); \
@@ -23,16 +35,31 @@ double threshold = 0.1;
 //  std::cout << y << " took: " << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count() << "μ" << std::endl; \
 //  std::cout << y << " took: " << std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count() << "ms" << std::endl;
 
-void time(double (* f)(), char const* tag, int reps) {
-  auto t1 = std::chrono::high_resolution_clock::now();
-  double val;
-  for (int i = 0; i < reps; i++) {
-    val = f();
+template <typename T, typename U>
+std::ostream& operator<<(std::ostream& os, const std::unordered_map<T, U>& m) {
+  for (auto&& p : m) {
+    os << p.first << ": " << p.second << '\n';
   }
-  auto t2 = std::chrono::high_resolution_clock::now();
-  std::cout << "val: " << val << std::endl;
-  std::cout << tag << " took: " << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count() << "μ" << std::endl;
-  //std::cout << tag << " took: " << std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count() << "ms" << std::endl;
+  return os;
+}
+
+template <typename F>
+void time(F f, char const* tag, int reps) {
+  using fsec = std::chrono::duration<double>;
+  auto as_fsec = [](auto dur) { return std::chrono::duration_cast<fsec>(dur); };
+
+  std::chrono::high_resolution_clock::duration total_dur(0);
+
+  for (int i = 0; i < reps; i++) {
+    auto rep_start = std::chrono::high_resolution_clock::now();
+    auto val = f();
+    auto rep_end = std::chrono::high_resolution_clock::now();
+    std::cout << tag << " val: " << std::fixed << val << std::endl;
+    std::cout << tag << " took: " << as_fsec(rep_end-rep_start) << std::endl;
+    total_dur += rep_end - rep_start;
+  }
+
+  std::cout << tag << " took (avg): " << as_fsec(total_dur) / reps << std::endl;
 }
 
 static void sqlite_udf(sqlite3_context *context, int argc, sqlite3_value **argv) {
@@ -45,13 +72,13 @@ static void sqlite_udf(sqlite3_context *context, int argc, sqlite3_value **argv)
 //static inline double    nat_udf(int a, int b) {  /*printf("|%d,%d:%f|", a, b, sqrt(abs(a+b)));*/ return sqrt(abs(a + b)); }
 static inline double    nat_udf_max(int a, int b) { return sqrt(abs(a - b)); }
 
-static inline double    num_add(double a, double b) {  return a + b; }
-//#define num_add(a, b) (a + b)
+static inline double    num_add(double a, double b) { return a + b; }
+static inline double    num_sub(double a, double b) { return a - b; }
 static inline double    num_mul(double a, double b) { return a * b; }
-//#define num_mul(a, b) (a * b)
 static inline double    num_one() { return 1; }
 static inline double    num_zero() { return 0; }
 static inline double    num_lt(double a, double b) { return a < b; }
+static inline double    num_le(double a, double b) { return a <= b; }
 //static inline double    num_lt(double a, double b) { printf("%f < %f\n", a, b); return a < b; }
 
 static inline double    num_ofBool(bool x) { return x ? 1 : 0; }
@@ -83,7 +110,22 @@ static inline bool   nat_neg(int a) { return !a; }
 static inline int    nat_mid(int a, int b) { return (a + b) / 2; }
 static inline int    nat_one() { return 1; }
 static inline int    nat_zero() { return 0; }
-static inline double nat_ofBool(bool x) { return x; }
+static inline int    nat_ofBool(bool x) { return x; }
+
+static inline int    int_add(int a, int b) { return a + b; }
+static inline int    int_mul(int a, int b) { return a * b; }
+static inline int    int_sub(int a, int b) { return a - b; }
+static inline bool   int_lt(int a, int b) { return a < b; }
+static inline bool   int_le(int a, int b) { return a <= b; }
+static inline bool   int_eq(int a, int b) { return a == b; }
+static inline int    int_max(int a, int b) { return a < b ? b : a; }
+static inline int    int_min(int a, int b) { return a < b ? a : b; }
+static inline int    int_succ(int a) { return a + 1; }
+static inline bool   int_neg(int a) { return !a; }
+static inline int    int_mid(int a, int b) { return (a + b) / 2; }
+static inline int    int_one() { return 1; }
+static inline int    int_zero() { return 0; }
+static inline int    int_ofBool(bool x) { return x; }
 
 static inline bool    bool_add(bool a, bool b) { return a || b; }
 //#define bool_add(a, b) (a || b)
@@ -93,13 +135,24 @@ static inline bool    bool_one() { return 1; }
 static inline bool    bool_zero() { return 0; }
 static inline bool    bool_neg(bool x) { return !x; }
 
+static inline const char* str_zero() { return ""; }
 static inline bool   str_lt(const char* a, const char* b) { return strcmp(a, b) < 0; }
 static inline bool   str_le(const char* a, const char* b) { return strcmp(a, b) <= 0; }
+static inline int    str_find(const char* haystack, const char* needle) {
+  const char* res = strstr(haystack, needle);
+  if (!res) return -1;
+  return res - haystack;
+}
+static inline const char* str_max(const char* a, const char* b) { return str_lt(a, b) ? b : a; }
+static inline const char* str_min(const char* a, const char* b) { return str_lt(a, b) ? a : b; }
 static inline bool   str_eq(const char* a, const char* b) { return strcmp(a, b) == 0; }
-static inline int    str_atoi(char* a) { return atoi(a); }
-static inline double str_atof(char* a) { return atof(a); }
+static inline int    str_atoi(const char* a) { return atoi(a); }
+static inline double str_atof(const char* a) { return atof(a); }
+
+static inline double* index_str_map(std::unordered_map<const char*, double>& m, const char* s) { return &m[s]; }
 
 
+#ifdef ETCH_MATH
 int i1_;
 int i2_;
 int i3_;
@@ -109,6 +162,7 @@ int j3_;
 int k1_;
 int k2_;
 int k3_;
+#endif
 
 int temp;
 bool not_done;
@@ -129,6 +183,8 @@ static int print0(void *data, int argc, char **argv, char **azColName){
 printf("reading : %d\n", atoi(argv[0]));
 return 0;
 }
+
+#ifdef ETCH_MATH
 
 static int gen_callback_graph_ssA(void *data, int argc, char **argv, char **azColName){
 #include "gen_query_ssA.c"
@@ -162,16 +218,6 @@ static int gen_callback_graph_sV(void *data, int argc, char **argv, char **azCol
 #include "gen_query_sV.c"
 return 0;
 }
-static int count___ = 0;
-static int count_callback(void *data, int argc, char **argv, char **azColName){
-  printf("\n!!\n");
-  count___ = atoi(argv[0]);
-  return 0;
-}
-static int gen_callback_fires(void *data, int argc, char **argv, char **azColName){
-#include "gen_query_fires.c"
-return 0;
-}
 
 static int gen_callback_wcoj_R(void *data, int argc, char **argv, char **azColName){
 #include "gen_query_wcoj_R.c"
@@ -185,73 +231,25 @@ static int gen_callback_wcoj_T(void *data, int argc, char **argv, char **azColNa
 #include "gen_query_wcoj_T.c"
 return 0;
 }
+#endif // ETCH_MATH
+
+static sqlite3* db;
+
+#ifdef ETCH_SQL
+static int count___ = 0;
+static int count_callback(void *data, int argc, char **argv, char **azColName){
+  printf("\n!!\n");
+  count___ = atoi(argv[0]);
+  return 0;
+}
+static int gen_callback_fires(void *data, int argc, char **argv, char **azColName){
+#include "gen_query_fires.c"
+return 0;
+}
 static int gen_callback_udf(void *data, int argc, char **argv, char **azColName){
   printf("udf result: %s\n", argv[0]);
 return 0;
 }
-
-/* here */
-double taco_sum_mul2_() {
-load_ssA();
-load_ssB();
-#include "taco/sum_mul2.c"
-}
-double taco_sum_add2_() {
-load_ssA();
-load_ssB();
-#include "taco/sum_add2.c"
-}
-double taco_sum_mul2_csr_() {
-load_ssA();
-load_dsB();
-#include "taco/sum_mul2_csr.c"
-}
-double taco_inner2ss_() {
-load_ssA();
-load_ssB();
-#include "taco/inner2ss.c"
-}
-
-double taco_wcoj() {
-load_ssR();
-load_ssT();
-#include "taco/wcoj.c"
-}
-
-double taco_mttkrp_() {
-load_dsA();
-load_dsB();
-load_sssC();
-  //printf("TODO\n");
-#include "taco/mttkrp.c"
-  return 0;
-}
-double taco_sum_mul2_inner_() {
-load_ssA();
-load_ssB();
-load_dsA();
-load_dsB();
-#include "taco/sum_mul2_inner.c"
-}
-double taco_sum_mul2_inner_ss_() {
-load_ssA();
-load_ssB();
-#include "taco/sum_mul2_inner_ss.c"
-}
-double taco_spmv_() {
-load_ssA();
-load_dV();
-#include "taco/spmv.c"
-}
-double taco_filter_spmv_() {
-//load_sV();
-//load_dsA();
-//#include "taco/spmv.c"
-return 0.0;
-}
-/* here end */
-
-static sqlite3* db;
 
 double sql_count_range_() {
   char* zErrMsg = 0;
@@ -262,6 +260,7 @@ double sql_count_range_() {
   //printf("HUH: %d\n",
   return count___;
 }
+#endif // ETCH_SQL
 
 static int callback(void *data, int argc, char **argv, char **azColName){
    for(int i = 0; i<argc; i++){
@@ -286,6 +285,7 @@ void load_data_of_size(sqlite3* db, int limit)
   int rc;
   char* data;
 
+#ifdef ETCH_SQL
     sprintf(sql, "SELECT * from (select * from graph1 order by val limit %d) ORDER BY src, tgt", limit);
     ssA1_pos[1] = 0;
     ssB1_pos[1] = 0;
@@ -303,6 +303,8 @@ void load_data_of_size(sqlite3* db, int limit)
     sprintf(sql, "SELECT * from (select * from v order by val limit %d) ORDER BY i", limit);
     rc = sqlite3_exec(db, sql, gen_callback_graph_dV, (void*)data, &zErrMsg);
     rc = sqlite3_exec(db, sql, gen_callback_graph_sV, (void*)data, &zErrMsg);
+#endif // ETCH_SQL
+
 }
 
 //void test_sample_mv(sqlite3* db) {
@@ -316,6 +318,7 @@ void load_data_of_size(sqlite3* db, int limit)
 //  }
 //}
 
+#ifdef ETCH_MATH
 void test_taco(sqlite3* db) {
   char sql[256];
   //char const*sq;
@@ -331,7 +334,9 @@ void test_taco(sqlite3* db) {
 #include "gen_out_taco.c"
   }
 }
+#endif
 
+#ifdef ETCH_SQL
 void test_sql(sqlite3* db) {
   char sql[256];
   //char const*sq;
@@ -348,12 +353,19 @@ void test_sql(sqlite3* db) {
   //std::cout << "val: " << val << std::endl;
   std::cout << "sql took: " << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count() << "μ" << std::endl;
 }
+#endif
+
 int main() {
   char* zErrMsg = 0;
-  int rc;
+  int rc = SQLITE_OK;
   char* data;
 
+#ifdef ETCH_SQL
   rc = sqlite3_open("/home/scott/Dropbox/2022/pldi.db", &db);
+#endif
+#ifdef ETCH_TPCH
+  rc = sqlite3_open("TPC-H.db", &db);
+#endif
 
   if(rc) { fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db)); return(0);
   } else { fprintf(stderr, "Opened database successfully\n");
@@ -371,11 +383,20 @@ int main() {
   //test_sample_mv(db);
   //return 0;
 
+#ifdef ETCH_TPCH
+  // populate_tpch(db);
+  time([]() { return populate_tpch(db); }, "populate_tpch", 1);
+  printf("Loaded\n");
+#endif
+
   // HEY
+#ifdef ETCH_MATH
   test_taco(db);
+#endif
 
   //sqlite3_close(db);
 
+#ifdef ETCH_SQL
   rc = sqlite3_exec(db, "SELECT * from R order by A, B", gen_callback_wcoj_R, (void*)data, &zErrMsg);
   if (rc) printf("nope");
   rc = sqlite3_exec(db, "SELECT * from S order by B, C", gen_callback_wcoj_S, (void*)data, &zErrMsg);
@@ -405,9 +426,16 @@ int main() {
   } else {
      fprintf(stdout, "Operation done successfully\n");
   }
+#endif
   start();
 
+#ifdef ETCH_TPCH
+  time(q5, "q5", 5);
+#endif
+
+#ifdef ETCH_MATH
   printf("the answer: %f\n", taco_wcoj());
+#endif
 
   //HEY
   //test_sql(db);
@@ -434,7 +462,9 @@ int main() {
   //std::cout << " took: " << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count() << "μ" << std::endl;
   //std::cout << " took: " << std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count() << "ms" << std::endl;
 
-#include "gen_out.c"
+  done();
+
+// #include "gen_out.c"
 
   sqlite3_close(db);
   return 0;

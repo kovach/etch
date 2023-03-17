@@ -9,6 +9,10 @@ lean_exe sep {
   root := `Main
 }
 
+lean_exe bench {
+  root := `Etch.Benchmark
+}
+
 --require aesop from git
 --  "https://github.com/JLimperg/aesop"
 require mathlib from git

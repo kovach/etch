@@ -7,7 +7,7 @@ end C
 
 open C
 
-def emitString [ToString α] (a : α) : M Unit := modify λ s => s ++ toString a
+def emitString [ToString α] (a : α) : M Unit := modify (· ++ toString a)
 
 namespace String
 def emit (a : String) : M Unit := _root_.modify $ λ s => s ++ a
@@ -25,6 +25,7 @@ def emitLines [ToString α] (a : Array α) : Op :=
 inductive Expr
 | lit (n : Int)
 | litf (f : Float)
+| lits (s : String)
 | var (v : Var)
 | index (base : Expr) (indices : List Expr)
 | star (addr : Expr)
@@ -37,7 +38,8 @@ inductive Expr
 | false
 deriving Repr
 -- todo? inductive LHS | var (v : Var) | index (base : LHS) (indices : List Expr) deriving Repr
-inductive DeclType | Int | Float deriving Repr
+inductive DeclType | mk : String → DeclType 
+deriving Repr
 inductive Stmt
 | forIn : (n : Nat) → Var → Stmt → Stmt
 | while : Expr → Stmt → Stmt
@@ -52,6 +54,15 @@ inductive Stmt
 | block : Stmt → Stmt
 | break_
 deriving Repr
+
+class TaggedC (α : Type _) where
+  tag : DeclType
+
+instance : TaggedC Nat := ⟨⟨"int"⟩⟩ 
+instance : TaggedC Int := ⟨⟨"int"⟩⟩ 
+instance : TaggedC Float := ⟨⟨"float"⟩⟩
+instance : TaggedC Bool := ⟨⟨"bool"⟩⟩ 
+instance : TaggedC String := ⟨⟨"const char *"⟩⟩ 
 
 instance : OfNat Expr n where
   ofNat := Expr.lit n
@@ -68,6 +79,7 @@ def wrap (s : String) : String := String.wrap s
 partial def toString : Expr → String
   | lit n => ToString.toString n
   | litf n => ToString.toString n
+  | lits s => "\"" ++ s ++ "\"" -- TODO: escape
   | var v => v
   | index n indices => toString n ++ (indices.map λ i => "[" ++ toString i ++ "]").foldl String.append ""
   | star addr => "*" ++ addr.toString
@@ -87,8 +99,7 @@ def emit : Expr → Op := String.emit ∘ toString
 end Expr
 
 def DeclType.emit
-| Int => "int".emit
-| Float => "float".emit
+| mk s => s.emit
 
 namespace Stmt
 
