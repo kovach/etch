@@ -132,6 +132,10 @@ tpch-csv-$(1)-q5: TPC-H-$(1).db bench/tpch-q5-duckdb-export-to-csv.sql $$(DUCKDB
 run-tpch-$(1)-q5-duckdb: tpch-csv-$(1)-q5 bench/tpch-q5-duckdb-prep.sql bench/tpch-q5-duckdb.sql $$(DUCKDB)
 	sed -e 's#tpch-csv-q5#$$<#g' bench/tpch-q5-duckdb-prep.sql bench/tpch-q5-duckdb.sql | $$(DUCKDB)
 
+.PHONY: run-tpch-$(1)-q5-duckdbforeign
+run-tpch-$(1)-q5-duckdbforeign: tpch-csv-$(1)-q5 bench/tpch-q5-duckdb-prep-foreign-key.sql bench/tpch-q5-duckdb.sql $$(DUCKDB)
+	sed -e 's#tpch-csv-q5#$$<#g' bench/tpch-q5-duckdb-prep-foreign-key.sql bench/tpch-q5-duckdb.sql | $$(DUCKDB)
+
 .PHONY: run-tpch-$(1)-q5-etch
 run-tpch-$(1)-q5-etch: out TPC-H-$(1).db
 	ln -sf TPC-H-$(1).db TPC-H.db
