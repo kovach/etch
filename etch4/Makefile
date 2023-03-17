@@ -91,13 +91,34 @@ duckdb/duckdb: $(DUCKDB_ZIP)
 	unzip -p $< duckdb >$@
 	chmod +x $@
 
+# Files produced using https://github.com/lovasoa/TPCH-sqlite
 TPC-H-x0.01.db:
 	curl -Lo $@ https://github.com/lovasoa/TPCH-sqlite/releases/download/v1.0/TPC-H-small.db
 	echo '3e178ac56ffad2446ce9a555fab14333eb8a1038d59f4f1c30496914e2a87171 $@' | sha256sum -c
-
+TPC-H-x0.025.db:
+	curl -Lo $@ https://github.com/kovach/etch/releases/download/files/TPC-H-x0.025.db
+	echo '19bb3bf0efe421959ad28d8a99ee361d6c7e1a1cd2747d5ae6268b374d49b822 $@' | sha256sum -c
+TPC-H-x0.05.db:
+	curl -Lo $@ https://github.com/kovach/etch/releases/download/files/TPC-H-x0.05.db
+	echo '2d99f10cb5786ae409d3730ad778f8e837937b5b91e466cb2cbae0e386fd784f $@' | sha256sum -c
+TPC-H-x0.1.db:
+	curl -Lo $@ https://github.com/kovach/etch/releases/download/files/TPC-H-x0.1.db
+	echo 'cfe8f5724d78eebf27ce2b1f447a29266d874750689f43835791b2ee51101e75 $@' | sha256sum -c
+TPC-H-x0.25.db:
+	curl -Lo $@ https://github.com/kovach/etch/releases/download/files/TPC-H-x0.25.db
+	echo '384483c067fc46ef4384dcb44d5c66b9415939d448a9d03dce2d80cb5b16c692 $@' | sha256sum -c
+TPC-H-x0.5.db:
+	curl -Lo $@ https://github.com/kovach/etch/releases/download/files/TPC-H-x0.5.db
+	echo 'f2788cbedb42f4cc4fb4f5fd09d9d61cf9c738a9030d4de1da0c3fe739fa0cde $@' | sha256sum -c
 TPC-H-x1.db:
 	curl -Lo $@ https://github.com/lovasoa/TPCH-sqlite/releases/download/v1.0/TPC-H.db
 	echo 'be2a81a548d930ae8c7a9eb427c44f73e2a753d53ffb16bb2a13f89ec8eb8bc8 $@' | sha256sum -c
+TPC-H-x2.db:
+	@echo 'Download this file at https://drive.google.com/file/d/158GjzzWj4wnGxDt3NfBKXFg-Hgj5e74O/view?usp=sharing' && false
+	@#echo 'aa73478b811c4cb1323fbc98993899ab2018064e6b47e7c31868a661c7f8b5b6 $@' | sha256sum -c
+TPC-H-x4.db:
+	@echo 'Download this file at https://drive.google.com/file/d/14aM_1IY7ACLOzRtS1LKpRYGweDXZZF0M/view?usp=sharing' && false
+	@#echo '9530ea95daecc3c8e411f9a7eb8a78ece3aaaae4b285729e45253283ea091f36 $@' | sha256sum -c
 
 define TPCH_TEMPLATE
 # Generate CSV files for TPC-H datasets
@@ -124,7 +145,14 @@ run-tpch-$(1)-q5-sqlite: bench/tpch-q5-sqlite-prep.sql bench/tpch-q5-sqlite.sql 
 endef
 
 $(eval $(call TPCH_TEMPLATE,x0.01))
+$(eval $(call TPCH_TEMPLATE,x0.025))
+$(eval $(call TPCH_TEMPLATE,x0.05))
+$(eval $(call TPCH_TEMPLATE,x0.1))
+$(eval $(call TPCH_TEMPLATE,x0.25))
+$(eval $(call TPCH_TEMPLATE,x0.5))
 $(eval $(call TPCH_TEMPLATE,x1))
+$(eval $(call TPCH_TEMPLATE,x2))
+$(eval $(call TPCH_TEMPLATE,x4))
 
 
 .PHONY: clean
