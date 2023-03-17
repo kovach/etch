@@ -99,8 +99,8 @@ variable {ι : Type} [Tagged ι] [DecidableEq ι]
 -- todo: replace default interval
 def TACO.interval (pos : Var ℕ) (lower upper : E ℕ) : ι →ₛ (E ℕ) where
   σ := Var ℕ
-  succ _ pos i := .store_var pos $ pos + .call Op.ofBool ![(E.access is pos.expr <= i)]
-  skip _ pos i := .store_var pos $ pos + .call Op.ofBool ![(E.access is pos.expr << i)]
+  succ pos i := .store_var pos $ pos + .call Op.ofBool ![(E.access is pos.expr <= i)]
+  skip pos i := .store_var pos $ pos + .call Op.ofBool ![(E.access is pos.expr << i)]
   value pos := pos.expr
   ready _   := 1
   index pos := .access is pos.expr
@@ -278,7 +278,7 @@ end String
 
 -- CSR, but assume pos[i] = i (inherit the position from the previous level)
 def csr.inherit
-  {ι : Type} [Tagged ι] [TaggedC ι] [LT ι] [@DecidableRel ι LT.lt] [LE ι] [@DecidableRel ι LE.le]
+  {ι : Type} [Tagged ι] [TaggedC ι] [LT ι] [@DecidableRel ι LT.lt] [LE ι] [@DecidableRel ι LE.le] [Zero ι]
   (vars : csr ι ℕ) (loc : E ℕ) : ι →ₛ (E ℕ) :=
   S.interval vars.i .step vars.var loc (loc+1)
 
@@ -296,10 +296,10 @@ abbrev extendedprice := (8, R)
 abbrev discount   := (9, R)
 
 variable
-{ι₁ : Type} [Tagged ι₁] [TaggedC ι₁] [LT ι₁] [@DecidableRel ι₁ LT.lt] [LE ι₁] [@DecidableRel ι₁ LE.le]
-{ι₂ : Type} [Tagged ι₂] [TaggedC ι₂] [LT ι₂] [@DecidableRel ι₂ LT.lt] [LE ι₂] [@DecidableRel ι₂ LE.le]
-{ι₃ : Type} [Tagged ι₃] [TaggedC ι₃] [LT ι₃] [@DecidableRel ι₃ LT.lt] [LE ι₃] [@DecidableRel ι₃ LE.le]
-{ι₄ : Type} [Tagged ι₄] [TaggedC ι₄] [LT ι₄] [@DecidableRel ι₄ LT.lt] [LE ι₄] [@DecidableRel ι₄ LE.le]
+{ι₁ : Type} [Tagged ι₁] [TaggedC ι₁] [LT ι₁] [@DecidableRel ι₁ LT.lt] [LE ι₁] [@DecidableRel ι₁ LE.le] [Zero ι₁]
+{ι₂ : Type} [Tagged ι₂] [TaggedC ι₂] [LT ι₂] [@DecidableRel ι₂ LT.lt] [LE ι₂] [@DecidableRel ι₂ LE.le] [Zero ι₂]
+{ι₃ : Type} [Tagged ι₃] [TaggedC ι₃] [LT ι₃] [@DecidableRel ι₃ LT.lt] [LE ι₃] [@DecidableRel ι₃ LE.le] [Zero ι₃]
+{ι₄ : Type} [Tagged ι₄] [TaggedC ι₄] [LT ι₄] [@DecidableRel ι₄ LT.lt] [LE ι₄] [@DecidableRel ι₄ LE.le] [Zero ι₄]
 
 def ss   (f : String) (leaf : E ℕ → α) : ι₁ →ₛ ι₂ →ₛ α :=
   ((csr.of f 1 ι₁).level .search 0) |>
@@ -374,9 +374,8 @@ def tmp4 := tmp4'.hMul tmp2 tmp3
 
 -- def tmp4' := instHMul_1.hMul tmp2 tmp3
 
--- HACK
 def Str.to_g_r {n} : (n × R ⟶ α) → (R →ₛ α)
-| .fun f => absurd trivial (by sorry)
+| .fun f => absurd trivial sorry -- HACK
 | .str a => a
 instance sum_eq_r (n : ℕ) : SumIndex n (n × R ⟶ α) (Contraction α) := ⟨S.contract ∘ Str.to_g_r⟩
 
@@ -433,14 +432,14 @@ def taco_ops : List (String × String × String) :=
 instance S.step' {L R} [Compile L R] [TaggedC ι] {n : ℕ} : Compile (lvl ι L) (n × ι ⟶ R) where
   compile n l
   | .str r =>
-      let (init, s) := r.init emptyName
+      let (init, s) := r.init n
       let (push, position) := l.push (r.index s)
       let temp := ("index_lower_bound" : Var ι).fresh n
       init;; .while (r.valid s)
         (.decl temp (r.index s);;
         .branch (r.ready s)
-          (push;; Compile.compile (n.fresh 0) position (r.value s);; (r.succ (n.fresh 1) s temp))
-          (r.skip n.freshen s temp))
+          (push;; Compile.compile (n.fresh 0) position (r.value s);; (r.succ s temp))
+          (r.skip s temp))
   | .fun _ => .skip -- HACK
 
 def sql_ops : List (String × String) :=

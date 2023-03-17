@@ -40,10 +40,10 @@ def S.add [HAdd α β γ] [Guard α] [Guard β] (a : S ι α) (b : S ι β) : S 
   value := λ (p, t) =>
              (Guard.guard t.cv₁ ((S_le a b p) * a.ready p.1) $ a.value p.1) +
              (Guard.guard t.cv₂ ((S_le b a p.symm) * b.ready p.2) $ b.value p.2)
-  skip  := λ n (p, _) i => a.skip (n.fresh 0) p.1 i ;; b.skip (n.fresh 1) p.2 i
-  succ  := λ n (p, t) i =>
+  skip  := λ (p, _) i => a.skip p.1 i ;; b.skip p.2 i
+  succ  := λ (p, t) i =>
     t.ci.decl i;;
-    a.succ (n.fresh 0) p.1 t.ci;; b.succ (n.fresh 1) p.2 t.ci
+    a.succ p.1 t.ci;; b.succ p.2 t.ci
   ready := λ (p, _) => (S_le a b p) * a.ready p.1 + (S_le b a p.symm) * b.ready p.2
   index := λ (p, _) => .call Op.ternary ![S_le a b p, a.index p.1, b.index p.2]
   valid := λ (p, _) => a.valid p.1 + b.valid p.2

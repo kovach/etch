@@ -18,24 +18,24 @@ instance base_mem [Tagged α] [Add α] : Compile (MemLoc α) (E α) where
 
 instance S.step [Compile L R] [TaggedC ι] : Compile (lvl ι L) (ι →ₛ R) where
   compile n l r :=
-    let (init, s) := r.init emptyName
+    let (init, s) := r.init n
     let (push, position) := l.push (r.index s)
     let temp := ("index_lower_bound" : Var ι).fresh n
     init;; .while (r.valid s)
       (.decl temp (r.index s);;
        .branch (r.ready s)
-         (push;; compile (n.fresh 0) position (r.value s);; (r.succ (n.fresh 1) s temp))
-         (r.skip n.freshen s temp))
+         (push;; compile (n.fresh 0) position (r.value s);; (r.succ s temp))
+         (r.skip s temp))
 
 instance contract [Compile α β] : Compile α (Contraction β) where
   compile n := λ storage ⟨ι, _, v⟩ =>
-    let (init, s) := v.init emptyName
+    let (init, s) := v.init n
     let temp := ("index_lower_bound" : Var ι).fresh n
     init ;; .while (v.valid s)
       (.decl temp (v.index s);;
        .branch (v.ready s)
-        (Compile.compile (n.fresh 0) storage (v.value s);; v.succ (n.fresh 1) s temp)
-        (v.skip n.freshen s temp))
+        (Compile.compile (n.fresh 0) storage (v.value s);; v.succ s temp)
+        (v.skip s temp))
 
 -- Used only to generate callback for data loading
 instance [Compile α β] : Compile (lvl ι α) (E ι × β) where

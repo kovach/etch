@@ -135,6 +135,7 @@ static inline bool    bool_one() { return 1; }
 static inline bool    bool_zero() { return 0; }
 static inline bool    bool_neg(bool x) { return !x; }
 
+static inline const char* str_zero() { return ""; }
 static inline bool   str_lt(const char* a, const char* b) { return strcmp(a, b) < 0; }
 static inline bool   str_le(const char* a, const char* b) { return strcmp(a, b) <= 0; }
 static inline int    str_find(const char* haystack, const char* needle) {

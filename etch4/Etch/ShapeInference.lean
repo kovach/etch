@@ -145,7 +145,7 @@ def Str.to_g {n} : (n × ι ⟶ α) → (ι →ₛ α)
 | .str a => a
 
 def Str.to_g_str {n} : (n × String ⟶ α) → (String →ₛ α)
-| .fun f => absurd trivial (by sorry)
+| .fun f => absurd trivial sorry  -- HACK
 | .str a => a
 
 instance [of_stream α β] : of_stream (n × ι ⟶ α) (ι →ₛ β) := ⟨

@@ -51,5 +51,6 @@
 #define bool_zero() false
 #define bool_neg(a) (!a)
 
+#define str_zero() ""
 #define macro_ternary(c, x, y) ((c) ? x : y)
 #define index_str_map(m, s) &m[s]

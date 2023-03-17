@@ -98,8 +98,8 @@ structure S (ι : Type _) (α : Type _) where
   σ     : Type
   -- next_weak/next_strict?
   -- upto/past ?
-  skip  : Name → σ → E ι → P -- skip _ s i : if current index < i, must advance; may advance to first index ≥ i.
-  succ  : Name → σ → E ι → P -- succ _ s i : if current index ≤ i, must advance; may advance to first index > i.
+  skip  : σ → E ι → P -- skip _ s i : if current index < i, must advance; may advance to first index ≥ i.
+  succ  : σ → E ι → P -- succ _ s i : if current index ≤ i, must advance; may advance to first index > i.
   value : σ → α
   ready : σ → E Bool
   index : σ → E ι
@@ -129,97 +129,110 @@ instance : Functor (S ι) where map := λ f s => {s with value := f ∘ s.value 
 
 variable [TaggedC ι]
 
-def simpleSkip (n : Name) (pos : Var ℕ) (max_pos : E ℕ) (tgt : E ι) :=
-  let tmp : Var ι := ("temp" : Var _).fresh n
-  tmp.decl tgt;;
-  .while ((pos.expr << max_pos) * (is.access pos << tmp.expr)) $
+structure SkipState (ι : Type) [TaggedC ι] where
+  tmp : Var ι
+  hi  : Var ℕ
+  lo  : Var ℕ
+  m   : Var ℕ
+  notDone : Var Bool
+
+def SkipState.initSimple [Zero (E ι)] (n : Name) : SkipState ι × P :=
+  let ss : SkipState ι := {
+    tmp := .fresh "temp" n
+    hi  := "" -- never used
+    lo  := "" -- never used
+    m   := "" -- never used
+    notDone := "" -- never used
+  }
+  ⟨ss, .decl ss.tmp 0⟩
+
+def SkipState.initSearch [Zero (E ι)] (n : Name) : SkipState ι × P :=
+  let ss : SkipState ι := {
+    tmp := .fresh "temp" n
+    hi  := .fresh "hi" n
+    lo  := .fresh "lo" n
+    m   := .fresh "m" n
+    notDone := .fresh "not_done" n
+  }
+  ⟨ss, .decl ss.tmp 0;; .decl ss.hi 0;; .decl ss.lo 0;; .decl ss.m 0;; .decl ss.notDone 0⟩
+
+def simpleSkip (ss : SkipState ι) (pos : Var ℕ) (max_pos : E ℕ) (tgt : E ι) :=
+  ss.tmp.store_var tgt;;
+  .while ((pos.expr << max_pos) * (is.access pos << ss.tmp.expr)) $
     pos.incr
 
-def searchSkip (n : Name) (pos : Var ℕ) (max_pos : E ℕ) (i : E ι) : P :=
-let hi  : Var ℕ := .fresh "hi"   n
-let lo  : Var ℕ := .fresh "lo"   n
-let m   : Var ℕ := .fresh "m"    n
-let tgt : Var ι := .fresh "temp" n
-let not_done : Var Bool := .fresh "not_done" n
-tgt.decl i;;
-lo.decl pos;;
-hi.decl max_pos;;
-not_done.decl 1;;
-(.while ((lo.expr <= hi.expr) * not_done) $
-  m.decl (E.call .mid ![lo.expr, hi.expr]) ;;
-  .branch (.access is m << tgt.expr)
-    (.store_var lo (m + 1))
-    (.branch (tgt.expr << .access is "m")
-      (.store_var hi (m - 1))
-      ((.store_var not_done 0);; .store_var lo m))) ;;
-  .store_var pos lo
+def searchSkip (ss : SkipState ι) (pos : Var ℕ) (max_pos : E ℕ) (i : E ι) : P :=
+  ss.tmp.store_var i;;
+  ss.lo.store_var pos;;
+  ss.hi.store_var max_pos;;
+  ss.notDone.store_var 1;;
+  (.while ((ss.lo.expr <= ss.hi.expr) * ss.notDone) <|
+    ss.m.store_var (.call .mid ![ss.lo.expr, ss.hi.expr]) ;;
+    .branch (is.access ss.m << ss.tmp.expr)
+      (ss.lo.store_var (ss.m + 1))
+      (.branch (ss.tmp.expr << is.access ss.m)
+        (ss.hi.store_var (ss.m - 1))
+        (ss.notDone.store_var 0;; ss.lo.store_var ss.m)));;
+  pos.store_var ss.lo
 
 inductive IterMethod | step | search
 
-variable [LE ι] [TaggedC ι] [DecidableRel (LE.le : ι → ι → _)]
+variable [LE ι] [TaggedC ι] [DecidableRel (LE.le : ι → ι → _)] [Zero ι]
 
 -- [lower, upper)
 def S.predRange [One α] (lower upper : E ι) : S ι α where
   σ := Var ι
-  value     _ := 1
-  succ  _ _ _ := .skip
-  ready     _ := 1
-  skip  _ pos := pos.store_var
-  index   pos := pos
-  valid   pos := pos.expr << upper
-  init    n   := let p := .fresh "pos" n; (p.decl lower, p)
+  value   _ := 1
+  succ  _ _ := .skip
+  ready   _ := 1
+  skip  pos := pos.store_var
+  index pos := pos
+  valid pos := pos.expr << upper
+  init  n   := let p := .fresh "pos" n; (p.decl lower, p)
 
 -- [lower, upper]
 def S.predRangeIncl [One α] (lower upper : E ι) : S ι α where
   σ := Var ι
-  value     _ := 1
-  succ  _ _ _ := .skip
-  ready     _ := 1
-  skip  _ pos := pos.store_var
-  index   pos := pos
-  valid   pos := pos.expr <= upper
-  init  n     := let p := .fresh "pos" n; (p.decl lower, p)
-
-def S.predicate [One α] (lower : E ι) (pred : Var ι → E Bool) : S ι α where
-  σ := Var ι
-  value     _ := 1
-  succ  _ _ _ := .skip
-  ready       := pred
-  skip  _ pos := pos.store_var
-  index   pos := pos
-  valid     _ := 1
-  init  n     := let p := .fresh "pos" n; (p.decl lower, p)
+  value   _ := 1
+  succ  _ _ := .skip
+  ready   _ := 1
+  skip  pos := pos.store_var
+  index pos := pos
+  valid pos := pos.expr <= upper
+  init  n   := let p := .fresh "pos" n; (p.decl lower, p)
 
 def S.interval (h : IterMethod) (pos : Var ℕ) (lower upper : E ℕ) : S ι (E ℕ) where
-  σ := Var ℕ
-  value pos := pos.expr
-  succ  _ pos i := .if1 (.access is pos.expr <= i) pos.incr
-  skip  n pos := (match h with | .step => simpleSkip | .search => searchSkip) is n pos upper
-  ready _   := 1
-  index pos := .access is pos.expr
-  valid pos := pos.expr << upper
-  init  n   := let p := pos.fresh n; (p.decl lower, p)
+  σ := Var ℕ × SkipState ι
+  value   := fun ⟨pos, _⟩ => pos.expr
+  succ    := fun ⟨pos, _⟩ i => .if1 (is.access pos.expr <= i) pos.incr
+  skip    := fun ⟨pos, ss⟩ => (match h with | .step => simpleSkip | .search => searchSkip) is ss pos upper
+  ready   := Function.const _ 1
+  index   := fun ⟨pos, _⟩ => is.access pos.expr
+  valid   := fun ⟨pos, _⟩ => pos.expr << upper
+  init  n := let p := pos.fresh n;
+             let ⟨ss, ssInit⟩ := (match h with | .step => SkipState.initSimple | .search => SkipState.initSearch) n
+             (p.decl lower ;; ssInit, (p, ss))
 
 -- todo: use instead of zero
 --class Bot (α : Type _) := (bot : α)
 --notation "⊥"  => Bot.bot
-def S.univ [Zero ι] [Add ι] [OfNat ι 1] [TaggedC ι] (max l : Var ι) : S ι (E ι) where
+def S.univ [Add ι] [OfNat ι 1] [TaggedC ι] (max l : Var ι) : S ι (E ι) where
   value last := last.expr
-  succ  _ last i := .if1 (last.expr <= i) last.incr  -- imprecise but ok
+  succ  last i := .if1 (last.expr <= i) last.incr  -- imprecise but ok
   ready _    := 1
-  skip  _ last := last.store_var
+  skip  last := last.store_var
   index last := last.expr
   valid last := last.expr << max.expr
   init  n    := let v := l.fresh n; (v.decl 0, v)
 
 def S.valFilter (f : α → E Bool) (s : ι →ₛ α) : ι →ₛ α :=
 { s with ready := λ p => s.ready p * f (s.value p),
-         skip := λ n p i =>
+         skip := λ p i =>
            .branch (s.ready p)
              (.branch (f (s.value p))
-               (s.skip (n.fresh 0) p i)
-               (s.succ (n.fresh 0) p i;; s.skip (n.fresh 1) p i))
-             (s.skip (n.fresh 0) p i) }
+               (s.skip p i)
+               (s.succ p i;; s.skip p i))
+             (s.skip p i) }
 
 def dim : Var ι := "dim"
 
