@@ -1,11 +1,6 @@
--- Load TPC-H dataset for Query 5
-
 .echo on
 
-INSTALL sqlite;
-LOAD sqlite;
-
-SET GLOBAL sqlite_all_varchar=true;
+---------------- load data into memory
 
 CREATE TABLE REGION  ( R_REGIONKEY  INTEGER NOT NULL,
                             R_NAME       CHAR(25) NOT NULL,
@@ -31,27 +26,11 @@ CREATE TABLE LINEITEM ( L_ORDERKEY    INTEGER NOT NULL,
                              L_DISCOUNT    DOUBLE NOT NULL,
                              PRIMARY KEY (L_ORDERKEY, L_LINENUMBER));
 
-INSERT INTO REGION
-SELECT R_REGIONKEY, R_NAME FROM sqlite_scan('TPC-H.db', 'REGION');
+COPY REGION   FROM 'tpch-csv-q5/region.csv'   (HEADER TRUE, DELIMITER ',');
+COPY NATION   FROM 'tpch-csv-q5/nation.csv'   (HEADER TRUE, DELIMITER ',');
+COPY SUPPLIER FROM 'tpch-csv-q5/supplier.csv' (HEADER TRUE, DELIMITER ',');
+COPY CUSTOMER FROM 'tpch-csv-q5/customer.csv' (HEADER TRUE, DELIMITER ',');
+COPY ORDERS   FROM 'tpch-csv-q5/orders.csv'   (HEADER TRUE, DELIMITER ',');
+COPY LINEITEM FROM 'tpch-csv-q5/lineitem.csv' (HEADER TRUE, DELIMITER ',');
 
-INSERT INTO NATION
-SELECT N_NATIONKEY, N_REGIONKEY, N_NAME FROM sqlite_scan('TPC-H.db', 'NATION');
-
-INSERT INTO SUPPLIER
-SELECT S_SUPPKEY, S_NATIONKEY FROM sqlite_scan('TPC-H.db', 'SUPPLIER');
-
-INSERT INTO CUSTOMER
-SELECT C_CUSTKEY, C_NATIONKEY FROM sqlite_scan('TPC-H.db', 'CUSTOMER');
-
-INSERT INTO ORDERS
-SELECT O_ORDERKEY, O_CUSTKEY, O_ORDERDATE FROM sqlite_scan('TPC-H.db', 'ORDERS');
-
-INSERT INTO LINEITEM
-SELECT L_ORDERKEY, L_SUPPKEY, L_LINENUMBER, L_EXTENDEDPRICE, L_DISCOUNT FROM sqlite_scan('TPC-H.db', 'LINEITEM');
-
-COPY REGION   TO 'tpch-csv/region.csv'   (HEADER, DELIMITER ',');
-COPY NATION   TO 'tpch-csv/nation.csv'   (HEADER, DELIMITER ',');
-COPY SUPPLIER TO 'tpch-csv/supplier.csv' (HEADER, DELIMITER ',');
-COPY CUSTOMER TO 'tpch-csv/customer.csv' (HEADER, DELIMITER ',');
-COPY ORDERS   TO 'tpch-csv/orders.csv'   (HEADER, DELIMITER ',');
-COPY LINEITEM TO 'tpch-csv/lineitem.csv' (HEADER, DELIMITER ',');
+PRAGMA database_size;

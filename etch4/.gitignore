@@ -1,14 +1,18 @@
-lake-packages
+/build
+/lake-packages
 
 *.o
+.gdb_history
 out
 
 # data files (see Makefile)
 sqlite3.c
 sqlite3.h
 sqlite-amalgamation-*
+sqlite3/
 duckdb_cli-*
 duckdb/
 tmp.duckdb
-TPC-H-x1.db
-tpch-csv-x1-q5/
+TPC-H.db
+TPC-H-*.db
+tpch-csv-*/

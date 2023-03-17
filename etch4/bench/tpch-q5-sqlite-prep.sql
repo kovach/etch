@@ -1,11 +1,4 @@
--- Load TPC-H dataset for Query 5
-
 .echo on
-
-INSTALL sqlite;
-LOAD sqlite;
-
-SET GLOBAL sqlite_all_varchar=true;
 
 CREATE TABLE REGION  ( R_REGIONKEY  INTEGER NOT NULL,
                             R_NAME       CHAR(25) NOT NULL,
@@ -31,27 +24,40 @@ CREATE TABLE LINEITEM ( L_ORDERKEY    INTEGER NOT NULL,
                              L_DISCOUNT    DOUBLE NOT NULL,
                              PRIMARY KEY (L_ORDERKEY, L_LINENUMBER));
 
-INSERT INTO REGION
-SELECT R_REGIONKEY, R_NAME FROM sqlite_scan('TPC-H.db', 'REGION');
+CREATE INDEX REGION_idx_q5 ON REGION(R_REGIONKEY, R_NAME);
+CREATE INDEX NATION_idx_q5 ON NATION(N_NATIONKEY, N_REGIONKEY, N_NAME);
+CREATE INDEX SUPPLIER_idx_q5 ON SUPPLIER(S_SUPPKEY, S_NATIONKEY);
+CREATE INDEX ORDERS_idx_q5 ON ORDERS(O_ORDERKEY, O_ORDERDATE, O_CUSTKEY);
+CREATE INDEX CUSTOMER_idx_q5 ON CUSTOMER(C_CUSTKEY, C_NATIONKEY);
+CREATE INDEX LINEITEM_idx_q5 ON LINEITEM(L_ORDERKEY, L_SUPPKEY, L_EXTENDEDPRICE, L_DISCOUNT);
 
-INSERT INTO NATION
-SELECT N_NATIONKEY, N_REGIONKEY, N_NAME FROM sqlite_scan('TPC-H.db', 'NATION');
+ATTACH DATABASE 'TPC-H.db' AS t;
 
-INSERT INTO SUPPLIER
-SELECT S_SUPPKEY, S_NATIONKEY FROM sqlite_scan('TPC-H.db', 'SUPPLIER');
+INSERT INTO region
+SELECT r_regionkey, r_name
+FROM t.region;
 
-INSERT INTO CUSTOMER
-SELECT C_CUSTKEY, C_NATIONKEY FROM sqlite_scan('TPC-H.db', 'CUSTOMER');
+INSERT INTO nation
+SELECT n_nationkey, n_regionkey, n_name
+FROM t.nation;
 
-INSERT INTO ORDERS
-SELECT O_ORDERKEY, O_CUSTKEY, O_ORDERDATE FROM sqlite_scan('TPC-H.db', 'ORDERS');
+INSERT INTO supplier
+SELECT s_suppkey, s_nationkey
+FROM t.supplier;
 
-INSERT INTO LINEITEM
-SELECT L_ORDERKEY, L_SUPPKEY, L_LINENUMBER, L_EXTENDEDPRICE, L_DISCOUNT FROM sqlite_scan('TPC-H.db', 'LINEITEM');
+INSERT INTO customer
+SELECT c_custkey, c_nationkey
+FROM t.customer;
 
-COPY REGION   TO 'tpch-csv/region.csv'   (HEADER, DELIMITER ',');
-COPY NATION   TO 'tpch-csv/nation.csv'   (HEADER, DELIMITER ',');
-COPY SUPPLIER TO 'tpch-csv/supplier.csv' (HEADER, DELIMITER ',');
-COPY CUSTOMER TO 'tpch-csv/customer.csv' (HEADER, DELIMITER ',');
-COPY ORDERS   TO 'tpch-csv/orders.csv'   (HEADER, DELIMITER ',');
-COPY LINEITEM TO 'tpch-csv/lineitem.csv' (HEADER, DELIMITER ',');
+INSERT INTO orders
+SELECT o_orderkey, o_custkey, o_orderdate
+FROM t.orders;
+
+INSERT INTO lineitem
+SELECT l_orderkey, l_suppkey, l_linenumber, l_extendedprice, l_discount
+FROM t.lineitem;
+
+DETACH DATABASE t;
+
+SELECT page_count * page_size as size
+FROM pragma_page_count(), pragma_page_size();

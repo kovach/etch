@@ -18,8 +18,8 @@ where
   and s_nationkey = n_nationkey
   and n_regionkey = r_regionkey
   and r_name = 'ASIA'
-  and unixepoch(o_orderdate, 'utc') >= unixepoch('1994-01-01', 'utc')
-  and unixepoch(o_orderdate, 'utc') < unixepoch('1995-01-01', 'utc')
+  and o_orderdate >= '1994-01-01'
+  and o_orderdate < '1995-01-01'
 group by
  n_name;
 
@@ -41,8 +41,8 @@ where
   and s_nationkey = n_nationkey
   and n_regionkey = r_regionkey
   and r_name = 'ASIA'
-  and unixepoch(o_orderdate, 'utc') >= unixepoch('1994-01-01', 'utc')
-  and unixepoch(o_orderdate, 'utc') < unixepoch('1995-01-01', 'utc')
+  and o_orderdate >= '1994-01-01'
+  and o_orderdate < '1995-01-01'
 group by
  n_name;
 
@@ -64,8 +64,8 @@ where
   and s_nationkey = n_nationkey
   and n_regionkey = r_regionkey
   and r_name = 'ASIA'
-  and unixepoch(o_orderdate, 'utc') >= unixepoch('1994-01-01', 'utc')
-  and unixepoch(o_orderdate, 'utc') < unixepoch('1995-01-01', 'utc')
+  and o_orderdate >= '1994-01-01'
+  and o_orderdate < '1995-01-01'
 group by
  n_name;
 
@@ -87,8 +87,8 @@ where
   and s_nationkey = n_nationkey
   and n_regionkey = r_regionkey
   and r_name = 'ASIA'
-  and unixepoch(o_orderdate, 'utc') >= unixepoch('1994-01-01', 'utc')
-  and unixepoch(o_orderdate, 'utc') < unixepoch('1995-01-01', 'utc')
+  and o_orderdate >= '1994-01-01'
+  and o_orderdate < '1995-01-01'
 group by
  n_name;
 
@@ -110,10 +110,12 @@ where
   and s_nationkey = n_nationkey
   and n_regionkey = r_regionkey
   and r_name = 'ASIA'
-  and unixepoch(o_orderdate, 'utc') >= unixepoch('1994-01-01', 'utc')
-  and unixepoch(o_orderdate, 'utc') < unixepoch('1995-01-01', 'utc')
+  and o_orderdate >= '1994-01-01'
+  and o_orderdate < '1995-01-01'
 group by
  n_name;
+
+.timer off
 
 EXPLAIN QUERY PLAN
 select
@@ -134,7 +136,7 @@ where
   and s_nationkey = n_nationkey
   and n_regionkey = r_regionkey
   and r_name = 'ASIA'
-  and unixepoch(o_orderdate, 'utc') >= unixepoch('1994-01-01', 'utc')
-  and unixepoch(o_orderdate, 'utc') < unixepoch('1995-01-01', 'utc')
+  and o_orderdate >= '1994-01-01'
+  and o_orderdate < '1995-01-01'
 group by
  n_name;
