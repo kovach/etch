@@ -1,5 +1,3 @@
-.echo on
-
 ---------------- load data into memory
 
 
@@ -36,3 +34,5 @@ COPY ORDERS   FROM 'tpch-csv-q5/orders.csv'   (HEADER TRUE, DELIMITER ',');
 COPY LINEITEM FROM 'tpch-csv-q5/lineitem.csv' (HEADER TRUE, DELIMITER ',');
 
 PRAGMA database_size;
+
+PRAGMA threads=1;

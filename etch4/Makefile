@@ -31,9 +31,12 @@ SQLITE_CPPFLAGS := -I. \
 SQLITE_LDLIBS += -lm
 
 DUCKDB_VERSION := v0.7.1
-DUCKDB_ZIP := duckdb_cli-$(DUCKDB_VERSION)-linux-amd64.zip
-DUCKDB_URL := https://github.com/duckdb/duckdb/releases/download/$(DUCKDB_VERSION)/duckdb_cli-linux-amd64.zip
-DUCKDB_SHA256 := ca44c8dceea83287ba2b22216344f432e706e2dafe27a8c8cfd9bfaf77f4767f
+DUCKDB_CLI_ZIP := duckdb_cli-$(DUCKDB_VERSION)-linux-amd64.zip
+DUCKDB_CLI_URL := https://github.com/duckdb/duckdb/releases/download/$(DUCKDB_VERSION)/duckdb_cli-linux-amd64.zip
+DUCKDB_CLI_SHA256 := ca44c8dceea83287ba2b22216344f432e706e2dafe27a8c8cfd9bfaf77f4767f
+LIBDUCKDB_ZIP := libduckdb-$(DUCKDB_VERSION)-linux-amd64.zip
+LIBDUCKDB_URL := https://github.com/duckdb/duckdb/releases/download/$(DUCKDB_VERSION)/libduckdb-linux-amd64.zip
+LIBDUCKDB_SHA256 := 1c15e0f142f6183e60d7a77b068b902532264519f2fd08dedc18573b7f507251
 
 # default to our vendored copy of duckdb and sqlite3
 DUCKDB ?= duckdb/duckdb
@@ -82,14 +85,27 @@ sqlite3/shell: sqlite3/shell.c sqlite3.o
 sqlite3/shell: CPPFLAGS += $(SQLITE_CPPFLAGS)
 sqlite3/shell: LDLIBS += $(SQLITE_LDLIBS)
 
-$(DUCKDB_ZIP):
-	curl -Lo $@ $(DUCKDB_URL)
-	echo '$(DUCKDB_SHA256) $(DUCKDB_ZIP)' | sha256sum -c
+$(DUCKDB_CLI_ZIP):
+	curl -Lo $@ $(DUCKDB_CLI_URL)
+	echo '$(DUCKDB_CLI_SHA256) $(DUCKDB_CLI_ZIP)' | sha256sum -c
 
-duckdb/duckdb: $(DUCKDB_ZIP)
+duckdb/duckdb: $(DUCKDB_CLI_ZIP)
 	mkdir -p duckdb
 	unzip -p $< duckdb >$@
 	chmod +x $@
+
+bench-duckdb: bench-duckdb.cpp duckdb/libduckdb.so duckdb/duckdb.hpp
+	$(LINK.cpp) $< $(LDLIBS) -o $@
+bench-duckdb: CPPFLAGS += -Iduckdb
+bench-duckdb: LDLIBS += -Wl,-rpath,duckdb -Lduckdb -lduckdb
+
+$(LIBDUCKDB_ZIP):
+	curl -Lo $@ $(LIBDUCKDB_URL)
+	echo '$(LIBDUCKDB_SHA256) $(LIBDUCKDB_ZIP)' | sha256sum -c
+
+duckdb/libduckdb.so duckdb/duckdb.hpp duckdb/duckdb.h: $(LIBDUCKDB_ZIP)
+	mkdir -p duckdb
+	unzip -p $< $(@F) >$@
 
 # Files produced using https://github.com/lovasoa/TPCH-sqlite
 TPC-H-x0.01.db:
@@ -129,12 +145,12 @@ tpch-csv-$(1)-q5: TPC-H-$(1).db bench/tpch-q5-duckdb-export-to-csv.sql $$(DUCKDB
 	rm tmp.duckdb
 
 .PHONY: run-tpch-$(1)-q5-duckdb
-run-tpch-$(1)-q5-duckdb: tpch-csv-$(1)-q5 bench/tpch-q5-duckdb-prep.sql bench/tpch-q5-duckdb.sql $$(DUCKDB)
-	sed -e 's#tpch-csv-q5#$$<#g' bench/tpch-q5-duckdb-prep.sql bench/tpch-q5-duckdb.sql | $$(DUCKDB)
+run-tpch-$(1)-q5-duckdb: tpch-csv-$(1)-q5 bench/tpch-q5-duckdb-prep.sql bench/tpch-q5-duckdb.sql bench-duckdb
+	./bench-duckdb <(sed -e 's#tpch-csv-q5#$$<#g' bench/tpch-q5-duckdb-prep.sql) 5:bench/tpch-q5-duckdb.sql
 
 .PHONY: run-tpch-$(1)-q5-duckdbforeign
-run-tpch-$(1)-q5-duckdbforeign: tpch-csv-$(1)-q5 bench/tpch-q5-duckdb-prep-foreign-key.sql bench/tpch-q5-duckdb.sql $$(DUCKDB)
-	sed -e 's#tpch-csv-q5#$$<#g' bench/tpch-q5-duckdb-prep-foreign-key.sql bench/tpch-q5-duckdb.sql | $$(DUCKDB)
+run-tpch-$(1)-q5-duckdbforeign: tpch-csv-$(1)-q5 bench/tpch-q5-duckdb-prep-foreign-key.sql bench/tpch-q5-duckdb.sql bench-duckdb
+	./bench-duckdb <(sed -e 's#tpch-csv-q5#$$<#g' bench/tpch-q5-duckdb-prep-foreign-key.sql) 5:bench/tpch-q5-duckdb.sql
 
 .PHONY: run-tpch-$(1)-q5-etch
 run-tpch-$(1)-q5-etch: out TPC-H-$(1).db

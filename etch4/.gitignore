@@ -4,12 +4,14 @@
 *.o
 .gdb_history
 out
+bench-duckdb
 
 # data files (see Makefile)
 sqlite3.c
 sqlite3.h
 sqlite-amalgamation-*
 sqlite3/
+libduckdb-*
 duckdb_cli-*
 duckdb/
 tmp.duckdb
