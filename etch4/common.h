@@ -62,4 +62,4 @@ void time(F f, char const* tag, int reps) {
             << (as_fsec(total_sys) / reps) << std::endl;
 }
 
-}
+}  // namespace
