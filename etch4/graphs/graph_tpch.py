@@ -15,7 +15,7 @@ def graph_q5():
             tmp = []
             with open(f'bench-output/run-tpch-{sz}-q5-{db}.txt') as f:
                 if db.startswith('duckdb'):
-                    r = re.compile(r'Run Time \(s\): real ([^ ]*) .*')
+                    r = re.compile(r'q2 took \(s\): real ([^ ]*)s.*')
                 elif db.startswith('sqlite'):
                     r = re.compile(r'Run Time: real ([^ ]*) .*')
                 elif db.startswith('etch'):

@@ -1,1160 +1,165 @@
-sed -e 's#tpch-csv-q5#tpch-csv-x4-q5#g' bench/tpch-q5-duckdb-prep-foreign-key.sql bench/tpch-q5-duckdb.sql | duckdb/duckdb
-
----------------- load data into memory
-
-
-
-CREATE TABLE REGION  ( R_REGIONKEY  INTEGER NOT NULL,
-                            R_NAME       CHAR(25) NOT NULL,
-                            PRIMARY KEY (R_REGIONKEY));
-CREATE TABLE NATION  ( N_NATIONKEY  INTEGER NOT NULL,
-                            N_REGIONKEY  INTEGER NOT NULL REFERENCES REGION (R_REGIONKEY),
-                            N_NAME       CHAR(25) NOT NULL,
-                            PRIMARY KEY (N_NATIONKEY));
-CREATE TABLE SUPPLIER ( S_SUPPKEY     INTEGER NOT NULL,
-                             S_NATIONKEY   INTEGER NOT NULL REFERENCES NATION (N_NATIONKEY),
-                             PRIMARY KEY (S_SUPPKEY));
-CREATE TABLE CUSTOMER ( C_CUSTKEY     INTEGER NOT NULL,
-                             C_NATIONKEY   INTEGER NOT NULL REFERENCES NATION (N_NATIONKEY),
-                             PRIMARY KEY (C_CUSTKEY));
-CREATE TABLE ORDERS  ( O_ORDERKEY       INTEGER NOT NULL,
-                           O_CUSTKEY        INTEGER NOT NULL REFERENCES CUSTOMER (C_CUSTKEY),
-                           O_ORDERDATE      DATE NOT NULL,
-                           PRIMARY KEY (O_ORDERKEY));
-CREATE TABLE LINEITEM ( L_ORDERKEY    INTEGER NOT NULL REFERENCES ORDERS (O_ORDERKEY),
-                             L_SUPPKEY     INTEGER NOT NULL REFERENCES SUPPLIER (S_SUPPKEY),
-                             L_LINENUMBER  INTEGER NOT NULL,
-                             L_EXTENDEDPRICE  DOUBLE NOT NULL, -- actually DECIMAL(15,2), but etch uses double
-                             L_DISCOUNT    DOUBLE NOT NULL,
-                             PRIMARY KEY (L_ORDERKEY, L_LINENUMBER));
-
-COPY REGION   FROM 'tpch-csv-x4-q5/region.csv'   (HEADER TRUE, DELIMITER ',');
-COPY NATION   FROM 'tpch-csv-x4-q5/nation.csv'   (HEADER TRUE, DELIMITER ',');
-COPY SUPPLIER FROM 'tpch-csv-x4-q5/supplier.csv' (HEADER TRUE, DELIMITER ',');
-COPY CUSTOMER FROM 'tpch-csv-x4-q5/customer.csv' (HEADER TRUE, DELIMITER ',');
-COPY ORDERS   FROM 'tpch-csv-x4-q5/orders.csv'   (HEADER TRUE, DELIMITER ',');
-COPY LINEITEM FROM 'tpch-csv-x4-q5/lineitem.csv' (HEADER TRUE, DELIMITER ',');
-
-PRAGMA database_size;
-┌───────────────┬───────────────┬────────────┬──────────────┬───┬─────────────┬──────────┬──────────────┬──────────────┐
-│ database_name │ database_size │ block_size │ total_blocks │ … │ free_blocks │ wal_size │ memory_usage │ memory_limit │
-│    varchar    │    varchar    │   int64    │    int64     │   │    int64    │ varchar  │   varchar    │   varchar    │
-├───────────────┼───────────────┼────────────┼──────────────┼───┼─────────────┼──────────┼──────────────┼──────────────┤
-│ memory        │ 0 bytes       │          0 │            0 │ … │           0 │ 0 bytes  │ 5.4GB        │ 13.3GB       │
-├───────────────┴───────────────┴────────────┴──────────────┴───┴─────────────┴──────────┴──────────────┴──────────────┤
-│ 1 rows                                                                                           9 columns (8 shown) │
-└──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
-
-.echo off
-┌───────────┬────────────────────┐
-│  N_NAME   │      revenue       │
-│  varchar  │       double       │
-├───────────┼────────────────────┤
-│ INDONESIA │ 221344176.61909997 │
-│ INDIA     │     216890273.5991 │
-│ VIETNAM   │ 202166533.25529996 │
-│ CHINA     │ 207045757.78750002 │
-│ JAPAN     │ 208678933.74380004 │
-└───────────┴────────────────────┘
-Run Time (s): real 0.414 user 3.878027 sys 0.161160
-┌───────────┬────────────────────┐
-│  N_NAME   │      revenue       │
-│  varchar  │       double       │
-├───────────┼────────────────────┤
-│ INDONESIA │ 221344176.61909992 │
-│ CHINA     │ 207045757.78750002 │
-│ VIETNAM   │     202166533.2553 │
-│ JAPAN     │  208678933.7438001 │
-│ INDIA     │ 216890273.59909996 │
-└───────────┴────────────────────┘
-Run Time (s): real 0.404 user 3.930056 sys 0.120300
-┌───────────┬────────────────────┐
-│  N_NAME   │      revenue       │
-│  varchar  │       double       │
-├───────────┼────────────────────┤
-│ INDIA     │ 216890273.59909996 │
-│ CHINA     │ 207045757.78750002 │
-│ INDONESIA │ 221344176.61909997 │
-│ VIETNAM   │ 202166533.25529996 │
-│ JAPAN     │ 208678933.74379998 │
-└───────────┴────────────────────┘
-Run Time (s): real 0.408 user 3.929456 sys 0.101105
-┌───────────┬────────────────────┐
-│  N_NAME   │      revenue       │
-│  varchar  │       double       │
-├───────────┼────────────────────┤
-│ INDONESIA │ 221344176.61909994 │
-│ VIETNAM   │ 202166533.25529996 │
-│ INDIA     │ 216890273.59909996 │
-│ JAPAN     │ 208678933.74380004 │
-│ CHINA     │ 207045757.78750002 │
-└───────────┴────────────────────┘
-Run Time (s): real 0.406 user 3.878622 sys 0.099692
-┌───────────┬────────────────────┐
-│  N_NAME   │      revenue       │
-│  varchar  │       double       │
-├───────────┼────────────────────┤
-│ VIETNAM   │     202166533.2553 │
-│ CHINA     │ 207045757.78750002 │
-│ INDONESIA │ 221344176.61909997 │
-│ INDIA     │     216890273.5991 │
-│ JAPAN     │     208678933.7438 │
-└───────────┴────────────────────┘
-Run Time (s): real 0.430 user 3.984615 sys 0.106187
-
-┌─────────────────────────────┐
-│┌───────────────────────────┐│
-│└───────────────────────────┘│
-└─────────────────────────────┘
-┌─────────────────────────────────────┐
-│┌───────────────────────────────────┐│
-││    Query Profiling Information    ││
-│└───────────────────────────────────┘│
-└─────────────────────────────────────┘
-EXPLAIN ANALYZE select  n_name,  sum(l_extendedprice * (1 - l_discount)) as revenue from   customer,   orders,   lineitem,   supplier,   nation,   region where   c_custkey = o_custkey   and l_orderkey = o_orderkey   and l_suppkey = s_suppkey   and c_nationkey = s_nationkey   and s_nationkey = n_nationkey   and n_regionkey = r_regionkey   and r_name = 'ASIA'   and o_orderdate >= date '1994-01-01'   and o_orderdate < date '1995-01-01' group by  n_name;
-┌─────────────────────────────────────┐
-│┌───────────────────────────────────┐│
-││         Total Time: 0.424s        ││
-│└───────────────────────────────────┘│
-└─────────────────────────────────────┘
-┌───────────────────────────┐                                                                                                                                                 
-│      EXPLAIN_ANALYZE      │                                                                                                                                                 
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                                                 
-│             0             │                                                                                                                                                 
-│          (0.00s)          │                                                                                                                                                 
-└─────────────┬─────────────┘                                                                                                                                                                              
-┌─────────────┴─────────────┐                                                                                                                                                 
-│       HASH_GROUP_BY       │                                                                                                                                                 
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                                                 
-│             #0            │                                                                                                                                                 
-│          sum(#1)          │                                                                                                                                                 
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                                                 
-│             5             │                                                                                                                                                 
-│          (0.00s)          │                                                                                                                                                 
-└─────────────┬─────────────┘                                                                                                                                                                              
-┌─────────────┴─────────────┐                                                                                                                                                 
-│         PROJECTION        │                                                                                                                                                 
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                                                 
-│           N_NAME          │                                                                                                                                                 
-│ (L_EXTENDEDPRICE * (1.0 - │                                                                                                                                                 
-│        L_DISCOUNT))       │                                                                                                                                                 
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                                                 
-│           29273           │                                                                                                                                                 
-│          (0.00s)          │                                                                                                                                                 
-└─────────────┬─────────────┘                                                                                                                                                                              
-┌─────────────┴─────────────┐                                                                                                                                                 
-│         HASH_JOIN         │                                                                                                                                                 
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                                                 
-│           INNER           │                                                                                                                                                 
-│ N_NATIONKEY = S_NATIONKEY │                                                                                                                                                 
-│   L_SUPPKEY = S_SUPPKEY   │                                                                                                                                                 
-│ C_NATIONKEY = S_NATIONKEY │                                                                                                                                                 
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ├──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐              
-│         EC: 597898        │                                                                                                                                  │              
-│       Cost: 1462297       │                                                                                                                                  │              
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                                  │              
-│           29273           │                                                                                                                                  │              
-│          (0.04s)          │                                                                                                                                  │              
-└─────────────┬─────────────┘                                                                                                                                  │                                           
-┌─────────────┴─────────────┐                                                                                                                    ┌─────────────┴─────────────┐
-│         INDEX_JOIN        │                                                                                                                    │          SEQ_SCAN         │
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                    │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │
-│           730420          │                                                                                                                    │          SUPPLIER         │
-│          (3.82s)          │                                                                                                                    │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │
-│                           │                                                                                                                    │         S_SUPPKEY         │
-│                           ├─────────────────────────────────────────────────────────────────────────────────────────────────────┐              │        S_NATIONKEY        │
-│                           │                                                                                                     │              │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │
-│                           │                                                                                                     │              │         EC: 40000         │
-│                           │                                                                                                     │              │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │
-│                           │                                                                                                     │              │           40000           │
-│                           │                                                                                                     │              │          (0.00s)          │
-└─────────────┬─────────────┘                                                                                                     │              └───────────────────────────┘                             
-┌─────────────┴─────────────┐                                                                                       ┌─────────────┴─────────────┐                             
-│         HASH_JOIN         │                                                                                       │          SEQ_SCAN         │                             
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                       │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                             
-│           INNER           │                                                                                       │          LINEITEM         │                             
-│   O_CUSTKEY = C_CUSTKEY   │                                                                                       │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                             
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                       │         L_ORDERKEY        │                             
-│         EC: 146375        │                                                                                       │         L_SUPPKEY         │                             
-│        Cost: 266380       ├──────────────┐                                                                        │      L_EXTENDEDPRICE      │                             
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │              │                                                                        │         L_DISCOUNT        │                             
-│           182837          │              │                                                                        │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                             
-│          (0.02s)          │              │                                                                        │        EC: 23996604       │                             
-│                           │              │                                                                        │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                             
-│                           │              │                                                                        │             0             │                             
-│                           │              │                                                                        │          (0.00s)          │                             
-└─────────────┬─────────────┘              │                                                                        └───────────────────────────┘                                                          
-┌─────────────┴─────────────┐┌─────────────┴─────────────┐                                                                                                                    
-│          SEQ_SCAN         ││         INDEX_JOIN        │                                                                                                                    
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                    
-│           ORDERS          ││           120388          │                                                                                                                    
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││          (0.07s)          │                                                                                                                    
-│         O_CUSTKEY         ││                           │                                                                                                                    
-│         O_ORDERKEY        ││                           │                                                                                                                    
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││                           │                                                                                                                    
-│ Filters: O_ORDERDATE>=1994││                           │                                                                                                                    
-│-01-01 AND O_ORDERDATE<1995││                           ├───────────────────────────────────────────┐                                                                        
-│ -01-01 AND O_ORDERDATE IS ││                           │                                           │                                                                        
-│          NOT NULL         ││                           │                                           │                                                                        
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││                           │                                           │                                                                        
-│        EC: 1200000        ││                           │                                           │                                                                        
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││                           │                                           │                                                                        
-│           910293          ││                           │                                           │                                                                        
-│          (0.05s)          ││                           │                                           │                                                                        
-└───────────────────────────┘└─────────────┬─────────────┘                                           │                                                                                                     
-                             ┌─────────────┴─────────────┐                             ┌─────────────┴─────────────┐                                                          
-                             │         HASH_JOIN         │                             │          SEQ_SCAN         │                                                          
-                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                          
-                             │           INNER           │                             │          CUSTOMER         │                                                          
-                             │ N_REGIONKEY = R_REGIONKEY │                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                          
-                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                             │         C_CUSTKEY         │                                                          
-                             │           EC: 5           ├──────────────┐              │        C_NATIONKEY        │                                                          
-                             │          Cost: 5          │              │              │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                          
-                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │              │              │         EC: 600000        │                                                          
-                             │             5             │              │              │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                          
-                             │          (0.00s)          │              │              │             0             │                                                          
-                             │                           │              │              │          (0.00s)          │                                                          
-                             └─────────────┬─────────────┘              │              └───────────────────────────┘                                                                                       
-                             ┌─────────────┴─────────────┐┌─────────────┴─────────────┐                                                                                       
-                             │          SEQ_SCAN         ││          SEQ_SCAN         │                                                                                       
-                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                       
-                             │           NATION          ││           REGION          │                                                                                       
-                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                       
-                             │        N_NATIONKEY        ││        R_REGIONKEY        │                                                                                       
-                             │        N_REGIONKEY        ││   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                       
-                             │           N_NAME          ││  Filters: R_NAME=ASIA AND │                                                                                       
-                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││     R_NAME IS NOT NULL    │                                                                                       
-                             │           EC: 25          ││   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                       
-                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││           EC: 1           │                                                                                       
-                             │             25            ││   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                       
-                             │          (0.00s)          ││             1             │                                                                                       
-                             │                           ││          (0.00s)          │                                                                                       
-                             └───────────────────────────┘└───────────────────────────┘                                                                                                                    
-sed -e 's#tpch-csv-q5#tpch-csv-x4-q5#g' bench/tpch-q5-duckdb-prep-foreign-key.sql bench/tpch-q5-duckdb.sql | duckdb/duckdb
-
----------------- load data into memory
+./bench-duckdb <(sed -e 's#tpch-csv-q5#tpch-csv-x4-q5#g' bench/tpch-q5-duckdb-prep-foreign-key.sql) 5:bench/tpch-q5-duckdb.sql
+q1 val: 0
+q1 took (s): real 40.784077s user 38.131006s sys 2.625622s
+q1 took (avg): real 40.784077s user 38.131006s sys 2.625622s
+Count	
+BIGINT	
+[ Rows: 0]
 
 
-
-CREATE TABLE REGION  ( R_REGIONKEY  INTEGER NOT NULL,
-                            R_NAME       CHAR(25) NOT NULL,
-                            PRIMARY KEY (R_REGIONKEY));
-CREATE TABLE NATION  ( N_NATIONKEY  INTEGER NOT NULL,
-                            N_REGIONKEY  INTEGER NOT NULL REFERENCES REGION (R_REGIONKEY),
-                            N_NAME       CHAR(25) NOT NULL,
-                            PRIMARY KEY (N_NATIONKEY));
-CREATE TABLE SUPPLIER ( S_SUPPKEY     INTEGER NOT NULL,
-                             S_NATIONKEY   INTEGER NOT NULL REFERENCES NATION (N_NATIONKEY),
-                             PRIMARY KEY (S_SUPPKEY));
-CREATE TABLE CUSTOMER ( C_CUSTKEY     INTEGER NOT NULL,
-                             C_NATIONKEY   INTEGER NOT NULL REFERENCES NATION (N_NATIONKEY),
-                             PRIMARY KEY (C_CUSTKEY));
-CREATE TABLE ORDERS  ( O_ORDERKEY       INTEGER NOT NULL,
-                           O_CUSTKEY        INTEGER NOT NULL REFERENCES CUSTOMER (C_CUSTKEY),
-                           O_ORDERDATE      DATE NOT NULL,
-                           PRIMARY KEY (O_ORDERKEY));
-CREATE TABLE LINEITEM ( L_ORDERKEY    INTEGER NOT NULL REFERENCES ORDERS (O_ORDERKEY),
-                             L_SUPPKEY     INTEGER NOT NULL REFERENCES SUPPLIER (S_SUPPKEY),
-                             L_LINENUMBER  INTEGER NOT NULL,
-                             L_EXTENDEDPRICE  DOUBLE NOT NULL, -- actually DECIMAL(15,2), but etch uses double
-                             L_DISCOUNT    DOUBLE NOT NULL,
-                             PRIMARY KEY (L_ORDERKEY, L_LINENUMBER));
-
-COPY REGION   FROM 'tpch-csv-x4-q5/region.csv'   (HEADER TRUE, DELIMITER ',');
-COPY NATION   FROM 'tpch-csv-x4-q5/nation.csv'   (HEADER TRUE, DELIMITER ',');
-COPY SUPPLIER FROM 'tpch-csv-x4-q5/supplier.csv' (HEADER TRUE, DELIMITER ',');
-COPY CUSTOMER FROM 'tpch-csv-x4-q5/customer.csv' (HEADER TRUE, DELIMITER ',');
-COPY ORDERS   FROM 'tpch-csv-x4-q5/orders.csv'   (HEADER TRUE, DELIMITER ',');
-COPY LINEITEM FROM 'tpch-csv-x4-q5/lineitem.csv' (HEADER TRUE, DELIMITER ',');
-
-PRAGMA database_size;
-┌───────────────┬───────────────┬────────────┬──────────────┬───┬─────────────┬──────────┬──────────────┬──────────────┐
-│ database_name │ database_size │ block_size │ total_blocks │ … │ free_blocks │ wal_size │ memory_usage │ memory_limit │
-│    varchar    │    varchar    │   int64    │    int64     │   │    int64    │ varchar  │   varchar    │   varchar    │
-├───────────────┼───────────────┼────────────┼──────────────┼───┼─────────────┼──────────┼──────────────┼──────────────┤
-│ memory        │ 0 bytes       │          0 │            0 │ … │           0 │ 0 bytes  │ 5.4GB        │ 13.3GB       │
-├───────────────┴───────────────┴────────────┴──────────────┴───┴─────────────┴──────────┴──────────────┴──────────────┤
-│ 1 rows                                                                                           9 columns (8 shown) │
-└──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
-
-.echo off
-┌───────────┬────────────────────┐
-│  N_NAME   │      revenue       │
-│  varchar  │       double       │
-├───────────┼────────────────────┤
-│ VIETNAM   │ 202166533.25529993 │
-│ CHINA     │ 207045757.78750002 │
-│ INDONESIA │ 221344176.61909994 │
-│ INDIA     │ 216890273.59910005 │
-│ JAPAN     │     208678933.7438 │
-└───────────┴────────────────────┘
-Run Time (s): real 0.430 user 3.914255 sys 0.140966
-┌───────────┬────────────────────┐
-│  N_NAME   │      revenue       │
-│  varchar  │       double       │
-├───────────┼────────────────────┤
-│ INDONESIA │ 221344176.61909992 │
-│ INDIA     │  216890273.5990999 │
-│ VIETNAM   │ 202166533.25529996 │
-│ CHINA     │ 207045757.78750002 │
-│ JAPAN     │ 208678933.74380004 │
-└───────────┴────────────────────┘
-Run Time (s): real 0.408 user 3.905792 sys 0.117409
-┌───────────┬────────────────────┐
-│  N_NAME   │      revenue       │
-│  varchar  │       double       │
-├───────────┼────────────────────┤
-│ VIETNAM   │ 202166533.25530002 │
-│ INDONESIA │ 221344176.61909997 │
-│ CHINA     │ 207045757.78750005 │
-│ INDIA     │     216890273.5991 │
-│ JAPAN     │ 208678933.74380004 │
-└───────────┴────────────────────┘
-Run Time (s): real 0.393 user 3.813947 sys 0.119982
-┌───────────┬────────────────────┐
-│  N_NAME   │      revenue       │
-│  varchar  │       double       │
-├───────────┼────────────────────┤
-│ VIETNAM   │ 202166533.25529993 │
-│ INDONESIA │ 221344176.61909994 │
-│ CHINA     │     207045757.7875 │
-│ INDIA     │ 216890273.59909993 │
-│ JAPAN     │     208678933.7438 │
-└───────────┴────────────────────┘
-Run Time (s): real 0.399 user 3.863509 sys 0.150277
-┌───────────┬────────────────────┐
-│  N_NAME   │      revenue       │
-│  varchar  │       double       │
-├───────────┼────────────────────┤
-│ INDONESIA │ 221344176.61909992 │
-│ INDIA     │     216890273.5991 │
-│ VIETNAM   │     202166533.2553 │
-│ JAPAN     │     208678933.7438 │
-│ CHINA     │     207045757.7875 │
-└───────────┴────────────────────┘
-Run Time (s): real 0.401 user 3.941859 sys 0.082216
-
-┌─────────────────────────────┐
-│┌───────────────────────────┐│
-│└───────────────────────────┘│
-└─────────────────────────────┘
-┌─────────────────────────────────────┐
-│┌───────────────────────────────────┐│
-││    Query Profiling Information    ││
-│└───────────────────────────────────┘│
-└─────────────────────────────────────┘
-EXPLAIN ANALYZE select  n_name,  sum(l_extendedprice * (1 - l_discount)) as revenue from   customer,   orders,   lineitem,   supplier,   nation,   region where   c_custkey = o_custkey   and l_orderkey = o_orderkey   and l_suppkey = s_suppkey   and c_nationkey = s_nationkey   and s_nationkey = n_nationkey   and n_regionkey = r_regionkey   and r_name = 'ASIA'   and o_orderdate >= date '1994-01-01'   and o_orderdate < date '1995-01-01' group by  n_name;
-┌─────────────────────────────────────┐
-│┌───────────────────────────────────┐│
-││         Total Time: 0.419s        ││
-│└───────────────────────────────────┘│
-└─────────────────────────────────────┘
-┌───────────────────────────┐                                                                                                                                                 
-│      EXPLAIN_ANALYZE      │                                                                                                                                                 
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                                                 
-│             0             │                                                                                                                                                 
-│          (0.00s)          │                                                                                                                                                 
-└─────────────┬─────────────┘                                                                                                                                                                              
-┌─────────────┴─────────────┐                                                                                                                                                 
-│       HASH_GROUP_BY       │                                                                                                                                                 
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                                                 
-│             #0            │                                                                                                                                                 
-│          sum(#1)          │                                                                                                                                                 
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                                                 
-│             5             │                                                                                                                                                 
-│          (0.00s)          │                                                                                                                                                 
-└─────────────┬─────────────┘                                                                                                                                                                              
-┌─────────────┴─────────────┐                                                                                                                                                 
-│         PROJECTION        │                                                                                                                                                 
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                                                 
-│           N_NAME          │                                                                                                                                                 
-│ (L_EXTENDEDPRICE * (1.0 - │                                                                                                                                                 
-│        L_DISCOUNT))       │                                                                                                                                                 
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                                                 
-│           29273           │                                                                                                                                                 
-│          (0.00s)          │                                                                                                                                                 
-└─────────────┬─────────────┘                                                                                                                                                                              
-┌─────────────┴─────────────┐                                                                                                                                                 
-│         HASH_JOIN         │                                                                                                                                                 
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                                                 
-│           INNER           │                                                                                                                                                 
-│ N_NATIONKEY = S_NATIONKEY │                                                                                                                                                 
-│   L_SUPPKEY = S_SUPPKEY   │                                                                                                                                                 
-│ C_NATIONKEY = S_NATIONKEY │                                                                                                                                                 
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ├──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐              
-│         EC: 597898        │                                                                                                                                  │              
-│       Cost: 1462297       │                                                                                                                                  │              
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                                  │              
-│           29273           │                                                                                                                                  │              
-│          (0.04s)          │                                                                                                                                  │              
-└─────────────┬─────────────┘                                                                                                                                  │                                           
-┌─────────────┴─────────────┐                                                                                                                    ┌─────────────┴─────────────┐
-│         INDEX_JOIN        │                                                                                                                    │          SEQ_SCAN         │
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                    │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │
-│           730420          │                                                                                                                    │          SUPPLIER         │
-│          (3.83s)          │                                                                                                                    │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │
-│                           │                                                                                                                    │         S_SUPPKEY         │
-│                           ├─────────────────────────────────────────────────────────────────────────────────────────────────────┐              │        S_NATIONKEY        │
-│                           │                                                                                                     │              │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │
-│                           │                                                                                                     │              │         EC: 40000         │
-│                           │                                                                                                     │              │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │
-│                           │                                                                                                     │              │           40000           │
-│                           │                                                                                                     │              │          (0.00s)          │
-└─────────────┬─────────────┘                                                                                                     │              └───────────────────────────┘                             
-┌─────────────┴─────────────┐                                                                                       ┌─────────────┴─────────────┐                             
-│         HASH_JOIN         │                                                                                       │          SEQ_SCAN         │                             
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                       │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                             
-│           INNER           │                                                                                       │          LINEITEM         │                             
-│   O_CUSTKEY = C_CUSTKEY   │                                                                                       │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                             
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                       │         L_ORDERKEY        │                             
-│         EC: 146375        │                                                                                       │         L_SUPPKEY         │                             
-│        Cost: 266380       ├──────────────┐                                                                        │      L_EXTENDEDPRICE      │                             
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │              │                                                                        │         L_DISCOUNT        │                             
-│           182837          │              │                                                                        │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                             
-│          (0.03s)          │              │                                                                        │        EC: 23996604       │                             
-│                           │              │                                                                        │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                             
-│                           │              │                                                                        │             0             │                             
-│                           │              │                                                                        │          (0.00s)          │                             
-└─────────────┬─────────────┘              │                                                                        └───────────────────────────┘                                                          
-┌─────────────┴─────────────┐┌─────────────┴─────────────┐                                                                                                                    
-│          SEQ_SCAN         ││         INDEX_JOIN        │                                                                                                                    
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                    
-│           ORDERS          ││           120388          │                                                                                                                    
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││          (0.07s)          │                                                                                                                    
-│         O_CUSTKEY         ││                           │                                                                                                                    
-│         O_ORDERKEY        ││                           │                                                                                                                    
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││                           │                                                                                                                    
-│ Filters: O_ORDERDATE>=1994││                           │                                                                                                                    
-│-01-01 AND O_ORDERDATE<1995││                           ├───────────────────────────────────────────┐                                                                        
-│ -01-01 AND O_ORDERDATE IS ││                           │                                           │                                                                        
-│          NOT NULL         ││                           │                                           │                                                                        
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││                           │                                           │                                                                        
-│        EC: 1200000        ││                           │                                           │                                                                        
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││                           │                                           │                                                                        
-│           910293          ││                           │                                           │                                                                        
-│          (0.05s)          ││                           │                                           │                                                                        
-└───────────────────────────┘└─────────────┬─────────────┘                                           │                                                                                                     
-                             ┌─────────────┴─────────────┐                             ┌─────────────┴─────────────┐                                                          
-                             │         HASH_JOIN         │                             │          SEQ_SCAN         │                                                          
-                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                          
-                             │           INNER           │                             │          CUSTOMER         │                                                          
-                             │ N_REGIONKEY = R_REGIONKEY │                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                          
-                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                             │         C_CUSTKEY         │                                                          
-                             │           EC: 5           ├──────────────┐              │        C_NATIONKEY        │                                                          
-                             │          Cost: 5          │              │              │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                          
-                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │              │              │         EC: 600000        │                                                          
-                             │             5             │              │              │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                          
-                             │          (0.00s)          │              │              │             0             │                                                          
-                             │                           │              │              │          (0.00s)          │                                                          
-                             └─────────────┬─────────────┘              │              └───────────────────────────┘                                                                                       
-                             ┌─────────────┴─────────────┐┌─────────────┴─────────────┐                                                                                       
-                             │          SEQ_SCAN         ││          SEQ_SCAN         │                                                                                       
-                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                       
-                             │           NATION          ││           REGION          │                                                                                       
-                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                       
-                             │        N_NATIONKEY        ││        R_REGIONKEY        │                                                                                       
-                             │        N_REGIONKEY        ││   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                       
-                             │           N_NAME          ││  Filters: R_NAME=ASIA AND │                                                                                       
-                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││     R_NAME IS NOT NULL    │                                                                                       
-                             │           EC: 25          ││   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                       
-                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││           EC: 1           │                                                                                       
-                             │             25            ││   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                       
-                             │          (0.00s)          ││             1             │                                                                                       
-                             │                           ││          (0.00s)          │                                                                                       
-                             └───────────────────────────┘└───────────────────────────┘                                                                                                                    
-sed -e 's#tpch-csv-q5#tpch-csv-x4-q5#g' bench/tpch-q5-duckdb-prep-foreign-key.sql bench/tpch-q5-duckdb.sql | duckdb/duckdb
-
----------------- load data into memory
+q2 prep val: 0
+q2 prep took (s): real 0.001986s user 0.001983s sys 0.000000s
+q2 prep took (avg): real 0.001986s user 0.001983s sys 0.000000s
+q2 val: 0
+q2 took (s): real 0.975124s user 0.967792s sys 0.006773s
+q2 val: 0
+q2 took (s): real 0.974743s user 0.964285s sys 0.009879s
+q2 val: 0
+q2 took (s): real 0.965447s user 0.964773s sys 0.000125s
+q2 val: 0
+q2 took (s): real 0.972169s user 0.958295s sys 0.010021s
+q2 val: 0
+q2 took (s): real 0.976653s user 0.971463s sys 0.000179s
+q2 took (avg): real 0.972827s user 0.965322s sys 0.005395s
+N_NAME	revenue	
+VARCHAR	DOUBLE	
+[ Rows: 5]
+JAPAN	208678933.74380082
+CHINA	207045757.7874994
+VIETNAM	202166533.25530025
+INDIA	216890273.5991001
+INDONESIA	221344176.61910042
 
 
-
-CREATE TABLE REGION  ( R_REGIONKEY  INTEGER NOT NULL,
-                            R_NAME       CHAR(25) NOT NULL,
-                            PRIMARY KEY (R_REGIONKEY));
-CREATE TABLE NATION  ( N_NATIONKEY  INTEGER NOT NULL,
-                            N_REGIONKEY  INTEGER NOT NULL REFERENCES REGION (R_REGIONKEY),
-                            N_NAME       CHAR(25) NOT NULL,
-                            PRIMARY KEY (N_NATIONKEY));
-CREATE TABLE SUPPLIER ( S_SUPPKEY     INTEGER NOT NULL,
-                             S_NATIONKEY   INTEGER NOT NULL REFERENCES NATION (N_NATIONKEY),
-                             PRIMARY KEY (S_SUPPKEY));
-CREATE TABLE CUSTOMER ( C_CUSTKEY     INTEGER NOT NULL,
-                             C_NATIONKEY   INTEGER NOT NULL REFERENCES NATION (N_NATIONKEY),
-                             PRIMARY KEY (C_CUSTKEY));
-CREATE TABLE ORDERS  ( O_ORDERKEY       INTEGER NOT NULL,
-                           O_CUSTKEY        INTEGER NOT NULL REFERENCES CUSTOMER (C_CUSTKEY),
-                           O_ORDERDATE      DATE NOT NULL,
-                           PRIMARY KEY (O_ORDERKEY));
-CREATE TABLE LINEITEM ( L_ORDERKEY    INTEGER NOT NULL REFERENCES ORDERS (O_ORDERKEY),
-                             L_SUPPKEY     INTEGER NOT NULL REFERENCES SUPPLIER (S_SUPPKEY),
-                             L_LINENUMBER  INTEGER NOT NULL,
-                             L_EXTENDEDPRICE  DOUBLE NOT NULL, -- actually DECIMAL(15,2), but etch uses double
-                             L_DISCOUNT    DOUBLE NOT NULL,
-                             PRIMARY KEY (L_ORDERKEY, L_LINENUMBER));
-
-COPY REGION   FROM 'tpch-csv-x4-q5/region.csv'   (HEADER TRUE, DELIMITER ',');
-COPY NATION   FROM 'tpch-csv-x4-q5/nation.csv'   (HEADER TRUE, DELIMITER ',');
-COPY SUPPLIER FROM 'tpch-csv-x4-q5/supplier.csv' (HEADER TRUE, DELIMITER ',');
-COPY CUSTOMER FROM 'tpch-csv-x4-q5/customer.csv' (HEADER TRUE, DELIMITER ',');
-COPY ORDERS   FROM 'tpch-csv-x4-q5/orders.csv'   (HEADER TRUE, DELIMITER ',');
-COPY LINEITEM FROM 'tpch-csv-x4-q5/lineitem.csv' (HEADER TRUE, DELIMITER ',');
-
-PRAGMA database_size;
-┌───────────────┬───────────────┬────────────┬──────────────┬───┬─────────────┬──────────┬──────────────┬──────────────┐
-│ database_name │ database_size │ block_size │ total_blocks │ … │ free_blocks │ wal_size │ memory_usage │ memory_limit │
-│    varchar    │    varchar    │   int64    │    int64     │   │    int64    │ varchar  │   varchar    │   varchar    │
-├───────────────┼───────────────┼────────────┼──────────────┼───┼─────────────┼──────────┼──────────────┼──────────────┤
-│ memory        │ 0 bytes       │          0 │            0 │ … │           0 │ 0 bytes  │ 5.4GB        │ 13.3GB       │
-├───────────────┴───────────────┴────────────┴──────────────┴───┴─────────────┴──────────┴──────────────┴──────────────┤
-│ 1 rows                                                                                           9 columns (8 shown) │
-└──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
-
-.echo off
-┌───────────┬────────────────────┐
-│  N_NAME   │      revenue       │
-│  varchar  │       double       │
-├───────────┼────────────────────┤
-│ INDONESIA │ 221344176.61909992 │
-│ INDIA     │     216890273.5991 │
-│ VIETNAM   │     202166533.2553 │
-│ JAPAN     │     208678933.7438 │
-│ CHINA     │ 207045757.78750005 │
-└───────────┴────────────────────┘
-Run Time (s): real 0.402 user 3.795993 sys 0.170614
-┌───────────┬────────────────────┐
-│  N_NAME   │      revenue       │
-│  varchar  │       double       │
-├───────────┼────────────────────┤
-│ INDIA     │ 216890273.59909996 │
-│ VIETNAM   │     202166533.2553 │
-│ JAPAN     │ 208678933.74380007 │
-│ CHINA     │ 207045757.78750005 │
-│ INDONESIA │ 221344176.61909992 │
-└───────────┴────────────────────┘
-Run Time (s): real 0.404 user 3.824204 sys 0.166711
-┌───────────┬────────────────────┐
-│  N_NAME   │      revenue       │
-│  varchar  │       double       │
-├───────────┼────────────────────┤
-│ INDONESIA │ 221344176.61909992 │
-│ INDIA     │     216890273.5991 │
-│ VIETNAM   │ 202166533.25529996 │
-│ JAPAN     │ 208678933.74380007 │
-│ CHINA     │ 207045757.78750005 │
-└───────────┴────────────────────┘
-Run Time (s): real 0.401 user 3.892860 sys 0.128081
-┌───────────┬────────────────────┐
-│  N_NAME   │      revenue       │
-│  varchar  │       double       │
-├───────────┼────────────────────┤
-│ INDONESIA │ 221344176.61909992 │
-│ INDIA     │     216890273.5991 │
-│ VIETNAM   │ 202166533.25529993 │
-│ JAPAN     │ 208678933.74380004 │
-│ CHINA     │ 207045757.78750002 │
-└───────────┴────────────────────┘
-Run Time (s): real 0.399 user 3.859783 sys 0.103864
-┌───────────┬────────────────────┐
-│  N_NAME   │      revenue       │
-│  varchar  │       double       │
-├───────────┼────────────────────┤
-│ INDONESIA │ 221344176.61909992 │
-│ INDIA     │ 216890273.59909996 │
-│ VIETNAM   │     202166533.2553 │
-│ CHINA     │ 207045757.78750002 │
-│ JAPAN     │ 208678933.74380004 │
-└───────────┴────────────────────┘
-Run Time (s): real 0.405 user 3.908749 sys 0.107665
-
-┌─────────────────────────────┐
-│┌───────────────────────────┐│
-│└───────────────────────────┘│
-└─────────────────────────────┘
-┌─────────────────────────────────────┐
-│┌───────────────────────────────────┐│
-││    Query Profiling Information    ││
-│└───────────────────────────────────┘│
-└─────────────────────────────────────┘
-EXPLAIN ANALYZE select  n_name,  sum(l_extendedprice * (1 - l_discount)) as revenue from   customer,   orders,   lineitem,   supplier,   nation,   region where   c_custkey = o_custkey   and l_orderkey = o_orderkey   and l_suppkey = s_suppkey   and c_nationkey = s_nationkey   and s_nationkey = n_nationkey   and n_regionkey = r_regionkey   and r_name = 'ASIA'   and o_orderdate >= date '1994-01-01'   and o_orderdate < date '1995-01-01' group by  n_name;
-┌─────────────────────────────────────┐
-│┌───────────────────────────────────┐│
-││         Total Time: 0.402s        ││
-│└───────────────────────────────────┘│
-└─────────────────────────────────────┘
-┌───────────────────────────┐                                                                                                                                                 
-│      EXPLAIN_ANALYZE      │                                                                                                                                                 
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                                                 
-│             0             │                                                                                                                                                 
-│          (0.00s)          │                                                                                                                                                 
-└─────────────┬─────────────┘                                                                                                                                                                              
-┌─────────────┴─────────────┐                                                                                                                                                 
-│       HASH_GROUP_BY       │                                                                                                                                                 
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                                                 
-│             #0            │                                                                                                                                                 
-│          sum(#1)          │                                                                                                                                                 
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                                                 
-│             5             │                                                                                                                                                 
-│          (0.00s)          │                                                                                                                                                 
-└─────────────┬─────────────┘                                                                                                                                                                              
-┌─────────────┴─────────────┐                                                                                                                                                 
-│         PROJECTION        │                                                                                                                                                 
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                                                 
-│           N_NAME          │                                                                                                                                                 
-│ (L_EXTENDEDPRICE * (1.0 - │                                                                                                                                                 
-│        L_DISCOUNT))       │                                                                                                                                                 
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                                                 
-│           29273           │                                                                                                                                                 
-│          (0.00s)          │                                                                                                                                                 
-└─────────────┬─────────────┘                                                                                                                                                                              
-┌─────────────┴─────────────┐                                                                                                                                                 
-│         HASH_JOIN         │                                                                                                                                                 
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                                                 
-│           INNER           │                                                                                                                                                 
-│ N_NATIONKEY = S_NATIONKEY │                                                                                                                                                 
-│   L_SUPPKEY = S_SUPPKEY   │                                                                                                                                                 
-│ C_NATIONKEY = S_NATIONKEY │                                                                                                                                                 
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ├──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐              
-│         EC: 597898        │                                                                                                                                  │              
-│       Cost: 1462297       │                                                                                                                                  │              
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                                  │              
-│           29273           │                                                                                                                                  │              
-│          (0.04s)          │                                                                                                                                  │              
-└─────────────┬─────────────┘                                                                                                                                  │                                           
-┌─────────────┴─────────────┐                                                                                                                    ┌─────────────┴─────────────┐
-│         INDEX_JOIN        │                                                                                                                    │          SEQ_SCAN         │
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                    │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │
-│           730420          │                                                                                                                    │          SUPPLIER         │
-│          (3.80s)          │                                                                                                                    │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │
-│                           │                                                                                                                    │         S_SUPPKEY         │
-│                           ├─────────────────────────────────────────────────────────────────────────────────────────────────────┐              │        S_NATIONKEY        │
-│                           │                                                                                                     │              │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │
-│                           │                                                                                                     │              │         EC: 40000         │
-│                           │                                                                                                     │              │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │
-│                           │                                                                                                     │              │           40000           │
-│                           │                                                                                                     │              │          (0.00s)          │
-└─────────────┬─────────────┘                                                                                                     │              └───────────────────────────┘                             
-┌─────────────┴─────────────┐                                                                                       ┌─────────────┴─────────────┐                             
-│         HASH_JOIN         │                                                                                       │          SEQ_SCAN         │                             
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                       │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                             
-│           INNER           │                                                                                       │          LINEITEM         │                             
-│   O_CUSTKEY = C_CUSTKEY   │                                                                                       │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                             
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                       │         L_ORDERKEY        │                             
-│         EC: 146375        │                                                                                       │         L_SUPPKEY         │                             
-│        Cost: 266380       ├──────────────┐                                                                        │      L_EXTENDEDPRICE      │                             
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │              │                                                                        │         L_DISCOUNT        │                             
-│           182837          │              │                                                                        │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                             
-│          (0.02s)          │              │                                                                        │        EC: 23996604       │                             
-│                           │              │                                                                        │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                             
-│                           │              │                                                                        │             0             │                             
-│                           │              │                                                                        │          (0.00s)          │                             
-└─────────────┬─────────────┘              │                                                                        └───────────────────────────┘                                                          
-┌─────────────┴─────────────┐┌─────────────┴─────────────┐                                                                                                                    
-│          SEQ_SCAN         ││         INDEX_JOIN        │                                                                                                                    
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                    
-│           ORDERS          ││           120388          │                                                                                                                    
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││          (0.05s)          │                                                                                                                    
-│         O_CUSTKEY         ││                           │                                                                                                                    
-│         O_ORDERKEY        ││                           │                                                                                                                    
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││                           │                                                                                                                    
-│ Filters: O_ORDERDATE>=1994││                           │                                                                                                                    
-│-01-01 AND O_ORDERDATE<1995││                           ├───────────────────────────────────────────┐                                                                        
-│ -01-01 AND O_ORDERDATE IS ││                           │                                           │                                                                        
-│          NOT NULL         ││                           │                                           │                                                                        
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││                           │                                           │                                                                        
-│        EC: 1200000        ││                           │                                           │                                                                        
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││                           │                                           │                                                                        
-│           910293          ││                           │                                           │                                                                        
-│          (0.05s)          ││                           │                                           │                                                                        
-└───────────────────────────┘└─────────────┬─────────────┘                                           │                                                                                                     
-                             ┌─────────────┴─────────────┐                             ┌─────────────┴─────────────┐                                                          
-                             │         HASH_JOIN         │                             │          SEQ_SCAN         │                                                          
-                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                          
-                             │           INNER           │                             │          CUSTOMER         │                                                          
-                             │ N_REGIONKEY = R_REGIONKEY │                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                          
-                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                             │         C_CUSTKEY         │                                                          
-                             │           EC: 5           ├──────────────┐              │        C_NATIONKEY        │                                                          
-                             │          Cost: 5          │              │              │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                          
-                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │              │              │         EC: 600000        │                                                          
-                             │             5             │              │              │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                          
-                             │          (0.00s)          │              │              │             0             │                                                          
-                             │                           │              │              │          (0.00s)          │                                                          
-                             └─────────────┬─────────────┘              │              └───────────────────────────┘                                                                                       
-                             ┌─────────────┴─────────────┐┌─────────────┴─────────────┐                                                                                       
-                             │          SEQ_SCAN         ││          SEQ_SCAN         │                                                                                       
-                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                       
-                             │           NATION          ││           REGION          │                                                                                       
-                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                       
-                             │        N_NATIONKEY        ││        R_REGIONKEY        │                                                                                       
-                             │        N_REGIONKEY        ││   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                       
-                             │           N_NAME          ││  Filters: R_NAME=ASIA AND │                                                                                       
-                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││     R_NAME IS NOT NULL    │                                                                                       
-                             │           EC: 25          ││   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                       
-                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││           EC: 1           │                                                                                       
-                             │             25            ││   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                       
-                             │          (0.00s)          ││             1             │                                                                                       
-                             │                           ││          (0.00s)          │                                                                                       
-                             └───────────────────────────┘└───────────────────────────┘                                                                                                                    
-sed -e 's#tpch-csv-q5#tpch-csv-x4-q5#g' bench/tpch-q5-duckdb-prep-foreign-key.sql bench/tpch-q5-duckdb.sql | duckdb/duckdb
-
----------------- load data into memory
+./bench-duckdb <(sed -e 's#tpch-csv-q5#tpch-csv-x4-q5#g' bench/tpch-q5-duckdb-prep-foreign-key.sql) 5:bench/tpch-q5-duckdb.sql
+q1 val: 0
+q1 took (s): real 40.935974s user 38.404031s sys 2.505057s
+q1 took (avg): real 40.935974s user 38.404031s sys 2.505057s
+Count	
+BIGINT	
+[ Rows: 0]
 
 
-
-CREATE TABLE REGION  ( R_REGIONKEY  INTEGER NOT NULL,
-                            R_NAME       CHAR(25) NOT NULL,
-                            PRIMARY KEY (R_REGIONKEY));
-CREATE TABLE NATION  ( N_NATIONKEY  INTEGER NOT NULL,
-                            N_REGIONKEY  INTEGER NOT NULL REFERENCES REGION (R_REGIONKEY),
-                            N_NAME       CHAR(25) NOT NULL,
-                            PRIMARY KEY (N_NATIONKEY));
-CREATE TABLE SUPPLIER ( S_SUPPKEY     INTEGER NOT NULL,
-                             S_NATIONKEY   INTEGER NOT NULL REFERENCES NATION (N_NATIONKEY),
-                             PRIMARY KEY (S_SUPPKEY));
-CREATE TABLE CUSTOMER ( C_CUSTKEY     INTEGER NOT NULL,
-                             C_NATIONKEY   INTEGER NOT NULL REFERENCES NATION (N_NATIONKEY),
-                             PRIMARY KEY (C_CUSTKEY));
-CREATE TABLE ORDERS  ( O_ORDERKEY       INTEGER NOT NULL,
-                           O_CUSTKEY        INTEGER NOT NULL REFERENCES CUSTOMER (C_CUSTKEY),
-                           O_ORDERDATE      DATE NOT NULL,
-                           PRIMARY KEY (O_ORDERKEY));
-CREATE TABLE LINEITEM ( L_ORDERKEY    INTEGER NOT NULL REFERENCES ORDERS (O_ORDERKEY),
-                             L_SUPPKEY     INTEGER NOT NULL REFERENCES SUPPLIER (S_SUPPKEY),
-                             L_LINENUMBER  INTEGER NOT NULL,
-                             L_EXTENDEDPRICE  DOUBLE NOT NULL, -- actually DECIMAL(15,2), but etch uses double
-                             L_DISCOUNT    DOUBLE NOT NULL,
-                             PRIMARY KEY (L_ORDERKEY, L_LINENUMBER));
-
-COPY REGION   FROM 'tpch-csv-x4-q5/region.csv'   (HEADER TRUE, DELIMITER ',');
-COPY NATION   FROM 'tpch-csv-x4-q5/nation.csv'   (HEADER TRUE, DELIMITER ',');
-COPY SUPPLIER FROM 'tpch-csv-x4-q5/supplier.csv' (HEADER TRUE, DELIMITER ',');
-COPY CUSTOMER FROM 'tpch-csv-x4-q5/customer.csv' (HEADER TRUE, DELIMITER ',');
-COPY ORDERS   FROM 'tpch-csv-x4-q5/orders.csv'   (HEADER TRUE, DELIMITER ',');
-COPY LINEITEM FROM 'tpch-csv-x4-q5/lineitem.csv' (HEADER TRUE, DELIMITER ',');
-
-PRAGMA database_size;
-┌───────────────┬───────────────┬────────────┬──────────────┬───┬─────────────┬──────────┬──────────────┬──────────────┐
-│ database_name │ database_size │ block_size │ total_blocks │ … │ free_blocks │ wal_size │ memory_usage │ memory_limit │
-│    varchar    │    varchar    │   int64    │    int64     │   │    int64    │ varchar  │   varchar    │   varchar    │
-├───────────────┼───────────────┼────────────┼──────────────┼───┼─────────────┼──────────┼──────────────┼──────────────┤
-│ memory        │ 0 bytes       │          0 │            0 │ … │           0 │ 0 bytes  │ 5.4GB        │ 13.3GB       │
-├───────────────┴───────────────┴────────────┴──────────────┴───┴─────────────┴──────────┴──────────────┴──────────────┤
-│ 1 rows                                                                                           9 columns (8 shown) │
-└──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
-
-.echo off
-┌───────────┬────────────────────┐
-│  N_NAME   │      revenue       │
-│  varchar  │       double       │
-├───────────┼────────────────────┤
-│ INDONESIA │ 221344176.61909994 │
-│ VIETNAM   │     202166533.2553 │
-│ INDIA     │ 216890273.59909996 │
-│ JAPAN     │ 208678933.74380007 │
-│ CHINA     │ 207045757.78750008 │
-└───────────┴────────────────────┘
-Run Time (s): real 0.409 user 3.900066 sys 0.139770
-┌───────────┬────────────────────┐
-│  N_NAME   │      revenue       │
-│  varchar  │       double       │
-├───────────┼────────────────────┤
-│ INDIA     │     216890273.5991 │
-│ CHINA     │     207045757.7875 │
-│ INDONESIA │ 221344176.61909997 │
-│ VIETNAM   │ 202166533.25529996 │
-│ JAPAN     │     208678933.7438 │
-└───────────┴────────────────────┘
-Run Time (s): real 0.410 user 3.833861 sys 0.152756
-┌───────────┬────────────────────┐
-│  N_NAME   │      revenue       │
-│  varchar  │       double       │
-├───────────┼────────────────────┤
-│ JAPAN     │ 208678933.74379998 │
-│ INDONESIA │ 221344176.61909994 │
-│ INDIA     │ 216890273.59909996 │
-│ VIETNAM   │     202166533.2553 │
-│ CHINA     │ 207045757.78750005 │
-└───────────┴────────────────────┘
-Run Time (s): real 0.409 user 3.920228 sys 0.139670
-┌───────────┬────────────────────┐
-│  N_NAME   │      revenue       │
-│  varchar  │       double       │
-├───────────┼────────────────────┤
-│ VIETNAM   │ 202166533.25529996 │
-│ INDONESIA │ 221344176.61909992 │
-│ CHINA     │ 207045757.78750002 │
-│ INDIA     │ 216890273.59910005 │
-│ JAPAN     │ 208678933.74380004 │
-└───────────┴────────────────────┘
-Run Time (s): real 0.405 user 3.963639 sys 0.093315
-┌───────────┬────────────────────┐
-│  N_NAME   │      revenue       │
-│  varchar  │       double       │
-├───────────┼────────────────────┤
-│ INDONESIA │ 221344176.61909992 │
-│ VIETNAM   │ 202166533.25530002 │
-│ INDIA     │     216890273.5991 │
-│ JAPAN     │     208678933.7438 │
-│ CHINA     │ 207045757.78750002 │
-└───────────┴────────────────────┘
-Run Time (s): real 0.407 user 3.905700 sys 0.146901
-
-┌─────────────────────────────┐
-│┌───────────────────────────┐│
-│└───────────────────────────┘│
-└─────────────────────────────┘
-┌─────────────────────────────────────┐
-│┌───────────────────────────────────┐│
-││    Query Profiling Information    ││
-│└───────────────────────────────────┘│
-└─────────────────────────────────────┘
-EXPLAIN ANALYZE select  n_name,  sum(l_extendedprice * (1 - l_discount)) as revenue from   customer,   orders,   lineitem,   supplier,   nation,   region where   c_custkey = o_custkey   and l_orderkey = o_orderkey   and l_suppkey = s_suppkey   and c_nationkey = s_nationkey   and s_nationkey = n_nationkey   and n_regionkey = r_regionkey   and r_name = 'ASIA'   and o_orderdate >= date '1994-01-01'   and o_orderdate < date '1995-01-01' group by  n_name;
-┌─────────────────────────────────────┐
-│┌───────────────────────────────────┐│
-││         Total Time: 0.400s        ││
-│└───────────────────────────────────┘│
-└─────────────────────────────────────┘
-┌───────────────────────────┐                                                                                                                                                 
-│      EXPLAIN_ANALYZE      │                                                                                                                                                 
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                                                 
-│             0             │                                                                                                                                                 
-│          (0.00s)          │                                                                                                                                                 
-└─────────────┬─────────────┘                                                                                                                                                                              
-┌─────────────┴─────────────┐                                                                                                                                                 
-│       HASH_GROUP_BY       │                                                                                                                                                 
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                                                 
-│             #0            │                                                                                                                                                 
-│          sum(#1)          │                                                                                                                                                 
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                                                 
-│             5             │                                                                                                                                                 
-│          (0.00s)          │                                                                                                                                                 
-└─────────────┬─────────────┘                                                                                                                                                                              
-┌─────────────┴─────────────┐                                                                                                                                                 
-│         PROJECTION        │                                                                                                                                                 
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                                                 
-│           N_NAME          │                                                                                                                                                 
-│ (L_EXTENDEDPRICE * (1.0 - │                                                                                                                                                 
-│        L_DISCOUNT))       │                                                                                                                                                 
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                                                 
-│           29273           │                                                                                                                                                 
-│          (0.00s)          │                                                                                                                                                 
-└─────────────┬─────────────┘                                                                                                                                                                              
-┌─────────────┴─────────────┐                                                                                                                                                 
-│         HASH_JOIN         │                                                                                                                                                 
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                                                 
-│           INNER           │                                                                                                                                                 
-│ N_NATIONKEY = S_NATIONKEY │                                                                                                                                                 
-│   L_SUPPKEY = S_SUPPKEY   │                                                                                                                                                 
-│ C_NATIONKEY = S_NATIONKEY │                                                                                                                                                 
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ├──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐              
-│         EC: 597898        │                                                                                                                                  │              
-│       Cost: 1462297       │                                                                                                                                  │              
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                                  │              
-│           29273           │                                                                                                                                  │              
-│          (0.04s)          │                                                                                                                                  │              
-└─────────────┬─────────────┘                                                                                                                                  │                                           
-┌─────────────┴─────────────┐                                                                                                                    ┌─────────────┴─────────────┐
-│         INDEX_JOIN        │                                                                                                                    │          SEQ_SCAN         │
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                    │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │
-│           730420          │                                                                                                                    │          SUPPLIER         │
-│          (3.79s)          │                                                                                                                    │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │
-│                           │                                                                                                                    │         S_SUPPKEY         │
-│                           ├─────────────────────────────────────────────────────────────────────────────────────────────────────┐              │        S_NATIONKEY        │
-│                           │                                                                                                     │              │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │
-│                           │                                                                                                     │              │         EC: 40000         │
-│                           │                                                                                                     │              │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │
-│                           │                                                                                                     │              │           40000           │
-│                           │                                                                                                     │              │          (0.00s)          │
-└─────────────┬─────────────┘                                                                                                     │              └───────────────────────────┘                             
-┌─────────────┴─────────────┐                                                                                       ┌─────────────┴─────────────┐                             
-│         HASH_JOIN         │                                                                                       │          SEQ_SCAN         │                             
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                       │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                             
-│           INNER           │                                                                                       │          LINEITEM         │                             
-│   O_CUSTKEY = C_CUSTKEY   │                                                                                       │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                             
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                       │         L_ORDERKEY        │                             
-│         EC: 146375        │                                                                                       │         L_SUPPKEY         │                             
-│        Cost: 266380       ├──────────────┐                                                                        │      L_EXTENDEDPRICE      │                             
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │              │                                                                        │         L_DISCOUNT        │                             
-│           182837          │              │                                                                        │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                             
-│          (0.02s)          │              │                                                                        │        EC: 23996604       │                             
-│                           │              │                                                                        │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                             
-│                           │              │                                                                        │             0             │                             
-│                           │              │                                                                        │          (0.00s)          │                             
-└─────────────┬─────────────┘              │                                                                        └───────────────────────────┘                                                          
-┌─────────────┴─────────────┐┌─────────────┴─────────────┐                                                                                                                    
-│          SEQ_SCAN         ││         INDEX_JOIN        │                                                                                                                    
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                    
-│           ORDERS          ││           120388          │                                                                                                                    
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││          (0.05s)          │                                                                                                                    
-│         O_CUSTKEY         ││                           │                                                                                                                    
-│         O_ORDERKEY        ││                           │                                                                                                                    
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││                           │                                                                                                                    
-│ Filters: O_ORDERDATE>=1994││                           │                                                                                                                    
-│-01-01 AND O_ORDERDATE<1995││                           ├───────────────────────────────────────────┐                                                                        
-│ -01-01 AND O_ORDERDATE IS ││                           │                                           │                                                                        
-│          NOT NULL         ││                           │                                           │                                                                        
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││                           │                                           │                                                                        
-│        EC: 1200000        ││                           │                                           │                                                                        
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││                           │                                           │                                                                        
-│           910293          ││                           │                                           │                                                                        
-│          (0.05s)          ││                           │                                           │                                                                        
-└───────────────────────────┘└─────────────┬─────────────┘                                           │                                                                                                     
-                             ┌─────────────┴─────────────┐                             ┌─────────────┴─────────────┐                                                          
-                             │         HASH_JOIN         │                             │          SEQ_SCAN         │                                                          
-                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                          
-                             │           INNER           │                             │          CUSTOMER         │                                                          
-                             │ N_REGIONKEY = R_REGIONKEY │                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                          
-                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                             │         C_CUSTKEY         │                                                          
-                             │           EC: 5           ├──────────────┐              │        C_NATIONKEY        │                                                          
-                             │          Cost: 5          │              │              │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                          
-                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │              │              │         EC: 600000        │                                                          
-                             │             5             │              │              │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                          
-                             │          (0.00s)          │              │              │             0             │                                                          
-                             │                           │              │              │          (0.00s)          │                                                          
-                             └─────────────┬─────────────┘              │              └───────────────────────────┘                                                                                       
-                             ┌─────────────┴─────────────┐┌─────────────┴─────────────┐                                                                                       
-                             │          SEQ_SCAN         ││          SEQ_SCAN         │                                                                                       
-                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                       
-                             │           NATION          ││           REGION          │                                                                                       
-                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                       
-                             │        N_NATIONKEY        ││        R_REGIONKEY        │                                                                                       
-                             │        N_REGIONKEY        ││   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                       
-                             │           N_NAME          ││  Filters: R_NAME=ASIA AND │                                                                                       
-                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││     R_NAME IS NOT NULL    │                                                                                       
-                             │           EC: 25          ││   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                       
-                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││           EC: 1           │                                                                                       
-                             │             25            ││   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                       
-                             │          (0.00s)          ││             1             │                                                                                       
-                             │                           ││          (0.00s)          │                                                                                       
-                             └───────────────────────────┘└───────────────────────────┘                                                                                                                    
-sed -e 's#tpch-csv-q5#tpch-csv-x4-q5#g' bench/tpch-q5-duckdb-prep-foreign-key.sql bench/tpch-q5-duckdb.sql | duckdb/duckdb
-
----------------- load data into memory
+q2 prep val: 0
+q2 prep took (s): real 0.001941s user 0.001939s sys 0.000000s
+q2 prep took (avg): real 0.001941s user 0.001939s sys 0.000000s
+q2 val: 0
+q2 took (s): real 0.967995s user 0.967401s sys 0.000000s
+q2 val: 0
+q2 took (s): real 0.965551s user 0.964918s sys 0.000008s
+q2 val: 0
+q2 took (s): real 0.964578s user 0.963998s sys 0.000000s
+q2 val: 0
+q2 took (s): real 0.968337s user 0.967745s sys 0.000000s
+q2 val: 0
+q2 took (s): real 0.971411s user 0.970812s sys 0.000000s
+q2 took (avg): real 0.967574s user 0.966975s sys 0.000002s
+N_NAME	revenue	
+VARCHAR	DOUBLE	
+[ Rows: 5]
+JAPAN	208678933.74380082
+CHINA	207045757.7874994
+VIETNAM	202166533.25530025
+INDIA	216890273.5991001
+INDONESIA	221344176.61910042
 
 
+./bench-duckdb <(sed -e 's#tpch-csv-q5#tpch-csv-x4-q5#g' bench/tpch-q5-duckdb-prep-foreign-key.sql) 5:bench/tpch-q5-duckdb.sql
+q1 val: 0
+q1 took (s): real 40.810689s user 38.108162s sys 2.674497s
+q1 took (avg): real 40.810689s user 38.108162s sys 2.674497s
+Count	
+BIGINT	
+[ Rows: 0]
 
-CREATE TABLE REGION  ( R_REGIONKEY  INTEGER NOT NULL,
-                            R_NAME       CHAR(25) NOT NULL,
-                            PRIMARY KEY (R_REGIONKEY));
-CREATE TABLE NATION  ( N_NATIONKEY  INTEGER NOT NULL,
-                            N_REGIONKEY  INTEGER NOT NULL REFERENCES REGION (R_REGIONKEY),
-                            N_NAME       CHAR(25) NOT NULL,
-                            PRIMARY KEY (N_NATIONKEY));
-CREATE TABLE SUPPLIER ( S_SUPPKEY     INTEGER NOT NULL,
-                             S_NATIONKEY   INTEGER NOT NULL REFERENCES NATION (N_NATIONKEY),
-                             PRIMARY KEY (S_SUPPKEY));
-CREATE TABLE CUSTOMER ( C_CUSTKEY     INTEGER NOT NULL,
-                             C_NATIONKEY   INTEGER NOT NULL REFERENCES NATION (N_NATIONKEY),
-                             PRIMARY KEY (C_CUSTKEY));
-CREATE TABLE ORDERS  ( O_ORDERKEY       INTEGER NOT NULL,
-                           O_CUSTKEY        INTEGER NOT NULL REFERENCES CUSTOMER (C_CUSTKEY),
-                           O_ORDERDATE      DATE NOT NULL,
-                           PRIMARY KEY (O_ORDERKEY));
-CREATE TABLE LINEITEM ( L_ORDERKEY    INTEGER NOT NULL REFERENCES ORDERS (O_ORDERKEY),
-                             L_SUPPKEY     INTEGER NOT NULL REFERENCES SUPPLIER (S_SUPPKEY),
-                             L_LINENUMBER  INTEGER NOT NULL,
-                             L_EXTENDEDPRICE  DOUBLE NOT NULL, -- actually DECIMAL(15,2), but etch uses double
-                             L_DISCOUNT    DOUBLE NOT NULL,
-                             PRIMARY KEY (L_ORDERKEY, L_LINENUMBER));
 
-COPY REGION   FROM 'tpch-csv-x4-q5/region.csv'   (HEADER TRUE, DELIMITER ',');
-COPY NATION   FROM 'tpch-csv-x4-q5/nation.csv'   (HEADER TRUE, DELIMITER ',');
-COPY SUPPLIER FROM 'tpch-csv-x4-q5/supplier.csv' (HEADER TRUE, DELIMITER ',');
-COPY CUSTOMER FROM 'tpch-csv-x4-q5/customer.csv' (HEADER TRUE, DELIMITER ',');
-COPY ORDERS   FROM 'tpch-csv-x4-q5/orders.csv'   (HEADER TRUE, DELIMITER ',');
-COPY LINEITEM FROM 'tpch-csv-x4-q5/lineitem.csv' (HEADER TRUE, DELIMITER ',');
+q2 prep val: 0
+q2 prep took (s): real 0.001994s user 0.001990s sys 0.000000s
+q2 prep took (avg): real 0.001994s user 0.001990s sys 0.000000s
+q2 val: 0
+q2 took (s): real 0.966470s user 0.965852s sys 0.000000s
+q2 val: 0
+q2 took (s): real 0.967803s user 0.967138s sys 0.000039s
+q2 val: 0
+q2 took (s): real 1.007599s user 0.967137s sys 0.039829s
+q2 val: 0
+q2 took (s): real 0.967259s user 0.966585s sys 0.000026s
+q2 val: 0
+q2 took (s): real 0.967905s user 0.967205s sys 0.000063s
+q2 took (avg): real 0.975407s user 0.966783s sys 0.007991s
+N_NAME	revenue	
+VARCHAR	DOUBLE	
+[ Rows: 5]
+JAPAN	208678933.74380082
+CHINA	207045757.7874994
+VIETNAM	202166533.25530025
+INDIA	216890273.5991001
+INDONESIA	221344176.61910042
 
-PRAGMA database_size;
-┌───────────────┬───────────────┬────────────┬──────────────┬───┬─────────────┬──────────┬──────────────┬──────────────┐
-│ database_name │ database_size │ block_size │ total_blocks │ … │ free_blocks │ wal_size │ memory_usage │ memory_limit │
-│    varchar    │    varchar    │   int64    │    int64     │   │    int64    │ varchar  │   varchar    │   varchar    │
-├───────────────┼───────────────┼────────────┼──────────────┼───┼─────────────┼──────────┼──────────────┼──────────────┤
-│ memory        │ 0 bytes       │          0 │            0 │ … │           0 │ 0 bytes  │ 5.4GB        │ 13.3GB       │
-├───────────────┴───────────────┴────────────┴──────────────┴───┴─────────────┴──────────┴──────────────┴──────────────┤
-│ 1 rows                                                                                           9 columns (8 shown) │
-└──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 
-.echo off
-┌───────────┬────────────────────┐
-│  N_NAME   │      revenue       │
-│  varchar  │       double       │
-├───────────┼────────────────────┤
-│ JAPAN     │     208678933.7438 │
-│ CHINA     │ 207045757.78750002 │
-│ VIETNAM   │ 202166533.25529996 │
-│ INDIA     │ 216890273.59909996 │
-│ INDONESIA │ 221344176.61909994 │
-└───────────┴────────────────────┘
-Run Time (s): real 0.441 user 3.953002 sys 0.140551
-┌───────────┬────────────────────┐
-│  N_NAME   │      revenue       │
-│  varchar  │       double       │
-├───────────┼────────────────────┤
-│ INDONESIA │ 221344176.61909992 │
-│ INDIA     │ 216890273.59910002 │
-│ VIETNAM   │ 202166533.25529993 │
-│ JAPAN     │     208678933.7438 │
-│ CHINA     │ 207045757.78750002 │
-└───────────┴────────────────────┘
-Run Time (s): real 0.412 user 3.890661 sys 0.167311
-┌───────────┬────────────────────┐
-│  N_NAME   │      revenue       │
-│  varchar  │       double       │
-├───────────┼────────────────────┤
-│ INDONESIA │ 221344176.61909994 │
-│ CHINA     │ 207045757.78750002 │
-│ VIETNAM   │ 202166533.25529996 │
-│ JAPAN     │     208678933.7438 │
-│ INDIA     │ 216890273.59909996 │
-└───────────┴────────────────────┘
-Run Time (s): real 0.407 user 3.853356 sys 0.133599
-┌───────────┬────────────────────┐
-│  N_NAME   │      revenue       │
-│  varchar  │       double       │
-├───────────┼────────────────────┤
-│ VIETNAM   │ 202166533.25529996 │
-│ CHINA     │ 207045757.78750008 │
-│ INDONESIA │ 221344176.61909992 │
-│ INDIA     │ 216890273.59909996 │
-│ JAPAN     │     208678933.7438 │
-└───────────┴────────────────────┘
-Run Time (s): real 0.400 user 3.883581 sys 0.089014
-┌───────────┬────────────────────┐
-│  N_NAME   │      revenue       │
-│  varchar  │       double       │
-├───────────┼────────────────────┤
-│ INDIA     │ 216890273.59909996 │
-│ CHINA     │ 207045757.78750002 │
-│ INDONESIA │ 221344176.61909997 │
-│ VIETNAM   │     202166533.2553 │
-│ JAPAN     │     208678933.7438 │
-└───────────┴────────────────────┘
-Run Time (s): real 0.401 user 3.859562 sys 0.145729
+./bench-duckdb <(sed -e 's#tpch-csv-q5#tpch-csv-x4-q5#g' bench/tpch-q5-duckdb-prep-foreign-key.sql) 5:bench/tpch-q5-duckdb.sql
+q1 val: 0
+q1 took (s): real 41.916440s user 39.221562s sys 2.667729s
+q1 took (avg): real 41.916440s user 39.221562s sys 2.667729s
+Count	
+BIGINT	
+[ Rows: 0]
 
-┌─────────────────────────────┐
-│┌───────────────────────────┐│
-│└───────────────────────────┘│
-└─────────────────────────────┘
-┌─────────────────────────────────────┐
-│┌───────────────────────────────────┐│
-││    Query Profiling Information    ││
-│└───────────────────────────────────┘│
-└─────────────────────────────────────┘
-EXPLAIN ANALYZE select  n_name,  sum(l_extendedprice * (1 - l_discount)) as revenue from   customer,   orders,   lineitem,   supplier,   nation,   region where   c_custkey = o_custkey   and l_orderkey = o_orderkey   and l_suppkey = s_suppkey   and c_nationkey = s_nationkey   and s_nationkey = n_nationkey   and n_regionkey = r_regionkey   and r_name = 'ASIA'   and o_orderdate >= date '1994-01-01'   and o_orderdate < date '1995-01-01' group by  n_name;
-┌─────────────────────────────────────┐
-│┌───────────────────────────────────┐│
-││         Total Time: 0.405s        ││
-│└───────────────────────────────────┘│
-└─────────────────────────────────────┘
-┌───────────────────────────┐                                                                                                                                                 
-│      EXPLAIN_ANALYZE      │                                                                                                                                                 
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                                                 
-│             0             │                                                                                                                                                 
-│          (0.00s)          │                                                                                                                                                 
-└─────────────┬─────────────┘                                                                                                                                                                              
-┌─────────────┴─────────────┐                                                                                                                                                 
-│       HASH_GROUP_BY       │                                                                                                                                                 
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                                                 
-│             #0            │                                                                                                                                                 
-│          sum(#1)          │                                                                                                                                                 
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                                                 
-│             5             │                                                                                                                                                 
-│          (0.00s)          │                                                                                                                                                 
-└─────────────┬─────────────┘                                                                                                                                                                              
-┌─────────────┴─────────────┐                                                                                                                                                 
-│         PROJECTION        │                                                                                                                                                 
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                                                 
-│           N_NAME          │                                                                                                                                                 
-│ (L_EXTENDEDPRICE * (1.0 - │                                                                                                                                                 
-│        L_DISCOUNT))       │                                                                                                                                                 
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                                                 
-│           29273           │                                                                                                                                                 
-│          (0.00s)          │                                                                                                                                                 
-└─────────────┬─────────────┘                                                                                                                                                                              
-┌─────────────┴─────────────┐                                                                                                                                                 
-│         HASH_JOIN         │                                                                                                                                                 
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                                                 
-│           INNER           │                                                                                                                                                 
-│ N_NATIONKEY = S_NATIONKEY │                                                                                                                                                 
-│   L_SUPPKEY = S_SUPPKEY   │                                                                                                                                                 
-│ C_NATIONKEY = S_NATIONKEY │                                                                                                                                                 
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ├──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐              
-│         EC: 597898        │                                                                                                                                  │              
-│       Cost: 1462297       │                                                                                                                                  │              
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                                  │              
-│           29273           │                                                                                                                                  │              
-│          (0.04s)          │                                                                                                                                  │              
-└─────────────┬─────────────┘                                                                                                                                  │                                           
-┌─────────────┴─────────────┐                                                                                                                    ┌─────────────┴─────────────┐
-│         INDEX_JOIN        │                                                                                                                    │          SEQ_SCAN         │
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                    │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │
-│           730420          │                                                                                                                    │          SUPPLIER         │
-│          (3.82s)          │                                                                                                                    │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │
-│                           │                                                                                                                    │         S_SUPPKEY         │
-│                           ├─────────────────────────────────────────────────────────────────────────────────────────────────────┐              │        S_NATIONKEY        │
-│                           │                                                                                                     │              │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │
-│                           │                                                                                                     │              │         EC: 40000         │
-│                           │                                                                                                     │              │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │
-│                           │                                                                                                     │              │           40000           │
-│                           │                                                                                                     │              │          (0.00s)          │
-└─────────────┬─────────────┘                                                                                                     │              └───────────────────────────┘                             
-┌─────────────┴─────────────┐                                                                                       ┌─────────────┴─────────────┐                             
-│         HASH_JOIN         │                                                                                       │          SEQ_SCAN         │                             
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                       │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                             
-│           INNER           │                                                                                       │          LINEITEM         │                             
-│   O_CUSTKEY = C_CUSTKEY   │                                                                                       │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                             
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                       │         L_ORDERKEY        │                             
-│         EC: 146375        │                                                                                       │         L_SUPPKEY         │                             
-│        Cost: 266380       ├──────────────┐                                                                        │      L_EXTENDEDPRICE      │                             
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │              │                                                                        │         L_DISCOUNT        │                             
-│           182837          │              │                                                                        │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                             
-│          (0.02s)          │              │                                                                        │        EC: 23996604       │                             
-│                           │              │                                                                        │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                             
-│                           │              │                                                                        │             0             │                             
-│                           │              │                                                                        │          (0.00s)          │                             
-└─────────────┬─────────────┘              │                                                                        └───────────────────────────┘                                                          
-┌─────────────┴─────────────┐┌─────────────┴─────────────┐                                                                                                                    
-│          SEQ_SCAN         ││         INDEX_JOIN        │                                                                                                                    
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                                                    
-│           ORDERS          ││           120388          │                                                                                                                    
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││          (0.05s)          │                                                                                                                    
-│         O_CUSTKEY         ││                           │                                                                                                                    
-│         O_ORDERKEY        ││                           │                                                                                                                    
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││                           │                                                                                                                    
-│ Filters: O_ORDERDATE>=1994││                           │                                                                                                                    
-│-01-01 AND O_ORDERDATE<1995││                           ├───────────────────────────────────────────┐                                                                        
-│ -01-01 AND O_ORDERDATE IS ││                           │                                           │                                                                        
-│          NOT NULL         ││                           │                                           │                                                                        
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││                           │                                           │                                                                        
-│        EC: 1200000        ││                           │                                           │                                                                        
-│   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││                           │                                           │                                                                        
-│           910293          ││                           │                                           │                                                                        
-│          (0.05s)          ││                           │                                           │                                                                        
-└───────────────────────────┘└─────────────┬─────────────┘                                           │                                                                                                     
-                             ┌─────────────┴─────────────┐                             ┌─────────────┴─────────────┐                                                          
-                             │         HASH_JOIN         │                             │          SEQ_SCAN         │                                                          
-                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                          
-                             │           INNER           │                             │          CUSTOMER         │                                                          
-                             │ N_REGIONKEY = R_REGIONKEY │                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                          
-                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                             │         C_CUSTKEY         │                                                          
-                             │           EC: 5           ├──────────────┐              │        C_NATIONKEY        │                                                          
-                             │          Cost: 5          │              │              │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                          
-                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │              │              │         EC: 600000        │                                                          
-                             │             5             │              │              │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                          
-                             │          (0.00s)          │              │              │             0             │                                                          
-                             │                           │              │              │          (0.00s)          │                                                          
-                             └─────────────┬─────────────┘              │              └───────────────────────────┘                                                                                       
-                             ┌─────────────┴─────────────┐┌─────────────┴─────────────┐                                                                                       
-                             │          SEQ_SCAN         ││          SEQ_SCAN         │                                                                                       
-                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                       
-                             │           NATION          ││           REGION          │                                                                                       
-                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                       
-                             │        N_NATIONKEY        ││        R_REGIONKEY        │                                                                                       
-                             │        N_REGIONKEY        ││   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                       
-                             │           N_NAME          ││  Filters: R_NAME=ASIA AND │                                                                                       
-                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││     R_NAME IS NOT NULL    │                                                                                       
-                             │           EC: 25          ││   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                       
-                             │   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   ││           EC: 1           │                                                                                       
-                             │             25            ││   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │                                                                                       
-                             │          (0.00s)          ││             1             │                                                                                       
-                             │                           ││          (0.00s)          │                                                                                       
-                             └───────────────────────────┘└───────────────────────────┘                                                                                                                    
+
+q2 prep val: 0
+q2 prep took (s): real 0.001966s user 0.001963s sys 0.000000s
+q2 prep took (avg): real 0.001966s user 0.001963s sys 0.000000s
+q2 val: 0
+q2 took (s): real 1.002278s user 1.001667s sys 0.000000s
+q2 val: 0
+q2 took (s): real 0.986856s user 0.986244s sys 0.000000s
+q2 val: 0
+q2 took (s): real 1.016790s user 1.016175s sys 0.000000s
+q2 val: 0
+q2 took (s): real 1.011547s user 1.010900s sys 0.000000s
+q2 val: 0
+q2 took (s): real 0.990085s user 0.989393s sys 0.000000s
+q2 took (avg): real 1.001511s user 1.000876s sys 0.000000s
+N_NAME	revenue	
+VARCHAR	DOUBLE	
+[ Rows: 5]
+JAPAN	208678933.74380082
+CHINA	207045757.7874994
+VIETNAM	202166533.25530025
+INDIA	216890273.5991001
+INDONESIA	221344176.61910042
+
+
+./bench-duckdb <(sed -e 's#tpch-csv-q5#tpch-csv-x4-q5#g' bench/tpch-q5-duckdb-prep-foreign-key.sql) 5:bench/tpch-q5-duckdb.sql
+q1 val: 0
+q1 took (s): real 41.080617s user 38.566100s sys 2.488323s
+q1 took (avg): real 41.080617s user 38.566100s sys 2.488323s
+Count	
+BIGINT	
+[ Rows: 0]
+
+
+q2 prep val: 0
+q2 prep took (s): real 0.001915s user 0.001911s sys 0.000000s
+q2 prep took (avg): real 0.001915s user 0.001911s sys 0.000000s
+q2 val: 0
+q2 took (s): real 0.965788s user 0.965237s sys 0.000000s
+q2 val: 0
+q2 took (s): real 0.964039s user 0.963492s sys 0.000000s
+q2 val: 0
+q2 took (s): real 0.966073s user 0.965485s sys 0.000000s
+q2 val: 0
+q2 took (s): real 0.966681s user 0.966113s sys 0.000000s
+q2 val: 0
+q2 took (s): real 0.964099s user 0.963559s sys 0.000006s
+q2 took (avg): real 0.965336s user 0.964777s sys 0.000001s
+N_NAME	revenue	
+VARCHAR	DOUBLE	
+[ Rows: 5]
+JAPAN	208678933.74380082
+CHINA	207045757.7874994
+VIETNAM	202166533.25530025
+INDIA	216890273.5991001
+INDONESIA	221344176.61910042
+
+
