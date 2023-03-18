@@ -1,26 +1,26 @@
 ./bench-duckdb <(sed -e 's#tpch-csv-q5#tpch-csv-x0.1-q5#g' bench/tpch-q5-duckdb-prep.sql) 5:bench/tpch-q5-duckdb.sql
 q1 val: 0
-q1 took (s): real 0.481070s user 0.458915s sys 0.022861s
-q1 took (avg): real 0.481070s user 0.458915s sys 0.022861s
+q1 took (s): real 0.480687s user 0.420787s sys 0.060362s
+q1 took (avg): real 0.480687s user 0.420787s sys 0.060362s
 Count	
 BIGINT	
 [ Rows: 0]
 
 
 q2 prep val: 0
-q2 prep took (s): real 0.001953s user 0.001949s sys 0.000000s
-q2 prep took (avg): real 0.001953s user 0.001949s sys 0.000000s
+q2 prep took (s): real 0.001808s user 0.001801s sys 0.000000s
+q2 prep took (avg): real 0.001808s user 0.001801s sys 0.000000s
 q2 val: 0
-q2 took (s): real 0.004656s user 0.004563s sys 0.000093s
+q2 took (s): real 0.004636s user 0.004462s sys 0.000167s
 q2 val: 0
-q2 took (s): real 0.004062s user 0.004011s sys 0.000050s
+q2 took (s): real 0.004083s user 0.003987s sys 0.000095s
 q2 val: 0
-q2 took (s): real 0.004080s user 0.004073s sys 0.000000s
+q2 took (s): real 0.004214s user 0.004200s sys 0.000000s
 q2 val: 0
-q2 took (s): real 0.003993s user 0.003990s sys 0.000000s
+q2 took (s): real 0.004021s user 0.004019s sys 0.000000s
 q2 val: 0
-q2 took (s): real 0.003988s user 0.003987s sys 0.000000s
-q2 took (avg): real 0.004156s user 0.004125s sys 0.000029s
+q2 took (s): real 0.003965s user 0.003963s sys 0.000000s
+q2 took (avg): real 0.004184s user 0.004126s sys 0.000052s
 N_NAME	revenue	
 VARCHAR	DOUBLE	
 [ Rows: 5]
@@ -33,27 +33,27 @@ JAPAN	6000077.218399999
 
 ./bench-duckdb <(sed -e 's#tpch-csv-q5#tpch-csv-x0.1-q5#g' bench/tpch-q5-duckdb-prep.sql) 5:bench/tpch-q5-duckdb.sql
 q1 val: 0
-q1 took (s): real 0.479945s user 0.437548s sys 0.042924s
-q1 took (avg): real 0.479945s user 0.437548s sys 0.042924s
+q1 took (s): real 0.479141s user 0.413050s sys 0.066916s
+q1 took (avg): real 0.479141s user 0.413050s sys 0.066916s
 Count	
 BIGINT	
 [ Rows: 0]
 
 
 q2 prep val: 0
-q2 prep took (s): real 0.001830s user 0.001826s sys 0.000000s
-q2 prep took (avg): real 0.001830s user 0.001826s sys 0.000000s
+q2 prep took (s): real 0.001831s user 0.001828s sys 0.000000s
+q2 prep took (avg): real 0.001831s user 0.001828s sys 0.000000s
 q2 val: 0
-q2 took (s): real 0.004709s user 0.004566s sys 0.000142s
+q2 took (s): real 0.004694s user 0.004690s sys 0.000000s
 q2 val: 0
-q2 took (s): real 0.004078s user 0.004001s sys 0.000076s
+q2 took (s): real 0.004033s user 0.004031s sys 0.000000s
 q2 val: 0
-q2 took (s): real 0.003973s user 0.003908s sys 0.000064s
+q2 took (s): real 0.003956s user 0.003954s sys 0.000000s
 q2 val: 0
-q2 took (s): real 0.004124s user 0.004117s sys 0.000000s
+q2 took (s): real 0.004008s user 0.004018s sys 0.000000s
 q2 val: 0
-q2 took (s): real 0.003945s user 0.003944s sys 0.000000s
-q2 took (avg): real 0.004166s user 0.004107s sys 0.000056s
+q2 took (s): real 0.003943s user 0.003941s sys 0.000000s
+q2 took (avg): real 0.004127s user 0.004127s sys 0.000000s
 N_NAME	revenue	
 VARCHAR	DOUBLE	
 [ Rows: 5]
@@ -66,27 +66,27 @@ JAPAN	6000077.218399999
 
 ./bench-duckdb <(sed -e 's#tpch-csv-q5#tpch-csv-x0.1-q5#g' bench/tpch-q5-duckdb-prep.sql) 5:bench/tpch-q5-duckdb.sql
 q1 val: 0
-q1 took (s): real 0.481546s user 0.442069s sys 0.039758s
-q1 took (avg): real 0.481546s user 0.442069s sys 0.039758s
+q1 took (s): real 0.481868s user 0.412394s sys 0.069605s
+q1 took (avg): real 0.481868s user 0.412394s sys 0.069605s
 Count	
 BIGINT	
 [ Rows: 0]
 
 
 q2 prep val: 0
-q2 prep took (s): real 0.001860s user 0.001858s sys 0.000000s
-q2 prep took (avg): real 0.001860s user 0.001858s sys 0.000000s
+q2 prep took (s): real 0.001831s user 0.001565s sys 0.000267s
+q2 prep took (avg): real 0.001831s user 0.001565s sys 0.000267s
 q2 val: 0
-q2 took (s): real 0.004608s user 0.004476s sys 0.000132s
+q2 took (s): real 0.004779s user 0.004767s sys 0.000000s
 q2 val: 0
-q2 took (s): real 0.004344s user 0.004338s sys 0.000000s
+q2 took (s): real 0.004041s user 0.004039s sys 0.000000s
 q2 val: 0
-q2 took (s): real 0.004177s user 0.004176s sys 0.000000s
+q2 took (s): real 0.004005s user 0.004003s sys 0.000000s
 q2 val: 0
-q2 took (s): real 0.003984s user 0.003983s sys 0.000000s
+q2 took (s): real 0.004025s user 0.003953s sys 0.000070s
 q2 val: 0
-q2 took (s): real 0.004047s user 0.004045s sys 0.000000s
-q2 took (avg): real 0.004232s user 0.004204s sys 0.000026s
+q2 took (s): real 0.004034s user 0.004028s sys 0.000000s
+q2 took (avg): real 0.004177s user 0.004158s sys 0.000014s
 N_NAME	revenue	
 VARCHAR	DOUBLE	
 [ Rows: 5]
@@ -99,27 +99,27 @@ JAPAN	6000077.218399999
 
 ./bench-duckdb <(sed -e 's#tpch-csv-q5#tpch-csv-x0.1-q5#g' bench/tpch-q5-duckdb-prep.sql) 5:bench/tpch-q5-duckdb.sql
 q1 val: 0
-q1 took (s): real 0.481341s user 0.419048s sys 0.062767s
-q1 took (avg): real 0.481341s user 0.419048s sys 0.062767s
+q1 took (s): real 0.481142s user 0.431019s sys 0.050330s
+q1 took (avg): real 0.481142s user 0.431019s sys 0.050330s
 Count	
 BIGINT	
 [ Rows: 0]
 
 
 q2 prep val: 0
-q2 prep took (s): real 0.001826s user 0.001580s sys 0.000247s
-q2 prep took (avg): real 0.001826s user 0.001580s sys 0.000247s
+q2 prep took (s): real 0.001855s user 0.001850s sys 0.000000s
+q2 prep took (avg): real 0.001855s user 0.001850s sys 0.000000s
 q2 val: 0
-q2 took (s): real 0.004622s user 0.004619s sys 0.000000s
+q2 took (s): real 0.004645s user 0.004638s sys 0.000000s
 q2 val: 0
-q2 took (s): real 0.004111s user 0.004103s sys 0.000000s
+q2 took (s): real 0.004141s user 0.004099s sys 0.000040s
 q2 val: 0
-q2 took (s): real 0.004036s user 0.004035s sys 0.000000s
+q2 took (s): real 0.004014s user 0.004003s sys 0.000000s
 q2 val: 0
-q2 took (s): real 0.003994s user 0.003980s sys 0.000012s
+q2 took (s): real 0.004014s user 0.004013s sys 0.000000s
 q2 val: 0
-q2 took (s): real 0.004036s user 0.004032s sys 0.000000s
-q2 took (avg): real 0.004160s user 0.004154s sys 0.000002s
+q2 took (s): real 0.004010s user 0.004008s sys 0.000000s
+q2 took (avg): real 0.004165s user 0.004152s sys 0.000008s
 N_NAME	revenue	
 VARCHAR	DOUBLE	
 [ Rows: 5]
@@ -132,27 +132,27 @@ JAPAN	6000077.218399999
 
 ./bench-duckdb <(sed -e 's#tpch-csv-q5#tpch-csv-x0.1-q5#g' bench/tpch-q5-duckdb-prep.sql) 5:bench/tpch-q5-duckdb.sql
 q1 val: 0
-q1 took (s): real 0.482464s user 0.438675s sys 0.044445s
-q1 took (avg): real 0.482464s user 0.438675s sys 0.044445s
+q1 took (s): real 0.481261s user 0.441598s sys 0.040012s
+q1 took (avg): real 0.481261s user 0.441598s sys 0.040012s
 Count	
 BIGINT	
 [ Rows: 0]
 
 
 q2 prep val: 0
-q2 prep took (s): real 0.001849s user 0.000000s sys 0.001848s
-q2 prep took (avg): real 0.001849s user 0.000000s sys 0.001848s
+q2 prep took (s): real 0.001788s user 0.001644s sys 0.000145s
+q2 prep took (avg): real 0.001788s user 0.001644s sys 0.000145s
 q2 val: 0
-q2 took (s): real 0.004637s user 0.004485s sys 0.000152s
+q2 took (s): real 0.004640s user 0.004528s sys 0.000109s
 q2 val: 0
-q2 took (s): real 0.004065s user 0.003979s sys 0.000083s
+q2 took (s): real 0.004104s user 0.004096s sys 0.000000s
 q2 val: 0
-q2 took (s): real 0.004048s user 0.004046s sys 0.000000s
+q2 took (s): real 0.004141s user 0.004140s sys 0.000000s
 q2 val: 0
-q2 took (s): real 0.003966s user 0.003964s sys 0.000000s
+q2 took (s): real 0.004027s user 0.004025s sys 0.000000s
 q2 val: 0
-q2 took (s): real 0.003954s user 0.003953s sys 0.000000s
-q2 took (avg): real 0.004134s user 0.004085s sys 0.000047s
+q2 took (s): real 0.004013s user 0.003995s sys 0.000000s
+q2 took (avg): real 0.004185s user 0.004157s sys 0.000022s
 N_NAME	revenue	
 VARCHAR	DOUBLE	
 [ Rows: 5]

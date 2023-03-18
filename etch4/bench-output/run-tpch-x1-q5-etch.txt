@@ -21,8 +21,8 @@ tpch_nation3_crd: 25
 tpch_region2_pos: 6
 tpch_region2_crd: 5
 populate_tpch val: 0
-populate_tpch took (s): real 5.843388s user 5.566897s sys 0.273124s
-populate_tpch took (avg): real 5.843388s user 5.566897s sys 0.273124s
+populate_tpch took (s): real 5.828001s user 5.555292s sys 0.269830s
+populate_tpch took (avg): real 5.828001s user 5.555292s sys 0.269830s
 Loaded
 q5 val: MOZAMBIQUE: 0.000000
 VIETNAM: 55295086.996700
@@ -50,7 +50,7 @@ INDONESIA: 55502041.169700
 ETHIOPIA: 0.000000
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.032997s user 0.032979s sys 0.000000s
+q5 took (s): real 0.032327s user 0.032313s sys 0.000000s
 q5 val: MOZAMBIQUE: 0.000000
 VIETNAM: 55295086.996700
 ROMANIA: 0.000000
@@ -77,7 +77,7 @@ INDONESIA: 55502041.169700
 ETHIOPIA: 0.000000
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.032266s user 0.032240s sys 0.000000s
+q5 took (s): real 0.032069s user 0.032005s sys 0.000050s
 q5 val: MOZAMBIQUE: 0.000000
 VIETNAM: 55295086.996700
 ROMANIA: 0.000000
@@ -104,7 +104,7 @@ INDONESIA: 55502041.169700
 ETHIOPIA: 0.000000
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.032069s user 0.032022s sys 0.000032s
+q5 took (s): real 0.031767s user 0.031753s sys 0.000000s
 q5 val: MOZAMBIQUE: 0.000000
 VIETNAM: 55295086.996700
 ROMANIA: 0.000000
@@ -131,7 +131,7 @@ INDONESIA: 55502041.169700
 ETHIOPIA: 0.000000
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.032100s user 0.032082s sys 0.000000s
+q5 took (s): real 0.031695s user 0.031676s sys 0.000006s
 q5 val: MOZAMBIQUE: 0.000000
 VIETNAM: 55295086.996700
 ROMANIA: 0.000000
@@ -158,8 +158,8 @@ INDONESIA: 55502041.169700
 ETHIOPIA: 0.000000
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.032126s user 0.032109s sys 0.000000s
-q5 took (avg): real 0.032311s user 0.032286s sys 0.000006s
+q5 took (s): real 0.031789s user 0.031768s sys 0.000000s
+q5 took (avg): real 0.031929s user 0.031903s sys 0.000011s
 rm TPC-H.db
 ln -sf TPC-H-x1.db TPC-H.db
 ./out
@@ -184,8 +184,8 @@ tpch_nation3_crd: 25
 tpch_region2_pos: 6
 tpch_region2_crd: 5
 populate_tpch val: 0
-populate_tpch took (s): real 5.844904s user 5.552561s sys 0.288781s
-populate_tpch took (avg): real 5.844904s user 5.552561s sys 0.288781s
+populate_tpch took (s): real 5.742584s user 5.393216s sys 0.346514s
+populate_tpch took (avg): real 5.742584s user 5.393216s sys 0.346514s
 Loaded
 q5 val: MOZAMBIQUE: 0.000000
 VIETNAM: 55295086.996700
@@ -213,7 +213,7 @@ INDONESIA: 55502041.169700
 ETHIOPIA: 0.000000
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.032399s user 0.032374s sys 0.000000s
+q5 took (s): real 0.032261s user 0.032111s sys 0.000136s
 q5 val: MOZAMBIQUE: 0.000000
 VIETNAM: 55295086.996700
 ROMANIA: 0.000000
@@ -240,7 +240,7 @@ INDONESIA: 55502041.169700
 ETHIOPIA: 0.000000
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.031779s user 0.031721s sys 0.000043s
+q5 took (s): real 0.031805s user 0.031789s sys 0.000000s
 q5 val: MOZAMBIQUE: 0.000000
 VIETNAM: 55295086.996700
 ROMANIA: 0.000000
@@ -267,7 +267,7 @@ INDONESIA: 55502041.169700
 ETHIOPIA: 0.000000
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.031681s user 0.031656s sys 0.000000s
+q5 took (s): real 0.031834s user 0.031803s sys 0.000018s
 q5 val: MOZAMBIQUE: 0.000000
 VIETNAM: 55295086.996700
 ROMANIA: 0.000000
@@ -294,7 +294,7 @@ INDONESIA: 55502041.169700
 ETHIOPIA: 0.000000
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.031613s user 0.031594s sys 0.000000s
+q5 took (s): real 0.031659s user 0.031644s sys 0.000000s
 q5 val: MOZAMBIQUE: 0.000000
 VIETNAM: 55295086.996700
 ROMANIA: 0.000000
@@ -321,8 +321,8 @@ INDONESIA: 55502041.169700
 ETHIOPIA: 0.000000
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.031758s user 0.031744s sys 0.000000s
-q5 took (avg): real 0.031846s user 0.031818s sys 0.000009s
+q5 took (s): real 0.031943s user 0.031929s sys 0.000000s
+q5 took (avg): real 0.031900s user 0.031855s sys 0.000031s
 rm TPC-H.db
 ln -sf TPC-H-x1.db TPC-H.db
 ./out
@@ -347,8 +347,8 @@ tpch_nation3_crd: 25
 tpch_region2_pos: 6
 tpch_region2_crd: 5
 populate_tpch val: 0
-populate_tpch took (s): real 5.790416s user 5.477690s sys 0.306412s
-populate_tpch took (avg): real 5.790416s user 5.477690s sys 0.306412s
+populate_tpch took (s): real 5.762126s user 5.479258s sys 0.279854s
+populate_tpch took (avg): real 5.762126s user 5.479258s sys 0.279854s
 Loaded
 q5 val: MOZAMBIQUE: 0.000000
 VIETNAM: 55295086.996700
@@ -376,7 +376,7 @@ INDONESIA: 55502041.169700
 ETHIOPIA: 0.000000
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.032885s user 0.032853s sys 0.000000s
+q5 took (s): real 0.032033s user 0.032017s sys 0.000000s
 q5 val: MOZAMBIQUE: 0.000000
 VIETNAM: 55295086.996700
 ROMANIA: 0.000000
@@ -403,7 +403,7 @@ INDONESIA: 55502041.169700
 ETHIOPIA: 0.000000
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.031803s user 0.031788s sys 0.000000s
+q5 took (s): real 0.031423s user 0.031404s sys 0.000008s
 q5 val: MOZAMBIQUE: 0.000000
 VIETNAM: 55295086.996700
 ROMANIA: 0.000000
@@ -430,7 +430,7 @@ INDONESIA: 55502041.169700
 ETHIOPIA: 0.000000
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.031881s user 0.031798s sys 0.000000s
+q5 took (s): real 0.031403s user 0.031366s sys 0.000000s
 q5 val: MOZAMBIQUE: 0.000000
 VIETNAM: 55295086.996700
 ROMANIA: 0.000000
@@ -457,7 +457,7 @@ INDONESIA: 55502041.169700
 ETHIOPIA: 0.000000
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.031752s user 0.031730s sys 0.000000s
+q5 took (s): real 0.031342s user 0.031331s sys 0.000000s
 q5 val: MOZAMBIQUE: 0.000000
 VIETNAM: 55295086.996700
 ROMANIA: 0.000000
@@ -484,8 +484,8 @@ INDONESIA: 55502041.169700
 ETHIOPIA: 0.000000
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.031643s user 0.031612s sys 0.000002s
-q5 took (avg): real 0.031993s user 0.031956s sys 0.000000s
+q5 took (s): real 0.031230s user 0.031215s sys 0.000000s
+q5 took (avg): real 0.031486s user 0.031467s sys 0.000002s
 rm TPC-H.db
 ln -sf TPC-H-x1.db TPC-H.db
 ./out
@@ -510,8 +510,8 @@ tpch_nation3_crd: 25
 tpch_region2_pos: 6
 tpch_region2_crd: 5
 populate_tpch val: 0
-populate_tpch took (s): real 5.779666s user 5.520162s sys 0.256573s
-populate_tpch took (avg): real 5.779666s user 5.520162s sys 0.256573s
+populate_tpch took (s): real 5.750929s user 5.489070s sys 0.258762s
+populate_tpch took (avg): real 5.750929s user 5.489070s sys 0.258762s
 Loaded
 q5 val: MOZAMBIQUE: 0.000000
 VIETNAM: 55295086.996700
@@ -539,7 +539,7 @@ INDONESIA: 55502041.169700
 ETHIOPIA: 0.000000
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.031987s user 0.028756s sys 0.003215s
+q5 took (s): real 0.032419s user 0.032401s sys 0.000000s
 q5 val: MOZAMBIQUE: 0.000000
 VIETNAM: 55295086.996700
 ROMANIA: 0.000000
@@ -566,7 +566,7 @@ INDONESIA: 55502041.169700
 ETHIOPIA: 0.000000
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.032115s user 0.032075s sys 0.000000s
+q5 took (s): real 0.031718s user 0.031652s sys 0.000037s
 q5 val: MOZAMBIQUE: 0.000000
 VIETNAM: 55295086.996700
 ROMANIA: 0.000000
@@ -593,7 +593,7 @@ INDONESIA: 55502041.169700
 ETHIOPIA: 0.000000
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.031576s user 0.031545s sys 0.000017s
+q5 took (s): real 0.031506s user 0.031491s sys 0.000000s
 q5 val: MOZAMBIQUE: 0.000000
 VIETNAM: 55295086.996700
 ROMANIA: 0.000000
@@ -620,7 +620,7 @@ INDONESIA: 55502041.169700
 ETHIOPIA: 0.000000
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.031439s user 0.031424s sys 0.000000s
+q5 took (s): real 0.031185s user 0.031172s sys 0.000000s
 q5 val: MOZAMBIQUE: 0.000000
 VIETNAM: 55295086.996700
 ROMANIA: 0.000000
@@ -647,8 +647,8 @@ INDONESIA: 55502041.169700
 ETHIOPIA: 0.000000
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.031590s user 0.031572s sys 0.000000s
-q5 took (avg): real 0.031741s user 0.031074s sys 0.000646s
+q5 took (s): real 0.031350s user 0.031303s sys 0.000034s
+q5 took (avg): real 0.031636s user 0.031604s sys 0.000014s
 rm TPC-H.db
 ln -sf TPC-H-x1.db TPC-H.db
 ./out
@@ -673,8 +673,8 @@ tpch_nation3_crd: 25
 tpch_region2_pos: 6
 tpch_region2_crd: 5
 populate_tpch val: 0
-populate_tpch took (s): real 5.785348s user 5.505359s sys 0.276622s
-populate_tpch took (avg): real 5.785348s user 5.505359s sys 0.276622s
+populate_tpch took (s): real 5.759405s user 5.480679s sys 0.275489s
+populate_tpch took (avg): real 5.759405s user 5.480679s sys 0.275489s
 Loaded
 q5 val: MOZAMBIQUE: 0.000000
 VIETNAM: 55295086.996700
@@ -702,7 +702,7 @@ INDONESIA: 55502041.169700
 ETHIOPIA: 0.000000
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.032078s user 0.032061s sys 0.000000s
+q5 took (s): real 0.032287s user 0.032270s sys 0.000000s
 q5 val: MOZAMBIQUE: 0.000000
 VIETNAM: 55295086.996700
 ROMANIA: 0.000000
@@ -729,7 +729,7 @@ INDONESIA: 55502041.169700
 ETHIOPIA: 0.000000
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.031744s user 0.031705s sys 0.000023s
+q5 took (s): real 0.031596s user 0.031582s sys 0.000000s
 q5 val: MOZAMBIQUE: 0.000000
 VIETNAM: 55295086.996700
 ROMANIA: 0.000000
@@ -756,7 +756,7 @@ INDONESIA: 55502041.169700
 ETHIOPIA: 0.000000
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.031602s user 0.031582s sys 0.000000s
+q5 took (s): real 0.031597s user 0.031585s sys 0.000000s
 q5 val: MOZAMBIQUE: 0.000000
 VIETNAM: 55295086.996700
 ROMANIA: 0.000000
@@ -783,7 +783,7 @@ INDONESIA: 55502041.169700
 ETHIOPIA: 0.000000
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.031465s user 0.031449s sys 0.000000s
+q5 took (s): real 0.031819s user 0.031805s sys 0.000000s
 q5 val: MOZAMBIQUE: 0.000000
 VIETNAM: 55295086.996700
 ROMANIA: 0.000000
@@ -810,6 +810,6 @@ INDONESIA: 55502041.169700
 ETHIOPIA: 0.000000
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.031605s user 0.031587s sys 0.000000s
-q5 took (avg): real 0.031698s user 0.031677s sys 0.000005s
+q5 took (s): real 0.031598s user 0.031579s sys 0.000000s
+q5 took (avg): real 0.031779s user 0.031764s sys 0.000000s
 rm TPC-H.db
