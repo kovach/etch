@@ -97,3 +97,4 @@ static inline double str_atof(const char* a) { return atof(a); }
 #define TACO_MIN(a, b) ((a) < (b) ? (a) : (b))
 
 #define macro_ternary(c, x, y) ((c) ? x : y)
+#define index_map(a, ...) &a[{__VA_ARGS__}]

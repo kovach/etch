@@ -3,12 +3,40 @@
 
 #include <chrono>
 #include <iostream>
+#include <tuple>
 #include <unordered_map>
 
 namespace {
 
-template <typename T, typename U>
-std::ostream& operator<<(std::ostream& os, const std::unordered_map<T, U>& m) {
+// https://stackoverflow.com/a/6245777/1937836
+namespace aux {
+template <std::size_t...>
+struct seq {};
+
+template <std::size_t N, std::size_t... Is>
+struct gen_seq : gen_seq<N - 1, N - 1, Is...> {};
+
+template <std::size_t... Is>
+struct gen_seq<0, Is...> : seq<Is...> {};
+
+template <class Ch, class Tr, class Tuple, std::size_t... Is>
+void print_tuple(std::basic_ostream<Ch, Tr>& os, Tuple const& t, seq<Is...>) {
+  using swallow = int[];
+  (void)swallow{0,
+                (void(os << (Is == 0 ? "" : ", ") << std::get<Is>(t)), 0)...};
+}
+}  // namespace aux
+
+template <class Ch, class Tr, class... Args>
+auto operator<<(std::basic_ostream<Ch, Tr>& os, std::tuple<Args...> const& t)
+    -> std::basic_ostream<Ch, Tr>& {
+  aux::print_tuple(os, t, aux::gen_seq<sizeof...(Args)>());
+  return os;
+}
+
+template <typename T, typename U, typename Hash, typename Pred>
+std::ostream& operator<<(std::ostream& os,
+                         const std::unordered_map<T, U, Hash, Pred>& m) {
   for (auto&& p : m) {
     os << p.first << ": " << p.second << '\n';
   }
