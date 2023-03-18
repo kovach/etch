@@ -328,7 +328,7 @@ int main(int argc, char* argv[]) {
 
   time([]() { return populate_tpch_q9(db); }, "populate_tpch_q9", 1);
   printf("Loaded\n");
-  time(q9, "q9", 1);
+  time(q9, "q9", 5);
 
   sqlite3_close(db);
   return 0;
