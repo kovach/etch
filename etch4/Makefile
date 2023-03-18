@@ -62,14 +62,11 @@ bench-tpch-q9: CPPFLAGS += $(SQLITE_CPPFLAGS)
 bench-tpch-q9: LDLIBS += $(SQLITE_LDLIBS)
 
 ifdef FORCE_REGEN
-.PHONY: gen_funs.c
+.PHONY: gen_funs.c gen_tpch_q9.c
 endif
-gen_funs.c:
+gen_funs.c gen_tpch_q9.c &:
 	lake update
 	lake exe bench
-
-gen_funs_readable.c: gen_funs.c impls_readable.h .clang-format
-	$(CPP) $(CPPFLAGS) -P -include impls_readable.h $< | sed -E -e 's/\b1 \*//g' -e 's/\* 1\b//g' -e 's/\b0 \+//g' -e 's/\+ 0\b//g' -e 's/&& true\b//g' -e 's/\btrue &&//g' | clang-format --style='{ColumnLimit: 180}' >$@
 
 %_readable.c: %.c impls_readable.h .clang-format
 	$(CPP) $(CPPFLAGS) -P -include impls_readable.h $< | sed -E -e 's/\b1 \*//g' -e 's/\* 1\b//g' -e 's/\b0 \+//g' -e 's/\+ 0\b//g' -e 's/&& true\b//g' -e 's/\btrue &&//g' | clang-format --style='{ColumnLimit: 180}' >$@
