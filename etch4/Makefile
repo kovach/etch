@@ -145,21 +145,30 @@ TPC-H-x4.db:
 	@echo 'Download this file at https://drive.google.com/file/d/14aM_1IY7ACLOzRtS1LKpRYGweDXZZF0M/view?usp=sharing' && false
 	@#echo '9530ea95daecc3c8e411f9a7eb8a78ece3aaaae4b285729e45253283ea091f36 $@' | sha256sum -c
 
-define TPCH_TEMPLATE
+define TPCH_TEMPLATE_SMALL
 # Generate CSV files for TPC-H datasets
-tpch-csv-$(1)-q5: TPC-H-$(1).db bench/tpch-q5-duckdb-export-to-csv.sql $$(DUCKDB)
+tpch-csv-$(1)-$(2): TPC-H-$(1).db bench/tpch-$(2)-duckdb-export-to-csv.sql $$(DUCKDB)
 	mkdir -p $$@
 	rm -rf tmp.duckdb
-	sed -e 's#TPC-H\.db#$$<#g' -e 's#tpch-csv#$$@#g' bench/tpch-q5-duckdb-export-to-csv.sql | $$(DUCKDB) tmp.duckdb
+	sed -e 's#TPC-H\.db#$$<#g' -e 's#tpch-csv#$$@#g' bench/tpch-$(2)-duckdb-export-to-csv.sql | $$(DUCKDB) tmp.duckdb
 	rm tmp.duckdb
 
-.PHONY: run-tpch-$(1)-q5-duckdb
-run-tpch-$(1)-q5-duckdb: tpch-csv-$(1)-q5 bench/tpch-q5-duckdb-prep.sql bench/tpch-q5-duckdb.sql bench-duckdb
-	./bench-duckdb <(sed -e 's#tpch-csv-q5#$$<#g' bench/tpch-q5-duckdb-prep.sql) 5:bench/tpch-q5-duckdb.sql
+.PHONY: run-tpch-$(1)-$(2)-duckdb
+run-tpch-$(1)-$(2)-duckdb: tpch-csv-$(1)-$(2) bench/tpch-$(2)-duckdb-prep.sql bench/tpch-$(2)-duckdb.sql bench-duckdb
+	./bench-duckdb <(sed -e 's#tpch-csv-$(2)#$$<#g' bench/tpch-$(2)-duckdb-prep.sql) 5:bench/tpch-$(2)-duckdb.sql
 
-.PHONY: run-tpch-$(1)-q5-duckdbforeign
-run-tpch-$(1)-q5-duckdbforeign: tpch-csv-$(1)-q5 bench/tpch-q5-duckdb-prep-foreign-key.sql bench/tpch-q5-duckdb.sql bench-duckdb
-	./bench-duckdb <(sed -e 's#tpch-csv-q5#$$<#g' bench/tpch-q5-duckdb-prep-foreign-key.sql) 5:bench/tpch-q5-duckdb.sql
+.PHONY: run-tpch-$(1)-$(2)-duckdbforeign
+run-tpch-$(1)-$(2)-duckdbforeign: tpch-csv-$(1)-$(2) bench/tpch-$(2)-duckdb-prep-foreign-key.sql bench/tpch-$(2)-duckdb.sql bench-duckdb
+	./bench-duckdb <(sed -e 's#tpch-csv-$(2)#$$<#g' bench/tpch-$(2)-duckdb-prep-foreign-key.sql) 5:bench/tpch-$(2)-duckdb.sql
+
+.PHONY: run-tpch-$(1)-$(2)-sqlite
+run-tpch-$(1)-$(2)-sqlite: bench/tpch-$(2)-sqlite-prep.sql bench/tpch-$(2)-sqlite.sql TPC-H-$(1).db bench-sqlite
+	./bench-sqlite <(sed 's/TPC-H\.db/TPC-H-$(1).db/g' bench/tpch-$(2)-sqlite-prep.sql) 5:bench/tpch-$(2)-sqlite.sql
+
+endef
+
+define TPCH_TEMPLATE_q5
+$(call TPCH_TEMPLATE_SMALL,$(1),q5)
 
 .PHONY: run-tpch-$(1)-q5-etch
 run-tpch-$(1)-q5-etch: out TPC-H-$(1).db
@@ -167,21 +176,36 @@ run-tpch-$(1)-q5-etch: out TPC-H-$(1).db
 	./out
 	rm TPC-H.db
 
-.PHONY: run-tpch-$(1)-q5-sqlite
-run-tpch-$(1)-q5-sqlite: bench/tpch-q5-sqlite-prep.sql bench/tpch-q5-sqlite.sql TPC-H-$(1).db $$(SQLITE3)
-	./bench-sqlite <(sed 's/TPC-H\.db/TPC-H-$(1).db/g' bench/tpch-q5-sqlite-prep.sql) 5:bench/tpch-q5-sqlite.sql
+endef
+
+define TPCH_TEMPLATE
+$(call TPCH_TEMPLATE_SMALL,$(1),$(2))
+
+.PHONY: run-tpch-$(1)-$(2)-etch
+run-tpch-$(1)-$(2)-etch: bench-tpch-$(2) TPC-H-$(1).db
+	./bench-tpch-$(2) TPC-H-$(1).db
 
 endef
 
-$(eval $(call TPCH_TEMPLATE,x0.01))
-$(eval $(call TPCH_TEMPLATE,x0.025))
-$(eval $(call TPCH_TEMPLATE,x0.05))
-$(eval $(call TPCH_TEMPLATE,x0.1))
-$(eval $(call TPCH_TEMPLATE,x0.25))
-$(eval $(call TPCH_TEMPLATE,x0.5))
-$(eval $(call TPCH_TEMPLATE,x1))
-$(eval $(call TPCH_TEMPLATE,x2))
-$(eval $(call TPCH_TEMPLATE,x4))
+$(eval $(call TPCH_TEMPLATE_q5,x0.01))
+$(eval $(call TPCH_TEMPLATE_q5,x0.025))
+$(eval $(call TPCH_TEMPLATE_q5,x0.05))
+$(eval $(call TPCH_TEMPLATE_q5,x0.1))
+$(eval $(call TPCH_TEMPLATE_q5,x0.25))
+$(eval $(call TPCH_TEMPLATE_q5,x0.5))
+$(eval $(call TPCH_TEMPLATE_q5,x1))
+$(eval $(call TPCH_TEMPLATE_q5,x2))
+$(eval $(call TPCH_TEMPLATE_q5,x4))
+
+$(eval $(call TPCH_TEMPLATE,x0.01,q9))
+$(eval $(call TPCH_TEMPLATE,x0.025,q9))
+$(eval $(call TPCH_TEMPLATE,x0.05,q9))
+$(eval $(call TPCH_TEMPLATE,x0.1,q9))
+$(eval $(call TPCH_TEMPLATE,x0.25,q9))
+$(eval $(call TPCH_TEMPLATE,x0.5,q9))
+$(eval $(call TPCH_TEMPLATE,x1,q9))
+$(eval $(call TPCH_TEMPLATE,x2,q9))
+$(eval $(call TPCH_TEMPLATE,x4,q9))
 
 
 .PHONY: clean
