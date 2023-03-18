@@ -6,6 +6,7 @@
 out
 bench-duckdb
 bench-sqlite
+bench-tpch-q*
 
 # data files (see Makefile)
 sqlite3.c
