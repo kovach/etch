@@ -56,6 +56,11 @@ out: main.cpp sqlite3.o sqlite3.h decls.c decls_tpch.cpp gen_funs.c
 
 out: LDLIBS += $(SQLITE_LDLIBS)
 
+bench-tpch-q9: bench-tpch-q9.cpp gen_tpch_q9.c sqlite3.o sqlite3.h
+	$(LINK.cpp) $< sqlite3.o $(LDLIBS) -o $@
+bench-tpch-q9: CPPFLAGS += $(SQLITE_CPPFLAGS)
+bench-tpch-q9: LDLIBS += $(SQLITE_LDLIBS)
+
 ifdef FORCE_REGEN
 .PHONY: gen_funs.c
 endif
