@@ -112,6 +112,11 @@ def Op.mul [Tagged α] [Mul α] : Op α where
   spec := λ a => a 0 * a 1
   opName := tag_mk_fun α "mul"
 
+def Op.div [Tagged α] [HDiv α α β] : Op β where
+  argTypes := ![α, α]
+  spec := λ a => a 0 / a 1
+  opName := tag_mk_fun α "div"
+
 @[simps]
 def Op.neg : Op Bool where
   argTypes := ![Bool]

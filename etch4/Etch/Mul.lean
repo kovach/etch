@@ -18,3 +18,17 @@ instance [HMul α β γ] [Max ι] : HMul (S ι α) (S ι β) (S ι γ) := ⟨S.m
 instance [HMul α β γ] : HMul (ι →ₛ α) (ι →ₐ β) (ι →ₛ γ) where hMul a b := {a with value := λ s => a.value s * b (a.index s)}
 instance [HMul β α γ] : HMul (ι →ₐ β) (ι →ₛ α) (ι →ₛ γ) where hMul b a := {a with value := λ s => b (a.index s) * a.value s}
 instance [HMul α β γ] : HMul (ι →ₐ α) (ι →ₐ β) (ι →ₐ γ) where hMul a b := λ v => a v * b v
+
+instance : HMul (ι →ₛ α) (ι →ₐ E Bool) (ι →ₛ α) where hMul a b :=
+{ a with ready := fun p => a.ready p * b (a.index p),
+         skip := fun p i =>
+           .if1 (a.ready p * -(b (a.index p)))
+             (a.succ p i);;
+           (a.skip p i) }
+
+instance : HMul (ι →ₐ E Bool) (ι →ₛ β) (ι →ₛ β) where hMul a b :=
+{ b with ready := fun p => a (b.index p) * b.ready p,
+         skip := fun p i =>
+           .if1 (-(a (b.index p)) * b.ready p)
+             (b.succ p i);;
+           (b.skip p i) }

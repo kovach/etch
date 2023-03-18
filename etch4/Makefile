@@ -66,6 +66,9 @@ gen_funs.c:
 gen_funs_readable.c: gen_funs.c impls_readable.h .clang-format
 	$(CPP) $(CPPFLAGS) -P -include impls_readable.h $< | sed -E -e 's/\b1 \*//g' -e 's/\* 1\b//g' -e 's/\b0 \+//g' -e 's/\+ 0\b//g' -e 's/&& true\b//g' -e 's/\btrue &&//g' | clang-format --style='{ColumnLimit: 180}' >$@
 
+%_readable.c: %.c impls_readable.h .clang-format
+	$(CPP) $(CPPFLAGS) -P -include impls_readable.h $< | sed -E -e 's/\b1 \*//g' -e 's/\* 1\b//g' -e 's/\b0 \+//g' -e 's/\+ 0\b//g' -e 's/&& true\b//g' -e 's/\btrue &&//g' | clang-format --style='{ColumnLimit: 180}' >$@
+
 
 $(SQLITE_ZIP):
 	curl -o $@ $(SQLITE_URL)
