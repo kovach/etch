@@ -5,6 +5,7 @@
 .gdb_history
 out
 bench-duckdb
+bench-sqlite
 
 # data files (see Makefile)
 sqlite3.c

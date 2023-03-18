@@ -354,32 +354,37 @@ def orders1994 : orderdate ↠ E R := (S.predRange year1994unix year1995unix : �
 
 -- break things up to help type checker out
 def tmp1 := lineitem_revenue * orders * orders1994
-def tmp2 := instHMul_1.hMul (instHMul_1.hMul tmp1 customer) supplier
-def tmp3 := nation * region * asia
--- #check tmp4
+def tmp2' := @instHMul_1
+  (orderkey ↠ orderdate ↠ custkey ↠ suppkey ↠ extendedprice ↠ discount ↠ E R)
+  (custkey ↠ nationkey ↠ E R)
+  _
+  inferInstance
+  inferInstance
+def tmp2 := tmp2'.hMul tmp1 customer
+def tmp3' := @instHMul_1
+  (orderkey ↠ orderdate ↠ custkey ↠ suppkey ↠ nationkey ↠ extendedprice ↠ discount ↠ E R)
+  (suppkey ↠ nationkey ↠ E R)
+  _
+  inferInstance
+  inferInstance
+def tmp3 := tmp3'.hMul tmp2 supplier
+def tmp4 := nation * region * asia
 
 -- Really help type checker out
--- def test : Merge
---   (orderkey ↠ orderdate ↠ custkey ↠ suppkey ↠ nationkey ↠ extendedprice ↠ discount ↠ E R)
---   (nationkey ↠ regionkey ↠ nationname ↠ regionname ↠ E R)
---   (orderkey ↠ orderdate ↠ custkey ↠ suppkey ↠ nationkey ↠ regionkey ↠ nationname ↠ regionname ↠ extendedprice ↠ discount ↠ E R)
--- := Gen.Merge.lt
-def tmp4' := @instHMul_1
+def tmp5' := @instHMul_1
   (orderkey ↠ orderdate ↠ custkey ↠ suppkey ↠ nationkey ↠ extendedprice ↠ discount ↠ E R)
   (nationkey ↠ regionkey ↠ nationname ↠ regionname ↠ E R)
   _
   inferInstance
   inferInstance
-def tmp4 := tmp4'.hMul tmp2 tmp3
-
--- def tmp4' := instHMul_1.hMul tmp2 tmp3
+def tmp5 := tmp5'.hMul tmp3 tmp4
 
 def Str.to_g_r {n} : (n × R ⟶ α) → (R →ₛ α)
 | .fun f => absurd trivial sorry -- HACK
 | .str a => a
 instance sum_eq_r (n : ℕ) : SumIndex n (n × R ⟶ α) (Contraction α) := ⟨S.contract ∘ Str.to_g_r⟩
 
-def q5 := ∑ orderkey, orderdate, custkey, suppkey, nationkey, regionkey: ∑ regionname, extendedprice, discount: tmp4
+def q5 := ∑ orderkey, orderdate, custkey, suppkey, nationkey, regionkey: ∑ regionname, extendedprice, discount: tmp5
 
 def compile_fun (name : String) (body : List String) : String :=
 s!"std::unordered_map<const char*, double> {name}()\{\n
