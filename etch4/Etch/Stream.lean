@@ -34,15 +34,18 @@ def E.eval (c : HeapContext) : E α → α
 
 instance : OfNat Bool (nat_lit 0) := ⟨ false ⟩
 instance : OfNat Bool (nat_lit 1) := ⟨ .true ⟩
+instance : Inhabited (E α) := ⟨.var "UNREACHABLE"⟩
 instance [Tagged α] [Add α] : Add (E α) := ⟨ λ a b => E.call .add ![a, b] ⟩
 instance [Tagged α] [Sub α] : Sub (E α) := ⟨ λ a b => E.call .sub ![a, b] ⟩
 instance [Tagged α] [Mul α] : Mul (E α) := ⟨ λ a b => E.call .mul ![a, b] ⟩
+instance [Tagged α] [HDiv α α β] : HDiv (E α) (E α) (E β) := ⟨ fun a b => E.call .div ![a, b] ⟩
+instance [Tagged α] [Div α] : Div (E α) := ⟨ HDiv.hDiv ⟩
+instance : Neg (E Bool) := ⟨ fun a => E.call .neg ![a] ⟩
 instance [Tagged α] [OfNat α (nat_lit 0)] : OfNat (E α) (nat_lit 0) := ⟨ E.call .zero ![] ⟩
 instance [Tagged α] [OfNat α (nat_lit 1)] : OfNat (E α) (nat_lit 1) := ⟨ E.call .one ![] ⟩
 instance : OfNat (E ℕ) n := ⟨ .intLit n ⟩
 instance : Coe ℕ (E ℕ) := ⟨ .intLit ⟩
 instance : Coe String (E String) := ⟨ .strLit ⟩
-instance : Inhabited (E R) := ⟨ 0 ⟩
 --def E.ext (f : String) : E Unit := E.call (O.voidCall f) ![]
 
 def E.compile : E α → Expr
@@ -72,6 +75,8 @@ inductive P
 | decl   [TaggedC α] : Var α → E α → P
 | store_var : Var α → E α → P
 | store_mem : Var (ℕ → α) → E ℕ → E α → P
+
+instance : Inhabited P := ⟨.skip⟩
 
 -- needs to come after P to avoid injectivity_lemma issue
 attribute [irreducible] Var
@@ -107,6 +112,18 @@ structure S (ι : Type _) (α : Type _) where
   init  : Name → P × σ
 
 infixr:25 " →ₛ " => S
+
+instance {ι α} [Inhabited α] : Inhabited (ι →ₛ α) where
+  default := {
+    σ     := Unit
+    skip  := fun _ _ => default
+    succ  := fun _ _ => default
+    value := fun _ => default
+    ready := fun _ => 0
+    index := fun _ => default
+    valid := fun _ => 0
+    init  := fun _ => ⟨default, default⟩
+  }
 
 section ι
 
@@ -228,10 +245,8 @@ def S.univ [Add ι] [OfNat ι 1] [TaggedC ι] (max l : Var ι) : S ι (E ι) whe
 def S.valFilter (f : α → E Bool) (s : ι →ₛ α) : ι →ₛ α :=
 { s with ready := λ p => s.ready p * f (s.value p),
          skip := λ p i =>
-           .branch (s.ready p)
-             (.branch (f (s.value p))
-               (s.skip p i)
-               (s.succ p i;; s.skip p i))
+           .branch (s.ready p * -(f (s.value p)))
+             (s.succ p i;; s.skip p i)
              (s.skip p i) }
 
 def dim : Var ι := "dim"
@@ -261,6 +276,8 @@ def Contraction (α : Type _) := (ι : Type) × TaggedC ι × S ι α
 --instance : Functor Contraction where map := λ f ⟨F, h, v⟩ => ⟨F, h, f <$> v⟩
 instance : Functor Contraction where map := λ f ⟨ι, tᵢ, v⟩ => ⟨ι, tᵢ, f <$> v⟩
 def S.contract [inst : TaggedC ι] (s : S ι α) : Contraction α := ⟨_, inst, s⟩
+
+instance [Inhabited α] : Inhabited (Contraction α) := ⟨⟨ℕ, inferInstance, default⟩⟩
 
 end ι
 

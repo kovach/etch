@@ -4,19 +4,19 @@ variable {ι : Type} {α : Type _} [Tagged ι] [TaggedC ι] [DecidableEq ι]
   [LT ι] [LE ι] [DecidableRel (LT.lt : ι → ι → Prop)]
   [DecidableRel (LE.le : ι → ι → _)]
 
--- `guard v b s` returns a stream which returns `0` (empty stream) if `b` is false
---  and acts identically to `s` if `b` is true. `v` is supposed to be a variable that `guard`
---  can use for storage.
+-- `guard b s` returns a stream which returns `0` (empty stream) if `b` is false
+--  and acts identically to `s` if `b` is true.
 class Guard (α : Type _) where
-  guard : Var Bool → E Bool → α → α
+  guard : E Bool → α → α
 
 instance [Tagged α] [OfNat α (nat_lit 0)] : Guard (E α) where
-  guard := λ _ b v => .call Op.ternary ![b, v, (0 : E α)]
+  guard b v := .call Op.ternary ![b, v, (0 : E α)]
 
-instance : Guard (S ι α) where guard := λ v b s =>
-{s with
-   init := λ n => (s.init n).map (λ p => .decl v b;; p) id
-   valid := λ l => b * s.valid l}
+instance : Guard (S ι α) where
+  guard b s := {s with valid := λ l => b * s.valid l}
+
+instance [Tagged α] [OfNat α (nat_lit 0)] : Guard (ι →ₐ E α) where
+  guard b s := Guard.guard b ∘ s
 
 -- Returns an expression which evaluates to `true` iff `a.index' ≤ b.index'`
 def S_le (a : S ι α) (b : S ι β) (l : a.σ × b.σ) : E Bool :=
@@ -28,18 +28,16 @@ def Prod.symm (f : α × β) := (f.2, f.1)
 
 -- Local temporary variables for `add`
 structure AddTmp (ι : Type) [TaggedC ι] where
-(cv₁ : Var Bool)
-(cv₂ : Var Bool)
 (ci : Var ι)
 
 def AddTmp.ofName (n : Name) : AddTmp ι :=
-⟨(Var.mk "cv1__").fresh n, (Var.mk "cv2__").fresh n, (Var.mk "ci").fresh n⟩
+⟨(Var.mk "ci").fresh n⟩
 
 def S.add [HAdd α β γ] [Guard α] [Guard β] (a : S ι α) (b : S ι β) : S ι γ where
   σ := (a.σ × b.σ) × AddTmp ι
-  value := λ (p, t) =>
-             (Guard.guard t.cv₁ ((S_le a b p) * a.ready p.1) $ a.value p.1) +
-             (Guard.guard t.cv₂ ((S_le b a p.symm) * b.ready p.2) $ b.value p.2)
+  value := λ (p, _) =>
+             (Guard.guard ((S_le a b p) * a.ready p.1) $ a.value p.1) +
+             (Guard.guard ((S_le b a p.symm) * b.ready p.2) $ b.value p.2)
   skip  := λ (p, _) i => a.skip p.1 i ;; b.skip p.2 i
   succ  := λ (p, t) i =>
     t.ci.decl i;;
