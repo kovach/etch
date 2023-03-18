@@ -85,6 +85,10 @@ sqlite3/shell: sqlite3/shell.c sqlite3.o
 sqlite3/shell: CPPFLAGS += $(SQLITE_CPPFLAGS)
 sqlite3/shell: LDLIBS += $(SQLITE_LDLIBS)
 
+bench-sqlite: bench-sqlite.cpp sqlite3.o
+bench-sqlite: CPPFLAGS += $(SQLITE_CPPFLAGS)
+bench-sqlite: LDLIBS += $(SQLITE_LDLIBS)
+
 $(DUCKDB_CLI_ZIP):
 	curl -Lo $@ $(DUCKDB_CLI_URL)
 	echo '$(DUCKDB_CLI_SHA256) $(DUCKDB_CLI_ZIP)' | sha256sum -c
@@ -160,7 +164,7 @@ run-tpch-$(1)-q5-etch: out TPC-H-$(1).db
 
 .PHONY: run-tpch-$(1)-q5-sqlite
 run-tpch-$(1)-q5-sqlite: bench/tpch-q5-sqlite-prep.sql bench/tpch-q5-sqlite.sql TPC-H-$(1).db $$(SQLITE3)
-	cat bench/tpch-q5-sqlite-prep.sql bench/tpch-q5-sqlite.sql | sed 's#TPC-H\.db#TPC-H-$(1).db#g' | $$(SQLITE3)
+	./bench-sqlite <(sed 's/TPC-H\.db/TPC-H-$(1).db/g' bench/tpch-q5-sqlite-prep.sql) 5:bench/tpch-q5-sqlite.sql
 
 endef
 
