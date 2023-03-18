@@ -2,23 +2,40 @@ import re
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.ticker import ScalarFormatter
+from cycler import cycler
+from numpy.polynomial import polynomial as P
 
 
 def graph_q5():
-    SIZES = ["x0.01", "x0.025", "x0.05", "x0.1", "x0.25", "x0.5", "x1", "x2", "x4"]
-    SIZES_NUM = [0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2, 4]
+    SFS = ["x0.01", "x0.025", "x0.05", "x0.1", "x0.25", "x0.5", "x1", "x2", "x4"]
+    SF_NUMS = [0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2, 4]
+    # ❯ for size in x0.01 x0.025 x0.05 x0.1 x0.25 x0.5 x1 x2 x4; do echo $size `wc -c tpch-csv-$size-q5/*.csv | grep total`; done
+    BYTES = [
+        1780915,
+        4648233,
+        9487650,
+        19271743,
+        50144641,
+        102488785,
+        207793787,
+        427239748,
+        876270111,
+    ]
+    sf_to_byte = np.poly1d(np.polyfit(SF_NUMS, BYTES, 1))
+    byte_to_sf = np.poly1d(np.polyfit(BYTES, SF_NUMS, 1))
+
+    print(sf_to_byte)
+
     DBS = ["duckdb", "duckdbforeign", "etch", "sqlite"]
 
     nums = {}
     for db in DBS:
         nums[db] = []
-        for sz in SIZES:
+        for sz in SFS:
             tmp = []
             with open(f"bench-output/run-tpch-{sz}-q5-{db}.txt") as f:
-                if db.startswith("duckdb"):
+                if db.startswith("duckdb") or db.startswith("sqlite"):
                     r = re.compile(r"q2 took \(s\): real ([^ ]*)s.*")
-                elif db.startswith("sqlite"):
-                    r = re.compile(r"Run Time: real ([^ ]*) .*")
                 elif db.startswith("etch"):
                     r = re.compile(r"q5 took \(s\): real ([^ ]*)s.*")
 
@@ -31,9 +48,15 @@ def graph_q5():
 
     print(nums)
 
+    monochrome = cycler("color", ["k"]) * (
+        cycler("marker", [".", "v", "s", "*"])
+        + cycler("linestyle", ["-", "--", ":", "-."])
+    )
+    plt.rc("axes", prop_cycle=monochrome)
+
     fig, ax = plt.subplots()
     for db in DBS:
-        ax.plot(SIZES_NUM, nums[db], label=db, marker="o")
+        ax.plot(SF_NUMS, nums[db], label=db)
     ax.set_title("TPC-H Query 5")
     ax.set_xscale("log", base=10)
     ax.set_yscale("log", base=10)
