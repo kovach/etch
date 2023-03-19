@@ -130,4 +130,5 @@ def graph_q9():
     plt.savefig("tpch_q9_scaling.pdf")
 
 
+graph_q5()
 graph_q9()
