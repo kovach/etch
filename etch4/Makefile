@@ -45,21 +45,23 @@ SQLITE3 ?= sqlite3/shell
 # Define FORCE_REGEN to regenerate gen_funs.c every time `make` is run.
 # FORCE_REGEN := 1
 
-.PHONY: all
-all: out
-
 # Delete partial output files if make failed (e.g., if checksum did not match).
 .DELETE_ON_ERROR:
 
-out: main.cpp sqlite3.o sqlite3.h decls.c decls_tpch.cpp gen_funs.c
-	$(LINK.cpp) main.cpp sqlite3.o $(LDLIBS) -o $@
+ALL_BENCH := bench-tpch-q9 bench-wcoj out
 
-out: LDLIBS += $(SQLITE_LDLIBS)
+.PHONY: all
+all: $(ALL_BENCH)
 
-bench-tpch-q9: bench-tpch-q9.cpp gen_tpch_q9.c sqlite3.o sqlite3.h
+out: main.cpp decls.c decls_tpch.cpp gen_funs.c
+bench-tpch-q9: bench-tpch-q9.cpp gen_tpch_q9.c
+bench-wcoj: bench-wcoj.cpp gen_wcoj.c
+
+$(ALL_BENCH):
 	$(LINK.cpp) $< sqlite3.o $(LDLIBS) -o $@
-bench-tpch-q9: CPPFLAGS += $(SQLITE_CPPFLAGS)
-bench-tpch-q9: LDLIBS += $(SQLITE_LDLIBS)
+$(ALL_BENCH): CPPFLAGS += $(SQLITE_CPPFLAGS)
+$(ALL_BENCH): LDLIBS += $(SQLITE_LDLIBS)
+$(ALL_BENCH): sqlite3.o sqlite3.h
 
 ifdef FORCE_REGEN
 .PHONY: gen_funs.c gen_tpch_q9.c
@@ -76,12 +78,14 @@ $(SQLITE_ZIP):
 	curl -o $@ $(SQLITE_URL)
 	echo '$(SQLITE_SHA256) $(SQLITE_ZIP)' | sha256sum -c
 
-sqlite3.c sqlite3.h: $(SQLITE_ZIP)
-	unzip -p $< $(patsubst %.zip,%,$<)/$@ >$@
-
-sqlite3/shell.c: $(SQLITE_ZIP)
+sqlite3.c sqlite3.h sqlite3/shell.c &: $(SQLITE_ZIP)
+	rm -rf tmp_sqlite3
 	mkdir -p sqlite3
-	unzip -p $< $(patsubst %.zip,%,$<)/$(@F) >$@
+	unzip $< "$(patsubst %.zip,%,$<)/*" -d tmp_sqlite3
+	mv tmp_sqlite3/$(patsubst %.zip,%,$<)/sqlite3.c sqlite3.c
+	mv tmp_sqlite3/$(patsubst %.zip,%,$<)/sqlite3.h sqlite3.h
+	mv tmp_sqlite3/$(patsubst %.zip,%,$<)/shell.c sqlite3/shell.c
+	rm -rf tmp_sqlite3
 
 sqlite3.o: sqlite3.c sqlite3.h
 sqlite3.o: CPPFLAGS += $(SQLITE_CPPFLAGS)
@@ -112,9 +116,9 @@ $(LIBDUCKDB_ZIP):
 	curl -Lo $@ $(LIBDUCKDB_URL)
 	echo '$(LIBDUCKDB_SHA256) $(LIBDUCKDB_ZIP)' | sha256sum -c
 
-duckdb/libduckdb.so duckdb/duckdb.hpp duckdb/duckdb.h: $(LIBDUCKDB_ZIP)
+duckdb/libduckdb.so duckdb/duckdb.hpp duckdb/duckdb.h &: $(LIBDUCKDB_ZIP)
 	mkdir -p duckdb
-	unzip -p $< $(@F) >$@
+	unzip $< -d duckdb
 
 # Files produced using https://github.com/lovasoa/TPCH-sqlite
 TPC-H-x0.01.db:
@@ -144,6 +148,33 @@ TPC-H-x2.db:
 TPC-H-x4.db:
 	@echo 'Download this file at https://drive.google.com/file/d/14aM_1IY7ACLOzRtS1LKpRYGweDXZZF0M/view?usp=sharing' && false
 	@#echo '9530ea95daecc3c8e411f9a7eb8a78ece3aaaae4b285729e45253283ea091f36 $@' | sha256sum -c
+
+define WCOJ_TEMPLATE
+# Generate CSV files for the worse-case optimal join benchmark
+wcoj-csv-x$(1): bench/wcoj-datagen.py
+	rm -rf $$@
+	mkdir -p $$@
+	python3 $$< $$@ $$$$((100*$(1)))
+
+.PHONY: run-wcoj-x$(1)-duckdb
+run-wcoj-x$(1)-duckdb: wcoj-csv-x$(1) bench/wcoj-duckdb-prep.sql bench/wcoj-duckdb.sql bench-duckdb
+	./bench-duckdb <(sed -e 's#wcoj-csv#$$<#g' bench/wcoj-duckdb-prep.sql) 5:bench/wcoj-duckdb.sql
+
+wcoj-x$(1).db: wcoj-csv-x$(1) bench/wcoj-sqlite-import.sql sqlite3/shell
+	rm -f $$@
+	sed 's#wcoj-csv#$$<#g' bench/wcoj-sqlite-import.sql | sqlite3/shell $$@
+
+.PHONY: run-wcoj-x$(1)-etch
+run-wcoj-x$(1)-etch: bench-wcoj wcoj-x$(1).db
+	./bench-wcoj wcoj-x$(1).db
+
+.PHONY: run-wcoj-x$(1)-sqlite
+run-wcoj-x$(1)-sqlite: wcoj-x$(1).db bench/wcoj-sqlite-prep.sql bench/wcoj-sqlite.sql bench-sqlite
+	./bench-sqlite <(sed -e 's#wcoj\.db#$$<#g' bench/wcoj-sqlite-prep.sql) 5:bench/wcoj-sqlite.sql
+
+endef
+
+$(foreach scale,1 5 10 25 50 100 250 500 1000,$(eval $(call WCOJ_TEMPLATE,$(scale))))
 
 define TPCH_TEMPLATE_SMALL
 # Generate CSV files for TPC-H datasets
@@ -210,4 +241,4 @@ $(eval $(call TPCH_TEMPLATE,x4,q9))
 
 .PHONY: clean
 clean:
-	rm -f *.o tmp.duckdb sqlite3/shell out sqlite3.c sqlite3.h sqlite3/shell.c duckdb/duckdb
+	rm -rf *.o tmp.duckdb tmp-sqlite3 sqlite3 out sqlite3.c sqlite3.h duckdb/duckdb

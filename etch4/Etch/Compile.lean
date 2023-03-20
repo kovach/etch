@@ -18,6 +18,9 @@ instance base_var [Tagged α] [Add α] : Compile (Var α) (E α) where
 instance base_mem [Tagged α] [Add α] : Compile (MemLoc α) (E α) where
   compile _ l v := .store_mem l.arr l.ind (l.access + v)
 
+instance base_dump [Tagged α] : Compile (Dump α) (E α) where
+  compile _ _ _ := .skip
+
 instance S.step [Compile L R] [TaggedC ι] : Compile (lvl ι L) (ι →ₛ R) where
   compile n l r :=
     let (init, s) := r.init n
