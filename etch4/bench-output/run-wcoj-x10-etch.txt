@@ -1,0 +1,80 @@
+./bench-wcoj wcoj-x10.db
+populate_wcoj val: 0
+populate_wcoj took (s): real 0.001031s user 0.001037s sys 0.000000s
+populate_wcoj took (avg): real 0.001031s user 0.001037s sys 0.000000s
+Loaded
+wcojx1000 val: 2998
+wcojx1000 took (s): real 0.012019s user 0.012010s sys 0.000000s
+wcojx1000 val: 2998
+wcojx1000 took (s): real 0.011777s user 0.011767s sys 0.000000s
+wcojx1000 val: 2998
+wcojx1000 took (s): real 0.011744s user 0.011740s sys 0.000000s
+wcojx1000 val: 2998
+wcojx1000 took (s): real 0.011709s user 0.011704s sys 0.000000s
+wcojx1000 val: 2998
+wcojx1000 took (s): real 0.011698s user 0.011694s sys 0.000000s
+wcojx1000 took (avg): real 0.011790s user 0.011783s sys 0.000000s
+./bench-wcoj wcoj-x10.db
+populate_wcoj val: 0
+populate_wcoj took (s): real 0.001011s user 0.001012s sys 0.000000s
+populate_wcoj took (avg): real 0.001011s user 0.001012s sys 0.000000s
+Loaded
+wcojx1000 val: 2998
+wcojx1000 took (s): real 0.012044s user 0.012041s sys 0.000000s
+wcojx1000 val: 2998
+wcojx1000 took (s): real 0.011924s user 0.011920s sys 0.000000s
+wcojx1000 val: 2998
+wcojx1000 took (s): real 0.011736s user 0.011728s sys 0.000000s
+wcojx1000 val: 2998
+wcojx1000 took (s): real 0.011742s user 0.011737s sys 0.000000s
+wcojx1000 val: 2998
+wcojx1000 took (s): real 0.011707s user 0.011704s sys 0.000000s
+wcojx1000 took (avg): real 0.011831s user 0.011826s sys 0.000000s
+./bench-wcoj wcoj-x10.db
+populate_wcoj val: 0
+populate_wcoj took (s): real 0.000991s user 0.000992s sys 0.000000s
+populate_wcoj took (avg): real 0.000991s user 0.000992s sys 0.000000s
+Loaded
+wcojx1000 val: 2998
+wcojx1000 took (s): real 0.012109s user 0.012105s sys 0.000000s
+wcojx1000 val: 2998
+wcojx1000 took (s): real 0.011858s user 0.011854s sys 0.000000s
+wcojx1000 val: 2998
+wcojx1000 took (s): real 0.011704s user 0.011701s sys 0.000000s
+wcojx1000 val: 2998
+wcojx1000 took (s): real 0.011756s user 0.011751s sys 0.000000s
+wcojx1000 val: 2998
+wcojx1000 took (s): real 0.011820s user 0.011818s sys 0.000000s
+wcojx1000 took (avg): real 0.011849s user 0.011846s sys 0.000000s
+./bench-wcoj wcoj-x10.db
+populate_wcoj val: 0
+populate_wcoj took (s): real 0.001047s user 0.000000s sys 0.001051s
+populate_wcoj took (avg): real 0.001047s user 0.000000s sys 0.001051s
+Loaded
+wcojx1000 val: 2998
+wcojx1000 took (s): real 0.012021s user 0.009606s sys 0.002410s
+wcojx1000 val: 2998
+wcojx1000 took (s): real 0.011910s user 0.011904s sys 0.000000s
+wcojx1000 val: 2998
+wcojx1000 took (s): real 0.011963s user 0.011959s sys 0.000000s
+wcojx1000 val: 2998
+wcojx1000 took (s): real 0.011956s user 0.011953s sys 0.000000s
+wcojx1000 val: 2998
+wcojx1000 took (s): real 0.011952s user 0.011948s sys 0.000000s
+wcojx1000 took (avg): real 0.011960s user 0.011474s sys 0.000482s
+./bench-wcoj wcoj-x10.db
+populate_wcoj val: 0
+populate_wcoj took (s): real 0.001020s user 0.001025s sys 0.000000s
+populate_wcoj took (avg): real 0.001020s user 0.001025s sys 0.000000s
+Loaded
+wcojx1000 val: 2998
+wcojx1000 took (s): real 0.012007s user 0.012000s sys 0.000000s
+wcojx1000 val: 2998
+wcojx1000 took (s): real 0.011980s user 0.011978s sys 0.000000s
+wcojx1000 val: 2998
+wcojx1000 took (s): real 0.011962s user 0.011959s sys 0.000000s
+wcojx1000 val: 2998
+wcojx1000 took (s): real 0.011967s user 0.011963s sys 0.000000s
+wcojx1000 val: 2998
+wcojx1000 took (s): real 0.011848s user 0.011845s sys 0.000000s
+wcojx1000 took (avg): real 0.011953s user 0.011949s sys 0.000000s

@@ -1,0 +1,120 @@
+./bench-sqlite <(sed -e 's#wcoj\.db#wcoj-x100.db#g' bench/wcoj-sqlite-prep.sql) 5:bench/wcoj-sqlite.sql
+1392640
+q1 val: 0
+q1 took (s): real 0.022712s user 0.022699s sys 0.000000s
+q1 took (avg): real 0.022712s user 0.022699s sys 0.000000s
+q2 prep val: 0
+q2 prep took (s): real 0.000018s user 0.000020s sys 0.000000s
+q2 prep took (avg): real 0.000018s user 0.000020s sys 0.000000s
+29999
+q2 val: 101
+q2 took (s): real 12.078757s user 12.075071s sys 0.000000s
+29999
+q2 val: 101
+q2 took (s): real 12.094995s user 12.091185s sys 0.000000s
+29999
+q2 val: 101
+q2 took (s): real 12.059582s user 12.055254s sys 0.000000s
+29999
+q2 val: 101
+q2 took (s): real 12.062155s user 12.057880s sys 0.000000s
+29999
+q2 val: 101
+q2 took (s): real 12.061579s user 12.057272s sys 0.000000s
+q2 took (avg): real 12.071414s user 12.067332s sys 0.000000s
+./bench-sqlite <(sed -e 's#wcoj\.db#wcoj-x100.db#g' bench/wcoj-sqlite-prep.sql) 5:bench/wcoj-sqlite.sql
+1392640
+q1 val: 0
+q1 took (s): real 0.022811s user 0.022793s sys 0.000000s
+q1 took (avg): real 0.022811s user 0.022793s sys 0.000000s
+q2 prep val: 0
+q2 prep took (s): real 0.000019s user 0.000019s sys 0.000000s
+q2 prep took (avg): real 0.000019s user 0.000019s sys 0.000000s
+29999
+q2 val: 101
+q2 took (s): real 12.587247s user 12.583346s sys 0.000000s
+29999
+q2 val: 101
+q2 took (s): real 12.588454s user 12.584736s sys 0.000000s
+29999
+q2 val: 101
+q2 took (s): real 12.586112s user 12.582396s sys 0.000000s
+29999
+q2 val: 101
+q2 took (s): real 12.878086s user 12.874008s sys 0.000000s
+29999
+q2 val: 101
+q2 took (s): real 12.941927s user 12.937756s sys 0.000000s
+q2 took (avg): real 12.716365s user 12.712448s sys 0.000000s
+./bench-sqlite <(sed -e 's#wcoj\.db#wcoj-x100.db#g' bench/wcoj-sqlite-prep.sql) 5:bench/wcoj-sqlite.sql
+1392640
+q1 val: 0
+q1 took (s): real 0.022720s user 0.022707s sys 0.000000s
+q1 took (avg): real 0.022720s user 0.022707s sys 0.000000s
+q2 prep val: 0
+q2 prep took (s): real 0.000018s user 0.000019s sys 0.000000s
+q2 prep took (avg): real 0.000018s user 0.000019s sys 0.000000s
+29999
+q2 val: 101
+q2 took (s): real 12.068421s user 12.064667s sys 0.000000s
+29999
+q2 val: 101
+q2 took (s): real 12.063172s user 12.059567s sys 0.000000s
+29999
+q2 val: 101
+q2 took (s): real 12.064072s user 12.060483s sys 0.000000s
+29999
+q2 val: 101
+q2 took (s): real 12.072025s user 12.068322s sys 0.000000s
+29999
+q2 val: 101
+q2 took (s): real 12.062853s user 12.059194s sys 0.000000s
+q2 took (avg): real 12.066109s user 12.062447s sys 0.000000s
+./bench-sqlite <(sed -e 's#wcoj\.db#wcoj-x100.db#g' bench/wcoj-sqlite-prep.sql) 5:bench/wcoj-sqlite.sql
+1392640
+q1 val: 0
+q1 took (s): real 0.022802s user 0.022790s sys 0.000000s
+q1 took (avg): real 0.022802s user 0.022790s sys 0.000000s
+q2 prep val: 0
+q2 prep took (s): real 0.000018s user 0.000019s sys 0.000000s
+q2 prep took (avg): real 0.000018s user 0.000019s sys 0.000000s
+29999
+q2 val: 101
+q2 took (s): real 12.597639s user 12.593478s sys 0.000000s
+29999
+q2 val: 101
+q2 took (s): real 12.598762s user 12.594502s sys 0.000000s
+29999
+q2 val: 101
+q2 took (s): real 12.606909s user 12.602621s sys 0.000000s
+29999
+q2 val: 101
+q2 took (s): real 12.615373s user 12.611032s sys 0.000000s
+29999
+q2 val: 101
+q2 took (s): real 12.603347s user 12.599075s sys 0.000000s
+q2 took (avg): real 12.604406s user 12.600142s sys 0.000000s
+./bench-sqlite <(sed -e 's#wcoj\.db#wcoj-x100.db#g' bench/wcoj-sqlite-prep.sql) 5:bench/wcoj-sqlite.sql
+1392640
+q1 val: 0
+q1 took (s): real 0.022588s user 0.021875s sys 0.000705s
+q1 took (avg): real 0.022588s user 0.021875s sys 0.000705s
+q2 prep val: 0
+q2 prep took (s): real 0.000018s user 0.000017s sys 0.000003s
+q2 prep took (avg): real 0.000018s user 0.000017s sys 0.000003s
+29999
+q2 val: 101
+q2 took (s): real 12.091437s user 12.086996s sys 0.000000s
+29999
+q2 val: 101
+q2 took (s): real 12.084902s user 12.080482s sys 0.000000s
+29999
+q2 val: 101
+q2 took (s): real 12.086468s user 12.081979s sys 0.000000s
+29999
+q2 val: 101
+q2 took (s): real 12.085170s user 12.080222s sys 0.000000s
+29999
+q2 val: 101
+q2 took (s): real 12.085792s user 12.078338s sys 0.003004s
+q2 took (avg): real 12.086754s user 12.081603s sys 0.000601s

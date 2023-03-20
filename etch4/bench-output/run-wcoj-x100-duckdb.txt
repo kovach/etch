@@ -1,0 +1,145 @@
+./bench-duckdb <(sed -e 's#wcoj-csv#wcoj-csv-x100#g' bench/wcoj-duckdb-prep.sql) 5:bench/wcoj-duckdb.sql
+q1 val: 0
+q1 took (s): real 0.025869s user 0.020491s sys 0.005857s
+q1 took (avg): real 0.025869s user 0.020491s sys 0.005857s
+Count	
+BIGINT	
+[ Rows: 0]
+
+
+q2 prep val: 0
+q2 prep took (s): real 0.000408s user 0.000314s sys 0.000094s
+q2 prep took (avg): real 0.000408s user 0.000314s sys 0.000094s
+q2 val: 0
+q2 took (s): real 1.399916s user 1.399261s sys 0.000003s
+q2 val: 0
+q2 took (s): real 1.401610s user 1.400858s sys 0.000000s
+q2 val: 0
+q2 took (s): real 1.401590s user 1.400964s sys 0.000003s
+q2 val: 0
+q2 took (s): real 1.400564s user 1.399926s sys 0.000002s
+q2 val: 0
+q2 took (s): real 1.396268s user 1.395631s sys 0.000000s
+q2 took (avg): real 1.399989s user 1.399328s sys 0.000002s
+count_star()	
+BIGINT	
+[ Rows: 1]
+29998
+
+
+./bench-duckdb <(sed -e 's#wcoj-csv#wcoj-csv-x100#g' bench/wcoj-duckdb-prep.sql) 5:bench/wcoj-duckdb.sql
+q1 val: 0
+q1 took (s): real 0.025857s user 0.026265s sys 0.000000s
+q1 took (avg): real 0.025857s user 0.026265s sys 0.000000s
+Count	
+BIGINT	
+[ Rows: 0]
+
+
+q2 prep val: 0
+q2 prep took (s): real 0.000410s user 0.000411s sys 0.000000s
+q2 prep took (avg): real 0.000410s user 0.000411s sys 0.000000s
+q2 val: 0
+q2 took (s): real 1.406751s user 1.406182s sys 0.000000s
+q2 val: 0
+q2 took (s): real 1.406821s user 1.406230s sys 0.000000s
+q2 val: 0
+q2 took (s): real 1.407828s user 1.407167s sys 0.000000s
+q2 val: 0
+q2 took (s): real 1.410104s user 1.409522s sys 0.000000s
+q2 val: 0
+q2 took (s): real 1.408918s user 1.408355s sys 0.000000s
+q2 took (avg): real 1.408084s user 1.407491s sys 0.000000s
+count_star()	
+BIGINT	
+[ Rows: 1]
+29998
+
+
+./bench-duckdb <(sed -e 's#wcoj-csv#wcoj-csv-x100#g' bench/wcoj-duckdb-prep.sql) 5:bench/wcoj-duckdb.sql
+q1 val: 0
+q1 took (s): real 0.025807s user 0.026316s sys 0.000000s
+q1 took (avg): real 0.025807s user 0.026316s sys 0.000000s
+Count	
+BIGINT	
+[ Rows: 0]
+
+
+q2 prep val: 0
+q2 prep took (s): real 0.000398s user 0.000400s sys 0.000000s
+q2 prep took (avg): real 0.000398s user 0.000400s sys 0.000000s
+q2 val: 0
+q2 took (s): real 1.403202s user 1.402544s sys 0.000000s
+q2 val: 0
+q2 took (s): real 1.403999s user 1.403314s sys 0.000000s
+q2 val: 0
+q2 took (s): real 1.405957s user 1.405334s sys 0.000000s
+q2 val: 0
+q2 took (s): real 1.404363s user 1.403746s sys 0.000000s
+q2 val: 0
+q2 took (s): real 1.401054s user 1.400424s sys 0.000000s
+q2 took (avg): real 1.403715s user 1.403072s sys 0.000000s
+count_star()	
+BIGINT	
+[ Rows: 1]
+29998
+
+
+./bench-duckdb <(sed -e 's#wcoj-csv#wcoj-csv-x100#g' bench/wcoj-duckdb-prep.sql) 5:bench/wcoj-duckdb.sql
+q1 val: 0
+q1 took (s): real 0.025870s user 0.022783s sys 0.003434s
+q1 took (avg): real 0.025870s user 0.022783s sys 0.003434s
+Count	
+BIGINT	
+[ Rows: 0]
+
+
+q2 prep val: 0
+q2 prep took (s): real 0.000397s user 0.000362s sys 0.000036s
+q2 prep took (avg): real 0.000397s user 0.000362s sys 0.000036s
+q2 val: 0
+q2 took (s): real 1.404409s user 1.403652s sys 0.000000s
+q2 val: 0
+q2 took (s): real 1.405903s user 1.405296s sys 0.000000s
+q2 val: 0
+q2 took (s): real 1.401546s user 1.400918s sys 0.000000s
+q2 val: 0
+q2 took (s): real 1.405660s user 1.405023s sys 0.000000s
+q2 val: 0
+q2 took (s): real 1.401891s user 1.401323s sys 0.000000s
+q2 took (avg): real 1.403882s user 1.403242s sys 0.000000s
+count_star()	
+BIGINT	
+[ Rows: 1]
+29998
+
+
+./bench-duckdb <(sed -e 's#wcoj-csv#wcoj-csv-x100#g' bench/wcoj-duckdb-prep.sql) 5:bench/wcoj-duckdb.sql
+q1 val: 0
+q1 took (s): real 0.025924s user 0.023721s sys 0.003064s
+q1 took (avg): real 0.025924s user 0.023721s sys 0.003064s
+Count	
+BIGINT	
+[ Rows: 0]
+
+
+q2 prep val: 0
+q2 prep took (s): real 0.000409s user 0.000335s sys 0.000074s
+q2 prep took (avg): real 0.000409s user 0.000335s sys 0.000074s
+q2 val: 0
+q2 took (s): real 1.408596s user 1.407950s sys 0.000000s
+q2 val: 0
+q2 took (s): real 1.410859s user 1.410256s sys 0.000000s
+q2 val: 0
+q2 took (s): real 1.408844s user 1.408231s sys 0.000000s
+q2 val: 0
+q2 took (s): real 1.409107s user 1.408536s sys 0.000000s
+q2 val: 0
+q2 took (s): real 1.408100s user 1.407529s sys 0.000000s
+q2 took (avg): real 1.409101s user 1.408500s sys 0.000000s
+count_star()	
+BIGINT	
+[ Rows: 1]
+29998
+
+
