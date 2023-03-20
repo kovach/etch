@@ -6,7 +6,8 @@
 out
 bench-duckdb
 bench-sqlite
-bench-tpch-q*
+bench-tpch-q[0-9]
+bench-wcoj
 
 # data files (see Makefile)
 sqlite3.c
@@ -20,3 +21,5 @@ tmp.duckdb
 TPC-H.db
 TPC-H-*.db
 tpch-csv-*/
+wcoj-x*.db
+wcoj-csv-*/
