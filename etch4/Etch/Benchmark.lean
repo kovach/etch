@@ -49,8 +49,10 @@ def List.sequence [Monad m] : List (m α) → m (List α) := List.mapM id
 def IOp.compile' (f : String) (body : List String) : IO Unit := IO.FS.writeFile f $ String.join body
 def compile_fun (name : String) (body : List String) : String :=
 s!"double {name}()\{ double val = 0;\n {String.join body} return val; }"
+def compile_sqlite_cb (name : String) (body : List String) : String :=
+s!"int {name}(void *data, int argc, char **argv, char **azColName) \{\n  {String.join body}\n  return 0;\n}"
 
-def FSQLCallback : (E ℕ × E ℕ × E R) :=
+def FSQLCallback (α) [Tagged α] [One α] : (E ℕ × E ℕ × E α) :=
 (.call Op.atoi ![.access "argv" 0],
  .call Op.atoi ![.access "argv" 1],
  1)
@@ -78,10 +80,6 @@ def l_ssB : lvl ℕ (lvl ℕ (MemLoc R)) := dcsr "ssB"
 def l_dsB : lvl ℕ (lvl ℕ (MemLoc R)) := csr_mat "dsB" "dim" "i1_" -- todo "i2"
 def l_ssF : lvl ℕ (lvl ℕ (MemLoc R)) := dcsr "ssF"
 def l_sssC : lvl ℕ (lvl ℕ (lvl ℕ (MemLoc R))) := tcsr "ssC"
-
-def l_dsR : lvl ℕ (lvl ℕ (MemLoc R)) := dcsr "dsR" -- "dim" "i1_"
-def l_dsS : lvl ℕ (lvl ℕ (MemLoc R)) := dcsr "dsS" -- "dim" "i1_"
-def l_dsT : lvl ℕ (lvl ℕ (MemLoc R)) := dcsr "dsT" -- "dim" "i1_"
 
 def outVar : Var R := "fout"
 def outVal : Var R := "val"
@@ -148,10 +146,7 @@ def input_data :=
   ("gen_query_ssA.c", [go l_ssA SQLCallback]),
   ("gen_query_ssB.c", [go l_ssB SQLCallback]),
   ("gen_query_sssC.c", [go l_sssC SQLCallback3]),
-  ("gen_query_fires.c", [go l_ssF FSQLCallback]),
-  ("gen_query_wcoj_R.c", [ go l_dsR FSQLCallback ]),
-  ("gen_query_wcoj_S.c", [ go l_dsS FSQLCallback ]),
-  ("gen_query_wcoj_T.c", [ go l_dsT FSQLCallback ])
+  ("gen_query_fires.c", [go l_ssF (FSQLCallback R)])
   -- ("", [go ])
 ]
 
@@ -279,6 +274,38 @@ def sss___ : ι₁ →ₛ ι₂ →ₛ ι₃ →ₛ ι₄ →ₛ ι₅ →ₛ ι
   Functor.mapConst 1
 
 end SQL
+
+namespace WCOJ
+
+-- For data loading
+
+def load_ss (l : String) : lvl ℕ (lvl ℕ (Dump ℕ)) :=
+  (interval_vl $ l ++ "1_pos").value 0 |>
+  (with_values (sparse_il (l ++ "1_crd" : ArrayVar ℕ)) (interval_vl $ l ++ "2_pos")) ⊚
+  (without_values (sparse_il (l ++ "2_crd" : ArrayVar ℕ)))
+def l_dsR : lvl ℕ (lvl ℕ (Dump ℕ)) := load_ss "dsR"
+def l_dsS : lvl ℕ (lvl ℕ (Dump ℕ)) := load_ss "dsS"
+def l_dsT : lvl ℕ (lvl ℕ (Dump ℕ)) := load_ss "dsT"
+
+abbrev a := (0, ℕ)
+abbrev b := (1, ℕ)
+abbrev c := (2, ℕ)
+
+def r : a ↠ₛ b ↠ₛ E ℕ := (SQL.ss "dsR" : ℕ →ₛ ℕ →ₛ E ℕ)
+def s : b ↠ₛ c ↠ₛ E ℕ := (SQL.ss "dsS" : ℕ →ₛ ℕ →ₛ E ℕ)
+def t : a ↠ₛ c ↠ₛ E ℕ := (SQL.ss "dsT" : ℕ →ₛ ℕ →ₛ E ℕ)
+def out := ∑ a, b, c: r * s * t
+
+def compile_fun (name : String) (body : List String) : String :=
+s!"int {name}() \{\n
+  int val;\n
+  {String.join body}
+  return val;\n
+}"
+
+def outVal : Var ℕ := "val"
+
+end WCOJ
 
 namespace TPCHq5
 
@@ -476,7 +503,11 @@ let fn := "q5"; (fn, TPCHq5.compile_fun fn [go TPCHq5.outVal TPCHq5.q5])
 def files : List (String × List (String × String)) :=
 [
 ("tpch_q5", [let fn := "q5"; (fn, TPCHq5.compile_fun fn [go TPCHq5.outVal TPCHq5.q5])]),
-("tpch_q9", [let fn := "q9"; (fn, TPCHq9.compile_fun fn [go TPCHq9.outVal TPCHq9.q9])])
+("tpch_q9", [let fn := "q9"; (fn, TPCHq9.compile_fun fn [go TPCHq9.outVal TPCHq9.q9])]),
+("wcoj", [let fn := "gen_callback_wcoj_R"; (fn, compile_sqlite_cb fn [go WCOJ.l_dsR (FSQLCallback ℕ)]),
+          let fn := "gen_callback_wcoj_S"; (fn, compile_sqlite_cb fn [go WCOJ.l_dsS (FSQLCallback ℕ)]),
+          let fn := "gen_callback_wcoj_T"; (fn, compile_sqlite_cb fn [go WCOJ.l_dsT (FSQLCallback ℕ)]),
+          let fn := "wcoj";                (fn, compile_fun       fn [go WCOJ.outVal WCOJ.out])])
 ]
 
 def main : IO Unit := do

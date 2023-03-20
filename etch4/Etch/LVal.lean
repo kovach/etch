@@ -23,6 +23,8 @@ structure MemLoc (α : Type) := (arr : Var (ℕ → α)) (ind : E ℕ)
 
 def MemLoc.access (m : MemLoc α) : E α := m.arr.access m.ind
 
+structure Dump (α : Type) where
+
 def sparse_il (ind_array : Var (ℕ → ι)) (bounds : MemLoc ℕ) : il ι :=
   let array := bounds.arr
   let ind   := bounds.ind
@@ -49,11 +51,17 @@ def dense_vl  (array : ArrayVar α) : vl (MemLoc α) :=
   { value := λ loc => ⟨array, loc⟩,
     init  := λ loc => .store_mem array loc 0 }
 def implicit_vl : vl (E ℕ) := { value := id, init := λ _ => P.skip }
+def dump_vl : vl (Dump α) := { value := fun _ => .mk, init := fun _ => P.skip }
 
 -- this combinator combines an il with a vl to form a lvl.
 -- the extra parameter α is used to thread the primary argument to a level through ⊚.
 --   see dcsr/csr_mat/dense below
 def with_values : (α → il ι) → vl β → α → lvl ι β := λ i v e => lvl.of (i e) v
+
+-- somehow with_values doesn't work with dump_vl…
+def without_values : (α → il ι) → α → lvl ι (Dump β) :=
+  fun i e =>
+    lvl.mk ((Prod.map id fun _ => Dump.mk) ∘ (i e).push' (fun _ => .skip))
 
 def dcsr (l : String) : lvl ℕ (lvl ℕ (MemLoc α)) :=
   (interval_vl $ l ++ "1_pos").value 0 |>
