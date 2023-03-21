@@ -179,6 +179,103 @@ def graph_tpch():
     plt.savefig("tpch_scaling.pdf", bbox_inches="tight")
 
 
+def graph_wcoj(ax):
+    SFS = ["x1", "x3", "x10", "x30", "x100", "x300", "x1000", "x3000", "x10000"]
+    SF_NUMS = 100 * np.array([1, 3, 10, 30, 100, 300, 1000, 3000, 10000])
+    # ❯ for size in x0.01 x0.025 x0.05 x0.1 x0.25 x0.5 x1 x2 x4; do echo $size `wc -c tpch-csv-$size-q9/*.csv | grep total`; done
+
+    DBS = ["sqlite", "duckdb", "etch"]
+
+    nums = {}
+    last = {}
+    legend_entries = defaultdict(list)
+
+    for db in DBS:
+        nums[db] = []
+        for i, sz in enumerate(SFS):
+            tmp = []
+            try:
+                f = open(f"bench-output/run-wcoj-{sz}-{db}.txt")
+            except IOError:
+                continue
+            with f:
+                last[db] = i
+
+                factor = 1
+                if db.startswith("duckdb") or db.startswith("sqlite"):
+                    r = re.compile(r"q2 took \(s\): real ([^ ]*)s.*")
+                elif db.startswith("etch"):
+                    r = re.compile(r"wcojx1000 took \(s\): real ([^ ]*)s.*")
+                    factor = 1000
+
+                for l in f:
+                    res = r.match(l)
+                    if not res:
+                        continue
+                    tmp.append(float(res[1]) / factor)
+            nums[db].append(1000 * np.average(tmp))  # s → ms
+
+    print(nums)
+
+    for db in DBS:
+        (p,) = ax.plot(SF_NUMS[: len(nums[db])], nums[db], label=db, **styles[db])
+        legend_entries[db].append(p)
+
+    # ax.set_xlim((58.21, 8588523), auto=False)
+    ax.set_xlim(ax.get_xlim(), auto=False)
+    ax.set_ylim(ax.get_ylim(), auto=False)
+
+    ax.yaxis.set_major_locator(ticker.LogLocator(base=100, subs=[1]))
+    ax.yaxis.set_minor_locator(ticker.LogLocator(base=10, subs=[1], numticks=15))
+    ax.yaxis.set_minor_formatter(ticker.NullFormatter())
+
+    for db in DBS:
+        exponent = 2
+        if db == "etch":
+            exponent = 1
+
+        base_x = SF_NUMS[last[db]]
+        x = np.array(ax.get_xlim())
+        base_y = nums[db][-1]
+        multiplier = base_y / (base_x**exponent)
+
+        label = f"$n^{exponent}$"
+        (p,) = ax.plot(
+            x,
+            multiplier * (x**exponent),
+            label=label,
+            color=styles[db]["color"],
+            linestyle=":",
+        )
+        legend_entries[label].append(p)
+
+    print(ax.get_xlim())
+
+    # ax.set_title("Triangle Query")
+    ax.legend(
+        # [(tuple(v) if len(v) > 1 else v[0]) for v in legend_entries.values()],
+        # legend_entries.keys(),
+        loc="upper right",
+        handler_map={tuple: HandlerTuple(ndivide=None)},
+        ncols=2,
+        columnspacing=1,
+    )
+
+
+def graph_wcoj_standalone():
+    fig, ax = plt.subplots()
+    fig.set_size_inches((5, 2.5))
+    ax.set_xscale("log", base=10)
+    ax.set_yscale("log", base=10)
+    graph_wcoj(ax)
+    ax.set_xlabel("rows ($n$)")
+    ax.set_ylabel("milliseconds")
+    # ax.legend()
+    plt.tight_layout()
+    plt.savefig("wcoj_scaling.pdf", bbox_inches="tight")
+
+
 graph_q5_standalone()
 graph_q9_standalone()
 graph_tpch()
+graph_wcoj_standalone()
