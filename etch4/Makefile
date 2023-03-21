@@ -64,9 +64,9 @@ $(ALL_BENCH): LDLIBS += $(SQLITE_LDLIBS)
 $(ALL_BENCH): sqlite3.o sqlite3.h
 
 ifdef FORCE_REGEN
-.PHONY: gen_funs.c gen_tpch_q9.c
+.PHONY: gen_funs.c gen_tpch_q9.c gen_wcoj.c
 endif
-gen_funs.c gen_tpch_q9.c &:
+gen_funs.c gen_tpch_q9.c gen_wcoj.c &:
 	lake update
 	lake exe bench
 
@@ -174,7 +174,7 @@ run-wcoj-x$(1)-sqlite: wcoj-x$(1).db bench/wcoj-sqlite-prep.sql bench/wcoj-sqlit
 
 endef
 
-$(foreach scale,1 5 10 25 50 100 250 500 1000,$(eval $(call WCOJ_TEMPLATE,$(scale))))
+$(foreach scale,1 3 5 10 25 30 50 100 250 300 500 1000 3000 10000,$(eval $(call WCOJ_TEMPLATE,$(scale))))
 
 define TPCH_TEMPLATE_SMALL
 # Generate CSV files for TPC-H datasets
