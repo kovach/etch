@@ -1,12 +1,30 @@
+from collections import defaultdict
 import re
 import numpy as np
 from matplotlib import pyplot as plt
-from matplotlib.ticker import ScalarFormatter
-from cycler import cycler
+import matplotlib.ticker as ticker
+from matplotlib.legend_handler import HandlerTuple
 from numpy.polynomial import polynomial as P
 
 
-def graph_q5():
+styles = {
+    "duckdb": {"color": "C0", "marker": "v", "linestyle": "--"},
+    "etch": {"color": "k", "marker": "s", "linestyle": "-"},
+    "sqlite": {"color": "C1", "marker": "o", "linestyle": "-."},
+}
+tpch_styles = {
+    "duckdb": {"color": "C0", "marker": "*", "linestyle": ":"},
+    "duckdbforeign": {"color": "C0", "marker": "v", "linestyle": "--"},
+    "etch": {"color": "k", "marker": "s", "linestyle": "-"},
+    "sqlite": {"color": "C1", "marker": "o", "linestyle": "-."},
+}
+tpch_labels = {
+    "duckdb": "duckdb w/o foreign key",
+    "duckdbforeign": "duckdb",
+}
+
+
+def graph_q5(ax):
     SFS = ["x0.01", "x0.025", "x0.05", "x0.1", "x0.25", "x0.5", "x1", "x2", "x4"]
     SF_NUMS = [0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2, 4]
     # ❯ for size in x0.01 x0.025 x0.05 x0.1 x0.25 x0.5 x1 x2 x4; do echo $size `wc -c tpch-csv-$size-q5/*.csv | grep total`; done
@@ -44,31 +62,32 @@ def graph_q5():
                     if not res:
                         continue
                     tmp.append(float(res[1]))
-            nums[db].append(np.average(tmp))
+            nums[db].append(1000 * np.average(tmp))  # s → ms
 
+    print("q5")
     print(nums)
 
-    monochrome = cycler("color", ["k"]) * (
-        cycler("marker", [".", "v", "s", "*"])
-        + cycler("linestyle", ["-", "--", ":", "-."])
-    )
-    plt.rc("axes", prop_cycle=monochrome)
-
-    fig, ax = plt.subplots()
     for db in DBS:
-        ax.plot(SF_NUMS, nums[db], label=db)
+        ax.plot(SF_NUMS, nums[db], label=tpch_labels.get(db, db), **tpch_styles[db])
     ax.set_title("TPC-H Query 5")
+
+
+def graph_q5_standalone():
+    fig, ax = plt.subplots()
+    fig.set_size_inches((4, 3))
+    graph_q5(ax)
     ax.set_xscale("log", base=10)
     ax.set_yscale("log", base=10)
     for axis in (ax.xaxis,):
-        axis.set_major_formatter(ScalarFormatter())
-    ax.set_xlabel("TPC-H Scaling Factor")
-    ax.set_ylabel("Time (s)")
+        axis.set_major_formatter(ticker.ScalarFormatter())
+    ax.set_xlabel("scaling factor (SF)")
+    fig.supylabel("milliseconds")
     ax.legend()
+    plt.tight_layout()
     plt.savefig("tpch_q5_scaling.pdf")
 
 
-def graph_q9():
+def graph_q9(ax):
     SFS = ["x0.01", "x0.025", "x0.05", "x0.1", "x0.25", "x0.5", "x1", "x2", "x4"]
     SF_NUMS = [0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2, 4]
     # ❯ for size in x0.01 x0.025 x0.05 x0.1 x0.25 x0.5 x1 x2 x4; do echo $size `wc -c tpch-csv-$size-q9/*.csv | grep total`; done
@@ -88,7 +107,7 @@ def graph_q9():
 
     print(sf_to_byte)
 
-    DBS = ["duckdb", "duckdbforeign", "etch", "sqlite"]
+    DBS = ["duckdbforeign", "duckdb", "etch", "sqlite"]
 
     nums = {}
     for db in DBS:
@@ -106,29 +125,60 @@ def graph_q9():
                     if not res:
                         continue
                     tmp.append(float(res[1]))
-            nums[db].append(np.average(tmp))
+            nums[db].append(1000 * np.average(tmp))  # s → ms
 
+    print("q9")
     print(nums)
 
-    monochrome = cycler("color", ["k"]) * (
-        cycler("marker", [".", "v", "s", "*"])
-        + cycler("linestyle", ["-", "--", ":", "-."])
-    )
-    plt.rc("axes", prop_cycle=monochrome)
-
-    fig, ax = plt.subplots()
     for db in DBS:
-        ax.plot(SF_NUMS, nums[db], label=db)
+        ax.plot(SF_NUMS, nums[db], label=tpch_labels.get(db, db), **tpch_styles[db])
     ax.set_title("TPC-H Query 9")
+
+
+def graph_q9_standalone():
+    fig, ax = plt.subplots()
+    fig.set_size_inches((4, 3))
+    graph_q9(ax)
     ax.set_xscale("log", base=10)
     ax.set_yscale("log", base=10)
     for axis in (ax.xaxis,):
-        axis.set_major_formatter(ScalarFormatter())
-    ax.set_xlabel("TPC-H Scaling Factor")
-    ax.set_ylabel("Time (s)")
+        axis.set_major_formatter(ticker.ScalarFormatter())
+    ax.set_xlabel("scaling factor (SF)")
+    fig.supylabel("milliseconds")
     ax.legend()
+    plt.tight_layout()
     plt.savefig("tpch_q9_scaling.pdf")
 
 
-graph_q5()
-graph_q9()
+def graph_tpch():
+    fig, axes = plt.subplots(nrows=1, ncols=2, sharex=True, sharey=True, figsize=(8, 3))
+
+    # these apply to all axes
+    axes[0].set_xscale("log", base=10)
+    axes[0].set_yscale("log", base=10)
+    for axis in (axes[0].xaxis,):
+        axis.set_major_formatter(ticker.ScalarFormatter())
+
+    graph_q5(axes[0])
+    graph_q9(axes[1])
+    fig.supxlabel("scaling factor (SF)", y=0.08)
+    fig.supylabel("milliseconds")
+
+    plt.tight_layout()
+
+    # dedupe legends
+    handles, labels = plt.gca().get_legend_handles_labels()
+    newLabels, newHandles = [], []
+    for handle, label in zip(handles, labels):
+        if label not in newLabels:
+            newLabels.append(label)
+            newHandles.append(handle)
+    plt.figlegend(newHandles, newLabels, bbox_to_anchor=(0.85, 0.07), ncols=4)
+
+    # fig.set_size_inches(8, 3.3, forward=False)
+    plt.savefig("tpch_scaling.pdf", bbox_inches="tight")
+
+
+graph_q5_standalone()
+graph_q9_standalone()
+graph_tpch()
