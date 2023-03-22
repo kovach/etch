@@ -110,11 +110,26 @@ def TACO.interval (pos : Var ℕ) (lower upper : E ℕ) : ι →ₛ (E ℕ) wher
 def csr.level' : csr ι ℕ → E ℕ → ι →ₛ E ℕ := λ csr loc => TACO.interval csr.i csr.var (.access csr.v loc) (csr.v.access (loc+1)) -- 1
 def TACO.level {f} [Functor f] : csr ι ℕ → f (E ℕ) → f (ι →ₛ (E ℕ)) := Functor.map ∘ csr.level'
 
+def TACO.interval' (is : ArrayVar ι) (pos : Var ℕ) (upper : E ℕ) : S' ι (E ℕ) where
+  σ := Var ℕ
+  state := pos
+  skip i r :=
+    .branch r
+      (.store_var pos $ pos + .call Op.ofBool ![(E.access is pos.expr <= i)])
+      (.store_var pos $ pos + .call Op.ofBool ![(E.access is pos.expr << i)])
+  value := pos.expr
+  ready := 1
+  index := .access is pos.expr
+  valid := pos.expr << upper
+def csr.level'' : csr ι ℕ → E ℕ → S' ι (E ℕ) := λ csr loc => TACO.interval' csr.i csr.var (csr.v.access (loc+1)) -- 1
+def TACO.level' {f} [Functor f] : csr ι ℕ → f (E ℕ) → f (S' ι (E ℕ)) := Functor.map ∘ csr.level''
+def taco_dsMat' (f : String) : ℕ →ₐ S' ℕ (E R) := range & TACO.level' (csr.of f 2) ⊚ S.leaf (f ++ "_vals")
+
 end TACO
 
 def List.sequence [Monad m] : List (m α) → m (List α) := List.mapM id
 
-def IOp.compile' (f : String) (body : List String) : IO Unit := IO.FS.writeFile f $ String.join body
+def IO.compile' (f : String) (body : List String) : IO Unit := IO.FS.writeFile f $ String.join body
 def compile_fun (name : String) (body : List String) : String :=
 s!"double {name}()\{ double val = 0;\n {String.join body} return val; }"
 
@@ -162,7 +177,6 @@ def exp0 (ι : Type _) : α → ι →ₐ α := λ (v : α) => λ _ => v
 def exp1 (ι'' : Type _) : (ι' →ₛ α) → (ι' →ₛ (ι'' →ₐ α)) := Functor.map $ exp0 ι''
 def exp2 (ι'' : Type _) : S ι (S ι' α) → S ι (S ι' (Fun ι'' α)) := Functor.map $ exp1 ι''
 
-
 --def S.snd [Tagged α] [Zero α] [Tagged β] [Zero β] : β →ₛ α →ₛ (E α) := S.function "f1_" ⊚ S.function "f2_" $ λ _ x => x
 --def S.fst [Tagged α] [Zero α] [Tagged β] [Zero β] : α →ₛ β →ₛ (E α) := S.function "f1_" ⊚ S.function "f2_" $ λ x _ => x
 --def S.attr [Tagged α] [Zero α] : α →ₛ (E α) := S.function "f1_" id
@@ -191,10 +205,14 @@ def taco_mat3  (f : String) : ℕ →ₛ ℕ →ₛ ℕ →ₛ E R := (csr.of f 
 def dsMat (f : String) : ℕ →ₐ ℕ →ₛ E R := range & S.level .step (csr.of f 2) ⊚ S.leaf (f ++ "_vals")
 def taco_dsMat (f : String) : ℕ →ₐ ℕ →ₛ E R := range & TACO.level (csr.of f 2) ⊚ S.leaf (f ++ "_vals")
 
+
 def ssA' := taco_mat "ssA"
 def dsA' := taco_dsMat "dsA"
 def ssB' := taco_mat "ssB"
 def dsB' := taco_dsMat "dsB"
+
+#check go outVal $ ∑ i, j: (dsA' : i ↠ j ↠ E R) + (dsA' : i ↠ j ↠ E R)
+
 
 def dV   := dVec "V"
 def sV   := sVec "sV"

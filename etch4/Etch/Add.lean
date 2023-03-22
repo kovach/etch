@@ -54,3 +54,34 @@ instance [HAdd α β γ] [Guard α] [Guard β] : HAdd (S ι α) (S ι β) (S ι 
 instance [HAdd α β γ] : HAdd (ι →ₐ α) (ι →ₐ β) (ι →ₐ γ) where hAdd a b := λ v => a v + b v
 instance [HAdd α β γ] : HAdd (ι →ₛ α) (ι →ₐ β) (ι →ₛ γ) where hAdd a b := {a with value := λ s => a.value s + b (a.index s)}
 instance [HAdd β α γ] : HAdd (ι →ₐ β) (ι →ₛ α) (ι →ₛ γ) where hAdd b a := {a with value := λ s => b (a.index s) + a.value s}
+
+
+section new
+def S_le' (a : S' ι α) (b : S' ι β) : E Bool :=
+  (.call Op.neg ![b.valid]) + (a.valid * (a.index <= b.index))
+
+def S'.weakAdd [HAdd α β γ] [Guard α] [Guard β] (a : S' ι α) (b : S' ι β) (n : Name) : S' ι γ  :=
+  let p := (a.state, b.state)
+  let t := .ofName n
+  { σ := (a.σ × b.σ) × AddTmp ι
+    state := (p, t)
+    value :=
+               HAdd.hAdd
+               (Guard.guard t.cv₁ ((S_le' a b) * a.ready) $ a.value)
+               (Guard.guard t.cv₂ ((S_le' b a) * b.ready) $ b.value)
+    skip  := fun e r ↦ a.skip e r ;; b.skip e r
+    ready := (S_le' a b) * a.ready + (S_le' b a ) * b.ready
+    index := .call Op.ternary ![S_le' a b , a.index, b.index]
+    valid := a.valid * b.valid
+  }
+
+def S'.add [HAdd α β γ] [Guard α] [Guard β] [Zero α] [Zero β]
+    (a : S' ι α) (b : S' ι β) : Name → Then (S' ι γ) (Then (S' ι γ) (S' ι γ)) :=
+  fun n ↦ (a.weakAdd b n, (. + (0 : β)) <$> a, ((0 : α) + .) <$> b)
+
+variable
+  [HAdd α β γ] [Guard α] [Guard β] [Zero α] [Zero β]
+
+instance  : HAdd (S' ι α) (S' ι β) (Name → (S' ι γ) <;;> (S' ι γ) <;;> (S' ι γ)) := ⟨ S'.add ⟩
+
+end new

@@ -3,8 +3,6 @@ import Etch.C
 import Etch.Op
 import Etch.Basic
 
---notation "𝟚"  => Bool
-
 -- marked irreducible later
 def Var (_ : Type _) := String
 abbrev ArrayVar (α : Type _) := Var (ℕ → α)
@@ -19,7 +17,6 @@ inductive E : Type → Type 1
 | intLit : ℕ → E ℕ
 | strLit : String → E String
 
-def E.v (α) (v : String) : E α := E.var v
 
 structure HeapContext where
   store : Var α → α
@@ -92,6 +89,8 @@ def Name := List ℕ
 def Name.toString : Name → String := "_".intercalate ∘ List.map ToString.toString
 def Name.fresh (n : Name) (new : ℕ) : Name := new :: n
 def Name.freshen (n : Name) : Name := n.fresh 0
+def Name.left (n : Name) : Name := n.fresh 0
+def Name.right (n : Name) : Name := n.fresh 1
 def emptyName : Name := []
 
 structure S (ι : Type _) (α : Type _) where
@@ -212,6 +211,37 @@ def S.interval (h : IterMethod) (pos : Var ℕ) (lower upper : E ℕ) : S ι (E 
   init  n := let p := pos.fresh n;
              let ⟨ss, ssInit⟩ := (match h with | .step => SkipState.initSimple | .search => SkipState.initSearch) n
              (p.decl lower ;; ssInit, (p, ss))
+
+section new
+structure S' (ι : Type _) (α : Type _) where
+  σ : Type
+  state : σ
+  valid : E Bool
+  index : E ι
+  value : α
+  ready : E Bool
+  skip  : E ι → E Bool → P
+
+instance : Functor (S' ι) where map := λ f s => {s with value := f s.value }
+
+def S'.interval (h : IterMethod) (upper : E ℕ) (n : Name) : S' ι (E ℕ) :=
+  let pos : Var ℕ := .fresh "pos" n.left
+  let (ss, _) := (match h with | .step => SkipState.initSimple | .search => SkipState.initSearch) n.right
+  { σ := Var ℕ × SkipState ι
+    state := (pos, ss)
+    index   := is.access pos.expr
+    value   := pos.expr
+    ready   := 1
+    skip    := fun i r  ↦
+      .branch r
+        (.if1 (is.access pos.expr <= i) pos.incr)
+        $ (match h with | .step => simpleSkip | .search => searchSkip) is ss pos upper i
+    valid   := pos.expr << upper }
+
+def Then (r r' : Type _) := r × r'
+infixr:35 " <;;> " => Then
+
+end new
 
 -- todo: use instead of zero
 --class Bot (α : Type _) := (bot : α)
