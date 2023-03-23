@@ -1,11 +1,13 @@
-// TPC-H decls
-// This is technically a C file, but it works in C++ too.
-
-#include <stdbool.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <time.h>
 
+#include <functional>
+#include <iostream>
+#include <tuple>
+#include <unordered_map>
+
+#include "common.h"
+#include "operators.h"
 #include "sqlite3.h"
 
 #define TPCH_SF 4
@@ -40,6 +42,8 @@ char* tpch_nation3_crd[25 + 10];  // nationname
 // tpch_region1 = regionkey (dense)
 int tpch_region2_pos[5 + 10];  // regionname
 char* tpch_region2_crd[5 + 10];
+
+#include "gen_tpch_q5.c"
 
 // this is dense-sparse, aka "csr"
 #define GEN_DS(tbl_name, is_set, crd2eq, crd2conv, crd2copy)                   \
@@ -238,7 +242,7 @@ GEN_DS(tpch_supplier, false, EQ, atoi, atoi)
 GEN_DS_(tpch_nation, false, EQ, atoi, atoi, strdup)
 GEN_DS(tpch_region, false, STR_EQ, ID, strdup)
 
-static int populate_tpch(sqlite3* db) {
+static int populate_tpch_q5(sqlite3* db) {
   char* zErrMsg;
   int rc;
   void* data = NULL;
@@ -293,4 +297,27 @@ static int populate_tpch(sqlite3* db) {
   PRINT_LENGTH_DS(tpch_region);
 
   return rc;
+}
+
+static sqlite3* db;
+
+int main(int argc, char* argv[]) {
+  int rc = SQLITE_OK;
+
+  sqlite3_initialize();
+  rc = sqlite3_open(argc >= 1 ? argv[1] : "TPC-H.db", &db);
+
+  if (rc) {
+    fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+    return (0);
+  } else {
+    fprintf(stderr, "Opened database successfully\n");
+  }
+
+  time([]() { return populate_tpch_q5(db); }, "populate_tpch_q5", 1);
+  printf("Loaded\n");
+  time(q5, "q5", 5);
+
+  sqlite3_close(db);
+  return 0;
 }

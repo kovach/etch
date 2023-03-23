@@ -64,9 +64,6 @@ infixr:40 " != " => λ a b => E.call Op.neg ![(E.call Op.eq ![a, b])]
 infixr:40 " <= " => λ a b => E.call Op.le ![a, b]
 infixr:40 " >= " => λ a b => E.call Op.le ![b, a]
 
-def E.findStr (s f : E String) : E Int := E.call Op.findStr ![s, f]
-def E.isSubstrOf (f s : E String) : E Bool := s.findStr f >= (0 : E ℤ)
-
 inductive P
 | seq    : P → P → P
 | while  : E Bool → P → P
@@ -264,6 +261,9 @@ def csr.of (name : String) (n : ℕ) (ι := ℕ) : csr ι ℕ :=
 
 def csr.level (h : IterMethod) (vars : csr ι ℕ) (loc : E ℕ) : ι →ₛ (E ℕ) :=
   S.interval vars.i h vars.var (.access vars.v loc) (vars.v.access (loc+1))
+-- CSR, but assume pos[i] = i (inherit the position from the previous level)
+def csr.inherit (vars : csr ι ℕ) (loc : E ℕ) : ι →ₛ (E ℕ) :=
+  S.interval vars.i .step vars.var loc (loc+1)
 def S.level {f} [Functor f] (h : IterMethod) : csr ι ℕ → f (E ℕ) → f (ι →ₛ (E ℕ)) := Functor.map ∘ csr.level h
 def S.leaf  {f} [Functor f] : Var (ℕ → α) → f (E ℕ) → f (E α) := Functor.map ∘ E.access
 --def S.leaf' : Var α → E ℕ → E α := E.access

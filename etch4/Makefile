@@ -48,12 +48,12 @@ SQLITE3 ?= sqlite3/shell
 # Delete partial output files if make failed (e.g., if checksum did not match).
 .DELETE_ON_ERROR:
 
-ALL_BENCH := bench-tpch-q9 bench-wcoj out
+ALL_BENCH := bench-tpch-q5 bench-tpch-q9 bench-wcoj
 
 .PHONY: all
 all: $(ALL_BENCH)
 
-out: main.cpp decls.c decls_tpch.cpp gen_funs.c
+bench-tpch-q5: bench-tpch-q5.cpp gen_tpch_q5.c
 bench-tpch-q9: bench-tpch-q9.cpp gen_tpch_q9.c
 bench-wcoj: bench-wcoj.cpp gen_wcoj.c
 
@@ -64,9 +64,9 @@ $(ALL_BENCH): LDLIBS += $(SQLITE_LDLIBS)
 $(ALL_BENCH): sqlite3.o sqlite3.h
 
 ifdef FORCE_REGEN
-.PHONY: gen_funs.c gen_tpch_q9.c gen_wcoj.c
+.PHONY: gen_tpch_q5.c gen_tpch_q9.c gen_wcoj.c
 endif
-gen_funs.c gen_tpch_q9.c gen_wcoj.c &:
+gen_tpch_q5.c gen_tpch_q9.c gen_wcoj.c &:
 	lake update
 	lake exe bench
 
@@ -82,9 +82,9 @@ sqlite3.c sqlite3.h sqlite3/shell.c &: $(SQLITE_ZIP)
 	rm -rf tmp_sqlite3
 	mkdir -p sqlite3
 	unzip $< "$(patsubst %.zip,%,$<)/*" -d tmp_sqlite3
-	mv tmp_sqlite3/$(patsubst %.zip,%,$<)/sqlite3.c sqlite3.c
-	mv tmp_sqlite3/$(patsubst %.zip,%,$<)/sqlite3.h sqlite3.h
-	mv tmp_sqlite3/$(patsubst %.zip,%,$<)/shell.c sqlite3/shell.c
+	mv tmp_sqlite3/$(patsubst %.zip,%,$<)/sqlite3.c sqlite3.c && touch sqlite3.c
+	mv tmp_sqlite3/$(patsubst %.zip,%,$<)/sqlite3.h sqlite3.h && touch sqlite3.h
+	mv tmp_sqlite3/$(patsubst %.zip,%,$<)/shell.c sqlite3/shell.c && touch sqlite3/shell.c
 	rm -rf tmp_sqlite3
 
 sqlite3.o: sqlite3.c sqlite3.h
@@ -118,7 +118,8 @@ $(LIBDUCKDB_ZIP):
 
 duckdb/libduckdb.so duckdb/duckdb.hpp duckdb/duckdb.h &: $(LIBDUCKDB_ZIP)
 	mkdir -p duckdb
-	unzip $< -d duckdb
+	unzip -o $< -d duckdb
+	touch duckdb/libduckdb.so duckdb/duckdb.hpp duckdb/duckdb.h
 
 # Files produced using https://github.com/lovasoa/TPCH-sqlite
 TPC-H-x0.01.db:
@@ -198,17 +199,6 @@ run-tpch-$(1)-$(2)-sqlite: bench/tpch-$(2)-sqlite-prep.sql bench/tpch-$(2)-sqlit
 
 endef
 
-define TPCH_TEMPLATE_q5
-$(call TPCH_TEMPLATE_SMALL,$(1),q5)
-
-.PHONY: run-tpch-$(1)-q5-etch
-run-tpch-$(1)-q5-etch: out TPC-H-$(1).db
-	ln -sf TPC-H-$(1).db TPC-H.db
-	./out
-	rm TPC-H.db
-
-endef
-
 define TPCH_TEMPLATE
 $(call TPCH_TEMPLATE_SMALL,$(1),$(2))
 
@@ -218,25 +208,9 @@ run-tpch-$(1)-$(2)-etch: bench-tpch-$(2) TPC-H-$(1).db
 
 endef
 
-$(eval $(call TPCH_TEMPLATE_q5,x0.01))
-$(eval $(call TPCH_TEMPLATE_q5,x0.025))
-$(eval $(call TPCH_TEMPLATE_q5,x0.05))
-$(eval $(call TPCH_TEMPLATE_q5,x0.1))
-$(eval $(call TPCH_TEMPLATE_q5,x0.25))
-$(eval $(call TPCH_TEMPLATE_q5,x0.5))
-$(eval $(call TPCH_TEMPLATE_q5,x1))
-$(eval $(call TPCH_TEMPLATE_q5,x2))
-$(eval $(call TPCH_TEMPLATE_q5,x4))
-
-$(eval $(call TPCH_TEMPLATE,x0.01,q9))
-$(eval $(call TPCH_TEMPLATE,x0.025,q9))
-$(eval $(call TPCH_TEMPLATE,x0.05,q9))
-$(eval $(call TPCH_TEMPLATE,x0.1,q9))
-$(eval $(call TPCH_TEMPLATE,x0.25,q9))
-$(eval $(call TPCH_TEMPLATE,x0.5,q9))
-$(eval $(call TPCH_TEMPLATE,x1,q9))
-$(eval $(call TPCH_TEMPLATE,x2,q9))
-$(eval $(call TPCH_TEMPLATE,x4,q9))
+$(foreach SIZE,x0.01 x0.025 x0.05 x0.1 x0.25 x0.5 x1 x2 x4,\
+	$(foreach QUERY,q5 q9,\
+		$(eval $(call TPCH_TEMPLATE,$(SIZE),$(QUERY)))))
 
 
 .PHONY: clean
