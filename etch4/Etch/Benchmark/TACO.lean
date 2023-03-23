@@ -90,13 +90,13 @@ def l_dsB : lvl ℕ (lvl ℕ (MemLoc R)) := csr_mat "dsB" "dim" "i1_" -- todo "i
 def l_sssC : lvl ℕ (lvl ℕ (lvl ℕ (MemLoc R))) := tcsr "ssC"
 
 def funcs : List (String × String) := [
-  ("gen_query_dV.c", go l_dV sqlCallback),
-  ("gen_query_sV.c", go l_sV sqlCallback),
-  ("gen_query_dsA.c", go l_dsA sqlCallback2),
-  ("gen_query_dsB.c", go l_dsB sqlCallback2),
-  ("gen_query_ssA.c", go l_ssA sqlCallback2),
-  ("gen_query_ssB.c", go l_ssB sqlCallback2),
-  ("gen_query_sssC.c", go l_sssC sqlCallback3) ]
+  let name := "dV";   (s!"gen_query_{name}.c", compileSqliteCb s!"gen_callback_graph_{name}" [go l_dV sqlCallback]),
+  let name := "sV";   (s!"gen_query_{name}.c", compileSqliteCb s!"gen_callback_graph_{name}" [go l_sV sqlCallback]),
+  let name := "dsA";  (s!"gen_query_{name}.c", compileSqliteCb s!"gen_callback_graph_{name}" [go l_dsA sqlCallback2]),
+  let name := "dsB";  (s!"gen_query_{name}.c", compileSqliteCb s!"gen_callback_graph_{name}" [go l_dsB sqlCallback2]),
+  let name := "ssA";  (s!"gen_query_{name}.c", compileSqliteCb s!"gen_callback_graph_{name}" [go l_ssA sqlCallback2]),
+  let name := "ssB";  (s!"gen_query_{name}.c", compileSqliteCb s!"gen_callback_graph_{name}" [go l_ssB sqlCallback2]),
+  let name := "sssC"; (s!"gen_query_{name}.c", compileSqliteCb s!"gen_callback_graph_{name}" [go l_sssC sqlCallback3]) ]
 
 end Loading
 
