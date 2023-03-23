@@ -56,7 +56,9 @@ all: $(ALL_BENCH)
 bench-tpch-q5: bench-tpch-q5.cpp gen_tpch_q5.c
 bench-tpch-q9: bench-tpch-q9.cpp gen_tpch_q9.c
 bench-wcoj: bench-wcoj.cpp gen_wcoj.c
-bench-taco: bench-taco.cpp gen_taco.c
+data/pldi.db: gen_taco_data.py
+	python gen_taco_data.py
+bench-taco: bench-taco.cpp gen_taco.c ./data/pldi.db
 
 $(ALL_BENCH):
 	$(LINK.cpp) $< sqlite3.o $(LDLIBS) -o $@
