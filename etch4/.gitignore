@@ -3,7 +3,6 @@
 
 *.o
 .gdb_history
-out
 bench-duckdb
 bench-sqlite
 bench-tpch-q[0-9]
