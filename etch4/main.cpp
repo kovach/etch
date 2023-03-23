@@ -241,7 +241,6 @@ void test_sql(sqlite3* db) {
   std::cout << "sql took: " << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count() << "μ" << std::endl;
 }
 #endif
-
 int main() {
   char* zErrMsg = 0;
   int rc = SQLITE_OK;
