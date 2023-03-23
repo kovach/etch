@@ -25,7 +25,7 @@ def Op.toMax : Op RMax where
   opName := tag_mk_fun R "toMax"
 
 def Op.udf : Op RMin := { argTypes := ![ℕ, ℕ], spec := default, opName := "udf" }
-def Op.udf_max : Op RMax where argTypes := ![ℕ, ℕ]; spec := default; opName := "udf_max"
+def Op.udf_max : Op RMax where argTypes := ![ℕ, ℕ]; spec := default; opName := "int_max"
 def Op.toGuard [Tagged α] [OfNat β 1] : Op β where argTypes := ![α]; spec := λ _ => 1; opName := tag_mk_fun α "toGuard"
 
 section funs
@@ -90,13 +90,13 @@ def l_dsB : lvl ℕ (lvl ℕ (MemLoc R)) := csr_mat "dsB" "dim" "i1_" -- todo "i
 def l_sssC : lvl ℕ (lvl ℕ (lvl ℕ (MemLoc R))) := tcsr "ssC"
 
 def funcs : List (String × String) := [
-  ("gen_query_dV.c", go l_dV sqlCallback),
-  ("gen_query_sV.c", go l_sV sqlCallback),
-  ("gen_query_dsA.c", go l_dsA sqlCallback2),
-  ("gen_query_dsB.c", go l_dsB sqlCallback2),
-  ("gen_query_ssA.c", go l_ssA sqlCallback2),
-  ("gen_query_ssB.c", go l_ssB sqlCallback2),
-  ("gen_query_sssC.c", go l_sssC sqlCallback3) ]
+  ("gen_taco_dV", go l_dV sqlCallback),
+  ("gen_taco_sV", go l_sV sqlCallback),
+  ("gen_taco_dsA", go l_dsA sqlCallback2),
+  ("gen_taco_dsB", go l_dsB sqlCallback2),
+  ("gen_taco_ssA", go l_ssA sqlCallback2),
+  ("gen_taco_ssB", go l_ssB sqlCallback2),
+  ("gen_taco_sssC", go l_sssC sqlCallback3) ]
 
 end Loading
 
@@ -136,12 +136,12 @@ abbrev j := (1, ℕ)
 abbrev k := (2, ℕ)
 abbrev l := (3, ℕ)
 
-def ssA      : i ↠ₛ j ↠ₛ E R       := taco_mat "ssA"
-def dsA      : i ↠ₐ j ↠ₛ E R       := taco_dsMat "dsA"
-def ssB_ij   : i ↠ₛ j ↠ₛ E R       := taco_mat "ssB"
-def ssB      : j ↠ₛ k ↠ₛ E R       := taco_mat "ssB"
-def ssB_skip : j ↠ₛ k ↠ₛ E R       := skip_mat "ssB"
-def dsB      : j ↠ₐ k ↠ₛ E R       := taco_dsMat "dsB"
+def ssA      : i ↠ₛ j ↠ₛ E R      := taco_mat "ssA"
+def dsA      : i ↠ₐ j ↠ₛ E R      := taco_dsMat "dsA"
+def ssB_ij   : i ↠ₛ j ↠ₛ E R      := taco_mat "ssB"
+def ssB      : j ↠ₛ k ↠ₛ E R      := taco_mat "ssB"
+def ssB_skip : j ↠ₛ k ↠ₛ E R      := skip_mat "ssB"
+def dsB      : j ↠ₐ k ↠ₛ E R      := taco_dsMat "dsB"
 def sssC     : i ↠ₛ j ↠ₛ k ↠ₛ E R := taco_mat3 "ssC"
 
 def dsR : i ↠ₛ j ↠ₛ E R:= mat "dsR"
@@ -163,28 +163,30 @@ def filter_v    : i ↠ₛ E R := S.valFilter (λ e => threshold << (e : E R)) s
 def filter_spmv := ∑ i, j: filter_v * ssA
 
 abbrev TacoKernel := String
-
 structure TacoTest where
   name : String
-  kernel : TacoKernel
+  --kernel : TacoKernel
   funcDef : String
 
 def TacoTest.runBench (t : TacoTest) (reps : ℕ) := s!"
   time(taco_{t.name}, \"taco_{t.name}\", {reps});
-  time({t.name}, \"etch_{t.name}\", {reps});
+  time(etch_{t.name}, \"etch_{t.name}\", {reps});
   printf(\"\\n\");"
 
+def compileEtchFun [Compile (Var R) Z] fn (kernel : Z) := compileFun R ("etch_" ++ fn) kernel
+
 def tests : List TacoTest := [
-  let fn := "inner2ss";     ⟨fn, fn, compileFun R fn inner⟩,
-  let fn := "sum_add2";     ⟨fn, fn, compileFun R fn add_ss⟩,
-  let fn := "sum_mul2_csr"; ⟨fn, fn, compileFun R fn mul⟩,
-  let fn := "sum_mul2";     ⟨fn, fn, compileFun R fn mul_ss⟩,
-  let fn := "mttkrp";       ⟨fn, fn, compileFun R fn mttkrp⟩,
-  let fn := "spmv";         ⟨fn, fn, compileFun R fn spmv⟩,
-  let fn := "filter_spmv";  ⟨fn, fn, compileFun R fn filter_spmv⟩ ]
+  let fn := "inner2ss";     ⟨fn, compileEtchFun fn inner⟩,
+  let fn := "sum_add2";     ⟨fn, compileEtchFun fn add_ss⟩,
+  let fn := "sum_mul2_csr"; ⟨fn, compileEtchFun fn mul⟩,
+  let fn := "sum_mul2";     ⟨fn, compileEtchFun fn mul_ss⟩,
+  let fn := "mttkrp";       ⟨fn, compileEtchFun fn mttkrp⟩,
+  let fn := "spmv";         ⟨fn, compileEtchFun fn spmv⟩
+  --let fn := "filter_spmv";  ⟨fn, compileEtchFun fn filter_spmv⟩
+]
 
 def funcs : List (String × String) :=
-  Loading.funcs ++
+  Loading.funcs.map (fun (fn, body)  ↦ (fn, compileSqliteCb (fn ++ "_callback") [body])) ++
   tests.map (fun t => (t.name, t.funcDef)) ++
   [("udf", compileFun RMax "udf" udf)] ++
 
