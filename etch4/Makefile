@@ -56,9 +56,7 @@ all: $(ALL_BENCH)
 bench-tpch-q5: bench-tpch-q5.cpp gen_tpch_q5.c
 bench-tpch-q9: bench-tpch-q9.cpp gen_tpch_q9.c
 bench-wcoj: bench-wcoj.cpp gen_wcoj.c
-data/pldi.db: gen_taco_data.py
-	python gen_taco_data.py
-bench-taco: bench-taco.cpp gen_taco.c ./data/pldi.db
+bench-taco: bench-taco.cpp gen_taco.c
 
 $(ALL_BENCH):
 	$(LINK.cpp) $< sqlite3.o $(LDLIBS) -o $@
@@ -152,6 +150,13 @@ TPC-H-x2.db:
 TPC-H-x4.db:
 	@echo 'Download this file at https://drive.google.com/file/d/14aM_1IY7ACLOzRtS1LKpRYGweDXZZF0M/view?usp=sharing' && false
 	@#echo '9530ea95daecc3c8e411f9a7eb8a78ece3aaaae4b285729e45253283ea091f36 $@' | sha256sum -c
+
+data/pldi.db: bench/taco-datagen.py
+	mkdir -p data
+	python3 $<
+
+run-taco-etch: bench-taco data/pldi.db
+	./bench-taco
 
 define WCOJ_TEMPLATE
 # Generate CSV files for the worse-case optimal join benchmark

@@ -5,6 +5,7 @@
 .gdb_history
 bench-duckdb
 bench-sqlite
+bench-taco
 bench-tpch-q[0-9]
 bench-wcoj
 
