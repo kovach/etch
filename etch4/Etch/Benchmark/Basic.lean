@@ -22,7 +22,7 @@ section
 
 variable (I : Type _) [TaggedC I]
          (J : Type _) [TaggedC J]
-         (X : Type _) [TaggedC X] [Inhabited X]
+         (X : Type _) [TaggedC X] [Inhabited X] [Tagged X] [Zero X]
          {Z : Type _}
 
 local instance (α) : ToString (Var α) := ⟨Var.toString⟩
@@ -31,7 +31,8 @@ open TaggedC (tag)
 
 def compileFun [Compile (Var X) Z] (name : String) (exp : Z) : String :=
   let val : Var X := "val"
-  s!"{tag X} {name}() \{\n {tag X} {val};\n {go val exp}\n return {val};\n}"
+  let decl := (val.decl 0).compile.emit.run
+  s!"{tag X} {name}() \{\n {decl}\n {go val exp}\n return {val};\n}"
 
 def compileFunMap [Compile (lvl I (MemLoc X)) Z] (name : String) (exp : Z) : String :=
   let T := s!"std::unordered_map<{tag I}, {tag X}>"
