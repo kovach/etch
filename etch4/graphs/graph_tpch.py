@@ -182,10 +182,6 @@ def graph_tpch():
 def graph_wcoj(ax):
     SFS = ["x1", "x3", "x10", "x30", "x100", "x300", "x1000", "x3000", "x10000"]
     SF_NUMS = 100 * np.array([1, 3, 10, 30, 100, 300, 1000, 3000, 10000])
-<<<<<<< HEAD
-    # ❯ for size in x0.01 x0.025 x0.05 x0.1 x0.25 x0.5 x1 x2 x4; do echo $size `wc -c tpch-csv-$size-q9/*.csv | grep total`; done
-=======
->>>>>>> tg/wcoj
 
     DBS = ["sqlite", "duckdb", "etch"]
 
