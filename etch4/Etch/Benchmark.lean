@@ -344,12 +344,8 @@ def year1994unix := 757411200
 def year1995unix := 788947200
 def orders1994 : orderdate ↠ₛ E R := (S.predRange year1994unix year1995unix : ℕ →ₛ E R)
 
--- break things up to help type checker out
-def tmp3 := lineitem_revenue * orders * orders1994 * customer * supplier
-def tmp4 := nation * region * asia
-def tmp5 := tmp3 * tmp4
-
-def q5 := ∑ orderkey, orderdate, custkey: ∑ suppkey, nationkey, regionkey: ∑ regionname, extendedprice, discount: tmp5
+def q5 := ∑ orderkey, orderdate, custkey: ∑ suppkey, nationkey, regionkey: ∑ regionname, extendedprice, discount:
+          lineitem_revenue * orders * orders1994 * customer * supplier * (nation * region * asia)
 
 def compile_fun (name : String) (body : List String) : String :=
 s!"std::unordered_map<const char*, double> {name}()\{\n
@@ -394,51 +390,39 @@ def supplier : suppkey   ↠ₐ nationkey ↠ₛ E R := (SQL.d_ "tpch9_supplier"
 def partsupp : partkey   ↠ₐ suppkey ↠ₛ supplycost ↠ₛ E R := (SQL.ds_ "tpch9_partsupp" .search : ℕ →ₐ ℕ →ₛ R →ₛ E R)
 def nation   : nationkey ↠ₐ nationname ↠ₛ E R := (SQL.d_ "tpch9_nation" : ℕ →ₐ String →ₛ E R)
 
-def ordery' [Tagged ι₁] [TaggedC ι₁] [Zero ι₁] [Tagged ι₂] [LT ι₂] [@DecidableRel ι₂ LT.lt] [Tagged α] [One α] (f : E ι₁ → E ι₂) : ι₁ →ₛ ι₂ →ₛ E α where
+-- compute ι₂ from ι₁
+def derive_idx [Tagged ι₁] [TaggedC ι₁] [Zero ι₁] [Tagged ι₂] [LT ι₂] [@DecidableRel ι₂ LT.lt] [Tagged α] [One α]
+               (f : E ι₁ → E ι₂) : ι₁ →ₛ ι₂ →ₛ E α where
   σ := Var ι₁
   skip pos := pos.store_var
   succ _ _ := .skip
-  ready _ := 1
-  valid _ := 1
+  ready _  := 1
+  valid _  := 1
   index pos := pos.expr
   value pos := {
-    σ := Var Bool 
-    skip := fun v i => .if1 (f pos.expr << i) (v.store_var 1)
-    succ := fun v _ => v.store_var 1
+    σ     := Var Bool
+    skip  := fun v i => .if1 (f pos.expr << i) (v.store_var 1)
+    succ  := fun v _ => v.store_var 1
     ready := fun v => E.call Op.neg ![v.expr]
     valid := fun v => E.call Op.neg ![v.expr]
     index := fun _ => f pos.expr
     value := fun _ => 1
-    init := fun n => let v := Var.fresh "visited" n; ⟨v.decl 0, v⟩  
+    init  := fun n => let v := Var.fresh "visited" n; ⟨v.decl 0, v⟩
   }
-  init n := let v := Var.fresh "date" n; ⟨v.decl 0, v⟩  
+  init n := let v := Var.fresh "date" n; ⟨v.decl 0, v⟩
 
 def op_date_to_year : Op ℤ where
   argTypes := ![ℤ]
   spec := fun a => 1970 + (a 0) / (365 * 24 * 60 * 60) -- not exactly
   opName := "date_to_year"
-def ordery : orderdate ↠ₛ orderyear ↠ₛ E R := (ordery' (fun d => E.call op_date_to_year ![d]) : ℤ →ₛ ℤ →ₛ E R)
 
-def S.predicate [Tagged ι] [TaggedC ι] [LT ι] [@DecidableRel ι LT.lt] [LE ι] [@DecidableRel ι LE.le] [One α] (lower : E ι) (pred : Var ι → E Bool) : S ι α where
-  σ := Var ι × Var Bool
-  value   _ := 1
-  succ  pos i := .if1 (pos.1.expr <= i) (pos.2.store_var 1)
-  ready pos := pred pos.1
-  skip  pos i := .branch (pos.1.expr << i) (pos.1.store_var i ;; pos.2.store_var 0) (pos.2.store_var 1)
-  index pos := pos.1
-  valid pos := E.call Op.neg ![pos.2.expr]
-  init  n     := let p := .fresh "pos" n; let v := .fresh "visited" n; (p.decl lower;; v.decl 0, (p, v))
+def orderdate_to_year : orderdate ↠ₛ orderyear ↠ₛ E R := (derive_idx (fun d => E.call op_date_to_year ![d]) : ℤ →ₛ ℤ →ₛ E R)
 
-def hasGreen (v : E String) : E Bool := E.call Op.findStr ![v, .strLit "green"] >= (0 : E ℤ)
-def hasGreen' : String →ₐ E Bool := hasGreen
-def partGreen' : String →ₐ E R := fun s => E.call Op.ofBool ![hasGreen s]
-def partGreen'' : String →ₛ E R := S.predicate "" (hasGreen ∘ Var.expr)
+def hasGreen : String →ₐ E Bool := fun v => E.call Op.findStr ![v, .strLit "green"] >= (0 : E ℤ)
+def partGreen : partname ↠ₐ E Bool := hasGreen
 
-def partGreen : partname ↠ₐ E Bool := hasGreen'
-def parttt : partkey ↠ₛ partname ↠ₛ E R := (SQL.s_ "tpch9_parttt" : ℕ →ₛ String →ₛ E R)
-
-def tmp := lineitem * part * partGreen * partsupp * supplier * nation * profit_calc * (orders * ordery)
-def q9 := ∑ partkey, partname, suppkey: ∑ orderkey, nationkey, orderdate: ∑ supplycost, extendedprice, discount, quantity: tmp
+def q9 := ∑ partkey, partname, suppkey: ∑ orderkey, nationkey, orderdate: ∑ supplycost, extendedprice, discount, quantity:
+          lineitem * part * partGreen * partsupp * supplier * nation * profit_calc * (orders * orderdate_to_year)
 
 def compile_fun (name : String) (body : List String) : String :=
 s!"std::unordered_map<std::tuple<const char*, int>, double, hash_tuple::hash<std::tuple<const char*, int>>> {name}()\{\n
