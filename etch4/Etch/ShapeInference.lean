@@ -1,7 +1,7 @@
 import Etch.Basic
 import Etch.Stream
 import Etch.LVal
-import Etch.Add
+--import Etch.Add
 import Etch.Mul
 
 class NatLt (m n : ℕ) where proof : m < n
@@ -74,14 +74,10 @@ instance : Atomic (E α) := ⟨⟩
 notation:37 a:36 " × " b:36 " ⟶ " c:36  => Str b a c
 infixr:25 " ↠ " => λ (p : ℕ×Type) c => Str (Prod.snd p) (Prod.fst p) c
 
-instance [Guard α] : Guard (n × ι ⟶ α) where guard n b := λ
-| .str s => .str {s with valid := λ l => b * s.valid l}
-| .fun f => .fun λ x => Guard.guard n b $ f x
-
 variable
 {α β γ : Type _}
 (n : ℕ)
-{ι : Type _} [Tagged ι] [TaggedC ι] [DecidableEq ι]
+{ι : Type _} [Tagged ι] [DecidableEq ι]
 [LT ι] [DecidableRel (LT.lt : ι → ι → _)] [Zero ι]
 [LE ι] [DecidableRel (LE.le : ι → ι → _)]
 [Max ι]
@@ -135,8 +131,6 @@ instance [Coe α β] : Coe (ι →ₐ α) (n × ι ⟶ β) := ⟨.fun ∘ Functo
 class of_stream (α β : Type _) := (coe : α → β)
 instance base.of_stream : of_stream α α := ⟨id⟩
 
-variable [TaggedC ι]
-
 -- TODO: this doesn't work for strings
 variable [Add ι] [OfNat ι 1]
 
@@ -183,13 +177,15 @@ instance : ApplyScalarFn α β (E α) (E β) := ⟨ (. $ .) ⟩
 instance [ApplyScalarFn α β α' β'] : ApplyScalarFn α β (n × ι ⟶ α') (n × ι ⟶ β') := ⟨ λ f x => ApplyScalarFn.map f <$> x ⟩
 infixr:10 " <$$> "  => ApplyScalarFn.map
 
-instance Str.HAdd {γ φ ψ} {i} [HAdd γ φ ψ] [Guard γ] [Guard φ] : HAdd (i × ι ⟶ γ) (i × ι ⟶ φ) (i × ι ⟶ ψ) where hAdd
-| .fun a, .fun b => Str.fun $ a+b
-| .str a, .fun b => Str.str $ a+b
-| .fun a, .str b => Str.str $ a+b
-| .str a, .str b => Str.str $ a+b
-
-instance Str.Add {γ} {i} [Add γ] [Guard γ] [Guard φ] : Add (i × ι ⟶ γ) := ⟨HAdd.hAdd⟩
+--instance [Guard α] : Guard (n × ι ⟶ α) where guard b := λ
+--| .str s => .str {s with valid := λ l => b * s.valid l}
+--| .fun f => .fun λ x => Guard.guard b $ f x
+--instance Str.HAdd {γ φ ψ} {i} [HAdd γ φ ψ] [Guard γ] [Guard φ] : HAdd (i × ι ⟶ γ) (i × ι ⟶ φ) (i × ι ⟶ ψ) where hAdd
+--| .fun a, .fun b => Str.fun $ a+b
+--| .str a, .fun b => Str.str $ a+b
+--| .fun a, .str b => Str.str $ a+b
+--| .str a, .str b => Str.str $ a+b
+--instance Str.Add {γ} {i} [Add γ] [Guard γ] [Guard φ] : Add (i × ι ⟶ γ) := ⟨HAdd.hAdd⟩
 
 /-
 #check Nat.add

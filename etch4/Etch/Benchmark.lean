@@ -84,7 +84,7 @@ def E.toMin (e : E R) : E RMin := E.call Op.toMin ![e]
 def E.toMax (e : E R) : E RMax := E.call Op.toMax ![e]
 def E.ofNat (e : E ℕ) : E R    := E.call Op.toNum ![e]
 
-instance : TaggedC R := ⟨⟨"double"⟩⟩
+--instance : TaggedC R := ⟨⟨"double"⟩⟩
 instance : Mul R := ⟨fun _ _ => default⟩
 instance : DecidableEq R := fun .mk .mk => .isTrue (by simp)
 instance : Max R := ⟨fun _ _ => default⟩
@@ -124,6 +124,7 @@ def TACO.interval' (is : ArrayVar ι) (pos : Var ℕ) (upper : E ℕ) : S' ι (E
 def csr.level'' : csr ι ℕ → E ℕ → S' ι (E ℕ) := λ csr loc => TACO.interval' csr.i csr.var (csr.v.access (loc+1)) -- 1
 def TACO.level' {f} [Functor f] : csr ι ℕ → f (E ℕ) → f (S' ι (E ℕ)) := Functor.map ∘ csr.level''
 def taco_dsMat' (f : String) : ℕ →ₐ S' ℕ (E R) := range & TACO.level' (csr.of f 2) ⊚ S.leaf (f ++ "_vals")
+def taco_ssMat' (f : String) : S' ℕ (S' ℕ (E R)) := (csr.of f 1).level'' 0 & TACO.level' (csr.of f 2) ⊚ S.leaf (f ++ "_vals")
 
 end TACO
 
@@ -170,9 +171,9 @@ def outVar : Var R := "fout"
 def outVal : Var R := "val"
 def outVal_min : Var RMin := "val"
 def outVal_max : Var RMax := "val"
-def sum1 [TaggedC ι] : S ι α → Contraction α := S.contract
-def sum2 [TaggedC ι] [TaggedC ι'] : S ι (S ι' α) → Contraction (Contraction α) := S.contract ⊚ sum1
-def sum3 [TaggedC ι] [TaggedC ι'] [TaggedC ι''] : S ι (S ι' (S ι'' α)) → Contraction (Contraction (Contraction α)) := S.contract ⊚ sum2
+def sum1 [Tagged ι] : S ι α → Contraction α := S.contract
+def sum2 [Tagged ι] [Tagged ι'] : S ι (S ι' α) → Contraction (Contraction α) := S.contract ⊚ sum1
+def sum3 [Tagged ι] [Tagged ι'] [Tagged ι''] : S ι (S ι' (S ι'' α)) → Contraction (Contraction (Contraction α)) := S.contract ⊚ sum2
 def exp0 (ι : Type _) : α → ι →ₐ α := λ (v : α) => λ _ => v
 def exp1 (ι'' : Type _) : (ι' →ₛ α) → (ι' →ₛ (ι'' →ₐ α)) := Functor.map $ exp0 ι''
 def exp2 (ι'' : Type _) : S ι (S ι' α) → S ι (S ι' (Fun ι'' α)) := Functor.map $ exp1 ι''
@@ -184,8 +185,8 @@ def S.attr (i : ℕ × Type _) : i ↠ (E i.2) := Str.fun id
 
 section funs
 variable
-{ι : Type} [Tagged ι] [TaggedC ι] [DecidableEq ι] [LE ι] [DecidableRel (LE.le : ι → ι → _)] [LT ι] [DecidableRel (LT.lt : ι → ι → _)] [OfNat ι 0] [OfNat ι 1] [Add ι]
-{ι' : Type} [Tagged ι'] [TaggedC ι'] [DecidableEq ι'] [LE ι'] [DecidableRel (LE.le : ι' → ι' → _)] [LT ι'] [DecidableRel (LT.lt : ι' → ι' → _)] [OfNat ι' 0] [OfNat ι' 1] [Add ι']
+{ι : Type} [Tagged ι] [Tagged ι] [DecidableEq ι] [LE ι] [DecidableRel (LE.le : ι → ι → _)] [LT ι] [DecidableRel (LT.lt : ι → ι → _)] [OfNat ι 0] [OfNat ι 1] [Add ι]
+{ι' : Type} [Tagged ι'] [Tagged ι'] [DecidableEq ι'] [LE ι'] [DecidableRel (LE.le : ι' → ι' → _)] [LT ι'] [DecidableRel (LT.lt : ι' → ι' → _)] [OfNat ι' 0] [OfNat ι' 1] [Add ι']
 
 def toGuard {α β} [OfNat β (nat_lit 1)] : α → β := λ _ => 1
 def binOp (f : E ι → E ι' → E α) : ι →ₛ ι' →ₛ E α := S.function "f1_" ⊚ S.function "f2_" $ f
@@ -211,8 +212,31 @@ def dsA' := taco_dsMat "dsA"
 def ssB' := taco_mat "ssB"
 def dsB' := taco_dsMat "dsB"
 
-#check go outVal $ ∑ i, j: (dsA' : i ↠ j ↠ E R) + (dsA' : i ↠ j ↠ E R)
+def A := taco_ssMat' "dsA" def B := taco_ssMat' "dsB"
+def sum2' [Contractible α β] [Contractible β γ] : α → γ := fun x ↦ Contractible.contract (Contractible.contract x)
+--def sum2' [Functor f] [Contractible (f α) β] [Contractible (f β) γ] : f (f α) → γ := fun x ↦ let y : f β := Functor.map Contractible.contract x
+Contractible.contract y
 
+#check A.add B
+
+--def Then.contract (t : Then α β) : Then
+open Contractible
+instance (F : Type → Type _ → Type _) [∀ ι, Functor (F ι)] : Functor (C F) where map := λ f ⟨F, h, v⟩ => ⟨F, h, f <$> v⟩
+#check A + B
+#check Contractible.contract ((A + B) emptyName)
+instance [Contractible x y] : Contractible (Name → x) (Name → y):= ⟨ fun f ↦ Contractible.contract ∘ f ⟩
+instance : Contractible P P := ⟨ fun p ↦ p ⟩
+#check (contract ((A + B) emptyName))
+def A_B := (contract ((A + B) emptyName)).map (contract <$> .) (Prod.map (contract <$> .) (contract <$> .))
+#check A_B
+instance contract_S [∀ ι, Compile (lvl ι α) (f ι β)] : Compile α (C f β) where
+  compile n l := fun ⟨ι, _, v⟩ =>
+    let x : lvl ι α := { push := fun _ ↦ (.skip, l) }
+    Compile.compile n x v
+
+#check go outVal $ A_B
+#exit
+#check go outVal $ (contract <$> contract ((A + B) emptyName))
 
 def dV   := dVec "V"
 def sV   := sVec "sV"
@@ -296,7 +320,7 @@ end String
 
 -- CSR, but assume pos[i] = i (inherit the position from the previous level)
 def csr.inherit
-  {ι : Type} [Tagged ι] [TaggedC ι] [LT ι] [@DecidableRel ι LT.lt] [LE ι] [@DecidableRel ι LE.le] [Zero ι]
+  {ι : Type} [Tagged ι] [Tagged ι] [LT ι] [@DecidableRel ι LT.lt] [LE ι] [@DecidableRel ι LE.le] [Zero ι]
   (vars : csr ι ℕ) (loc : E ℕ) : ι →ₛ (E ℕ) :=
   S.interval vars.i .step vars.var loc (loc+1)
 
@@ -314,10 +338,10 @@ abbrev extendedprice := (8, R)
 abbrev discount   := (9, R)
 
 variable
-{ι₁ : Type} [Tagged ι₁] [TaggedC ι₁] [LT ι₁] [@DecidableRel ι₁ LT.lt] [LE ι₁] [@DecidableRel ι₁ LE.le] [Zero ι₁]
-{ι₂ : Type} [Tagged ι₂] [TaggedC ι₂] [LT ι₂] [@DecidableRel ι₂ LT.lt] [LE ι₂] [@DecidableRel ι₂ LE.le] [Zero ι₂]
-{ι₃ : Type} [Tagged ι₃] [TaggedC ι₃] [LT ι₃] [@DecidableRel ι₃ LT.lt] [LE ι₃] [@DecidableRel ι₃ LE.le] [Zero ι₃]
-{ι₄ : Type} [Tagged ι₄] [TaggedC ι₄] [LT ι₄] [@DecidableRel ι₄ LT.lt] [LE ι₄] [@DecidableRel ι₄ LE.le] [Zero ι₄]
+{ι₁ : Type} [Tagged ι₁] [LT ι₁] [@DecidableRel ι₁ LT.lt] [LE ι₁] [@DecidableRel ι₁ LE.le] [Zero ι₁]
+{ι₂ : Type} [Tagged ι₂] [LT ι₂] [@DecidableRel ι₂ LT.lt] [LE ι₂] [@DecidableRel ι₂ LE.le] [Zero ι₂]
+{ι₃ : Type} [Tagged ι₃] [LT ι₃] [@DecidableRel ι₃ LT.lt] [LE ι₃] [@DecidableRel ι₃ LE.le] [Zero ι₃]
+{ι₄ : Type} [Tagged ι₄] [LT ι₄] [@DecidableRel ι₄ LT.lt] [LE ι₄] [@DecidableRel ι₄ LE.le] [Zero ι₄]
 
 def ss   (f : String) (leaf : E ℕ → α) : ι₁ →ₛ ι₂ →ₛ α :=
   ((csr.of f 1 ι₁).level .search 0) |>
@@ -452,7 +476,7 @@ def aux_functions : List String := [
   compile_fun "triangle" $ [go outVal $ ∑ i, j, k : dsR * dsS * dsT ]
 ]
 
-instance S.step' {L R} [Compile L R] [TaggedC ι] {n : ℕ} : Compile (lvl ι L) (n × ι ⟶ R) where
+instance S.step' {L R} [Compile L R] [Tagged ι] {n : ℕ} : Compile (lvl ι L) (n × ι ⟶ R) where
   compile n l
   | .str r =>
       let (init, s) := r.init n

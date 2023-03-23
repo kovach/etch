@@ -4,11 +4,20 @@ import Etch.Op
 import Etch.Basic
 
 -- marked irreducible later
-def Var (_ : Type _) := String
-abbrev ArrayVar (α : Type _) := Var (ℕ → α)
-def Var.mk : String → Var α := id
-def Var.toString : Var α → String := id
-instance : Coe String (Var α) := ⟨Var.mk⟩
+--def Var (_ : Type _) := String
+--abbrev ArrayVar (α : Type _) := Var (ℕ → α)
+--def Var.mk : String → Var α := id
+--def Var.toString : Var α → String := id
+--instance : Coe String (Var α) := ⟨Var.mk⟩
+
+structure Var (α : Type _) where
+  mk' ::
+    instTagged : Tagged α
+    data : String
+abbrev ArrayVar (α : Type _) /-[Tagged α]-/ := Var (ℕ → α)
+def Var.mk [Tagged α] : String → Var α := fun s ↦ ⟨inferInstance, s⟩
+def Var.toString : Var α → String := Var.data
+instance [Tagged α] : Coe String (Var α) := ⟨Var.mk⟩
 
 inductive E : Type → Type 1
 | call {α} (op : Op α) (args : (i : Fin op.arity) → E (op.argTypes i)) : E α
@@ -17,6 +26,22 @@ inductive E : Type → Type 1
 | intLit : ℕ → E ℕ
 | strLit : String → E String
 
+
+structure TypedVar where
+  α : Type
+  value : Var α
+
+instance : Inhabited TypedVar := ⟨ℕ, "ERROR_DEFAULT_VAR"⟩
+
+instance : BEq TypedVar where
+  beq a b := a.value.toString == b.value.toString
+
+def E.vars : E α → List TypedVar
+| E.var v => [⟨_, v⟩]
+| .call _ args => List.ofFn (fun n ↦ (args n).vars) |>.join
+| .access v e => ⟨_, v⟩ :: e.vars
+| .intLit _ => []
+| .strLit _ => []
 
 structure HeapContext where
   store : Var α → α
@@ -66,12 +91,21 @@ inductive P
 | while  : E Bool → P → P
 | branch : E Bool → P → P → P
 | skip   : P
-| decl   [TaggedC α] : Var α → E α → P
+| decl   [Tagged α] : Var α → E α → P
 | store_var : Var α → E α → P
 | store_mem : Var (ℕ → α) → E ℕ → E α → P
 
 -- needs to come after P to avoid injectivity_lemma issue
 attribute [irreducible] Var
+
+def P.vars : P → List TypedVar
+| seq a b         => a.vars ++ b.vars
+| .while c b      => c.vars ++ b.vars
+| branch e t f    => e.vars ++ t.vars ++ f.vars
+| skip            => []
+| decl  v e       => ⟨_, v⟩ :: e.vars
+| store_var l r   => ⟨_, l⟩ :: r.vars
+| store_mem v i r => ⟨_, v⟩ :: (i.vars ++ r.vars)
 
 def P.if1 := λ c t => P.branch c t P.skip
 infixr:10 ";;" => P.seq
@@ -81,7 +115,7 @@ def P.compile : P → Stmt
 | .while cond body => Stmt.while cond.compile body.compile
 | branch c a b => Stmt.conde c.compile a.compile b.compile
 | skip => Stmt.noop
-| @decl _ taggedC var e => Stmt.decl taggedC.tag var.toString e.compile
+| @decl _ tagged var e => Stmt.decl tagged.ctag var.toString e.compile
 | store_var var e => Stmt.store (Expr.var var.toString) e.compile
 | store_mem v l r => Stmt.store (Expr.index (Expr.var v.toString) [l.compile]) r.compile
 
@@ -118,17 +152,33 @@ def Var.access := E.access v
 def Var.incr [Tagged α] [Add α] [OfNat α 1] (v : Var α) : P := .store_var v $ E.var v + 1
 def Var.incr_array [Tagged α] [Add α] [OfNat α 1] (ind : E ℕ) : P := .store_mem v ind $ v.access ind + 1
 def Var.expr (v : Var α) : E α := E.var v
-def Var.fresh (v : Var α) (n : Name) : Var α := Var.mk (v.toString ++ n.toString)
+def Var.fresh (v : Var α) (n : Name) : Var α := let ⟨i, l⟩ := v; ⟨i, l ++ n.toString⟩
 def Var.store_var (v : Var α) := P.store_var v
-def Var.decl [TaggedC α] (v : Var α) := P.decl v
+def Var.decl [Tagged α] (v : Var α) := P.decl v
+
+def E.freshen (n : ℕ) : {α : Type} → E α → E α
+| _, E.var v => .var (v.fresh [n])
+| _, .call f args => .call f (fun n ↦ (args n).freshen n)
+| _, .access v e => .access (v.fresh [n]) (e.freshen n)
+| _, .intLit l => .intLit l
+| _, .strLit l => .strLit l
+
+def P.freshen (n : ℕ) : P → P
+| seq a b         => seq (a.freshen n) (b.freshen n)
+| .while c b      => .while (c.freshen n) (b.freshen n)
+| branch e t f    => .branch (e.freshen n) (t.freshen n) (f.freshen n)
+| skip            => skip
+| decl  v e       => decl (v.fresh [n]) (e.freshen n)
+| store_var l r   => .store_var (l.fresh [n]) (r.freshen n)
+| store_mem v i r => .store_mem (v.fresh [n]) (i.freshen n) (r.freshen n)
 
 instance : Coe (Var α) (E α) := ⟨E.var⟩
 
 instance : Functor (S ι) where map := λ f s => {s with value := f ∘ s.value }
 
-variable [TaggedC ι]
+variable [Tagged ι]
 
-structure SkipState (ι : Type) [TaggedC ι] where
+structure SkipState (ι : Type) [Tagged ι] where
   tmp : Var ι
   hi  : Var ℕ
   lo  : Var ℕ
@@ -176,7 +226,7 @@ def searchSkip (ss : SkipState ι) (pos : Var ℕ) (max_pos : E ℕ) (i : E ι) 
 
 inductive IterMethod | step | search
 
-variable [LE ι] [TaggedC ι] [DecidableRel (LE.le : ι → ι → _)] [Zero ι]
+variable [LE ι] [Tagged ι] [DecidableRel (LE.le : ι → ι → _)] [Zero ι]
 
 -- [lower, upper)
 def S.predRange [One α] (lower upper : E ι) : S ι α where
@@ -222,6 +272,19 @@ structure S' (ι : Type _) (α : Type _) where
   ready : E Bool
   skip  : E ι → E Bool → P
 
+def S.toS' (s : S ι α) (st : s.σ) : S' ι α where
+  state := st
+  valid := s.valid st
+  index := s.index st
+  value := s.value st
+  ready := s.ready st
+  skip  i r := .branch r (s.succ st i) (s.skip st i)
+
+class Freshen (α : Type _) where freshen : ℕ → α → α
+open Freshen in
+--def S'.freshen (n : ℕ) (s : S' ι α) [Freshen s.σ] : S' ι α where
+--  state := Freshen.freshen n s.state
+
 instance : Functor (S' ι) where map := λ f s => {s with value := f s.value }
 
 def S'.interval (h : IterMethod) (upper : E ℕ) (n : Name) : S' ι (E ℕ) :=
@@ -246,7 +309,7 @@ end new
 -- todo: use instead of zero
 --class Bot (α : Type _) := (bot : α)
 --notation "⊥"  => Bot.bot
-def S.univ [Add ι] [OfNat ι 1] [TaggedC ι] (max l : Var ι) : S ι (E ι) where
+def S.univ [Add ι] [OfNat ι 1] [Tagged ι] (max l : Var ι) : S ι (E ι) where
   value last := last.expr
   succ  last i := .if1 (last.expr <= i) last.incr  -- imprecise but ok
   ready _    := 1
@@ -273,8 +336,8 @@ def S.function [Zero ι] [Add ι] [OfNat ι 1] (last : Var ι) (f : E ι → α)
 
 structure csr (ι α : Type _) := (i : Var (ℕ → ι)) (v : Var (ℕ → α)) (var : Var ℕ)
 
-def csr.of (name : String) (n : ℕ) (ι := ℕ) : csr ι ℕ :=
-  let field {ι} (x : String) : Var ι := Var.mk $ name ++ n.repr ++ x
+def csr.of (name : String) (n : ℕ) (ι := ℕ) [Tagged ι] : csr ι ℕ :=
+  let field {ι} [Tagged ι] (x : String) : Var ι := Var.mk $ name ++ n.repr ++ x
   { i := field "_crd", v := field "_pos", var := field "_i" }
 
 def csr.level (h : IterMethod) (vars : csr ι ℕ) (loc : E ℕ) : ι →ₛ (E ℕ) :=
@@ -282,16 +345,35 @@ def csr.level (h : IterMethod) (vars : csr ι ℕ) (loc : E ℕ) : ι →ₛ (E 
 def S.level {f} [Functor f] (h : IterMethod) : csr ι ℕ → f (E ℕ) → f (ι →ₛ (E ℕ)) := Functor.map ∘ csr.level h
 def S.leaf  {f} [Functor f] : Var (ℕ → α) → f (E ℕ) → f (E α) := Functor.map ∘ E.access
 --def S.leaf' : Var α → E ℕ → E α := E.access
-def Contraction (α : Type _) := (ι : Type) × TaggedC ι × S ι α
+def Contraction (α : Type _) := (ι : Type) × Tagged ι × S ι α
+def Contraction' (α : Type _) := (ι : Type) × Tagged ι × S' ι α
+
+section Contraction
+
+instance : Functor Contraction where map := λ f ⟨ι, tᵢ, v⟩ => ⟨ι, tᵢ, f <$> v⟩
+instance : Functor Contraction' where map := λ f ⟨ι, tᵢ, v⟩ => ⟨ι, tᵢ, f <$> v⟩
+def S.contract [inst : Tagged ι] (s : S ι α) : Contraction α := ⟨_, inst, s⟩
+def S'.contract [inst : Tagged ι] (s : S' ι α) : Contraction' α := ⟨_, inst, s⟩
+
+variable (f : Type → Type _ → Type _) (α : Type _)
+
+def C := (ι : Type) × Tagged ι × f ι α
+def C' (α) := (ι : Type) × Tagged ι × α
+
 --structure Contraction (α : Type _) where
 --  f : Type _ → Type _
 --  h : Functor f
 --  v  : f α
 --def Contraction {f : Type → Type _ → Type _} (α : Type _) := (ι : Type) × f ι α
 --instance : Functor Contraction where map := λ f ⟨F, h, v⟩ => ⟨F, h, f <$> v⟩
-instance : Functor Contraction where map := λ f ⟨ι, tᵢ, v⟩ => ⟨ι, tᵢ, f <$> v⟩
-def S.contract [inst : TaggedC ι] (s : S ι α) : Contraction α := ⟨_, inst, s⟩
+--class Contractible (ι) where contract : f ι α → C f α
+class Contractible (α : Type _) (β : outParam $ Type _) where contract : α → β
+instance [Tagged ι] : Contractible (S ι α) (C S α)  where contract := S.contract
+instance [Tagged ι] : Contractible (S' ι α) (C S' α)  where contract := S'.contract
+instance [Contractible α α'] [Contractible β β'] : Contractible (Then α β) (Then α' β')  where contract :=
+fun ⟨a, b⟩ ↦ ( Contractible.contract a, Contractible.contract b )
 
+end Contraction
 end ι
 
 def Fun (ι α : Type _) := E ι → α
@@ -307,3 +389,10 @@ def seqInit (a : S ι α) (b : S ι β) (n : Name) :=
 let (ai, as) := a.init (n.fresh 0);
 let (bi, bs) := b.init (n.fresh 1);
 (ai ;; bi, (as, bs))
+
+structure MemLoc (α : Type) := (arr : Var (ℕ → α)) (ind : E ℕ)
+def MemLoc.access (m : MemLoc α) : E α := m.arr.access m.ind
+def MemLoc.incr (m : MemLoc ℕ) : P := m.arr.incr_array m.ind
+def MemLoc.interval (m : MemLoc ℕ) : E ℕ × E ℕ  := (m.arr.access m.ind, m.arr.access $ m.ind + 1)
+def MemLoc.store (m : MemLoc α) (v : E α) : P := .store_mem m.arr m.ind v
+

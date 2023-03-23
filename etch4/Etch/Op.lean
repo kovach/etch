@@ -1,7 +1,9 @@
 import Etch.Basic
+import Etch.C
 
 class Tagged (α : Type _) where
   tag : String
+  ctag : DeclType
 
 def tag_mk_fun (α : Type _) [Tagged α] (fn : String) : String :=
 (Tagged.tag α) ++ "_" ++ fn
@@ -14,14 +16,22 @@ def RMin.ofR : R → RMin := id
 def RMax := R
 def RMax.ofR : R → RMax := id
 
-instance : Tagged Unit := ⟨ "macro" ⟩ -- default type for actual monotypic function
-instance : Tagged ℕ := ⟨ "nat" ⟩
-instance : Tagged Int := ⟨ "int" ⟩
-instance : Tagged String := ⟨ "str" ⟩
-instance : Tagged Bool := ⟨ "bool" ⟩
-instance : Tagged R := ⟨ "num" ⟩
-instance : Tagged RMin := ⟨ "min" ⟩
-instance : Tagged RMax := ⟨ "max" ⟩
+--instance : TaggedC Nat := ⟨⟨"int"⟩⟩
+--instance : TaggedC Int := ⟨⟨"int"⟩⟩
+--instance : TaggedC Float := ⟨⟨"float"⟩⟩
+--instance : TaggedC Bool := ⟨⟨"bool"⟩⟩
+--instance : TaggedC String := ⟨⟨"const char *"⟩⟩
+
+instance : Tagged Unit := ⟨ "macro", "" ⟩ -- default type for actual monotypic function
+instance : Tagged ℕ := ⟨ "nat", "int" ⟩
+instance : Tagged Int := ⟨ "int", "int" ⟩
+instance : Tagged String := ⟨ "str", "const char *" ⟩
+instance : Tagged Bool := ⟨ "bool", "bool" ⟩
+instance : Tagged R := ⟨ "num", "num" ⟩
+instance : Tagged RMin := ⟨ "min", "num" ⟩
+instance : Tagged RMax := ⟨ "max", "num" ⟩
+instance [Tagged α] : Tagged (ℕ → α) := ⟨ "arr_" ++ Tagged.tag α, "todo"⟩
+--instance [Tagged α] : Tagged (ℕ → α) := ⟨ "arr_" ++ Tagged.tag α, .array (Tagged.decl α) ⟩
 
 instance : Inhabited R := ⟨ R.mk ⟩
 instance : Inhabited RMin := ⟨ R.mk ⟩
@@ -128,11 +138,13 @@ def Op.zero [Tagged α] [OfNat α 0] : Op α where
   spec := λ _ => 0
   opName := tag_mk_fun α "zero"
 
+@[simps, reducible]
 def Op.atoi : Op ℕ where
   argTypes := ![String]
   spec := λ _ => default
   opName := tag_mk_fun String "atoi"
 
+@[simps, reducible]
 def Op.atof : Op R where
   argTypes := ![String]
   spec := λ _ => default -- todo

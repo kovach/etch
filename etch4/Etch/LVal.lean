@@ -19,10 +19,6 @@ variable {ι}
 
 infixl:20 "||" => Add.add
 
-structure MemLoc (α : Type) := (arr : Var (ℕ → α)) (ind : E ℕ)
-
-def MemLoc.access (m : MemLoc α) : E α := m.arr.access m.ind
-
 def sparse_il (ind_array : Var (ℕ → ι)) (bounds : MemLoc ℕ) : il ι :=
   let array := bounds.arr
   let ind   := bounds.ind
