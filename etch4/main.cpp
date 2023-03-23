@@ -38,8 +38,6 @@ static void sqlite_udf(sqlite3_context *context, int argc, sqlite3_value **argv)
 //static inline double    nat_udf(int a, int b) {  /*printf("|%d,%d:%f|", a, b, sqrt(abs(a+b)));*/ return sqrt(abs(a + b)); }
 static inline double    nat_udf_max(int a, int b) { return sqrt(abs(a - b)); }
 
-static inline double* index_str_map(std::unordered_map<const char*, double>& m, const char* s) { return &m[s]; }
-
 
 #ifdef ETCH_MATH
 int i1_;
