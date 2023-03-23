@@ -207,17 +207,6 @@ run-tpch-$(1)-$(2)-sqlite: bench/tpch-$(2)-sqlite-prep.sql bench/tpch-$(2)-sqlit
 
 endef
 
-define TPCH_TEMPLATE_q5
-$(call TPCH_TEMPLATE_SMALL,$(1),q5)
-
-.PHONY: run-tpch-$(1)-q5-etch
-run-tpch-$(1)-q5-etch: bench-tpch-q5 TPC-H-$(1).db
-	ln -sf TPC-H-$(1).db TPC-H.db
-	./bench-tpch-q5
-	rm TPC-H.db
-
-endef
-
 define TPCH_TEMPLATE
 $(call TPCH_TEMPLATE_SMALL,$(1),$(2))
 
@@ -227,25 +216,9 @@ run-tpch-$(1)-$(2)-etch: bench-tpch-$(2) TPC-H-$(1).db
 
 endef
 
-$(eval $(call TPCH_TEMPLATE_q5,x0.01))
-$(eval $(call TPCH_TEMPLATE_q5,x0.025))
-$(eval $(call TPCH_TEMPLATE_q5,x0.05))
-$(eval $(call TPCH_TEMPLATE_q5,x0.1))
-$(eval $(call TPCH_TEMPLATE_q5,x0.25))
-$(eval $(call TPCH_TEMPLATE_q5,x0.5))
-$(eval $(call TPCH_TEMPLATE_q5,x1))
-$(eval $(call TPCH_TEMPLATE_q5,x2))
-$(eval $(call TPCH_TEMPLATE_q5,x4))
-
-$(eval $(call TPCH_TEMPLATE,x0.01,q9))
-$(eval $(call TPCH_TEMPLATE,x0.025,q9))
-$(eval $(call TPCH_TEMPLATE,x0.05,q9))
-$(eval $(call TPCH_TEMPLATE,x0.1,q9))
-$(eval $(call TPCH_TEMPLATE,x0.25,q9))
-$(eval $(call TPCH_TEMPLATE,x0.5,q9))
-$(eval $(call TPCH_TEMPLATE,x1,q9))
-$(eval $(call TPCH_TEMPLATE,x2,q9))
-$(eval $(call TPCH_TEMPLATE,x4,q9))
+$(foreach SIZE,x0.01 x0.025 x0.05 x0.1 x0.25 x0.5 x1 x2 x4,\
+	$(foreach QUERY,q5 q9,\
+		$(eval $(call TPCH_TEMPLATE,$(SIZE),$(QUERY)))))
 
 
 .PHONY: clean

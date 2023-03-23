@@ -272,9 +272,7 @@ static int populate_tpch_q9(sqlite3* db) {
 static sqlite3* db;
 
 int main(int argc, char* argv[]) {
-  char* zErrMsg = 0;
   int rc = SQLITE_OK;
-  char* data;
 
   sqlite3_initialize();
   rc = sqlite3_open(argc >= 1 ? argv[1] : "TPC-H.db", &db);

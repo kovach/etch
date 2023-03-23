@@ -90,13 +90,13 @@ def l_dsB : lvl ℕ (lvl ℕ (MemLoc R)) := csr_mat "dsB" "dim" "i1_" -- todo "i
 def l_sssC : lvl ℕ (lvl ℕ (lvl ℕ (MemLoc R))) := tcsr "ssC"
 
 def funcs : List (String × String) := [
-  ("gen_taco_dV", go l_dV sqlCallback),
-  ("gen_taco_sV", go l_sV sqlCallback),
-  ("gen_taco_dsA", go l_dsA sqlCallback2),
-  ("gen_taco_dsB", go l_dsB sqlCallback2),
-  ("gen_taco_ssA", go l_ssA sqlCallback2),
-  ("gen_taco_ssB", go l_ssB sqlCallback2),
-  ("gen_taco_sssC", go l_sssC sqlCallback3) ]
+  let name := "gen_taco_dV";   (name, compileSqliteCb name [go l_dV sqlCallback]),
+  let name := "gen_taco_sV";   (name, compileSqliteCb name [go l_sV sqlCallback]),
+  let name := "gen_taco_dsA";  (name, compileSqliteCb name [go l_dsA sqlCallback2]),
+  let name := "gen_taco_dsB";  (name, compileSqliteCb name [go l_dsB sqlCallback2]),
+  let name := "gen_taco_ssA";  (name, compileSqliteCb name [go l_ssA sqlCallback2]),
+  let name := "gen_taco_ssB";  (name, compileSqliteCb name [go l_ssB sqlCallback2]),
+  let name := "gen_taco_sssC"; (name, compileSqliteCb name [go l_sssC sqlCallback3]) ]
 
 end Loading
 
@@ -186,7 +186,7 @@ def tests : List TacoTest := [
 ]
 
 def funcs : List (String × String) :=
-  Loading.funcs.map (fun (fn, body)  ↦ (fn, compileSqliteCb (fn ++ "_callback") [body])) ++
+  Loading.funcs ++
   tests.map (fun t => (t.name, t.funcDef)) ++
   [("udf", compileFun RMax "udf" udf)] ++
 
