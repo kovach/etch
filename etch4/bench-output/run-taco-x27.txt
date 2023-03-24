@@ -1,0 +1,144 @@
+./bench-taco data/taco-x27.db
+populate_taco val: 0
+populate_taco took (s): real 4.723791s user 4.598393s sys 0.123321s
+populate_taco took (avg): real 4.723791s user 4.598393s sys 0.123321s
+Loaded
+RUNNING 5 iterations per test
+taco_inner2ss val: 181.527644
+taco_inner2ss took (s): real 0.004229s user 0.004226s sys 0.000000s
+taco_inner2ss val: 181.527644
+taco_inner2ss took (s): real 0.004226s user 0.004226s sys 0.000000s
+taco_inner2ss val: 181.527644
+taco_inner2ss took (s): real 0.004173s user 0.004164s sys 0.000000s
+taco_inner2ss val: 181.527644
+taco_inner2ss took (s): real 0.004287s user 0.004283s sys 0.000000s
+taco_inner2ss val: 181.527644
+taco_inner2ss took (s): real 0.004230s user 0.004211s sys 0.000000s
+taco_inner2ss took (avg): real 0.004229s user 0.004222s sys 0.000000s
+etch_inner2ss val: 181.527644
+etch_inner2ss took (s): real 0.003752s user 0.003750s sys 0.000000s
+etch_inner2ss val: 181.527644
+etch_inner2ss took (s): real 0.003697s user 0.003696s sys 0.000000s
+etch_inner2ss val: 181.527644
+etch_inner2ss took (s): real 0.003739s user 0.003739s sys 0.000000s
+etch_inner2ss val: 181.527644
+etch_inner2ss took (s): real 0.003681s user 0.003680s sys 0.000000s
+etch_inner2ss val: 181.527644
+etch_inner2ss took (s): real 0.003684s user 0.003684s sys 0.000000s
+etch_inner2ss took (avg): real 0.003710s user 0.003710s sys 0.000000s
+
+taco_sum_add2 val: 72779.613581
+taco_sum_add2 took (s): real 0.006972s user 0.006966s sys 0.000003s
+taco_sum_add2 val: 72779.613581
+taco_sum_add2 took (s): real 0.006819s user 0.006815s sys 0.000000s
+taco_sum_add2 val: 72779.613581
+taco_sum_add2 took (s): real 0.006791s user 0.006790s sys 0.000000s
+taco_sum_add2 val: 72779.613581
+taco_sum_add2 took (s): real 0.006814s user 0.006811s sys 0.000000s
+taco_sum_add2 val: 72779.613581
+taco_sum_add2 took (s): real 0.006789s user 0.006787s sys 0.000000s
+taco_sum_add2 took (avg): real 0.006837s user 0.006834s sys 0.000001s
+etch_sum_add2 val: 72779.613581
+etch_sum_add2 took (s): real 0.022094s user 0.022088s sys 0.000000s
+etch_sum_add2 val: 72779.613581
+etch_sum_add2 took (s): real 0.022168s user 0.022162s sys 0.000000s
+etch_sum_add2 val: 72779.613581
+etch_sum_add2 took (s): real 0.022170s user 0.022159s sys 0.000000s
+etch_sum_add2 val: 72779.613581
+etch_sum_add2 took (s): real 0.022099s user 0.022093s sys 0.000000s
+etch_sum_add2 val: 72779.613581
+etch_sum_add2 took (s): real 0.022104s user 0.022097s sys 0.000000s
+etch_sum_add2 took (avg): real 0.022127s user 0.022120s sys 0.000000s
+
+taco_sum_mul2_csr val: 490423.086876
+taco_sum_mul2_csr took (s): real 0.050830s user 0.050810s sys 0.000000s
+taco_sum_mul2_csr val: 490423.086876
+taco_sum_mul2_csr took (s): real 0.050517s user 0.050496s sys 0.000000s
+taco_sum_mul2_csr val: 490423.086876
+taco_sum_mul2_csr took (s): real 0.050559s user 0.050540s sys 0.000000s
+taco_sum_mul2_csr val: 490423.086876
+taco_sum_mul2_csr took (s): real 0.050476s user 0.050455s sys 0.000000s
+taco_sum_mul2_csr val: 490423.086876
+taco_sum_mul2_csr took (s): real 0.050335s user 0.050314s sys 0.000000s
+taco_sum_mul2_csr took (avg): real 0.050543s user 0.050523s sys 0.000000s
+etch_sum_mul2_csr val: 490423.086876
+etch_sum_mul2_csr took (s): real 0.050219s user 0.050198s sys 0.000000s
+etch_sum_mul2_csr val: 490423.086876
+etch_sum_mul2_csr took (s): real 0.050402s user 0.050382s sys 0.000000s
+etch_sum_mul2_csr val: 490423.086876
+etch_sum_mul2_csr took (s): real 0.050363s user 0.050344s sys 0.000000s
+etch_sum_mul2_csr val: 490423.086876
+etch_sum_mul2_csr took (s): real 0.050205s user 0.050179s sys 0.000000s
+etch_sum_mul2_csr val: 490423.086876
+etch_sum_mul2_csr took (s): real 0.050253s user 0.050232s sys 0.000000s
+etch_sum_mul2_csr took (avg): real 0.050288s user 0.050267s sys 0.000000s
+
+taco_sum_mul2 val: 490423.086876
+taco_sum_mul2 took (s): real 0.071605s user 0.071575s sys 0.000000s
+taco_sum_mul2 val: 490423.086876
+taco_sum_mul2 took (s): real 0.071555s user 0.071527s sys 0.000000s
+taco_sum_mul2 val: 490423.086876
+taco_sum_mul2 took (s): real 0.071503s user 0.071474s sys 0.000000s
+taco_sum_mul2 val: 490423.086876
+taco_sum_mul2 took (s): real 0.071146s user 0.071112s sys 0.000000s
+taco_sum_mul2 val: 490423.086876
+taco_sum_mul2 took (s): real 0.071957s user 0.071926s sys 0.000000s
+taco_sum_mul2 took (avg): real 0.071553s user 0.071523s sys 0.000000s
+etch_sum_mul2 val: 490423.086876
+etch_sum_mul2 took (s): real 0.070545s user 0.070517s sys 0.000000s
+etch_sum_mul2 val: 490423.086876
+etch_sum_mul2 took (s): real 0.070530s user 0.070497s sys 0.000000s
+etch_sum_mul2 val: 490423.086876
+etch_sum_mul2 took (s): real 0.070463s user 0.070437s sys 0.000000s
+etch_sum_mul2 val: 490423.086876
+etch_sum_mul2 took (s): real 0.070405s user 0.070378s sys 0.000000s
+etch_sum_mul2 val: 490423.086876
+etch_sum_mul2 took (s): real 0.070427s user 0.070399s sys 0.000000s
+etch_sum_mul2 took (avg): real 0.070474s user 0.070446s sys 0.000000s
+
+taco_mttkrp val: 6661.007669
+taco_mttkrp took (s): real 2.770519s user 2.769574s sys 0.000000s
+taco_mttkrp val: 6661.007669
+taco_mttkrp took (s): real 2.773960s user 2.772998s sys 0.000000s
+taco_mttkrp val: 6661.007669
+taco_mttkrp took (s): real 2.769823s user 2.768848s sys 0.000000s
+taco_mttkrp val: 6661.007669
+taco_mttkrp took (s): real 2.770833s user 2.769890s sys 0.000000s
+taco_mttkrp val: 6661.007669
+taco_mttkrp took (s): real 2.767702s user 2.766742s sys 0.000000s
+taco_mttkrp took (avg): real 2.770567s user 2.769610s sys 0.000000s
+etch_mttkrp val: 6661.007669
+etch_mttkrp took (s): real 2.714228s user 2.713279s sys 0.000000s
+etch_mttkrp val: 6661.007669
+etch_mttkrp took (s): real 2.715484s user 2.714556s sys 0.000000s
+etch_mttkrp val: 6661.007669
+etch_mttkrp took (s): real 2.712472s user 2.711534s sys 0.000000s
+etch_mttkrp val: 6661.007669
+etch_mttkrp took (s): real 2.711100s user 2.710145s sys 0.000000s
+etch_mttkrp val: 6661.007669
+etch_mttkrp took (s): real 2.711420s user 2.710474s sys 0.000000s
+etch_mttkrp took (avg): real 2.712941s user 2.711998s sys 0.000000s
+
+taco_spmv val: 180.125627
+taco_spmv took (s): real 0.000727s user 0.000729s sys 0.000000s
+taco_spmv val: 180.125627
+taco_spmv took (s): real 0.000711s user 0.000713s sys 0.000000s
+taco_spmv val: 180.125627
+taco_spmv took (s): real 0.000663s user 0.000661s sys 0.000000s
+taco_spmv val: 180.125627
+taco_spmv took (s): real 0.000581s user 0.000582s sys 0.000000s
+taco_spmv val: 180.125627
+taco_spmv took (s): real 0.000535s user 0.000536s sys 0.000000s
+taco_spmv took (avg): real 0.000644s user 0.000644s sys 0.000000s
+etch_spmv val: 180.125627
+etch_spmv took (s): real 0.000508s user 0.000509s sys 0.000000s
+etch_spmv val: 180.125627
+etch_spmv took (s): real 0.000525s user 0.000526s sys 0.000000s
+etch_spmv val: 180.125627
+etch_spmv took (s): real 0.000508s user 0.000510s sys 0.000000s
+etch_spmv val: 180.125627
+etch_spmv took (s): real 0.000509s user 0.000510s sys 0.000000s
+etch_spmv val: 180.125627
+etch_spmv took (s): real 0.000541s user 0.000539s sys 0.000000s
+etch_spmv took (avg): real 0.000518s user 0.000519s sys 0.000000s
+

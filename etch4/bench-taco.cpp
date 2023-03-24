@@ -6,7 +6,7 @@
 #include "operators.h"
 #include "sqlite3.h"
 
-int dim = 10000;
+int dim = 100000;
 static sqlite3* db;
 int res;
 double threshold = 0.1;

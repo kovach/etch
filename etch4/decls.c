@@ -4,8 +4,11 @@
 
 int size[] = {0,0};
 
-int array_size = 105000;
+int array_size = 4000000;
 
+int dV_i1_;
+int dsA_i1_;
+int dsB_i1_;
 int i1_;
 int i2_;
 int i3_;

@@ -1,5 +1,7 @@
 import numpy as np
 import sqlite3
+import sys
+from pathlib import Path
 
 
 def makeV(n=100, p=0.1):
@@ -39,8 +41,8 @@ def makeC(n=100, p=0.1):
     return result
 
 
-def main():
-    c = sqlite3.connect("./data/pldi.db")
+def main(db: Path = Path("data/pldi.db"), factor: float = 1):
+    c = sqlite3.connect(str(db))
     c.execute("DROP TABLE IF EXISTS A")
     c.execute("DROP TABLE IF EXISTS B")
     c.execute("DROP TABLE IF EXISTS C")
@@ -52,14 +54,14 @@ def main():
     )
     c.execute("CREATE TABLE V(i INTEGER NOT NULL, v REAL NOT NULL)")
     print("A")
-    c.executemany(f"INSERT INTO A VALUES(?,?,?)", makeA(1000))
+    c.executemany(f"INSERT INTO A VALUES(?,?,?)", makeA(int(factor * 100)))
     print("B")
-    c.executemany(f"INSERT INTO B VALUES(?,?,?)", makeA(1000))
+    c.executemany(f"INSERT INTO B VALUES(?,?,?)", makeA(int(factor * 100)))
     print("C")
-    c.executemany(f"INSERT INTO C VALUES(?,?,?,?)", makeC(100))
+    c.executemany(f"INSERT INTO C VALUES(?,?,?,?)", makeC(int(factor * 10)))
     print("V")
-    c.executemany(f"INSERT INTO V VALUES(?,?)", makeV(1000))
+    c.executemany(f"INSERT INTO V VALUES(?,?)", makeV(int(factor * 100)))
     c.commit()
 
 
-main()
+main(Path(sys.argv[1]), float(sys.argv[2]))

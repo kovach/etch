@@ -81,22 +81,22 @@ def sqlCallback3 : (E ℕ × E ℕ × E ℕ × E R) :=
  .call Op.atoi ![.access "argv" 2],
  .call Op.atof ![.access "argv" 3])
 
-def l_dV  : lvl ℕ (MemLoc R)         := dense_vec "dV" "dim" "i1_"
+def l_dV  : lvl ℕ (MemLoc R)         := dense_vec "dV" "dim" "dV_i1_"
 def l_sV  : lvl ℕ (MemLoc R)         := sparse_vec "sV"
 def l_ssA : lvl ℕ (lvl ℕ (MemLoc R)) := dcsr "ssA"
-def l_dsA : lvl ℕ (lvl ℕ (MemLoc R)) := csr_mat "dsA" "dim" "i1_"
+def l_dsA : lvl ℕ (lvl ℕ (MemLoc R)) := csr_mat "dsA" "dim" "dsA_i1_"
 def l_ssB : lvl ℕ (lvl ℕ (MemLoc R)) := dcsr "ssB"
-def l_dsB : lvl ℕ (lvl ℕ (MemLoc R)) := csr_mat "dsB" "dim" "i1_" -- todo "i2"
+def l_dsB : lvl ℕ (lvl ℕ (MemLoc R)) := csr_mat "dsB" "dim" "dsB_i1_" -- todo "i2"
 def l_sssC : lvl ℕ (lvl ℕ (lvl ℕ (MemLoc R))) := tcsr "ssC"
 
 def funcs : List (String × String) := [
-  let name := "gen_taco_dV";   (name, compileSqliteCb name [go l_dV sqlCallback]),
-  let name := "gen_taco_sV";   (name, compileSqliteCb name [go l_sV sqlCallback]),
-  let name := "gen_taco_dsA";  (name, compileSqliteCb name [go l_dsA sqlCallback2]),
-  let name := "gen_taco_dsB";  (name, compileSqliteCb name [go l_dsB sqlCallback2]),
-  let name := "gen_taco_ssA";  (name, compileSqliteCb name [go l_ssA sqlCallback2]),
-  let name := "gen_taco_ssB";  (name, compileSqliteCb name [go l_ssB sqlCallback2]),
-  let name := "gen_taco_sssC"; (name, compileSqliteCb name [go l_sssC sqlCallback3]) ]
+  let name := "gen_taco_dV_callback";   (name, compileSqliteCb name [go l_dV sqlCallback]),
+  let name := "gen_taco_sV_callback";   (name, compileSqliteCb name [go l_sV sqlCallback]),
+  let name := "gen_taco_dsA_callback";  (name, compileSqliteCb name [go l_dsA sqlCallback2]),
+  let name := "gen_taco_dsB_callback";  (name, compileSqliteCb name [go l_dsB sqlCallback2]),
+  let name := "gen_taco_ssA_callback";  (name, compileSqliteCb name [go l_ssA sqlCallback2]),
+  let name := "gen_taco_ssB_callback";  (name, compileSqliteCb name [go l_ssB sqlCallback2]),
+  let name := "gen_taco_sssC_callback"; (name, compileSqliteCb name [go l_sssC sqlCallback3]) ]
 
 end Loading
 
