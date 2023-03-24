@@ -1,11 +1,10 @@
 mkdir -p bench-output
 
-(for size in 0.01 0.03 0.1 0.3 0.5 0.7 0.9; do
+(for size in 0.001 0.003 0.007 0.01 0.03 0.07 0.1 0.3 0.5 0.7 0.9; do
 	echo data/taco-s$size.db
 done) | xargs make -j$(nproc)
 
-# for size in 0.01 0.03 0.1 0.3 0.5 0.7 0.9; do
-for size in 0.01 0.03 0.1; do
+for size in 0.001 0.003 0.007 0.01 0.03 0.07 0.1; do
 	echo $size
 	make run-taco-s$size >/dev/null
 

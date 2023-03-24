@@ -161,7 +161,7 @@ run-taco-s$(1): bench-taco data/taco-s$(1).db
 
 endef
 
-$(foreach sparsity,0.01 0.03 0.1 0.3 0.5 0.7 0.9,$(eval $(call TACO_TEMPLATE,$(sparsity))))
+$(foreach sparsity,0.001 0.003 0.007 0.01 0.03 0.07 0.1 0.3 0.5 0.7 0.9,$(eval $(call TACO_TEMPLATE,$(sparsity))))
 
 define WCOJ_TEMPLATE
 # Generate CSV files for the worse-case optimal join benchmark
