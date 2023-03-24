@@ -70,17 +70,6 @@ static int populate_taco(sqlite3* db) {
 }
 
 void run_all_taco_rep() {
-  auto timex10 = [](auto f, auto s, int reps) {
-    time([&f]() {
-      auto res = f();
-      for (int i = 1; i < 10; ++i) {
-        f();
-      }
-      return res;
-    }, (std::string(s) + "_x10").c_str(), reps);
-  };
-
-  printf("RUNNING 5 iterations per test\n");
   time(taco_inner2ss, "taco_inner2ss", 50);
   time(etch_inner2ss, "etch_inner2ss", 50);
   printf("\n");
@@ -119,11 +108,7 @@ int main(int argc, char* argv[]) {
   time([]() { return populate_taco(db); }, "populate_taco", 1);
   printf("Loaded\n");
 
-  // if (should_rep) {
-    run_all_taco_rep();
-  // } else {
-  //   run_all_taco();
-  // }
+  run_all_taco_rep();
 
   sqlite3_close(db);
   return 0;
