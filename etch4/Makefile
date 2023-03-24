@@ -154,14 +154,17 @@ TPC-H-x4.db:
 define TACO_TEMPLATE
 data/taco-s$(1).db: bench/taco-datagen.py
 	mkdir -p data
-	python3 $$< $$@ 20 $(1)
+	python3 $$< $$@ $(2) $(1)
 
 run-taco-s$(1): bench-taco data/taco-s$(1).db
 	./bench-taco data/taco-s$(1).db
 
 endef
 
-$(foreach sparsity,0.0001 0.0003 0.0007 0.001 0.003 0.007 0.01 0.03 0.07 0.1 0.3 0.5 0.7 0.9,$(eval $(call TACO_TEMPLATE,$(sparsity))))
+$(foreach sparsity,0.0001,$(eval $(call TACO_TEMPLATE,$(sparsity),50)))
+$(foreach sparsity,0.0003,$(eval $(call TACO_TEMPLATE,$(sparsity),40)))
+$(foreach sparsity,0.0007,$(eval $(call TACO_TEMPLATE,$(sparsity),30)))
+$(foreach sparsity,0.001 0.003 0.007 0.01 0.03 0.07 0.1 0.3 0.5 0.7 0.9,$(eval $(call TACO_TEMPLATE,$(sparsity),20)))
 
 define WCOJ_TEMPLATE
 # Generate CSV files for the worse-case optimal join benchmark
