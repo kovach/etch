@@ -7,6 +7,8 @@ from pathlib import Path
 def makeV(p=0.1, nonzeros=200):
     # 2000 × 0.1 = 200
 
+    nonzeros = int(np.round(nonzeros / -np.log2(p)))
+
     n = int(np.round(nonzeros / p))
     matrix_size = n
     m = np.random.rand(nonzeros)
@@ -33,6 +35,8 @@ def makeV(p=0.1, nonzeros=200):
 
 def makeA(p=0.1, nonzeros = 400000):
     # 2000 × 2000 × 0.1 = 400000
+
+    nonzeros = int(np.round(nonzeros / -np.log2(p)))
 
     n = int(np.round(np.sqrt(nonzeros / p)))
     matrix_size = n * n
@@ -61,6 +65,8 @@ def makeA(p=0.1, nonzeros = 400000):
 
 def makeC(p=0.1, nonzeros=800000):
     # 200 × 200 × 200 * 0.1 = 800000
+
+    nonzeros = int(np.round(nonzeros / -np.log2(p)))
 
     n = int(np.round(np.cbrt(nonzeros / p)))
     matrix_size = n * n * n
