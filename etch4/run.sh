@@ -4,7 +4,12 @@ for size in x10 x16 x22 x27 x30; do
 	make data/taco-$size.db
 done
 for size in x10 x16 x22 x27 x30; do
-	make run-taco-$size >bench-output/run-taco-$size.txt
+	make run-taco-$size >/dev/null
+
+	rm -f bench-output/run-taco-$size.txt
+	for i in `seq 5`; do
+		make run-taco-$size >>bench-output/run-taco-$size.txt
+	done
 done
 
 # for size in x0.01 x0.025 x0.05 x0.1 x0.25 x0.5 x1 x2 x4; do

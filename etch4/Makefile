@@ -157,7 +157,7 @@ data/taco-x$(1).db: bench/taco-datagen.py
 	python3 $$< $$@ $(1)
 
 run-taco-x$(1): bench-taco data/taco-x$(1).db
-	./bench-taco data/taco-x$(1).db
+	./bench-taco data/taco-x$(1).db $$$$(($(1)<25))
 
 endef
 

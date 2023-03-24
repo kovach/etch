@@ -69,6 +69,38 @@ static int populate_taco(sqlite3* db) {
   return rc;
 }
 
+void run_all_taco_rep() {
+  auto timex10 = [](auto f, auto s, int reps) {
+    time([&f]() {
+      auto res = f();
+      for (int i = 1; i < 10; ++i) {
+        f();
+      }
+      return res;
+    }, (std::string(s) + "_x10").c_str(), reps);
+  };
+
+  printf("RUNNING 5 iterations per test\n");
+  time(taco_inner2ss, "taco_inner2ss", 50);
+  time(etch_inner2ss, "etch_inner2ss", 50);
+  printf("\n");
+  time(taco_sum_add2, "taco_sum_add2", 50);
+  time(etch_sum_add2, "etch_sum_add2", 50);
+  printf("\n");
+  time(taco_sum_mul2_csr, "taco_sum_mul2_csr", 50);
+  time(etch_sum_mul2_csr, "etch_sum_mul2_csr", 50);
+  printf("\n");
+  time(taco_sum_mul2, "taco_sum_mul2", 50);
+  time(etch_sum_mul2, "etch_sum_mul2", 50);
+  printf("\n");
+  time(taco_mttkrp, "taco_mttkrp", 5);
+  time(etch_mttkrp, "etch_mttkrp", 5);
+  printf("\n");
+  time(taco_spmv, "taco_spmv", 200);
+  time(etch_spmv, "etch_spmv", 200);
+  printf("\n");
+}
+
 int main(int argc, char* argv[]) {
   int rc = SQLITE_OK;
 
@@ -82,10 +114,16 @@ int main(int argc, char* argv[]) {
     fprintf(stderr, "Opened database successfully\n");
   }
 
+  // bool should_rep = argc > 2 ? atoi(argv[2]) : false;
+
   time([]() { return populate_taco(db); }, "populate_taco", 1);
   printf("Loaded\n");
 
-  run_all_taco();
+  // if (should_rep) {
+    run_all_taco_rep();
+  // } else {
+  //   run_all_taco();
+  // }
 
   sqlite3_close(db);
   return 0;
