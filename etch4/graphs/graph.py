@@ -297,6 +297,8 @@ def graph_taco():
     print(nums)
     print(np.max([np.array(nums[q]["taco"]) / np.array(nums[q]["etch"]) for q in QUERIES if q != "sum_add2" and q != "sum_mul2"]))
     print(np.min([np.array(nums[q]["taco"]) / np.array(nums[q]["etch"]) for q in QUERIES if q != "sum_add2" and q != "sum_mul2"]))
+    q = "sum_add2"
+    print(q, np.max(np.array(nums[q]["etch"]) / np.array(nums[q]["taco"])))
 
     fig, axes = plt.subplots(nrows=len(QUERIES), sharex=True)
     fig.set_size_inches((5, 4))

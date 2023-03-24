@@ -16,6 +16,7 @@ open Etch.Benchmark
 private def files : List (String × List (String × String)) := [
   ("old_sql", OldSQL.funcs),
   ("taco",    TACO.funcs),
+  ("matmul",  TACO.funcsMatmul),
   ("tpch_q5", TPCHq5.funcs),
   ("tpch_q9", TPCHq9.funcs),
   ("wcoj",    WCOJ.funcs) ]
