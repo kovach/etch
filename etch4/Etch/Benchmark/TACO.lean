@@ -153,7 +153,8 @@ def spmv      := ∑ i, j:    (ssA' : i ↠ₛ j ↠ₛ E R) * (dV : j ↠ₐ E 
 def mul       := ∑ i, j, k: (ssA' : i ↠ₛ j ↠ₛ E R) * (dsB' : j ↠ₐ k ↠ₛ E R)
 def mul_ss    := ∑ i, j, k: ssA * ssB_skip
 def mttkrp    := ∑ i, j, k, l: sssC * (dsA' : j ↠ₐ l ↠ₛ E R) * (dsB' : k ↠ₐ l ↠ₛ E R)
-def mul_inner := ∑ i, j, k: (ssA' : i ↠ₛ k ↠ₛ E R) * (ssB' : j ↠ₛ k ↠ₛ E R)
+def mulInner  := ∑ i, j, k: (ssA' : i ↠ₛ k ↠ₛ E R) * (ssB' : j ↠ₛ k ↠ₛ E R)
+def mulRowcb  := ∑ i, j, k: (ssA' : i ↠ₛ j ↠ₛ E R) * (ssB' : j ↠ₛ k ↠ₛ E R)
 def udf       := ∑ i, j: ((λ _ : E R => 1) <$$> dsR) * (S.udf : i ↠ₛ j ↠ₛ E RMax)
 def add_ss    := ∑ i, j: ((ssA' + ssB') : i ↠ₛ j ↠ₛ E R)
 def inner     := ∑ i, j: ssA * ssB_ij
@@ -162,37 +163,20 @@ def threshold : E R := "threshold"
 def filter_v    : i ↠ₛ E R := S.valFilter (λ e => threshold << (e : E R)) sV
 def filter_spmv := ∑ i, j: filter_v * ssA
 
-abbrev TacoKernel := String
-structure TacoTest where
-  name : String
-  --kernel : TacoKernel
-  funcDef : String
-
-def TacoTest.runBench (t : TacoTest) (reps : ℕ) := s!"
-  time(taco_{t.name}, \"taco_{t.name}\", {reps});
-  time(etch_{t.name}, \"etch_{t.name}\", {reps});
-  printf(\"\\n\");"
-
-def compileEtchFun [Compile (Var R) Z] fn (kernel : Z) := compileFun R ("etch_" ++ fn) kernel
-
-def tests : List TacoTest := [
-  let fn := "inner2ss";     ⟨fn, compileEtchFun fn inner⟩,
-  let fn := "sum_add2";     ⟨fn, compileEtchFun fn add_ss⟩,
-  let fn := "sum_mul2_csr"; ⟨fn, compileEtchFun fn mul⟩,
-  let fn := "sum_mul2";     ⟨fn, compileEtchFun fn mul_ss⟩,
-  let fn := "mttkrp";       ⟨fn, compileEtchFun fn mttkrp⟩,
-  let fn := "spmv";         ⟨fn, compileEtchFun fn spmv⟩
-  --let fn := "filter_spmv";  ⟨fn, compileEtchFun fn filter_spmv⟩
-]
-
 def funcs : List (String × String) :=
   Loading.funcs ++
-  tests.map (fun t => (t.name, t.funcDef)) ++
-  [("udf", compileFun RMax "udf" udf)] ++
+  [ let fn := "etch_inner2ss";     ⟨fn, compileFun R fn inner⟩,
+    let fn := "etch_sum_add2";     ⟨fn, compileFun R fn add_ss⟩,
+    let fn := "etch_sum_mul2_csr"; ⟨fn, compileFun R fn mul⟩,
+    let fn := "etch_sum_mul2";     ⟨fn, compileFun R fn mul_ss⟩,
+    let fn := "etch_mttkrp";       ⟨fn, compileFun R fn mttkrp⟩,
+    let fn := "etch_spmv";         ⟨fn, compileFun R fn spmv⟩,
+    let fn := "etch_udf";          ⟨fn, compileFun RMax "udf" udf⟩]
 
-  let reps := 5
-  let body := s!"printf(\"RUNNING {reps} iterations per test\\n\");" ++
-              (tests.map (·.runBench reps) |> String.join)
-  [("run_all_taco", s!"void run_all_taco() \{{body}}")]
+def funcsMatmul : List (String × String) :=
+  [ let fn := "gen_ssA_callback"; ⟨fn, compileSqliteCb fn [go Loading.l_ssA Loading.sqlCallback2]⟩,
+    let fn := "gen_ssB_callback"; ⟨fn, compileSqliteCb fn [go Loading.l_ssB Loading.sqlCallback2]⟩,
+    let fn := "mul_inner";        ⟨fn, compileFun R fn mulInner⟩,
+    let fn := "mul_rowcb";        ⟨fn, compileFun R fn mulRowcb⟩ ]
 
 end Etch.Benchmark.TACO
