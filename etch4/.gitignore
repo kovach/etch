@@ -4,6 +4,7 @@
 *.o
 .gdb_history
 bench-duckdb
+bench-matmul
 bench-sqlite
 bench-taco
 bench-tpch-q[0-9]

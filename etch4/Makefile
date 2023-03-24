@@ -48,7 +48,7 @@ SQLITE3 ?= sqlite3/shell
 # Delete partial output files if make failed (e.g., if checksum did not match).
 .DELETE_ON_ERROR:
 
-ALL_BENCH := bench-tpch-q5 bench-tpch-q9 bench-wcoj bench-taco
+ALL_BENCH := bench-tpch-q5 bench-tpch-q9 bench-wcoj bench-taco bench-matmul
 
 .PHONY: all
 all: $(ALL_BENCH)
@@ -56,18 +56,19 @@ all: $(ALL_BENCH)
 bench-tpch-q5: bench-tpch-q5.cpp gen_tpch_q5.c
 bench-tpch-q9: bench-tpch-q9.cpp gen_tpch_q9.c
 bench-wcoj: bench-wcoj.cpp gen_wcoj.c
-bench-taco: bench-taco.cpp gen_taco.c
+bench-taco: bench-taco.cpp gen_taco.c decls.c taco_kernels.c
+bench-matmul: bench-matmul.cpp gen_matmul.c
 
 $(ALL_BENCH):
 	$(LINK.cpp) $< sqlite3.o $(LDLIBS) -o $@
 $(ALL_BENCH): CPPFLAGS += $(SQLITE_CPPFLAGS)
 $(ALL_BENCH): LDLIBS += $(SQLITE_LDLIBS)
-$(ALL_BENCH): sqlite3.o sqlite3.h
+$(ALL_BENCH): sqlite3.o sqlite3.h common.h operators.h
 
 ifdef FORCE_REGEN
-.PHONY: gen_tpch_q5.c gen_tpch_q9.c gen_wcoj.c gen_taco.c
+.PHONY: gen_matmul.c gen_tpch_q5.c gen_tpch_q9.c gen_wcoj.c gen_taco.c
 endif
-gen_tpch_q5.c gen_tpch_q9.c gen_wcoj.c gen_taco.c &:
+gen_matmul.c gen_tpch_q5.c gen_tpch_q9.c gen_wcoj.c gen_taco.c &:
 	lake update
 	lake exe bench
 
@@ -150,6 +151,18 @@ TPC-H-x2.db:
 TPC-H-x4.db:
 	@echo 'Download this file at https://drive.google.com/file/d/14aM_1IY7ACLOzRtS1LKpRYGweDXZZF0M/view?usp=sharing' && false
 	@#echo '9530ea95daecc3c8e411f9a7eb8a78ece3aaaae4b285729e45253283ea091f36 $@' | sha256sum -c
+
+define MATMUL_TEMPLATE
+data/matmul-$(1).db: bench/matmul-datagen.py
+	mkdir -p data
+	python3 $$< $$@ $$(bc -l <<< '$(1)/(10000*10000)') $(1)
+
+run-matmul-$(1): bench-matmul data/matmul-$(1).db
+	./bench-matmul data/matmul-$(1).db
+
+endef
+
+$(foreach nonzeros,200 2000 20000 200000,$(eval $(call MATMUL_TEMPLATE,$(nonzeros))))
 
 define TACO_TEMPLATE
 data/taco-s$(1).db: bench/taco-datagen.py
