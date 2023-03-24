@@ -54,13 +54,13 @@ def main(db: Path = Path("data/pldi.db"), factor: float = 1, sparsity: float = 0
     )
     c.execute("CREATE TABLE V(i INTEGER NOT NULL, v REAL NOT NULL)")
     print("A")
-    c.executemany(f"INSERT INTO A VALUES(?,?,?)", makeA(int(factor * 100)))
+    c.executemany(f"INSERT INTO A VALUES(?,?,?)", makeA(int(factor * 100), sparsity))
     print("B")
-    c.executemany(f"INSERT INTO B VALUES(?,?,?)", makeA(int(factor * 100)))
+    c.executemany(f"INSERT INTO B VALUES(?,?,?)", makeA(int(factor * 100), sparsity))
     print("C")
-    c.executemany(f"INSERT INTO C VALUES(?,?,?,?)", makeC(int(factor * 10)))
+    c.executemany(f"INSERT INTO C VALUES(?,?,?,?)", makeC(int(factor * 10), sparsity))
     print("V")
-    c.executemany(f"INSERT INTO V VALUES(?,?)", makeV(int(factor * 100)))
+    c.executemany(f"INSERT INTO V VALUES(?,?)", makeV(int(factor * 100), sparsity))
     c.commit()
 
 
