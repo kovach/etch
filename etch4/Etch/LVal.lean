@@ -100,20 +100,3 @@ def dss (l dim i : String) : lvl ℕ (lvl ℕ (lvl ℕ (MemLoc α))) := 0 |>
   (with_values (dense_il dim i) (interval_vl $ l ++ "2_pos")) ⊚
   (with_values (sparse_il (l ++ "2_crd" : ArrayVar ℕ)) (interval_vl $ l ++ "3_pos")) ⊚
   (with_values (sparse_il (l ++ "3_crd" : ArrayVar ℕ)) (dense_vl $ l ++ "_vals"))
-
-#exit
---todo
-inductive LevelType | s | d
-def trieType' (α : Type) : List LevelType → Type _
-| [] => α → α
-| _ :: xs => α → lvl ℕ (trieType' α xs)
-
-def trieType (α : Type) : List LevelType → Type _
-| [] => MemLoc α
-| _ :: xs => lvl ℕ (trieType α xs)
-
-#check @trieType
-def object (l : String) : (t : List LevelType) → MemLoc ℕ → trieType α t
-| [] => ⟨"no", 0⟩
-| [x] => λ e =>
-  (with_values (sparse_il (l ++ "1_crd" : ArrayVar ℕ)) (dense_vl $ l ++ "_vals"))
