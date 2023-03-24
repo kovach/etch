@@ -27,7 +27,7 @@ def makeV(p=0.1, nonzeros=200):
             break
         result.add((last, float(r)))
         last += int(np.round(r))
-    print(f"expected={nonzeros} actual={len(result)}")
+    print(f"expected={nonzeros} actual={len(result)} expect_sparsity={p} actual_sparsity={len(result) / matrix_size}")
     return result
 
 
@@ -55,7 +55,7 @@ def makeA(p=0.1, nonzeros = 400000):
         i, j = last // n, last % n
         result.add((i, j, float(r)))
         last += int(np.round(r))
-    print(f"expected={nonzeros} actual={len(result)}")
+    print(f"expected={nonzeros} actual={len(result)} expect_sparsity={p} actual_sparsity={len(result) / matrix_size}")
     return result
 
 
@@ -83,7 +83,7 @@ def makeC(p=0.1, nonzeros=800000):
         i, j, k = last // (n * n), (last // n) % n, last % n
         result.add((i, j, k, float(r)))
         last += int(np.round(r))
-    print(f"expected={nonzeros} actual={len(result)}")
+    print(f"expected={nonzeros} actual={len(result)} expect_sparsity={p} actual_sparsity={len(result) / matrix_size}")
     return result
 
 
