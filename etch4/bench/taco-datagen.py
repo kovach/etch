@@ -7,7 +7,7 @@ from pathlib import Path
 def makeV(p=0.1, nonzeros=200):
     # 2000 × 0.1 = 200
 
-    n = np.round(nonzeros / p)
+    n = int(np.round(nonzeros / p))
     matrix_size = n
     m = np.random.rand(nonzeros)
     m *= (matrix_size - nonzeros) / np.sum(m)
@@ -25,9 +25,8 @@ def makeV(p=0.1, nonzeros=200):
     for r in m:
         if last >= matrix_size:
             break
-        ri = np.round(r)
-        result.add((ri, float(r)))
-        last += ri
+        result.add((last, float(r)))
+        last += int(np.round(r))
     print(f"expected={nonzeros} actual={len(result)}")
     return result
 
@@ -35,7 +34,7 @@ def makeV(p=0.1, nonzeros=200):
 def makeA(p=0.1, nonzeros = 400000):
     # 2000 × 2000 × 0.1 = 400000
 
-    n = np.round(np.sqrt(nonzeros / p))
+    n = int(np.round(np.sqrt(nonzeros / p)))
     matrix_size = n * n
     m = np.random.rand(nonzeros)
     m *= (matrix_size - nonzeros) / np.sum(m)
@@ -53,10 +52,9 @@ def makeA(p=0.1, nonzeros = 400000):
     for r in m:
         if last >= matrix_size:
             break
-        ri = np.round(r)
-        i, j = int(ri / n), int(ri % n)
+        i, j = last // n, last % n
         result.add((i, j, float(r)))
-        last += ri
+        last += int(np.round(r))
     print(f"expected={nonzeros} actual={len(result)}")
     return result
 
@@ -64,7 +62,7 @@ def makeA(p=0.1, nonzeros = 400000):
 def makeC(p=0.1, nonzeros=800000):
     # 200 × 200 × 200 * 0.1 = 800000
 
-    n = np.round(np.cbrt(nonzeros / p))
+    n = int(np.round(np.cbrt(nonzeros / p)))
     matrix_size = n * n * n
     m = np.random.rand(nonzeros)
     m *= (matrix_size - nonzeros) / np.sum(m)
@@ -82,10 +80,9 @@ def makeC(p=0.1, nonzeros=800000):
     for r in m:
         if last >= matrix_size:
             break
-        ri = np.round(r)
-        i, j, k = int(ri / (n * n)), int(ri % (n * n) / n), int(ri % n)
+        i, j, k = last // (n * n), (last // n) % n, last % n
         result.add((i, j, k, float(r)))
-        last += ri
+        last += int(np.round(r))
     print(f"expected={nonzeros} actual={len(result)}")
     return result
 
