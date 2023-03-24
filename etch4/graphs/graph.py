@@ -65,7 +65,12 @@ def graph_q5(ax):
             nums[db].append(1000 * np.average(tmp))  # s → ms
 
     print("q5")
-    print(nums)
+    print("duckdbforeign/etch", np.max(np.array(nums["duckdbforeign"]) / np.array(nums["etch"])))
+    print("duckdbforeign/etch", np.min(np.array(nums["duckdbforeign"]) / np.array(nums["etch"])))
+    print("duckdb/etch", np.max(np.array(nums["duckdb"]) / np.array(nums["etch"])))
+    print("duckdb/etch", np.min(np.array(nums["duckdb"]) / np.array(nums["etch"])))
+    print("sqlite/etch", np.max(np.array(nums["sqlite"]) / np.array(nums["etch"])))
+    print("sqlite/etch", np.min(np.array(nums["sqlite"]) / np.array(nums["etch"])))
 
     for db in DBS:
         ax.plot(SF_NUMS, nums[db], label=tpch_labels.get(db, db), **tpch_styles[db])
@@ -128,7 +133,12 @@ def graph_q9(ax):
             nums[db].append(1000 * np.average(tmp))  # s → ms
 
     print("q9")
-    print(nums)
+    print("duckdbforeign/etch", np.max(np.array(nums["duckdbforeign"]) / np.array(nums["etch"])))
+    print("duckdbforeign/etch", np.min(np.array(nums["duckdbforeign"]) / np.array(nums["etch"])))
+    print("duckdb/etch", np.max(np.array(nums["duckdb"]) / np.array(nums["etch"])))
+    print("duckdb/etch", np.min(np.array(nums["duckdb"]) / np.array(nums["etch"])))
+    print("sqlite/etch", np.max(np.array(nums["sqlite"]) / np.array(nums["etch"])))
+    print("sqlite/etch", np.min(np.array(nums["sqlite"]) / np.array(nums["etch"])))
 
     for db in DBS:
         ax.plot(SF_NUMS, nums[db], label=tpch_labels.get(db, db), **tpch_styles[db])
@@ -300,19 +310,20 @@ def graph_taco():
     q = "sum_add2"
     print(q, np.max(np.array(nums[q]["etch"]) / np.array(nums[q]["taco"])))
 
-    fig, axes = plt.subplots(nrows=len(QUERIES), sharex=True)
-    fig.set_size_inches((5, 4))
+    fig, axes = plt.subplots(ncols=2, nrows=3, sharex=True)
+    fig.set_size_inches((9, 3))
 
     for i, q in enumerate(QUERIES):
-        ax = axes[i]
+        ax = axes[i // 2][i % 2]
         taco_by_etch = np.array(nums[q]["taco"]) / np.array(nums[q]["etch"])
         ax.plot(SF_NUMS, taco_by_etch, ".-")
         ax.plot(SF_NUMS, np.ones((len(SF_NUMS),)), "k:")
         ax.set_ylabel(DESC[i])
         ax.set_xscale("log", base=10)
         ax.xaxis.set_major_formatter(ticker.StrMethodFormatter("{x:g}"))
+        if i // 2 == 2:
+            ax.set_xlabel("sparsity", y=0.08)
 
-    fig.supxlabel("sparsity", y=0.08)
     plt.tight_layout()
     plt.savefig("taco_scaling.pdf", bbox_inches="tight")
 
