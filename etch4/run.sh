@@ -1,14 +1,14 @@
 mkdir -p bench-output
 
-for size in x10 x16 x22 x27 x30; do
-	make data/taco-$size.db
+for size in 0.1 0.3 0.5 0.7 0.9; do
+	make data/taco-s$size.db
 done
-for size in x10 x16 x22 x27 x30; do
-	make run-taco-$size >/dev/null
+for size in 0.1 0.3 0.5 0.7 0.9; do
+	make run-taco-s$size >/dev/null
 
-	rm -f bench-output/run-taco-$size.txt
+	rm -f bench-output/run-taco-s$size.txt
 	for i in `seq 5`; do
-		make run-taco-$size >>bench-output/run-taco-$size.txt
+		make run-taco-s$size >>bench-output/run-taco-s$size.txt
 	done
 done
 

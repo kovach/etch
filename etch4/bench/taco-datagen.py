@@ -41,7 +41,7 @@ def makeC(n=100, p=0.1):
     return result
 
 
-def main(db: Path = Path("data/pldi.db"), factor: float = 1):
+def main(db: Path = Path("data/pldi.db"), factor: float = 1, sparsity: float = 0.1):
     c = sqlite3.connect(str(db))
     c.execute("DROP TABLE IF EXISTS A")
     c.execute("DROP TABLE IF EXISTS B")
@@ -64,4 +64,4 @@ def main(db: Path = Path("data/pldi.db"), factor: float = 1):
     c.commit()
 
 
-main(Path(sys.argv[1]), float(sys.argv[2]))
+main(Path(sys.argv[1]), float(sys.argv[2]), float(sys.argv[3]))
