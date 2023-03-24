@@ -74,3 +74,17 @@ for size in x1 x3 x10 x30 x100 x300 x1000 x3000 x10000; do
 	sed -n 's/wcojx1000 took (s): real \([^ ]*\)s.*/\1/p' <bench-output/run-wcoj-$size-etch.txt | awk '{x+=$0}END{print "etch:",x/NR}'
 	sed -n 's/q2 took (s): real \([^ ]*\)s.*/\1/p' <bench-output/run-wcoj-$size-sqlite.txt | awk '{x+=$0}END{print "sqlite:",x/NR}'
 done
+
+# TACO
+(for size in 0.0001 0.0003 0.0007 0.001 0.003 0.007 0.01 0.03 0.07 0.1 0.3; do
+	echo data/taco-s$size.db
+done) | xargs make -j$(nproc)
+for size in 0.0001 0.0003 0.0007 0.001 0.003 0.007 0.01 0.03 0.07 0.1 0.3; do
+	echo $size
+	make run-taco-s$size >/dev/null
+
+	rm -f bench-output/run-taco-s$size.txt
+	for i in `seq 5`; do
+		make run-taco-s$size >>bench-output/run-taco-s$size.txt
+	done
+done

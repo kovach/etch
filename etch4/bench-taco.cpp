@@ -6,7 +6,7 @@
 #include "operators.h"
 #include "sqlite3.h"
 
-int dim = 10000;
+int dim = 100000;
 static sqlite3* db;
 int res;
 double threshold = 0.1;
@@ -69,6 +69,27 @@ static int populate_taco(sqlite3* db) {
   return rc;
 }
 
+void run_all_taco_rep() {
+  time(taco_inner2ss, "taco_inner2ss", 50);
+  time(etch_inner2ss, "etch_inner2ss", 50);
+  printf("\n");
+  time(taco_sum_add2, "taco_sum_add2", 50);
+  time(etch_sum_add2, "etch_sum_add2", 50);
+  printf("\n");
+  time(taco_sum_mul2_csr, "taco_sum_mul2_csr", 50);
+  time(etch_sum_mul2_csr, "etch_sum_mul2_csr", 50);
+  printf("\n");
+  time(taco_sum_mul2, "taco_sum_mul2", 50);
+  time(etch_sum_mul2, "etch_sum_mul2", 50);
+  printf("\n");
+  time(taco_mttkrp, "taco_mttkrp", 5);
+  time(etch_mttkrp, "etch_mttkrp", 5);
+  printf("\n");
+  time(taco_spmv, "taco_spmv", 200);
+  time(etch_spmv, "etch_spmv", 200);
+  printf("\n");
+}
+
 int main(int argc, char* argv[]) {
   int rc = SQLITE_OK;
 
@@ -85,7 +106,7 @@ int main(int argc, char* argv[]) {
   time([]() { return populate_taco(db); }, "populate_taco", 1);
   printf("Loaded\n");
 
-  run_all_taco();
+  run_all_taco_rep();
 
   sqlite3_close(db);
   return 0;

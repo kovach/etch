@@ -57,8 +57,10 @@ static inline int int_one() { return 1; }
 static inline int int_zero() { return 0; }
 static inline int int_ofBool(bool x) { return x; }
 
-static inline bool bool_add(bool a, bool b) { return a || b; }
-static inline bool bool_mul(bool a, bool b) { return a && b; }
+// static inline bool bool_add(bool a, bool b) { return a || b; }
+// static inline bool bool_mul(bool a, bool b) { return a && b; }
+#define bool_add(a, b) ((a) || (b))
+#define bool_mul(a, b) ((a) && (b))
 static inline bool bool_one() { return true; }
 static inline bool bool_zero() { return false; }
 static inline bool bool_neg(bool x) { return !x; }

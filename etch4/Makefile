@@ -151,12 +151,17 @@ TPC-H-x4.db:
 	@echo 'Download this file at https://drive.google.com/file/d/14aM_1IY7ACLOzRtS1LKpRYGweDXZZF0M/view?usp=sharing' && false
 	@#echo '9530ea95daecc3c8e411f9a7eb8a78ece3aaaae4b285729e45253283ea091f36 $@' | sha256sum -c
 
-data/pldi.db: bench/taco-datagen.py
+define TACO_TEMPLATE
+data/taco-s$(1).db: bench/taco-datagen.py
 	mkdir -p data
-	python3 $<
+	python3 $$< $$@ $(1)
 
-run-taco-etch: bench-taco data/pldi.db
-	./bench-taco
+run-taco-s$(1): bench-taco data/taco-s$(1).db
+	./bench-taco data/taco-s$(1).db
+
+endef
+
+$(foreach sparsity,0.0001 0.0003 0.0007 0.001 0.003 0.007 0.01 0.03 0.07 0.1 0.3 0.5 0.7 0.9,$(eval $(call TACO_TEMPLATE,$(sparsity))))
 
 define WCOJ_TEMPLATE
 # Generate CSV files for the worse-case optimal join benchmark

@@ -274,7 +274,49 @@ def graph_wcoj_standalone():
     plt.savefig("wcoj_scaling.pdf", bbox_inches="tight")
 
 
+def graph_taco():
+    SFS = ["s0.0001", "s0.0003", "s0.0007", "s0.001", "s0.003", "s0.007", "s0.01", "s0.03", "s0.07", "s0.1", "s0.3", "s0.5"]
+    SF_NUMS = np.array([0.0001, 0.0003, 0.0007, 0.001, 0.003, 0.007, 0.01, 0.03, 0.07, 0.1, 0.3, 0.5])
+    QUERIES = ["inner2ss", "sum_add2", "sum_mul2_csr", "sum_mul2", "mttkrp", "spmv"]
+    DESC = ["inner", "add", "mmul", "smul", "MTTKRP", "SpMV"]
+
+    nums = defaultdict(lambda: defaultdict(list)) # inner2ss → taco → [x10, x16, ...]
+    for sz in SFS:
+        with open(f"bench-output/run-taco-{sz}.txt") as f:
+            r = re.compile(r"(etch|taco)_([^ ]*) took \(s\): real ([^ ]*)s.*")
+            tmp = defaultdict(lambda: defaultdict(list)) # inner2ss → taco → [att1, att2, ...]
+            for l in f:
+                res = r.match(l)
+                if not res:
+                    continue
+                tmp[res[2]][res[1]].append(float(res[3]))
+            for q in tmp.keys():
+                for sys in tmp[q].keys():
+                    nums[q][sys].append(np.average(tmp[q][sys]))
+
+    print(nums)
+    print(np.max([np.array(nums[q]["taco"]) / np.array(nums[q]["etch"]) for q in QUERIES if q != "sum_add2" and q != "sum_mul2"]))
+    print(np.min([np.array(nums[q]["taco"]) / np.array(nums[q]["etch"]) for q in QUERIES if q != "sum_add2" and q != "sum_mul2"]))
+
+    fig, axes = plt.subplots(nrows=len(QUERIES), sharex=True)
+    fig.set_size_inches((5, 4))
+
+    for i, q in enumerate(QUERIES):
+        ax = axes[i]
+        taco_by_etch = np.array(nums[q]["taco"]) / np.array(nums[q]["etch"])
+        ax.plot(SF_NUMS, taco_by_etch, ".-")
+        ax.plot(SF_NUMS, np.ones((len(SF_NUMS),)), "k:")
+        ax.set_ylabel(DESC[i])
+        ax.set_xscale("log", base=10)
+        ax.xaxis.set_major_formatter(ticker.StrMethodFormatter("{x:g}"))
+
+    fig.supxlabel("sparsity", y=0.08)
+    plt.tight_layout()
+    plt.savefig("taco_scaling.pdf", bbox_inches="tight")
+
+
 graph_q5_standalone()
 graph_q9_standalone()
 graph_tpch()
 graph_wcoj_standalone()
+graph_taco()
