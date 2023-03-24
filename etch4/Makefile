@@ -155,7 +155,7 @@ TPC-H-x4.db:
 define MATMUL_TEMPLATE
 data/matmul-$(1).db: bench/matmul-datagen.py
 	mkdir -p data
-	python3 $$< $$@ $$(bc -l <<< '$(1)/(10000*10000)') $(1)
+	python3 $$< $$@ $$(shell bc -l <<< '$(1)/(10000*10000)') $(1)
 
 run-matmul-$(1): bench-matmul data/matmul-$(1).db
 	./bench-matmul data/matmul-$(1).db
