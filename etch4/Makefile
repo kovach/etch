@@ -66,9 +66,9 @@ $(ALL_BENCH): LDLIBS += $(SQLITE_LDLIBS)
 $(ALL_BENCH): sqlite3.o sqlite3.h common.h operators.h
 
 ifdef FORCE_REGEN
-.PHONY: gen_tpch_q5.c gen_tpch_q9.c gen_wcoj.c gen_taco.c
+.PHONY: gen_matmul.c gen_tpch_q5.c gen_tpch_q9.c gen_wcoj.c gen_taco.c
 endif
-gen_tpch_q5.c gen_tpch_q9.c gen_wcoj.c gen_taco.c &:
+gen_matmul.c gen_tpch_q5.c gen_tpch_q9.c gen_wcoj.c gen_taco.c &:
 	lake update
 	lake exe bench
 
@@ -152,12 +152,17 @@ TPC-H-x4.db:
 	@echo 'Download this file at https://drive.google.com/file/d/14aM_1IY7ACLOzRtS1LKpRYGweDXZZF0M/view?usp=sharing' && false
 	@#echo '9530ea95daecc3c8e411f9a7eb8a78ece3aaaae4b285729e45253283ea091f36 $@' | sha256sum -c
 
-data/matmul-20000.db: bench/matmul-datagen.py
+define MATMUL_TEMPLATE
+data/matmul-$(1).db: bench/matmul-datagen.py
 	mkdir -p data
-	python3 $< $@ 0.0002 20000
+	python3 $$< $$@ $$(bc -l <<< '$(1)/(10000*10000)') $(1)
 
-run-matmul-20000: bench-matmul data/matmul-20000.db
-	./bench-matmul data/matmul-20000.db
+run-matmul-$(1): bench-matmul data/matmul-$(1).db
+	./bench-matmul data/matmul-$(1).db
+
+endef
+
+$(foreach nonzeros,200 2000 20000 200000,$(eval $(call MATMUL_TEMPLATE,$(nonzeros))))
 
 define TACO_TEMPLATE
 data/taco-s$(1).db: bench/taco-datagen.py
