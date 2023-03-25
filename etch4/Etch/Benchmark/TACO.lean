@@ -160,8 +160,8 @@ def add_ss    := ∑ i, j: ((ssA' + ssB') : i ↠ₛ j ↠ₛ E R)
 def inner     := ∑ i, j: ssA * ssB_ij
 
 def threshold : Var R := "threshold"
-def filter_v    : i ↠ₛ E R := S.valFilter (fun e => threshold.expr << (e : E R)) sV
-def filterSpMV := ∑ i, j: filter_v * ssA
+def filterV    : j ↠ₛ E R := S.valFilter (fun e => threshold.expr << (e : E R)) sV
+def filterSpMV := ∑ i, j: filterV * ssA
 
 def funcs : List (String × String) :=
   Loading.funcs ++
