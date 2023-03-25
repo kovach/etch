@@ -158,8 +158,17 @@ data/filtered-spmv-$(1).db: bench/filtered-spmv-datagen.py
 	mkdir -p data
 	python3 $$< $$@ $$(shell bc -l <<< '$(1)/(10000*10000)') 0.1 $(1)
 
-run-filtered-spmv-$(1): bench-filtered-spmv data/filtered-spmv-$(1).db
+.PHONY: run-filtered-spmv-$(1)-etch
+run-filtered-spmv-$(1)-etch: bench-filtered-spmv data/filtered-spmv-$(1).db
 	./bench-filtered-spmv data/filtered-spmv-$(1).db
+
+.PHONY: run-filtered-spmv-$(1)-duckdb
+run-filtered-spmv-$(1)-duckdb: data/filtered-spmv-$(1).db bench/filtered-spmv-duckdb-prep.sql bench/filtered-spmv-duckdb.sql bench-duckdb
+	./bench-duckdb <(sed -e 's#data/filtered-spmv.*\.db#$$<#g' bench/filtered-spmv-duckdb-prep.sql) 5:<(sed -e 's#0\.8#0#g' bench/filtered-spmv-duckdb.sql) 5:<(sed -e 's#0\.8#0.2#g' bench/filtered-spmv-duckdb.sql) 5:<(sed -e 's#0\.8#0.4#g' bench/filtered-spmv-duckdb.sql) 5:<(sed -e 's#0\.8#0.6#g' bench/filtered-spmv-duckdb.sql) 5:<(sed -e 's#0\.8#0.8#g' bench/filtered-spmv-duckdb.sql) 5:<(sed -e 's#0\.8#1#g' bench/filtered-spmv-duckdb.sql)
+
+.PHONY: run-filtered-spmv-$(1)-sqlite
+run-filtered-spmv-$(1)-sqlite: data/filtered-spmv-$(1).db bench/filtered-spmv-sqlite-prep.sql bench/filtered-spmv-sqlite.sql bench-sqlite
+	./bench-sqlite <(sed -e 's#data/filtered-spmv.*\.db#$$<#g' bench/filtered-spmv-sqlite-prep.sql) 5:<(sed -e 's#0\.8#0#g' bench/filtered-spmv-sqlite.sql) 5:<(sed -e 's#0\.8#0.2#g' bench/filtered-spmv-sqlite.sql) 5:<(sed -e 's#0\.8#0.4#g' bench/filtered-spmv-sqlite.sql) 5:<(sed -e 's#0\.8#0.6#g' bench/filtered-spmv-sqlite.sql) 5:<(sed -e 's#0\.8#0.8#g' bench/filtered-spmv-sqlite.sql) 5:<(sed -e 's#0\.8#1#g' bench/filtered-spmv-sqlite.sql)
 
 endef
 

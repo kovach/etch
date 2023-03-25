@@ -1,0 +1,645 @@
+./bench-duckdb <(sed -e 's#data/filtered-spmv.*\.db#data/filtered-spmv-2000000.db#g' bench/filtered-spmv-duckdb-prep.sql) 5:<(sed -e 's#0\.8#0#g' bench/filtered-spmv-duckdb.sql) 5:<(sed -e 's#0\.8#0.2#g' bench/filtered-spmv-duckdb.sql) 5:<(sed -e 's#0\.8#0.4#g' bench/filtered-spmv-duckdb.sql) 5:<(sed -e 's#0\.8#0.6#g' bench/filtered-spmv-duckdb.sql) 5:<(sed -e 's#0\.8#0.8#g' bench/filtered-spmv-duckdb.sql) 5:<(sed -e 's#0\.8#1#g' bench/filtered-spmv-duckdb.sql)
+q1 val: 0
+q1 took (s): real 1.202264s user 2.890410s sys 0.492449s
+q1 took (avg): real 1.202264s user 2.890410s sys 0.492449s
+Success	
+BOOLEAN	
+[ Rows: 0]
+
+
+q2 prep val: 0
+q2 prep took (s): real 0.000474s user 0.000406s sys 0.000069s
+q2 prep took (avg): real 0.000474s user 0.000406s sys 0.000069s
+q2 val: 0
+q2 took (s): real 0.001304s user 0.007492s sys 0.001265s
+q2 val: 0
+q2 took (s): real 0.001371s user 0.008245s sys 0.000827s
+q2 val: 0
+q2 took (s): real 0.001300s user 0.007786s sys 0.001314s
+q2 val: 0
+q2 took (s): real 0.001255s user 0.008943s sys 0.000000s
+q2 val: 0
+q2 took (s): real 0.001333s user 0.009071s sys 0.000000s
+q2 took (avg): real 0.001313s user 0.008307s sys 0.000681s
+sum(("A".v * "V".v))	
+DOUBLE	
+[ Rows: 1]
+48696.60567759493
+
+
+q3 prep val: 0
+q3 prep took (s): real 0.000328s user 0.000329s sys 0.000000s
+q3 prep took (avg): real 0.000328s user 0.000329s sys 0.000000s
+q3 val: 0
+q3 took (s): real 0.001257s user 0.008303s sys 0.000000s
+q3 val: 0
+q3 took (s): real 0.001254s user 0.008373s sys 0.000000s
+q3 val: 0
+q3 took (s): real 0.001302s user 0.008807s sys 0.000000s
+q3 val: 0
+q3 took (s): real 0.001228s user 0.008128s sys 0.000000s
+q3 val: 0
+q3 took (s): real 0.001234s user 0.008295s sys 0.000000s
+q3 took (avg): real 0.001255s user 0.008381s sys 0.000000s
+sum(("A".v * "V".v))	
+DOUBLE	
+[ Rows: 1]
+46592.89161573493
+
+
+q4 prep val: 0
+q4 prep took (s): real 0.000278s user 0.000279s sys 0.000000s
+q4 prep took (avg): real 0.000278s user 0.000279s sys 0.000000s
+q4 val: 0
+q4 took (s): real 0.001354s user 0.008291s sys 0.000000s
+q4 val: 0
+q4 took (s): real 0.001186s user 0.008071s sys 0.000000s
+q4 val: 0
+q4 took (s): real 0.001160s user 0.007727s sys 0.000000s
+q4 val: 0
+q4 took (s): real 0.001310s user 0.008089s sys 0.000000s
+q4 val: 0
+q4 took (s): real 0.001207s user 0.008310s sys 0.000000s
+q4 took (avg): real 0.001243s user 0.008098s sys 0.000000s
+sum(("A".v * "V".v))	
+DOUBLE	
+[ Rows: 1]
+40372.87346991744
+
+
+q5 prep val: 0
+q5 prep took (s): real 0.000278s user 0.000280s sys 0.000000s
+q5 prep took (avg): real 0.000278s user 0.000280s sys 0.000000s
+q5 val: 0
+q5 took (s): real 0.001037s user 0.007319s sys 0.000000s
+q5 val: 0
+q5 took (s): real 0.001129s user 0.007626s sys 0.000000s
+q5 val: 0
+q5 took (s): real 0.001113s user 0.007281s sys 0.000000s
+q5 val: 0
+q5 took (s): real 0.000954s user 0.006829s sys 0.000000s
+q5 val: 0
+q5 took (s): real 0.001208s user 0.007617s sys 0.000000s
+q5 took (avg): real 0.001088s user 0.007334s sys 0.000000s
+sum(("A".v * "V".v))	
+DOUBLE	
+[ Rows: 1]
+29713.69976178853
+
+
+q6 prep val: 0
+q6 prep took (s): real 0.000275s user 0.000277s sys 0.000000s
+q6 prep took (avg): real 0.000275s user 0.000277s sys 0.000000s
+q6 val: 0
+q6 took (s): real 0.001098s user 0.006830s sys 0.000000s
+q6 val: 0
+q6 took (s): real 0.001002s user 0.006980s sys 0.000000s
+q6 val: 0
+q6 took (s): real 0.001051s user 0.007138s sys 0.000000s
+q6 val: 0
+q6 took (s): real 0.001037s user 0.006585s sys 0.000000s
+q6 val: 0
+q6 took (s): real 0.000995s user 0.006863s sys 0.000000s
+q6 took (avg): real 0.001037s user 0.006879s sys 0.000000s
+sum(("A".v * "V".v))	
+DOUBLE	
+[ Rows: 1]
+16161.06935687099
+
+
+q7 prep val: 0
+q7 prep took (s): real 0.000321s user 0.000317s sys 0.000000s
+q7 prep took (avg): real 0.000321s user 0.000317s sys 0.000000s
+q7 val: 0
+q7 took (s): real 0.000256s user 0.001094s sys 0.000000s
+q7 val: 0
+q7 took (s): real 0.000187s user 0.001033s sys 0.000000s
+q7 val: 0
+q7 took (s): real 0.000220s user 0.001053s sys 0.000000s
+q7 val: 0
+q7 took (s): real 0.000200s user 0.001073s sys 0.000000s
+q7 val: 0
+q7 took (s): real 0.000207s user 0.001045s sys 0.000000s
+q7 took (avg): real 0.000214s user 0.001060s sys 0.000000s
+sum(("A".v * "V".v))	
+DOUBLE	
+[ Rows: 1]
+NULL
+
+
+./bench-duckdb <(sed -e 's#data/filtered-spmv.*\.db#data/filtered-spmv-2000000.db#g' bench/filtered-spmv-duckdb-prep.sql) 5:<(sed -e 's#0\.8#0#g' bench/filtered-spmv-duckdb.sql) 5:<(sed -e 's#0\.8#0.2#g' bench/filtered-spmv-duckdb.sql) 5:<(sed -e 's#0\.8#0.4#g' bench/filtered-spmv-duckdb.sql) 5:<(sed -e 's#0\.8#0.6#g' bench/filtered-spmv-duckdb.sql) 5:<(sed -e 's#0\.8#0.8#g' bench/filtered-spmv-duckdb.sql) 5:<(sed -e 's#0\.8#1#g' bench/filtered-spmv-duckdb.sql)
+q1 val: 0
+q1 took (s): real 1.202493s user 2.471046s sys 0.459999s
+q1 took (avg): real 1.202493s user 2.471046s sys 0.459999s
+Success	
+BOOLEAN	
+[ Rows: 0]
+
+
+q2 prep val: 0
+q2 prep took (s): real 0.000487s user 0.000484s sys 0.000000s
+q2 prep took (avg): real 0.000487s user 0.000484s sys 0.000000s
+q2 val: 0
+q2 took (s): real 0.001334s user 0.008086s sys 0.000889s
+q2 val: 0
+q2 took (s): real 0.001325s user 0.007841s sys 0.001460s
+q2 val: 0
+q2 took (s): real 0.001313s user 0.009194s sys 0.000000s
+q2 val: 0
+q2 took (s): real 0.001393s user 0.008824s sys 0.000000s
+q2 val: 0
+q2 took (s): real 0.001341s user 0.009260s sys 0.000000s
+q2 took (avg): real 0.001341s user 0.008641s sys 0.000470s
+sum(("A".v * "V".v))	
+DOUBLE	
+[ Rows: 1]
+48696.605677594926
+
+
+q3 prep val: 0
+q3 prep took (s): real 0.000297s user 0.000299s sys 0.000000s
+q3 prep took (avg): real 0.000297s user 0.000299s sys 0.000000s
+q3 val: 0
+q3 took (s): real 0.001172s user 0.008687s sys 0.000000s
+q3 val: 0
+q3 took (s): real 0.001205s user 0.008260s sys 0.000340s
+q3 val: 0
+q3 took (s): real 0.001309s user 0.008762s sys 0.000000s
+q3 val: 0
+q3 took (s): real 0.001305s user 0.007240s sys 0.001111s
+q3 val: 0
+q3 took (s): real 0.001312s user 0.007429s sys 0.001353s
+q3 took (avg): real 0.001260s user 0.008076s sys 0.000561s
+sum(("A".v * "V".v))	
+DOUBLE	
+[ Rows: 1]
+46592.89161573493
+
+
+q4 prep val: 0
+q4 prep took (s): real 0.000278s user 0.000237s sys 0.000043s
+q4 prep took (avg): real 0.000278s user 0.000237s sys 0.000043s
+q4 val: 0
+q4 took (s): real 0.001246s user 0.008038s sys 0.000000s
+q4 val: 0
+q4 took (s): real 0.001166s user 0.007611s sys 0.000417s
+q4 val: 0
+q4 took (s): real 0.001015s user 0.006179s sys 0.001127s
+q4 val: 0
+q4 took (s): real 0.001067s user 0.008013s sys 0.000000s
+q4 val: 0
+q4 took (s): real 0.001044s user 0.007267s sys 0.000000s
+q4 took (avg): real 0.001108s user 0.007422s sys 0.000309s
+sum(("A".v * "V".v))	
+DOUBLE	
+[ Rows: 1]
+40372.87346991744
+
+
+q5 prep val: 0
+q5 prep took (s): real 0.000292s user 0.000294s sys 0.000000s
+q5 prep took (avg): real 0.000292s user 0.000294s sys 0.000000s
+q5 val: 0
+q5 took (s): real 0.000977s user 0.006578s sys 0.000225s
+q5 val: 0
+q5 took (s): real 0.001033s user 0.006117s sys 0.001102s
+q5 val: 0
+q5 took (s): real 0.001033s user 0.007264s sys 0.000000s
+q5 val: 0
+q5 took (s): real 0.001056s user 0.006888s sys 0.000141s
+q5 val: 0
+q5 took (s): real 0.001018s user 0.006016s sys 0.001077s
+q5 took (avg): real 0.001023s user 0.006573s sys 0.000509s
+sum(("A".v * "V".v))	
+DOUBLE	
+[ Rows: 1]
+29713.699761788528
+
+
+q6 prep val: 0
+q6 prep took (s): real 0.000450s user 0.000383s sys 0.000068s
+q6 prep took (avg): real 0.000450s user 0.000383s sys 0.000068s
+q6 val: 0
+q6 took (s): real 0.000882s user 0.006569s sys 0.000000s
+q6 val: 0
+q6 took (s): real 0.000910s user 0.006535s sys 0.000000s
+q6 val: 0
+q6 took (s): real 0.000980s user 0.004766s sys 0.001700s
+q6 val: 0
+q6 took (s): real 0.000939s user 0.005594s sys 0.000994s
+q6 val: 0
+q6 took (s): real 0.000898s user 0.005655s sys 0.001005s
+q6 took (avg): real 0.000922s user 0.005824s sys 0.000740s
+sum(("A".v * "V".v))	
+DOUBLE	
+[ Rows: 1]
+16161.06935687099
+
+
+q7 prep val: 0
+q7 prep took (s): real 0.000446s user 0.000380s sys 0.000068s
+q7 prep took (avg): real 0.000446s user 0.000380s sys 0.000068s
+q7 val: 0
+q7 took (s): real 0.000267s user 0.001074s sys 0.000019s
+q7 val: 0
+q7 took (s): real 0.000253s user 0.000946s sys 0.000168s
+q7 val: 0
+q7 took (s): real 0.000209s user 0.000866s sys 0.000154s
+q7 val: 0
+q7 took (s): real 0.000229s user 0.000903s sys 0.000160s
+q7 val: 0
+q7 took (s): real 0.000248s user 0.000950s sys 0.000169s
+q7 took (avg): real 0.000242s user 0.000948s sys 0.000134s
+sum(("A".v * "V".v))	
+DOUBLE	
+[ Rows: 1]
+NULL
+
+
+./bench-duckdb <(sed -e 's#data/filtered-spmv.*\.db#data/filtered-spmv-2000000.db#g' bench/filtered-spmv-duckdb-prep.sql) 5:<(sed -e 's#0\.8#0#g' bench/filtered-spmv-duckdb.sql) 5:<(sed -e 's#0\.8#0.2#g' bench/filtered-spmv-duckdb.sql) 5:<(sed -e 's#0\.8#0.4#g' bench/filtered-spmv-duckdb.sql) 5:<(sed -e 's#0\.8#0.6#g' bench/filtered-spmv-duckdb.sql) 5:<(sed -e 's#0\.8#0.8#g' bench/filtered-spmv-duckdb.sql) 5:<(sed -e 's#0\.8#1#g' bench/filtered-spmv-duckdb.sql)
+q1 val: 0
+q1 took (s): real 1.199708s user 2.809735s sys 0.450583s
+q1 took (avg): real 1.199708s user 2.809735s sys 0.450583s
+Success	
+BOOLEAN	
+[ Rows: 0]
+
+
+q2 prep val: 0
+q2 prep took (s): real 0.000511s user 0.000508s sys 0.000000s
+q2 prep took (avg): real 0.000511s user 0.000508s sys 0.000000s
+q2 val: 0
+q2 took (s): real 0.001409s user 0.009233s sys 0.000000s
+q2 val: 0
+q2 took (s): real 0.001405s user 0.010000s sys 0.000000s
+q2 val: 0
+q2 took (s): real 0.001324s user 0.009281s sys 0.000000s
+q2 val: 0
+q2 took (s): real 0.001319s user 0.009190s sys 0.000000s
+q2 val: 0
+q2 took (s): real 0.001272s user 0.008972s sys 0.000000s
+q2 took (avg): real 0.001346s user 0.009335s sys 0.000000s
+sum(("A".v * "V".v))	
+DOUBLE	
+[ Rows: 1]
+48696.60567759493
+
+
+q3 prep val: 0
+q3 prep took (s): real 0.000344s user 0.000341s sys 0.000000s
+q3 prep took (avg): real 0.000344s user 0.000341s sys 0.000000s
+q3 val: 0
+q3 took (s): real 0.001276s user 0.008287s sys 0.000000s
+q3 val: 0
+q3 took (s): real 0.001277s user 0.008422s sys 0.000000s
+q3 val: 0
+q3 took (s): real 0.001328s user 0.008301s sys 0.000000s
+q3 val: 0
+q3 took (s): real 0.001376s user 0.008461s sys 0.000000s
+q3 val: 0
+q3 took (s): real 0.001261s user 0.008276s sys 0.000000s
+q3 took (avg): real 0.001304s user 0.008349s sys 0.000000s
+sum(("A".v * "V".v))	
+DOUBLE	
+[ Rows: 1]
+46592.89161573493
+
+
+q4 prep val: 0
+q4 prep took (s): real 0.000291s user 0.000287s sys 0.000000s
+q4 prep took (avg): real 0.000291s user 0.000287s sys 0.000000s
+q4 val: 0
+q4 took (s): real 0.001258s user 0.008358s sys 0.000000s
+q4 val: 0
+q4 took (s): real 0.001205s user 0.007756s sys 0.000000s
+q4 val: 0
+q4 took (s): real 0.001235s user 0.008216s sys 0.000000s
+q4 val: 0
+q4 took (s): real 0.001231s user 0.007838s sys 0.000000s
+q4 val: 0
+q4 took (s): real 0.001193s user 0.007729s sys 0.000000s
+q4 took (avg): real 0.001224s user 0.007979s sys 0.000000s
+sum(("A".v * "V".v))	
+DOUBLE	
+[ Rows: 1]
+40372.87346991744
+
+
+q5 prep val: 0
+q5 prep took (s): real 0.000279s user 0.000280s sys 0.000000s
+q5 prep took (avg): real 0.000279s user 0.000280s sys 0.000000s
+q5 val: 0
+q5 took (s): real 0.001146s user 0.007270s sys 0.000000s
+q5 val: 0
+q5 took (s): real 0.001007s user 0.006991s sys 0.000000s
+q5 val: 0
+q5 took (s): real 0.001156s user 0.007308s sys 0.000000s
+q5 val: 0
+q5 took (s): real 0.001128s user 0.007344s sys 0.000000s
+q5 val: 0
+q5 took (s): real 0.001164s user 0.007382s sys 0.000000s
+q5 took (avg): real 0.001120s user 0.007259s sys 0.000000s
+sum(("A".v * "V".v))	
+DOUBLE	
+[ Rows: 1]
+29713.699761788528
+
+
+q6 prep val: 0
+q6 prep took (s): real 0.000279s user 0.000280s sys 0.000000s
+q6 prep took (avg): real 0.000279s user 0.000280s sys 0.000000s
+q6 val: 0
+q6 took (s): real 0.001040s user 0.006935s sys 0.000000s
+q6 val: 0
+q6 took (s): real 0.001058s user 0.007039s sys 0.000000s
+q6 val: 0
+q6 took (s): real 0.001023s user 0.006710s sys 0.000000s
+q6 val: 0
+q6 took (s): real 0.001079s user 0.006951s sys 0.000000s
+q6 val: 0
+q6 took (s): real 0.001038s user 0.006728s sys 0.000000s
+q6 took (avg): real 0.001048s user 0.006873s sys 0.000000s
+sum(("A".v * "V".v))	
+DOUBLE	
+[ Rows: 1]
+16161.06935687099
+
+
+q7 prep val: 0
+q7 prep took (s): real 0.000277s user 0.000279s sys 0.000000s
+q7 prep took (avg): real 0.000277s user 0.000279s sys 0.000000s
+q7 val: 0
+q7 took (s): real 0.000215s user 0.001073s sys 0.000000s
+q7 val: 0
+q7 took (s): real 0.000206s user 0.001030s sys 0.000000s
+q7 val: 0
+q7 took (s): real 0.000212s user 0.001038s sys 0.000000s
+q7 val: 0
+q7 took (s): real 0.000217s user 0.001086s sys 0.000000s
+q7 val: 0
+q7 took (s): real 0.000200s user 0.000998s sys 0.000000s
+q7 took (avg): real 0.000210s user 0.001045s sys 0.000000s
+sum(("A".v * "V".v))	
+DOUBLE	
+[ Rows: 1]
+NULL
+
+
+./bench-duckdb <(sed -e 's#data/filtered-spmv.*\.db#data/filtered-spmv-2000000.db#g' bench/filtered-spmv-duckdb-prep.sql) 5:<(sed -e 's#0\.8#0#g' bench/filtered-spmv-duckdb.sql) 5:<(sed -e 's#0\.8#0.2#g' bench/filtered-spmv-duckdb.sql) 5:<(sed -e 's#0\.8#0.4#g' bench/filtered-spmv-duckdb.sql) 5:<(sed -e 's#0\.8#0.6#g' bench/filtered-spmv-duckdb.sql) 5:<(sed -e 's#0\.8#0.8#g' bench/filtered-spmv-duckdb.sql) 5:<(sed -e 's#0\.8#1#g' bench/filtered-spmv-duckdb.sql)
+q1 val: 0
+q1 took (s): real 1.213198s user 2.942416s sys 0.435785s
+q1 took (avg): real 1.213198s user 2.942416s sys 0.435785s
+Success	
+BOOLEAN	
+[ Rows: 0]
+
+
+q2 prep val: 0
+q2 prep took (s): real 0.000473s user 0.000414s sys 0.000061s
+q2 prep took (avg): real 0.000473s user 0.000414s sys 0.000061s
+q2 val: 0
+q2 took (s): real 0.001441s user 0.008325s sys 0.001224s
+q2 val: 0
+q2 took (s): real 0.001321s user 0.008518s sys 0.000267s
+q2 val: 0
+q2 took (s): real 0.001289s user 0.007721s sys 0.001132s
+q2 val: 0
+q2 took (s): real 0.001331s user 0.009232s sys 0.000000s
+q2 val: 0
+q2 took (s): real 0.001270s user 0.008841s sys 0.000000s
+q2 took (avg): real 0.001330s user 0.008527s sys 0.000525s
+sum(("A".v * "V".v))	
+DOUBLE	
+[ Rows: 1]
+48696.605677594926
+
+
+q3 prep val: 0
+q3 prep took (s): real 0.000306s user 0.000307s sys 0.000000s
+q3 prep took (avg): real 0.000306s user 0.000307s sys 0.000000s
+q3 val: 0
+q3 took (s): real 0.001237s user 0.007550s sys 0.001097s
+q3 val: 0
+q3 took (s): real 0.001361s user 0.008389s sys 0.000000s
+q3 val: 0
+q3 took (s): real 0.001274s user 0.008565s sys 0.000000s
+q3 val: 0
+q3 took (s): real 0.001285s user 0.008774s sys 0.000000s
+q3 val: 0
+q3 took (s): real 0.001410s user 0.009103s sys 0.000000s
+q3 took (avg): real 0.001313s user 0.008476s sys 0.000219s
+sum(("A".v * "V".v))	
+DOUBLE	
+[ Rows: 1]
+46592.89161573493
+
+
+q4 prep val: 0
+q4 prep took (s): real 0.000427s user 0.000428s sys 0.000000s
+q4 prep took (avg): real 0.000427s user 0.000428s sys 0.000000s
+q4 val: 0
+q4 took (s): real 0.001228s user 0.007004s sys 0.001023s
+q4 val: 0
+q4 took (s): real 0.001230s user 0.008276s sys 0.000000s
+q4 val: 0
+q4 took (s): real 0.001204s user 0.007848s sys 0.000000s
+q4 val: 0
+q4 took (s): real 0.001256s user 0.007983s sys 0.000000s
+q4 val: 0
+q4 took (s): real 0.001236s user 0.007787s sys 0.000000s
+q4 took (avg): real 0.001231s user 0.007780s sys 0.000205s
+sum(("A".v * "V".v))	
+DOUBLE	
+[ Rows: 1]
+40372.87346991744
+
+
+q5 prep val: 0
+q5 prep took (s): real 0.000281s user 0.000282s sys 0.000000s
+q5 prep took (avg): real 0.000281s user 0.000282s sys 0.000000s
+q5 val: 0
+q5 took (s): real 0.001170s user 0.007272s sys 0.000000s
+q5 val: 0
+q5 took (s): real 0.001149s user 0.007289s sys 0.000000s
+q5 val: 0
+q5 took (s): real 0.001132s user 0.007439s sys 0.000000s
+q5 val: 0
+q5 took (s): real 0.001148s user 0.007581s sys 0.000000s
+q5 val: 0
+q5 took (s): real 0.001226s user 0.007670s sys 0.000000s
+q5 took (avg): real 0.001165s user 0.007450s sys 0.000000s
+sum(("A".v * "V".v))	
+DOUBLE	
+[ Rows: 1]
+29713.699761788535
+
+
+q6 prep val: 0
+q6 prep took (s): real 0.000324s user 0.000321s sys 0.000000s
+q6 prep took (avg): real 0.000324s user 0.000321s sys 0.000000s
+q6 val: 0
+q6 took (s): real 0.001027s user 0.006855s sys 0.000000s
+q6 val: 0
+q6 took (s): real 0.001161s user 0.007274s sys 0.000000s
+q6 val: 0
+q6 took (s): real 0.001095s user 0.006971s sys 0.000000s
+q6 val: 0
+q6 took (s): real 0.000998s user 0.006680s sys 0.000000s
+q6 val: 0
+q6 took (s): real 0.000989s user 0.006590s sys 0.000000s
+q6 took (avg): real 0.001054s user 0.006874s sys 0.000000s
+sum(("A".v * "V".v))	
+DOUBLE	
+[ Rows: 1]
+16161.06935687099
+
+
+q7 prep val: 0
+q7 prep took (s): real 0.000278s user 0.000280s sys 0.000000s
+q7 prep took (avg): real 0.000278s user 0.000280s sys 0.000000s
+q7 val: 0
+q7 took (s): real 0.000256s user 0.001132s sys 0.000000s
+q7 val: 0
+q7 took (s): real 0.000229s user 0.001096s sys 0.000000s
+q7 val: 0
+q7 took (s): real 0.000214s user 0.001087s sys 0.000000s
+q7 val: 0
+q7 took (s): real 0.000215s user 0.001058s sys 0.000000s
+q7 val: 0
+q7 took (s): real 0.000230s user 0.001041s sys 0.000000s
+q7 took (avg): real 0.000229s user 0.001083s sys 0.000000s
+sum(("A".v * "V".v))	
+DOUBLE	
+[ Rows: 1]
+NULL
+
+
+./bench-duckdb <(sed -e 's#data/filtered-spmv.*\.db#data/filtered-spmv-2000000.db#g' bench/filtered-spmv-duckdb-prep.sql) 5:<(sed -e 's#0\.8#0#g' bench/filtered-spmv-duckdb.sql) 5:<(sed -e 's#0\.8#0.2#g' bench/filtered-spmv-duckdb.sql) 5:<(sed -e 's#0\.8#0.4#g' bench/filtered-spmv-duckdb.sql) 5:<(sed -e 's#0\.8#0.6#g' bench/filtered-spmv-duckdb.sql) 5:<(sed -e 's#0\.8#0.8#g' bench/filtered-spmv-duckdb.sql) 5:<(sed -e 's#0\.8#1#g' bench/filtered-spmv-duckdb.sql)
+q1 val: 0
+q1 took (s): real 1.226601s user 2.840688s sys 0.454383s
+q1 took (avg): real 1.226601s user 2.840688s sys 0.454383s
+Success	
+BOOLEAN	
+[ Rows: 0]
+
+
+q2 prep val: 0
+q2 prep took (s): real 0.000475s user 0.000411s sys 0.000066s
+q2 prep took (avg): real 0.000475s user 0.000411s sys 0.000066s
+q2 val: 0
+q2 took (s): real 0.001345s user 0.008530s sys 0.000719s
+q2 val: 0
+q2 took (s): real 0.001284s user 0.008765s sys 0.000000s
+q2 val: 0
+q2 took (s): real 0.001309s user 0.008827s sys 0.000000s
+q2 val: 0
+q2 took (s): real 0.001306s user 0.008517s sys 0.000000s
+q2 val: 0
+q2 took (s): real 0.001214s user 0.008854s sys 0.000000s
+q2 took (avg): real 0.001292s user 0.008699s sys 0.000144s
+sum(("A".v * "V".v))	
+DOUBLE	
+[ Rows: 1]
+48696.60567759493
+
+
+q3 prep val: 0
+q3 prep took (s): real 0.000306s user 0.000308s sys 0.000000s
+q3 prep took (avg): real 0.000306s user 0.000308s sys 0.000000s
+q3 val: 0
+q3 took (s): real 0.001308s user 0.008405s sys 0.000000s
+q3 val: 0
+q3 took (s): real 0.001234s user 0.008448s sys 0.000000s
+q3 val: 0
+q3 took (s): real 0.001261s user 0.008670s sys 0.000000s
+q3 val: 0
+q3 took (s): real 0.001282s user 0.008797s sys 0.000000s
+q3 val: 0
+q3 took (s): real 0.001356s user 0.008890s sys 0.000000s
+q3 took (avg): real 0.001288s user 0.008642s sys 0.000000s
+sum(("A".v * "V".v))	
+DOUBLE	
+[ Rows: 1]
+46592.89161573493
+
+
+q4 prep val: 0
+q4 prep took (s): real 0.000425s user 0.000426s sys 0.000000s
+q4 prep took (avg): real 0.000425s user 0.000426s sys 0.000000s
+q4 val: 0
+q4 took (s): real 0.001259s user 0.008037s sys 0.000000s
+q4 val: 0
+q4 took (s): real 0.001230s user 0.008335s sys 0.000000s
+q4 val: 0
+q4 took (s): real 0.001131s user 0.008361s sys 0.000000s
+q4 val: 0
+q4 took (s): real 0.001265s user 0.008278s sys 0.000000s
+q4 val: 0
+q4 took (s): real 0.001249s user 0.007828s sys 0.000000s
+q4 took (avg): real 0.001227s user 0.008168s sys 0.000000s
+sum(("A".v * "V".v))	
+DOUBLE	
+[ Rows: 1]
+40372.87346991744
+
+
+q5 prep val: 0
+q5 prep took (s): real 0.000274s user 0.000275s sys 0.000000s
+q5 prep took (avg): real 0.000274s user 0.000275s sys 0.000000s
+q5 val: 0
+q5 took (s): real 0.001127s user 0.007803s sys 0.000000s
+q5 val: 0
+q5 took (s): real 0.001147s user 0.007371s sys 0.000000s
+q5 val: 0
+q5 took (s): real 0.001098s user 0.007243s sys 0.000000s
+q5 val: 0
+q5 took (s): real 0.001091s user 0.007238s sys 0.000000s
+q5 val: 0
+q5 took (s): real 0.001182s user 0.007401s sys 0.000000s
+q5 took (avg): real 0.001129s user 0.007411s sys 0.000000s
+sum(("A".v * "V".v))	
+DOUBLE	
+[ Rows: 1]
+29713.699761788535
+
+
+q6 prep val: 0
+q6 prep took (s): real 0.000271s user 0.000273s sys 0.000000s
+q6 prep took (avg): real 0.000271s user 0.000273s sys 0.000000s
+q6 val: 0
+q6 took (s): real 0.000994s user 0.007000s sys 0.000000s
+q6 val: 0
+q6 took (s): real 0.001005s user 0.007070s sys 0.000000s
+q6 val: 0
+q6 took (s): real 0.000986s user 0.007005s sys 0.000000s
+q6 val: 0
+q6 took (s): real 0.001050s user 0.006687s sys 0.000000s
+q6 val: 0
+q6 took (s): real 0.001076s user 0.006906s sys 0.000000s
+q6 took (avg): real 0.001022s user 0.006934s sys 0.000000s
+sum(("A".v * "V".v))	
+DOUBLE	
+[ Rows: 1]
+16161.06935687099
+
+
+q7 prep val: 0
+q7 prep took (s): real 0.000272s user 0.000274s sys 0.000000s
+q7 prep took (avg): real 0.000272s user 0.000274s sys 0.000000s
+q7 val: 0
+q7 took (s): real 0.000385s user 0.001544s sys 0.000000s
+q7 val: 0
+q7 took (s): real 0.000432s user 0.001417s sys 0.000000s
+q7 val: 0
+q7 took (s): real 0.000372s user 0.001397s sys 0.000000s
+q7 val: 0
+q7 took (s): real 0.000306s user 0.001308s sys 0.000000s
+q7 val: 0
+q7 took (s): real 0.000272s user 0.001178s sys 0.000000s
+q7 took (avg): real 0.000353s user 0.001369s sys 0.000000s
+sum(("A".v * "V".v))	
+DOUBLE	
+[ Rows: 1]
+NULL
+
+

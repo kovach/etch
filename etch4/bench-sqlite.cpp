@@ -178,7 +178,7 @@ int main(int argc, char* argv[]) {
           },
           str_i.c_str(), 1);
 
-      ++query_idx;
     }
+    ++query_idx;
   }
 }

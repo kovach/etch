@@ -1,0 +1,510 @@
+./bench-sqlite <(sed -e 's#data/filtered-spmv.*\.db#data/filtered-spmv-2000000.db#g' bench/filtered-spmv-sqlite-prep.sql) 5:<(sed -e 's#0\.8#0#g' bench/filtered-spmv-sqlite.sql) 5:<(sed -e 's#0\.8#0.2#g' bench/filtered-spmv-sqlite.sql) 5:<(sed -e 's#0\.8#0.4#g' bench/filtered-spmv-sqlite.sql) 5:<(sed -e 's#0\.8#0.6#g' bench/filtered-spmv-sqlite.sql) 5:<(sed -e 's#0\.8#0.8#g' bench/filtered-spmv-sqlite.sql) 5:<(sed -e 's#0\.8#1#g' bench/filtered-spmv-sqlite.sql)
+q1 val: 0
+q1 took (s): real 1.455740s user 1.354443s sys 0.099626s
+q1 took (avg): real 1.455740s user 1.354443s sys 0.099626s
+q2 prep val: 0
+q2 prep took (s): real 0.000019s user 0.000019s sys 0.000001s
+q2 prep took (avg): real 0.000019s user 0.000019s sys 0.000001s
+48696.6056716002
+q2 val: 101
+q2 took (s): real 0.159288s user 0.159100s sys 0.000000s
+48696.6056716002
+q2 val: 101
+q2 took (s): real 0.160034s user 0.159790s sys 0.000000s
+48696.6056716002
+q2 val: 101
+q2 took (s): real 0.159097s user 0.158968s sys 0.000000s
+48696.6056716002
+q2 val: 101
+q2 took (s): real 0.159608s user 0.159402s sys 0.000082s
+48696.6056716002
+q2 val: 101
+q2 took (s): real 0.159022s user 0.158799s sys 0.000000s
+q2 took (avg): real 0.159410s user 0.159212s sys 0.000016s
+q3 prep val: 0
+q3 prep took (s): real 0.000028s user 0.000028s sys 0.000000s
+q3 prep took (avg): real 0.000028s user 0.000028s sys 0.000000s
+46592.8916089126
+q3 val: 101
+q3 took (s): real 0.158143s user 0.158009s sys 0.000000s
+46592.8916089126
+q3 val: 101
+q3 took (s): real 0.157716s user 0.157511s sys 0.000000s
+46592.8916089126
+q3 val: 101
+q3 took (s): real 0.157692s user 0.157531s sys 0.000000s
+46592.8916089126
+q3 val: 101
+q3 took (s): real 0.157583s user 0.157433s sys 0.000000s
+46592.8916089126
+q3 val: 101
+q3 took (s): real 0.157997s user 0.154590s sys 0.003254s
+q3 took (avg): real 0.157826s user 0.157015s sys 0.000651s
+q4 prep val: 0
+q4 prep took (s): real 0.000026s user 0.000026s sys 0.000001s
+q4 prep took (avg): real 0.000026s user 0.000026s sys 0.000001s
+40372.8734591569
+q4 val: 101
+q4 took (s): real 0.155875s user 0.155771s sys 0.000000s
+40372.8734591569
+q4 val: 101
+q4 took (s): real 0.159282s user 0.159036s sys 0.000000s
+40372.8734591569
+q4 val: 101
+q4 took (s): real 0.155441s user 0.155324s sys 0.000022s
+40372.8734591569
+q4 val: 101
+q4 took (s): real 0.158594s user 0.158449s sys 0.000000s
+40372.8734591569
+q4 val: 101
+q4 took (s): real 0.156209s user 0.156066s sys 0.000000s
+q4 took (avg): real 0.157080s user 0.156929s sys 0.000004s
+q5 prep val: 0
+q5 prep took (s): real 0.000024s user 0.000025s sys 0.000000s
+q5 prep took (avg): real 0.000024s user 0.000025s sys 0.000000s
+29713.6997809751
+q5 val: 101
+q5 took (s): real 0.164657s user 0.164468s sys 0.000000s
+29713.6997809751
+q5 val: 101
+q5 took (s): real 0.161459s user 0.161196s sys 0.000026s
+29713.6997809751
+q5 val: 101
+q5 took (s): real 0.163773s user 0.163583s sys 0.000000s
+29713.6997809751
+q5 val: 101
+q5 took (s): real 0.161087s user 0.160962s sys 0.000000s
+29713.6997809751
+q5 val: 101
+q5 took (s): real 0.163486s user 0.163340s sys 0.000000s
+q5 took (avg): real 0.162892s user 0.162710s sys 0.000005s
+q6 prep val: 0
+q6 prep took (s): real 0.000026s user 0.000027s sys 0.000000s
+q6 prep took (avg): real 0.000026s user 0.000027s sys 0.000000s
+16161.069378718
+q6 val: 101
+q6 took (s): real 0.153510s user 0.153302s sys 0.000000s
+16161.069378718
+q6 val: 101
+q6 took (s): real 0.153066s user 0.152950s sys 0.000000s
+16161.069378718
+q6 val: 101
+q6 took (s): real 0.154168s user 0.154022s sys 0.000000s
+16161.069378718
+q6 val: 101
+q6 took (s): real 0.153054s user 0.152939s sys 0.000000s
+16161.069378718
+q6 val: 101
+q6 took (s): real 0.153256s user 0.153108s sys 0.000000s
+q6 took (avg): real 0.153411s user 0.153264s sys 0.000000s
+q7 prep val: 0
+q7 prep took (s): real 0.000027s user 0.000028s sys 0.000000s
+q7 prep took (avg): real 0.000027s user 0.000028s sys 0.000000s
+./bench-sqlite <(sed -e 's#data/filtered-spmv.*\.db#data/filtered-spmv-2000000.db#g' bench/filtered-spmv-sqlite-prep.sql) 5:<(sed -e 's#0\.8#0#g' bench/filtered-spmv-sqlite.sql) 5:<(sed -e 's#0\.8#0.2#g' bench/filtered-spmv-sqlite.sql) 5:<(sed -e 's#0\.8#0.4#g' bench/filtered-spmv-sqlite.sql) 5:<(sed -e 's#0\.8#0.6#g' bench/filtered-spmv-sqlite.sql) 5:<(sed -e 's#0\.8#0.8#g' bench/filtered-spmv-sqlite.sql) 5:<(sed -e 's#0\.8#1#g' bench/filtered-spmv-sqlite.sql)
+q1 val: 0
+q1 took (s): real 1.450844s user 1.393722s sys 0.056462s
+q1 took (avg): real 1.450844s user 1.393722s sys 0.056462s
+q2 prep val: 0
+q2 prep took (s): real 0.000019s user 0.000019s sys 0.000001s
+q2 prep took (avg): real 0.000019s user 0.000019s sys 0.000001s
+48696.6056716002
+q2 val: 101
+q2 took (s): real 0.160942s user 0.160840s sys 0.000000s
+48696.6056716002
+q2 val: 101
+q2 took (s): real 0.160050s user 0.159996s sys 0.000000s
+48696.6056716002
+q2 val: 101
+q2 took (s): real 0.160221s user 0.160168s sys 0.000000s
+48696.6056716002
+q2 val: 101
+q2 took (s): real 0.159925s user 0.159866s sys 0.000000s
+48696.6056716002
+q2 val: 101
+q2 took (s): real 0.160146s user 0.160092s sys 0.000000s
+q2 took (avg): real 0.160257s user 0.160192s sys 0.000000s
+q3 prep val: 0
+q3 prep took (s): real 0.000024s user 0.000025s sys 0.000000s
+q3 prep took (avg): real 0.000024s user 0.000025s sys 0.000000s
+46592.8916089126
+q3 val: 101
+q3 took (s): real 0.158324s user 0.158268s sys 0.000000s
+46592.8916089126
+q3 val: 101
+q3 took (s): real 0.157773s user 0.157719s sys 0.000000s
+46592.8916089126
+q3 val: 101
+q3 took (s): real 0.158050s user 0.157988s sys 0.000000s
+46592.8916089126
+q3 val: 101
+q3 took (s): real 0.158786s user 0.158726s sys 0.000000s
+46592.8916089126
+q3 val: 101
+q3 took (s): real 0.158302s user 0.158250s sys 0.000000s
+q3 took (avg): real 0.158247s user 0.158190s sys 0.000000s
+q4 prep val: 0
+q4 prep took (s): real 0.000024s user 0.000025s sys 0.000000s
+q4 prep took (avg): real 0.000024s user 0.000025s sys 0.000000s
+40372.8734591569
+q4 val: 101
+q4 took (s): real 0.156758s user 0.156701s sys 0.000000s
+40372.8734591569
+q4 val: 101
+q4 took (s): real 0.159042s user 0.158989s sys 0.000000s
+40372.8734591569
+q4 val: 101
+q4 took (s): real 0.155601s user 0.155548s sys 0.000000s
+40372.8734591569
+q4 val: 101
+q4 took (s): real 0.159069s user 0.159018s sys 0.000000s
+40372.8734591569
+q4 val: 101
+q4 took (s): real 0.156253s user 0.156200s sys 0.000000s
+q4 took (avg): real 0.157345s user 0.157291s sys 0.000000s
+q5 prep val: 0
+q5 prep took (s): real 0.000024s user 0.000025s sys 0.000000s
+q5 prep took (avg): real 0.000024s user 0.000025s sys 0.000000s
+29713.6997809751
+q5 val: 101
+q5 took (s): real 0.158242s user 0.158184s sys 0.000000s
+29713.6997809751
+q5 val: 101
+q5 took (s): real 0.154165s user 0.154114s sys 0.000000s
+29713.6997809751
+q5 val: 101
+q5 took (s): real 0.157554s user 0.157500s sys 0.000000s
+29713.6997809751
+q5 val: 101
+q5 took (s): real 0.154082s user 0.154028s sys 0.000000s
+29713.6997809751
+q5 val: 101
+q5 took (s): real 0.157351s user 0.157298s sys 0.000000s
+q5 took (avg): real 0.156279s user 0.156225s sys 0.000000s
+q6 prep val: 0
+q6 prep took (s): real 0.000026s user 0.000027s sys 0.000000s
+q6 prep took (avg): real 0.000026s user 0.000027s sys 0.000000s
+16161.069378718
+q6 val: 101
+q6 took (s): real 0.153567s user 0.153513s sys 0.000000s
+16161.069378718
+q6 val: 101
+q6 took (s): real 0.153597s user 0.153546s sys 0.000000s
+16161.069378718
+q6 val: 101
+q6 took (s): real 0.153953s user 0.153896s sys 0.000000s
+16161.069378718
+q6 val: 101
+q6 took (s): real 0.153446s user 0.153395s sys 0.000000s
+16161.069378718
+q6 val: 101
+q6 took (s): real 0.153517s user 0.153465s sys 0.000000s
+q6 took (avg): real 0.153616s user 0.153563s sys 0.000000s
+q7 prep val: 0
+q7 prep took (s): real 0.000026s user 0.000027s sys 0.000000s
+q7 prep took (avg): real 0.000026s user 0.000027s sys 0.000000s
+./bench-sqlite <(sed -e 's#data/filtered-spmv.*\.db#data/filtered-spmv-2000000.db#g' bench/filtered-spmv-sqlite-prep.sql) 5:<(sed -e 's#0\.8#0#g' bench/filtered-spmv-sqlite.sql) 5:<(sed -e 's#0\.8#0.2#g' bench/filtered-spmv-sqlite.sql) 5:<(sed -e 's#0\.8#0.4#g' bench/filtered-spmv-sqlite.sql) 5:<(sed -e 's#0\.8#0.6#g' bench/filtered-spmv-sqlite.sql) 5:<(sed -e 's#0\.8#0.8#g' bench/filtered-spmv-sqlite.sql) 5:<(sed -e 's#0\.8#1#g' bench/filtered-spmv-sqlite.sql)
+q1 val: 0
+q1 took (s): real 1.457350s user 1.385270s sys 0.071420s
+q1 took (avg): real 1.457350s user 1.385270s sys 0.071420s
+q2 prep val: 0
+q2 prep took (s): real 0.000017s user 0.000017s sys 0.000001s
+q2 prep took (avg): real 0.000017s user 0.000017s sys 0.000001s
+48696.6056716002
+q2 val: 101
+q2 took (s): real 0.159419s user 0.159336s sys 0.000000s
+48696.6056716002
+q2 val: 101
+q2 took (s): real 0.159701s user 0.159647s sys 0.000000s
+48696.6056716002
+q2 val: 101
+q2 took (s): real 0.159078s user 0.158935s sys 0.000087s
+48696.6056716002
+q2 val: 101
+q2 took (s): real 0.159397s user 0.159345s sys 0.000000s
+48696.6056716002
+q2 val: 101
+q2 took (s): real 0.158715s user 0.158663s sys 0.000000s
+q2 took (avg): real 0.159262s user 0.159185s sys 0.000017s
+q3 prep val: 0
+q3 prep took (s): real 0.000022s user 0.000023s sys 0.000000s
+q3 prep took (avg): real 0.000022s user 0.000023s sys 0.000000s
+46592.8916089126
+q3 val: 101
+q3 took (s): real 0.158262s user 0.158202s sys 0.000000s
+46592.8916089126
+q3 val: 101
+q3 took (s): real 0.157647s user 0.157596s sys 0.000000s
+46592.8916089126
+q3 val: 101
+q3 took (s): real 0.158121s user 0.158069s sys 0.000000s
+46592.8916089126
+q3 val: 101
+q3 took (s): real 0.157502s user 0.157440s sys 0.000003s
+46592.8916089126
+q3 val: 101
+q3 took (s): real 0.158446s user 0.158392s sys 0.000000s
+q3 took (avg): real 0.157996s user 0.157940s sys 0.000001s
+q4 prep val: 0
+q4 prep took (s): real 0.000024s user 0.000024s sys 0.000000s
+q4 prep took (avg): real 0.000024s user 0.000024s sys 0.000000s
+40372.8734591569
+q4 val: 101
+q4 took (s): real 0.155788s user 0.155734s sys 0.000000s
+40372.8734591569
+q4 val: 101
+q4 took (s): real 0.158898s user 0.158845s sys 0.000001s
+40372.8734591569
+q4 val: 101
+q4 took (s): real 0.155631s user 0.155580s sys 0.000000s
+40372.8734591569
+q4 val: 101
+q4 took (s): real 0.158543s user 0.158481s sys 0.000000s
+40372.8734591569
+q4 val: 101
+q4 took (s): real 0.155993s user 0.155936s sys 0.000006s
+q4 took (avg): real 0.156971s user 0.156915s sys 0.000001s
+q5 prep val: 0
+q5 prep took (s): real 0.000025s user 0.000026s sys 0.000001s
+q5 prep took (avg): real 0.000025s user 0.000026s sys 0.000001s
+29713.6997809751
+q5 val: 101
+q5 took (s): real 0.157602s user 0.157541s sys 0.000000s
+29713.6997809751
+q5 val: 101
+q5 took (s): real 0.154304s user 0.154255s sys 0.000000s
+29713.6997809751
+q5 val: 101
+q5 took (s): real 0.157026s user 0.156976s sys 0.000000s
+29713.6997809751
+q5 val: 101
+q5 took (s): real 0.154115s user 0.154065s sys 0.000000s
+29713.6997809751
+q5 val: 101
+q5 took (s): real 0.157532s user 0.157476s sys 0.000000s
+q5 took (avg): real 0.156116s user 0.156063s sys 0.000000s
+q6 prep val: 0
+q6 prep took (s): real 0.000024s user 0.000026s sys 0.000000s
+q6 prep took (avg): real 0.000024s user 0.000026s sys 0.000000s
+16161.069378718
+q6 val: 101
+q6 took (s): real 0.153042s user 0.152981s sys 0.000009s
+16161.069378718
+q6 val: 101
+q6 took (s): real 0.154578s user 0.154524s sys 0.000000s
+16161.069378718
+q6 val: 101
+q6 took (s): real 0.153326s user 0.153275s sys 0.000000s
+16161.069378718
+q6 val: 101
+q6 took (s): real 0.153599s user 0.153549s sys 0.000000s
+16161.069378718
+q6 val: 101
+q6 took (s): real 0.153166s user 0.153116s sys 0.000000s
+q6 took (avg): real 0.153542s user 0.153489s sys 0.000002s
+q7 prep val: 0
+q7 prep took (s): real 0.000026s user 0.000026s sys 0.000000s
+q7 prep took (avg): real 0.000026s user 0.000026s sys 0.000000s
+./bench-sqlite <(sed -e 's#data/filtered-spmv.*\.db#data/filtered-spmv-2000000.db#g' bench/filtered-spmv-sqlite-prep.sql) 5:<(sed -e 's#0\.8#0#g' bench/filtered-spmv-sqlite.sql) 5:<(sed -e 's#0\.8#0.2#g' bench/filtered-spmv-sqlite.sql) 5:<(sed -e 's#0\.8#0.4#g' bench/filtered-spmv-sqlite.sql) 5:<(sed -e 's#0\.8#0.6#g' bench/filtered-spmv-sqlite.sql) 5:<(sed -e 's#0\.8#0.8#g' bench/filtered-spmv-sqlite.sql) 5:<(sed -e 's#0\.8#1#g' bench/filtered-spmv-sqlite.sql)
+q1 val: 0
+q1 took (s): real 1.452490s user 1.371910s sys 0.079928s
+q1 took (avg): real 1.452490s user 1.371910s sys 0.079928s
+q2 prep val: 0
+q2 prep took (s): real 0.000020s user 0.000020s sys 0.000001s
+q2 prep took (avg): real 0.000020s user 0.000020s sys 0.000001s
+48696.6056716002
+q2 val: 101
+q2 took (s): real 0.164943s user 0.164863s sys 0.000000s
+48696.6056716002
+q2 val: 101
+q2 took (s): real 0.164611s user 0.164553s sys 0.000000s
+48696.6056716002
+q2 val: 101
+q2 took (s): real 0.165316s user 0.165257s sys 0.000000s
+48696.6056716002
+q2 val: 101
+q2 took (s): real 0.164281s user 0.164224s sys 0.000000s
+48696.6056716002
+q2 val: 101
+q2 took (s): real 0.164136s user 0.164072s sys 0.000010s
+q2 took (avg): real 0.164657s user 0.164594s sys 0.000002s
+q3 prep val: 0
+q3 prep took (s): real 0.000025s user 0.000026s sys 0.000001s
+q3 prep took (avg): real 0.000025s user 0.000026s sys 0.000001s
+46592.8916089126
+q3 val: 101
+q3 took (s): real 0.163564s user 0.163491s sys 0.000008s
+46592.8916089126
+q3 val: 101
+q3 took (s): real 0.163488s user 0.163428s sys 0.000005s
+46592.8916089126
+q3 val: 101
+q3 took (s): real 0.162901s user 0.162841s sys 0.000000s
+46592.8916089126
+q3 val: 101
+q3 took (s): real 0.162951s user 0.162895s sys 0.000000s
+46592.8916089126
+q3 val: 101
+q3 took (s): real 0.162675s user 0.162621s sys 0.000000s
+q3 took (avg): real 0.163116s user 0.163055s sys 0.000003s
+q4 prep val: 0
+q4 prep took (s): real 0.000026s user 0.000026s sys 0.000000s
+q4 prep took (avg): real 0.000026s user 0.000026s sys 0.000000s
+40372.8734591569
+q4 val: 101
+q4 took (s): real 0.160944s user 0.160884s sys 0.000000s
+40372.8734591569
+q4 val: 101
+q4 took (s): real 0.161901s user 0.161846s sys 0.000000s
+40372.8734591569
+q4 val: 101
+q4 took (s): real 0.160789s user 0.160735s sys 0.000000s
+40372.8734591569
+q4 val: 101
+q4 took (s): real 0.161660s user 0.161600s sys 0.000000s
+40372.8734591569
+q4 val: 101
+q4 took (s): real 0.161022s user 0.160969s sys 0.000000s
+q4 took (avg): real 0.161263s user 0.161207s sys 0.000000s
+q5 prep val: 0
+q5 prep took (s): real 0.000027s user 0.000028s sys 0.000000s
+q5 prep took (avg): real 0.000027s user 0.000028s sys 0.000000s
+29713.6997809751
+q5 val: 101
+q5 took (s): real 0.160309s user 0.160253s sys 0.000000s
+29713.6997809751
+q5 val: 101
+q5 took (s): real 0.158846s user 0.158793s sys 0.000000s
+29713.6997809751
+q5 val: 101
+q5 took (s): real 0.160278s user 0.160224s sys 0.000000s
+29713.6997809751
+q5 val: 101
+q5 took (s): real 0.158839s user 0.158779s sys 0.000001s
+29713.6997809751
+q5 val: 101
+q5 took (s): real 0.160437s user 0.160382s sys 0.000000s
+q5 took (avg): real 0.159742s user 0.159686s sys 0.000000s
+q6 prep val: 0
+q6 prep took (s): real 0.000026s user 0.000027s sys 0.000000s
+q6 prep took (avg): real 0.000026s user 0.000027s sys 0.000000s
+16161.069378718
+q6 val: 101
+q6 took (s): real 0.158069s user 0.158014s sys 0.000000s
+16161.069378718
+q6 val: 101
+q6 took (s): real 0.157615s user 0.157564s sys 0.000000s
+16161.069378718
+q6 val: 101
+q6 took (s): real 0.157791s user 0.157737s sys 0.000000s
+16161.069378718
+q6 val: 101
+q6 took (s): real 0.157393s user 0.157334s sys 0.000000s
+16161.069378718
+q6 val: 101
+q6 took (s): real 0.157528s user 0.157476s sys 0.000000s
+q6 took (avg): real 0.157679s user 0.157625s sys 0.000000s
+q7 prep val: 0
+q7 prep took (s): real 0.000027s user 0.000027s sys 0.000000s
+q7 prep took (avg): real 0.000027s user 0.000027s sys 0.000000s
+./bench-sqlite <(sed -e 's#data/filtered-spmv.*\.db#data/filtered-spmv-2000000.db#g' bench/filtered-spmv-sqlite-prep.sql) 5:<(sed -e 's#0\.8#0#g' bench/filtered-spmv-sqlite.sql) 5:<(sed -e 's#0\.8#0.2#g' bench/filtered-spmv-sqlite.sql) 5:<(sed -e 's#0\.8#0.4#g' bench/filtered-spmv-sqlite.sql) 5:<(sed -e 's#0\.8#0.6#g' bench/filtered-spmv-sqlite.sql) 5:<(sed -e 's#0\.8#0.8#g' bench/filtered-spmv-sqlite.sql) 5:<(sed -e 's#0\.8#1#g' bench/filtered-spmv-sqlite.sql)
+q1 val: 0
+q1 took (s): real 1.448596s user 1.361163s sys 0.086755s
+q1 took (avg): real 1.448596s user 1.361163s sys 0.086755s
+q2 prep val: 0
+q2 prep took (s): real 0.000047s user 0.000045s sys 0.000002s
+q2 prep took (avg): real 0.000047s user 0.000045s sys 0.000002s
+48696.6056716002
+q2 val: 101
+q2 took (s): real 0.160996s user 0.160897s sys 0.000000s
+48696.6056716002
+q2 val: 101
+q2 took (s): real 0.159973s user 0.159921s sys 0.000000s
+48696.6056716002
+q2 val: 101
+q2 took (s): real 0.159197s user 0.159146s sys 0.000000s
+48696.6056716002
+q2 val: 101
+q2 took (s): real 0.159556s user 0.159496s sys 0.000000s
+48696.6056716002
+q2 val: 101
+q2 took (s): real 0.158812s user 0.158761s sys 0.000000s
+q2 took (avg): real 0.159707s user 0.159644s sys 0.000000s
+q3 prep val: 0
+q3 prep took (s): real 0.000023s user 0.000024s sys 0.000000s
+q3 prep took (avg): real 0.000023s user 0.000024s sys 0.000000s
+46592.8916089126
+q3 val: 101
+q3 took (s): real 0.158910s user 0.158849s sys 0.000000s
+46592.8916089126
+q3 val: 101
+q3 took (s): real 0.158164s user 0.158108s sys 0.000000s
+46592.8916089126
+q3 val: 101
+q3 took (s): real 0.158730s user 0.158674s sys 0.000000s
+46592.8916089126
+q3 val: 101
+q3 took (s): real 0.157879s user 0.157828s sys 0.000000s
+46592.8916089126
+q3 val: 101
+q3 took (s): real 0.158211s user 0.158155s sys 0.000000s
+q3 took (avg): real 0.158379s user 0.158323s sys 0.000000s
+q4 prep val: 0
+q4 prep took (s): real 0.000024s user 0.000025s sys 0.000000s
+q4 prep took (avg): real 0.000024s user 0.000025s sys 0.000000s
+40372.8734591569
+q4 val: 101
+q4 took (s): real 0.157297s user 0.157229s sys 0.000000s
+40372.8734591569
+q4 val: 101
+q4 took (s): real 0.159863s user 0.159807s sys 0.000000s
+40372.8734591569
+q4 val: 101
+q4 took (s): real 0.156686s user 0.156606s sys 0.000000s
+40372.8734591569
+q4 val: 101
+q4 took (s): real 0.159750s user 0.159697s sys 0.000000s
+40372.8734591569
+q4 val: 101
+q4 took (s): real 0.156100s user 0.156052s sys 0.000000s
+q4 took (avg): real 0.157939s user 0.157878s sys 0.000000s
+q5 prep val: 0
+q5 prep took (s): real 0.000026s user 0.000026s sys 0.000000s
+q5 prep took (avg): real 0.000026s user 0.000026s sys 0.000000s
+29713.6997809751
+q5 val: 101
+q5 took (s): real 0.157832s user 0.157775s sys 0.000000s
+29713.6997809751
+q5 val: 101
+q5 took (s): real 0.154932s user 0.154869s sys 0.000000s
+29713.6997809751
+q5 val: 101
+q5 took (s): real 0.158172s user 0.158118s sys 0.000000s
+29713.6997809751
+q5 val: 101
+q5 took (s): real 0.154654s user 0.154599s sys 0.000000s
+29713.6997809751
+q5 val: 101
+q5 took (s): real 0.158152s user 0.158096s sys 0.000000s
+q5 took (avg): real 0.156748s user 0.156691s sys 0.000000s
+q6 prep val: 0
+q6 prep took (s): real 0.000026s user 0.000027s sys 0.000000s
+q6 prep took (avg): real 0.000026s user 0.000027s sys 0.000000s
+16161.069378718
+q6 val: 101
+q6 took (s): real 0.153861s user 0.153808s sys 0.000000s
+16161.069378718
+q6 val: 101
+q6 took (s): real 0.153783s user 0.153734s sys 0.000000s
+16161.069378718
+q6 val: 101
+q6 took (s): real 0.154080s user 0.154003s sys 0.000000s
+16161.069378718
+q6 val: 101
+q6 took (s): real 0.154138s user 0.154086s sys 0.000000s
+16161.069378718
+q6 val: 101
+q6 took (s): real 0.154143s user 0.154092s sys 0.000000s
+q6 took (avg): real 0.154001s user 0.153945s sys 0.000000s
+q7 prep val: 0
+q7 prep took (s): real 0.000026s user 0.000026s sys 0.000000s
+q7 prep took (avg): real 0.000026s user 0.000026s sys 0.000000s
