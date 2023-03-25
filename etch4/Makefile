@@ -48,7 +48,7 @@ SQLITE3 ?= sqlite3/shell
 # Delete partial output files if make failed (e.g., if checksum did not match).
 .DELETE_ON_ERROR:
 
-ALL_BENCH := bench-tpch-q5 bench-tpch-q9 bench-wcoj bench-taco bench-matmul
+ALL_BENCH := bench-tpch-q5 bench-tpch-q9 bench-wcoj bench-taco bench-matmul bench-filtered-spmv
 
 .PHONY: all
 all: $(ALL_BENCH)
@@ -57,6 +57,7 @@ bench-tpch-q5: bench-tpch-q5.cpp gen_tpch_q5.c
 bench-tpch-q9: bench-tpch-q9.cpp gen_tpch_q9.c
 bench-wcoj: bench-wcoj.cpp gen_wcoj.c
 bench-taco: bench-taco.cpp gen_taco.c decls.c taco_kernels.c
+bench-filtered-spmv: bench-filtered-spmv.cpp gen_filtered_spmv.c
 bench-matmul: bench-matmul.cpp gen_matmul.c
 
 $(ALL_BENCH):
@@ -66,9 +67,9 @@ $(ALL_BENCH): LDLIBS += $(SQLITE_LDLIBS)
 $(ALL_BENCH): sqlite3.o sqlite3.h common.h operators.h
 
 ifdef FORCE_REGEN
-.PHONY: gen_matmul.c gen_tpch_q5.c gen_tpch_q9.c gen_wcoj.c gen_taco.c
+.PHONY: gen_filtered_spmv.c gen_matmul.c gen_tpch_q5.c gen_tpch_q9.c gen_wcoj.c gen_taco.c
 endif
-gen_matmul.c gen_tpch_q5.c gen_tpch_q9.c gen_wcoj.c gen_taco.c &:
+gen_filtered_spmv.c gen_matmul.c gen_tpch_q5.c gen_tpch_q9.c gen_wcoj.c gen_taco.c &:
 	lake update
 	lake exe bench
 
@@ -151,6 +152,18 @@ TPC-H-x2.db:
 TPC-H-x4.db:
 	@echo 'Download this file at https://drive.google.com/file/d/14aM_1IY7ACLOzRtS1LKpRYGweDXZZF0M/view?usp=sharing' && false
 	@#echo '9530ea95daecc3c8e411f9a7eb8a78ece3aaaae4b285729e45253283ea091f36 $@' | sha256sum -c
+
+define FILTERED_SPMV_TEMPLATE
+data/filtered-spmv-$(1).db: bench/filtered-spmv-datagen.py
+	mkdir -p data
+	python3 $$< $$@ $$(shell bc -l <<< '$(1)/(10000*10000)') 0.1 $(1)
+
+run-filtered-spmv-$(1): bench-filtered-spmv data/filtered-spmv-$(1).db
+	./bench-filtered-spmv data/filtered-spmv-$(1).db
+
+endef
+
+$(foreach nonzeros,2000000,$(eval $(call FILTERED_SPMV_TEMPLATE,$(nonzeros))))
 
 define MATMUL_TEMPLATE
 data/matmul-$(1).db: bench/matmul-datagen.py

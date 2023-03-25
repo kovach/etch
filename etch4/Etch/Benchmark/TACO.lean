@@ -159,9 +159,9 @@ def udf       := ∑ i, j: ((λ _ : E R => 1) <$$> dsR) * (S.udf : i ↠ₛ j �
 def add_ss    := ∑ i, j: ((ssA' + ssB') : i ↠ₛ j ↠ₛ E R)
 def inner     := ∑ i, j: ssA * ssB_ij
 
-def threshold : E R := "threshold"
-def filter_v    : i ↠ₛ E R := S.valFilter (λ e => threshold << (e : E R)) sV
-def filter_spmv := ∑ i, j: filter_v * ssA
+def threshold : Var R := "threshold"
+def filter_v    : i ↠ₛ E R := S.valFilter (fun e => threshold.expr << (e : E R)) sV
+def filterSpMV := ∑ i, j: filter_v * ssA
 
 def funcs : List (String × String) :=
   Loading.funcs ++
@@ -178,5 +178,10 @@ def funcsMatmul : List (String × String) :=
     let fn := "gen_ssB_callback"; ⟨fn, compileSqliteCb fn [go Loading.l_ssB Loading.sqlCallback2]⟩,
     let fn := "mul_inner";        ⟨fn, compileFun R fn mulInner⟩,
     let fn := "mul_rowcb";        ⟨fn, compileFun R fn mulRowcb⟩ ]
+
+def funcsFilterSpMV : List (String × String) :=
+  [ let fn := "gen_ssA_callback"; ⟨fn, compileSqliteCb fn [go Loading.l_ssA Loading.sqlCallback2]⟩,
+    let fn := "gen_sV_callback";  ⟨fn, compileSqliteCb fn [go Loading.l_sV  Loading.sqlCallback]⟩,
+    let fn := "filter_spmv";      ⟨fn, compileFun R fn filterSpMV [.mk threshold]⟩ ]
 
 end Etch.Benchmark.TACO

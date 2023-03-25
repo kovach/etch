@@ -17,6 +17,7 @@ private def files : List (String × List (String × String)) := [
   ("old_sql", OldSQL.funcs),
   ("taco",    TACO.funcs),
   ("matmul",  TACO.funcsMatmul),
+  ("filtered_spmv",  TACO.funcsFilterSpMV),
   ("tpch_q5", TPCHq5.funcs),
   ("tpch_q9", TPCHq9.funcs),
   ("wcoj",    WCOJ.funcs) ]
