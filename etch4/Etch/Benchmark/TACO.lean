@@ -1,3 +1,4 @@
+import Etch.Basic
 import Etch.Benchmark.Basic
 import Etch.Benchmark.SQL
 import Etch.LVal
@@ -42,8 +43,8 @@ end funs
 section
 
 variable {ι : Type} [Tagged ι] [DecidableEq ι]
-[LT ι] [@DecidableRel ι LT.lt]
-[LE ι] [@DecidableRel ι LE.le]
+[LT ι] [DecidableLT ι]
+[LE ι] [DecidableLE ι]
 (is : ArrayVar ι)
 
 -- todo: replace default interval
@@ -117,7 +118,7 @@ def dVec   (f : String) : ℕ →ₐ E R := range & S.leaf (f ++ "_vals")
 def mat    (f : String) : ℕ →ₛ ℕ →ₛ E R := (csr.of f 1).level .step 0 & S.level .step (csr.of f 2) ⊚ S.leaf (f ++ "_vals")
 def taco_mat (f : String) : ℕ →ₛ ℕ →ₛ E R := (csr.of f 1).level' 0 & TACO.level (csr.of f 2) ⊚ S.leaf (f ++ "_vals")
 --def taco_mat (f : String) : ℕ →ₜ ℕ →ₜ E R := (csr.of f 1).level' 0 & TACO.level (csr.of f 2) ⊚ S.leaf (f ++ "_vals")
-def skip_mat   (f : String) : ℕ →ₛ ℕ →ₛ E R := (csr.of f 1).level .search 0 & S.level .step (csr.of f 2) ⊚ S.leaf (f ++ "_vals")
+def skip_mat   (f : String) : ℕ →ₛ ℕ →ₛ E R := (csr.of f 1).level .binarySearch 0 & S.level .step (csr.of f 2) ⊚ S.leaf (f ++ "_vals")
 def mat3  (f : String) : ℕ →ₛ ℕ →ₛ ℕ →ₛ E R := (csr.of f 1).level .step 0 & S.level .step (csr.of f 2) ⊚ S.level .step (csr.of f 3) ⊚ S.leaf (f ++ "_vals")
 def taco_mat3  (f : String) : ℕ →ₛ ℕ →ₛ ℕ →ₛ E R := (csr.of f 1).level' 0 & TACO.level (csr.of f 2) ⊚ TACO.level (csr.of f 3) ⊚ S.leaf (f ++ "_vals")
 def dsMat (f : String) : ℕ →ₐ ℕ →ₛ E R := range & S.level .step (csr.of f 2) ⊚ S.leaf (f ++ "_vals")

@@ -1,5 +1,4 @@
-ln -sf TPC-H-x4.db TPC-H.db
-./out
+./bench-tpch-q5 data/TPC-H-x4.db
 tpch_lineitem_out: 23996604
 tpch_lineitem1_crd: 6000000
 tpch_lineitem2_pos: 6000001
@@ -20,9 +19,9 @@ tpch_nation2_crd: 25
 tpch_nation3_crd: 25
 tpch_region2_pos: 6
 tpch_region2_crd: 5
-populate_tpch val: 0
-populate_tpch took (s): real 23.413101s user 22.224710s sys 1.176127s
-populate_tpch took (avg): real 23.413101s user 22.224710s sys 1.176127s
+populate_tpch_q5 val: 0
+populate_tpch_q5 took (s): real 23.531266s user 22.354942s sys 1.162649s
+populate_tpch_q5 took (avg): real 23.531266s user 22.354942s sys 1.162649s
 Loaded
 q5 val: ARGENTINA: 0.000000
 MOZAMBIQUE: 0.000000
@@ -50,7 +49,7 @@ JORDAN: 0.000000
 ETHIOPIA: 0.000000
 EGYPT: 0.000000
 
-q5 took (s): real 0.143805s user 0.143703s sys 0.000023s
+q5 took (s): real 0.133353s user 0.133184s sys 0.000002s
 q5 val: ARGENTINA: 0.000000
 MOZAMBIQUE: 0.000000
 IRAQ: 0.000000
@@ -77,7 +76,7 @@ JORDAN: 0.000000
 ETHIOPIA: 0.000000
 EGYPT: 0.000000
 
-q5 took (s): real 0.141494s user 0.141396s sys 0.000000s
+q5 took (s): real 0.130820s user 0.130576s sys 0.000040s
 q5 val: ARGENTINA: 0.000000
 MOZAMBIQUE: 0.000000
 IRAQ: 0.000000
@@ -104,7 +103,7 @@ JORDAN: 0.000000
 ETHIOPIA: 0.000000
 EGYPT: 0.000000
 
-q5 took (s): real 0.141249s user 0.141172s sys 0.000000s
+q5 took (s): real 0.130815s user 0.127317s sys 0.003365s
 q5 val: ARGENTINA: 0.000000
 MOZAMBIQUE: 0.000000
 IRAQ: 0.000000
@@ -131,7 +130,7 @@ JORDAN: 0.000000
 ETHIOPIA: 0.000000
 EGYPT: 0.000000
 
-q5 took (s): real 0.141159s user 0.141060s sys 0.000000s
+q5 took (s): real 0.131212s user 0.131049s sys 0.000000s
 q5 val: ARGENTINA: 0.000000
 MOZAMBIQUE: 0.000000
 IRAQ: 0.000000
@@ -158,11 +157,9 @@ JORDAN: 0.000000
 ETHIOPIA: 0.000000
 EGYPT: 0.000000
 
-q5 took (s): real 0.141124s user 0.141054s sys 0.000000s
-q5 took (avg): real 0.141766s user 0.141677s sys 0.000005s
-rm TPC-H.db
-ln -sf TPC-H-x4.db TPC-H.db
-./out
+q5 took (s): real 0.130814s user 0.130670s sys 0.000000s
+q5 took (avg): real 0.131403s user 0.130559s sys 0.000681s
+./bench-tpch-q5 data/TPC-H-x4.db
 tpch_lineitem_out: 23996604
 tpch_lineitem1_crd: 6000000
 tpch_lineitem2_pos: 6000001
@@ -183,9 +180,9 @@ tpch_nation2_crd: 25
 tpch_nation3_crd: 25
 tpch_region2_pos: 6
 tpch_region2_crd: 5
-populate_tpch val: 0
-populate_tpch took (s): real 23.413974s user 22.372303s sys 1.029369s
-populate_tpch took (avg): real 23.413974s user 22.372303s sys 1.029369s
+populate_tpch_q5 val: 0
+populate_tpch_q5 took (s): real 23.829683s user 22.646085s sys 1.172149s
+populate_tpch_q5 took (avg): real 23.829683s user 22.646085s sys 1.172149s
 Loaded
 q5 val: ARGENTINA: 0.000000
 MOZAMBIQUE: 0.000000
@@ -213,7 +210,7 @@ JORDAN: 0.000000
 ETHIOPIA: 0.000000
 EGYPT: 0.000000
 
-q5 took (s): real 0.143098s user 0.143002s sys 0.000000s
+q5 took (s): real 0.128411s user 0.128342s sys 0.000000s
 q5 val: ARGENTINA: 0.000000
 MOZAMBIQUE: 0.000000
 IRAQ: 0.000000
@@ -240,7 +237,7 @@ JORDAN: 0.000000
 ETHIOPIA: 0.000000
 EGYPT: 0.000000
 
-q5 took (s): real 0.140545s user 0.140425s sys 0.000015s
+q5 took (s): real 0.125953s user 0.125886s sys 0.000000s
 q5 val: ARGENTINA: 0.000000
 MOZAMBIQUE: 0.000000
 IRAQ: 0.000000
@@ -267,7 +264,7 @@ JORDAN: 0.000000
 ETHIOPIA: 0.000000
 EGYPT: 0.000000
 
-q5 took (s): real 0.141347s user 0.141179s sys 0.000058s
+q5 took (s): real 0.125880s user 0.125813s sys 0.000000s
 q5 val: ARGENTINA: 0.000000
 MOZAMBIQUE: 0.000000
 IRAQ: 0.000000
@@ -294,7 +291,7 @@ JORDAN: 0.000000
 ETHIOPIA: 0.000000
 EGYPT: 0.000000
 
-q5 took (s): real 0.140555s user 0.140471s sys 0.000000s
+q5 took (s): real 0.126428s user 0.126367s sys 0.000000s
 q5 val: ARGENTINA: 0.000000
 MOZAMBIQUE: 0.000000
 IRAQ: 0.000000
@@ -321,11 +318,9 @@ JORDAN: 0.000000
 ETHIOPIA: 0.000000
 EGYPT: 0.000000
 
-q5 took (s): real 0.140866s user 0.140790s sys 0.000000s
-q5 took (avg): real 0.141282s user 0.141173s sys 0.000015s
-rm TPC-H.db
-ln -sf TPC-H-x4.db TPC-H.db
-./out
+q5 took (s): real 0.126228s user 0.126167s sys 0.000000s
+q5 took (avg): real 0.126580s user 0.126515s sys 0.000000s
+./bench-tpch-q5 data/TPC-H-x4.db
 tpch_lineitem_out: 23996604
 tpch_lineitem1_crd: 6000000
 tpch_lineitem2_pos: 6000001
@@ -346,9 +341,9 @@ tpch_nation2_crd: 25
 tpch_nation3_crd: 25
 tpch_region2_pos: 6
 tpch_region2_crd: 5
-populate_tpch val: 0
-populate_tpch took (s): real 23.414963s user 22.296536s sys 1.106047s
-populate_tpch took (avg): real 23.414963s user 22.296536s sys 1.106047s
+populate_tpch_q5 val: 0
+populate_tpch_q5 took (s): real 23.479139s user 22.311937s sys 1.156176s
+populate_tpch_q5 took (avg): real 23.479139s user 22.311937s sys 1.156176s
 Loaded
 q5 val: ARGENTINA: 0.000000
 MOZAMBIQUE: 0.000000
@@ -376,7 +371,7 @@ JORDAN: 0.000000
 ETHIOPIA: 0.000000
 EGYPT: 0.000000
 
-q5 took (s): real 0.143343s user 0.143213s sys 0.000000s
+q5 took (s): real 0.129168s user 0.129100s sys 0.000000s
 q5 val: ARGENTINA: 0.000000
 MOZAMBIQUE: 0.000000
 IRAQ: 0.000000
@@ -403,7 +398,7 @@ JORDAN: 0.000000
 ETHIOPIA: 0.000000
 EGYPT: 0.000000
 
-q5 took (s): real 0.140888s user 0.140743s sys 0.000042s
+q5 took (s): real 0.126710s user 0.126645s sys 0.000000s
 q5 val: ARGENTINA: 0.000000
 MOZAMBIQUE: 0.000000
 IRAQ: 0.000000
@@ -430,7 +425,7 @@ JORDAN: 0.000000
 ETHIOPIA: 0.000000
 EGYPT: 0.000000
 
-q5 took (s): real 0.141355s user 0.141257s sys 0.000000s
+q5 took (s): real 0.127412s user 0.127346s sys 0.000002s
 q5 val: ARGENTINA: 0.000000
 MOZAMBIQUE: 0.000000
 IRAQ: 0.000000
@@ -457,7 +452,7 @@ JORDAN: 0.000000
 ETHIOPIA: 0.000000
 EGYPT: 0.000000
 
-q5 took (s): real 0.140777s user 0.140706s sys 0.000000s
+q5 took (s): real 0.126893s user 0.126830s sys 0.000000s
 q5 val: ARGENTINA: 0.000000
 MOZAMBIQUE: 0.000000
 IRAQ: 0.000000
@@ -484,11 +479,9 @@ JORDAN: 0.000000
 ETHIOPIA: 0.000000
 EGYPT: 0.000000
 
-q5 took (s): real 0.141000s user 0.140929s sys 0.000000s
-q5 took (avg): real 0.141472s user 0.141370s sys 0.000008s
-rm TPC-H.db
-ln -sf TPC-H-x4.db TPC-H.db
-./out
+q5 took (s): real 0.127066s user 0.127004s sys 0.000000s
+q5 took (avg): real 0.127450s user 0.127385s sys 0.000000s
+./bench-tpch-q5 data/TPC-H-x4.db
 tpch_lineitem_out: 23996604
 tpch_lineitem1_crd: 6000000
 tpch_lineitem2_pos: 6000001
@@ -509,9 +502,9 @@ tpch_nation2_crd: 25
 tpch_nation3_crd: 25
 tpch_region2_pos: 6
 tpch_region2_crd: 5
-populate_tpch val: 0
-populate_tpch took (s): real 23.361932s user 22.217156s sys 1.132934s
-populate_tpch took (avg): real 23.361932s user 22.217156s sys 1.132934s
+populate_tpch_q5 val: 0
+populate_tpch_q5 took (s): real 23.529288s user 22.309940s sys 1.206037s
+populate_tpch_q5 took (avg): real 23.529288s user 22.309940s sys 1.206037s
 Loaded
 q5 val: ARGENTINA: 0.000000
 MOZAMBIQUE: 0.000000
@@ -539,7 +532,7 @@ JORDAN: 0.000000
 ETHIOPIA: 0.000000
 EGYPT: 0.000000
 
-q5 took (s): real 0.141997s user 0.141871s sys 0.000000s
+q5 took (s): real 0.129658s user 0.129504s sys 0.000000s
 q5 val: ARGENTINA: 0.000000
 MOZAMBIQUE: 0.000000
 IRAQ: 0.000000
@@ -566,7 +559,7 @@ JORDAN: 0.000000
 ETHIOPIA: 0.000000
 EGYPT: 0.000000
 
-q5 took (s): real 0.139648s user 0.139572s sys 0.000000s
+q5 took (s): real 0.126593s user 0.126519s sys 0.000000s
 q5 val: ARGENTINA: 0.000000
 MOZAMBIQUE: 0.000000
 IRAQ: 0.000000
@@ -593,7 +586,7 @@ JORDAN: 0.000000
 ETHIOPIA: 0.000000
 EGYPT: 0.000000
 
-q5 took (s): real 0.139847s user 0.139777s sys 0.000000s
+q5 took (s): real 0.126781s user 0.126721s sys 0.000000s
 q5 val: ARGENTINA: 0.000000
 MOZAMBIQUE: 0.000000
 IRAQ: 0.000000
@@ -620,7 +613,7 @@ JORDAN: 0.000000
 ETHIOPIA: 0.000000
 EGYPT: 0.000000
 
-q5 took (s): real 0.139524s user 0.139456s sys 0.000000s
+q5 took (s): real 0.126261s user 0.126181s sys 0.000000s
 q5 val: ARGENTINA: 0.000000
 MOZAMBIQUE: 0.000000
 IRAQ: 0.000000
@@ -647,11 +640,9 @@ JORDAN: 0.000000
 ETHIOPIA: 0.000000
 EGYPT: 0.000000
 
-q5 took (s): real 0.140407s user 0.140337s sys 0.000000s
-q5 took (avg): real 0.140285s user 0.140203s sys 0.000000s
-rm TPC-H.db
-ln -sf TPC-H-x4.db TPC-H.db
-./out
+q5 took (s): real 0.125948s user 0.125718s sys 0.000101s
+q5 took (avg): real 0.127048s user 0.126929s sys 0.000020s
+./bench-tpch-q5 data/TPC-H-x4.db
 tpch_lineitem_out: 23996604
 tpch_lineitem1_crd: 6000000
 tpch_lineitem2_pos: 6000001
@@ -672,9 +663,9 @@ tpch_nation2_crd: 25
 tpch_nation3_crd: 25
 tpch_region2_pos: 6
 tpch_region2_crd: 5
-populate_tpch val: 0
-populate_tpch took (s): real 23.395270s user 22.119695s sys 1.262637s
-populate_tpch took (avg): real 23.395270s user 22.119695s sys 1.262637s
+populate_tpch_q5 val: 0
+populate_tpch_q5 took (s): real 23.680933s user 22.497558s sys 1.172731s
+populate_tpch_q5 took (avg): real 23.680933s user 22.497558s sys 1.172731s
 Loaded
 q5 val: ARGENTINA: 0.000000
 MOZAMBIQUE: 0.000000
@@ -702,7 +693,7 @@ JORDAN: 0.000000
 ETHIOPIA: 0.000000
 EGYPT: 0.000000
 
-q5 took (s): real 0.142036s user 0.141934s sys 0.000000s
+q5 took (s): real 0.129428s user 0.129356s sys 0.000000s
 q5 val: ARGENTINA: 0.000000
 MOZAMBIQUE: 0.000000
 IRAQ: 0.000000
@@ -729,7 +720,7 @@ JORDAN: 0.000000
 ETHIOPIA: 0.000000
 EGYPT: 0.000000
 
-q5 took (s): real 0.139788s user 0.139562s sys 0.000000s
+q5 took (s): real 0.126917s user 0.126847s sys 0.000000s
 q5 val: ARGENTINA: 0.000000
 MOZAMBIQUE: 0.000000
 IRAQ: 0.000000
@@ -756,7 +747,7 @@ JORDAN: 0.000000
 ETHIOPIA: 0.000000
 EGYPT: 0.000000
 
-q5 took (s): real 0.139436s user 0.139295s sys 0.000070s
+q5 took (s): real 0.126932s user 0.126857s sys 0.000002s
 q5 val: ARGENTINA: 0.000000
 MOZAMBIQUE: 0.000000
 IRAQ: 0.000000
@@ -783,7 +774,7 @@ JORDAN: 0.000000
 ETHIOPIA: 0.000000
 EGYPT: 0.000000
 
-q5 took (s): real 0.140681s user 0.140596s sys 0.000000s
+q5 took (s): real 0.126838s user 0.126750s sys 0.000009s
 q5 val: ARGENTINA: 0.000000
 MOZAMBIQUE: 0.000000
 IRAQ: 0.000000
@@ -810,6 +801,5 @@ JORDAN: 0.000000
 ETHIOPIA: 0.000000
 EGYPT: 0.000000
 
-q5 took (s): real 0.140006s user 0.139937s sys 0.000000s
-q5 took (avg): real 0.140389s user 0.140265s sys 0.000014s
-rm TPC-H.db
+q5 took (s): real 0.126475s user 0.126404s sys 0.000000s
+q5 took (avg): real 0.127318s user 0.127243s sys 0.000002s

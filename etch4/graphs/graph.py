@@ -25,7 +25,7 @@ tpch_labels = {
 
 
 def format_frame(ax):
-    ax.tick_params(color="tab:gray", labelcolor="tab:gray")
+    ax.tick_params(which="both", color="tab:gray", labelcolor="tab:gray")
     for spine in ax.spines.values():
         spine.set_edgecolor("tab:gray")
     ax.spines[["right", "top"]].set_visible(False)

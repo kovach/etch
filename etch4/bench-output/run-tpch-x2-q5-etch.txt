@@ -1,5 +1,4 @@
-ln -sf TPC-H-x2.db TPC-H.db
-./out
+./bench-tpch-q5 data/TPC-H-x2.db
 tpch_lineitem_out: 11997996
 tpch_lineitem1_crd: 3000000
 tpch_lineitem2_pos: 3000001
@@ -20,9 +19,9 @@ tpch_nation2_crd: 25
 tpch_nation3_crd: 25
 tpch_region2_pos: 6
 tpch_region2_crd: 5
-populate_tpch val: 0
-populate_tpch took (s): real 11.594481s user 10.985701s sys 0.602965s
-populate_tpch took (avg): real 11.594481s user 10.985701s sys 0.602965s
+populate_tpch_q5 val: 0
+populate_tpch_q5 took (s): real 11.606150s user 10.986008s sys 0.609457s
+populate_tpch_q5 took (avg): real 11.606150s user 10.986008s sys 0.609457s
 Loaded
 q5 val: INDONESIA: 115979499.651800
 GERMANY: 0.000000
@@ -50,7 +49,7 @@ RUSSIA: 0.000000
 JORDAN: 0.000000
 PERU: 0.000000
 
-q5 took (s): real 0.067220s user 0.067149s sys 0.000029s
+q5 took (s): real 0.061652s user 0.061562s sys 0.000000s
 q5 val: INDONESIA: 115979499.651800
 GERMANY: 0.000000
 VIETNAM: 98052109.129300
@@ -77,7 +76,7 @@ RUSSIA: 0.000000
 JORDAN: 0.000000
 PERU: 0.000000
 
-q5 took (s): real 0.066228s user 0.066194s sys 0.000000s
+q5 took (s): real 0.060508s user 0.060429s sys 0.000000s
 q5 val: INDONESIA: 115979499.651800
 GERMANY: 0.000000
 VIETNAM: 98052109.129300
@@ -104,7 +103,7 @@ RUSSIA: 0.000000
 JORDAN: 0.000000
 PERU: 0.000000
 
-q5 took (s): real 0.066225s user 0.066065s sys 0.000127s
+q5 took (s): real 0.060496s user 0.060462s sys 0.000000s
 q5 val: INDONESIA: 115979499.651800
 GERMANY: 0.000000
 VIETNAM: 98052109.129300
@@ -131,7 +130,7 @@ RUSSIA: 0.000000
 JORDAN: 0.000000
 PERU: 0.000000
 
-q5 took (s): real 0.066071s user 0.066040s sys 0.000000s
+q5 took (s): real 0.060434s user 0.060401s sys 0.000000s
 q5 val: INDONESIA: 115979499.651800
 GERMANY: 0.000000
 VIETNAM: 98052109.129300
@@ -158,11 +157,9 @@ RUSSIA: 0.000000
 JORDAN: 0.000000
 PERU: 0.000000
 
-q5 took (s): real 0.066119s user 0.066088s sys 0.000000s
-q5 took (avg): real 0.066372s user 0.066307s sys 0.000031s
-rm TPC-H.db
-ln -sf TPC-H-x2.db TPC-H.db
-./out
+q5 took (s): real 0.060299s user 0.060227s sys 0.000008s
+q5 took (avg): real 0.060678s user 0.060616s sys 0.000002s
+./bench-tpch-q5 data/TPC-H-x2.db
 tpch_lineitem_out: 11997996
 tpch_lineitem1_crd: 3000000
 tpch_lineitem2_pos: 3000001
@@ -183,9 +180,9 @@ tpch_nation2_crd: 25
 tpch_nation3_crd: 25
 tpch_region2_pos: 6
 tpch_region2_crd: 5
-populate_tpch val: 0
-populate_tpch took (s): real 11.580417s user 11.014518s sys 0.559570s
-populate_tpch took (avg): real 11.580417s user 11.014518s sys 0.559570s
+populate_tpch_q5 val: 0
+populate_tpch_q5 took (s): real 11.592328s user 11.017551s sys 0.569753s
+populate_tpch_q5 took (avg): real 11.592328s user 11.017551s sys 0.569753s
 Loaded
 q5 val: INDONESIA: 115979499.651800
 GERMANY: 0.000000
@@ -213,7 +210,7 @@ RUSSIA: 0.000000
 JORDAN: 0.000000
 PERU: 0.000000
 
-q5 took (s): real 0.067280s user 0.067217s sys 0.000030s
+q5 took (s): real 0.061377s user 0.061282s sys 0.000067s
 q5 val: INDONESIA: 115979499.651800
 GERMANY: 0.000000
 VIETNAM: 98052109.129300
@@ -240,7 +237,7 @@ RUSSIA: 0.000000
 JORDAN: 0.000000
 PERU: 0.000000
 
-q5 took (s): real 0.066307s user 0.066263s sys 0.000000s
+q5 took (s): real 0.060273s user 0.060229s sys 0.000000s
 q5 val: INDONESIA: 115979499.651800
 GERMANY: 0.000000
 VIETNAM: 98052109.129300
@@ -267,7 +264,7 @@ RUSSIA: 0.000000
 JORDAN: 0.000000
 PERU: 0.000000
 
-q5 took (s): real 0.065900s user 0.065866s sys 0.000000s
+q5 took (s): real 0.060080s user 0.060050s sys 0.000000s
 q5 val: INDONESIA: 115979499.651800
 GERMANY: 0.000000
 VIETNAM: 98052109.129300
@@ -294,7 +291,7 @@ RUSSIA: 0.000000
 JORDAN: 0.000000
 PERU: 0.000000
 
-q5 took (s): real 0.066094s user 0.065985s sys 0.000080s
+q5 took (s): real 0.059981s user 0.059941s sys 0.000000s
 q5 val: INDONESIA: 115979499.651800
 GERMANY: 0.000000
 VIETNAM: 98052109.129300
@@ -321,11 +318,9 @@ RUSSIA: 0.000000
 JORDAN: 0.000000
 PERU: 0.000000
 
-q5 took (s): real 0.066032s user 0.065996s sys 0.000000s
-q5 took (avg): real 0.066323s user 0.066265s sys 0.000022s
-rm TPC-H.db
-ln -sf TPC-H-x2.db TPC-H.db
-./out
+q5 took (s): real 0.059762s user 0.059730s sys 0.000007s
+q5 took (avg): real 0.060294s user 0.060246s sys 0.000015s
+./bench-tpch-q5 data/TPC-H-x2.db
 tpch_lineitem_out: 11997996
 tpch_lineitem1_crd: 3000000
 tpch_lineitem2_pos: 3000001
@@ -346,9 +341,9 @@ tpch_nation2_crd: 25
 tpch_nation3_crd: 25
 tpch_region2_pos: 6
 tpch_region2_crd: 5
-populate_tpch val: 0
-populate_tpch took (s): real 11.625799s user 10.950032s sys 0.669697s
-populate_tpch took (avg): real 11.625799s user 10.950032s sys 0.669697s
+populate_tpch_q5 val: 0
+populate_tpch_q5 took (s): real 11.569184s user 10.899435s sys 0.662923s
+populate_tpch_q5 took (avg): real 11.569184s user 10.899435s sys 0.662923s
 Loaded
 q5 val: INDONESIA: 115979499.651800
 GERMANY: 0.000000
@@ -376,7 +371,7 @@ RUSSIA: 0.000000
 JORDAN: 0.000000
 PERU: 0.000000
 
-q5 took (s): real 0.066797s user 0.066757s sys 0.000007s
+q5 took (s): real 0.060908s user 0.060830s sys 0.000052s
 q5 val: INDONESIA: 115979499.651800
 GERMANY: 0.000000
 VIETNAM: 98052109.129300
@@ -403,7 +398,7 @@ RUSSIA: 0.000000
 JORDAN: 0.000000
 PERU: 0.000000
 
-q5 took (s): real 0.065488s user 0.065446s sys 0.000000s
+q5 took (s): real 0.060297s user 0.060270s sys 0.000000s
 q5 val: INDONESIA: 115979499.651800
 GERMANY: 0.000000
 VIETNAM: 98052109.129300
@@ -430,7 +425,7 @@ RUSSIA: 0.000000
 JORDAN: 0.000000
 PERU: 0.000000
 
-q5 took (s): real 0.065503s user 0.065452s sys 0.000000s
+q5 took (s): real 0.059887s user 0.059862s sys 0.000000s
 q5 val: INDONESIA: 115979499.651800
 GERMANY: 0.000000
 VIETNAM: 98052109.129300
@@ -457,7 +452,7 @@ RUSSIA: 0.000000
 JORDAN: 0.000000
 PERU: 0.000000
 
-q5 took (s): real 0.065836s user 0.065802s sys 0.000000s
+q5 took (s): real 0.059926s user 0.059900s sys 0.000000s
 q5 val: INDONESIA: 115979499.651800
 GERMANY: 0.000000
 VIETNAM: 98052109.129300
@@ -484,11 +479,9 @@ RUSSIA: 0.000000
 JORDAN: 0.000000
 PERU: 0.000000
 
-q5 took (s): real 0.065829s user 0.065779s sys 0.000000s
-q5 took (avg): real 0.065891s user 0.065847s sys 0.000001s
-rm TPC-H.db
-ln -sf TPC-H-x2.db TPC-H.db
-./out
+q5 took (s): real 0.059965s user 0.059920s sys 0.000000s
+q5 took (avg): real 0.060197s user 0.060156s sys 0.000010s
+./bench-tpch-q5 data/TPC-H-x2.db
 tpch_lineitem_out: 11997996
 tpch_lineitem1_crd: 3000000
 tpch_lineitem2_pos: 3000001
@@ -509,9 +502,9 @@ tpch_nation2_crd: 25
 tpch_nation3_crd: 25
 tpch_region2_pos: 6
 tpch_region2_crd: 5
-populate_tpch val: 0
-populate_tpch took (s): real 11.589481s user 11.011591s sys 0.571882s
-populate_tpch took (avg): real 11.589481s user 11.011591s sys 0.571882s
+populate_tpch_q5 val: 0
+populate_tpch_q5 took (s): real 11.595397s user 10.987236s sys 0.603067s
+populate_tpch_q5 took (avg): real 11.595397s user 10.987236s sys 0.603067s
 Loaded
 q5 val: INDONESIA: 115979499.651800
 GERMANY: 0.000000
@@ -539,7 +532,7 @@ RUSSIA: 0.000000
 JORDAN: 0.000000
 PERU: 0.000000
 
-q5 took (s): real 0.066692s user 0.066649s sys 0.000003s
+q5 took (s): real 0.061175s user 0.061085s sys 0.000061s
 q5 val: INDONESIA: 115979499.651800
 GERMANY: 0.000000
 VIETNAM: 98052109.129300
@@ -566,7 +559,7 @@ RUSSIA: 0.000000
 JORDAN: 0.000000
 PERU: 0.000000
 
-q5 took (s): real 0.065811s user 0.065659s sys 0.000122s
+q5 took (s): real 0.060117s user 0.060086s sys 0.000006s
 q5 val: INDONESIA: 115979499.651800
 GERMANY: 0.000000
 VIETNAM: 98052109.129300
@@ -593,7 +586,7 @@ RUSSIA: 0.000000
 JORDAN: 0.000000
 PERU: 0.000000
 
-q5 took (s): real 0.065784s user 0.065730s sys 0.000000s
+q5 took (s): real 0.059956s user 0.059931s sys 0.000000s
 q5 val: INDONESIA: 115979499.651800
 GERMANY: 0.000000
 VIETNAM: 98052109.129300
@@ -620,7 +613,7 @@ RUSSIA: 0.000000
 JORDAN: 0.000000
 PERU: 0.000000
 
-q5 took (s): real 0.065625s user 0.065589s sys 0.000000s
+q5 took (s): real 0.060298s user 0.060271s sys 0.000000s
 q5 val: INDONESIA: 115979499.651800
 GERMANY: 0.000000
 VIETNAM: 98052109.129300
@@ -647,11 +640,9 @@ RUSSIA: 0.000000
 JORDAN: 0.000000
 PERU: 0.000000
 
-q5 took (s): real 0.065793s user 0.065760s sys 0.000000s
-q5 took (avg): real 0.065941s user 0.065877s sys 0.000025s
-rm TPC-H.db
-ln -sf TPC-H-x2.db TPC-H.db
-./out
+q5 took (s): real 0.060023s user 0.059996s sys 0.000000s
+q5 took (avg): real 0.060314s user 0.060274s sys 0.000013s
+./bench-tpch-q5 data/TPC-H-x2.db
 tpch_lineitem_out: 11997996
 tpch_lineitem1_crd: 3000000
 tpch_lineitem2_pos: 3000001
@@ -672,9 +663,9 @@ tpch_nation2_crd: 25
 tpch_nation3_crd: 25
 tpch_region2_pos: 6
 tpch_region2_crd: 5
-populate_tpch val: 0
-populate_tpch took (s): real 11.588281s user 11.009233s sys 0.573186s
-populate_tpch took (avg): real 11.588281s user 11.009233s sys 0.573186s
+populate_tpch_q5 val: 0
+populate_tpch_q5 took (s): real 11.596496s user 11.058428s sys 0.533149s
+populate_tpch_q5 took (avg): real 11.596496s user 11.058428s sys 0.533149s
 Loaded
 q5 val: INDONESIA: 115979499.651800
 GERMANY: 0.000000
@@ -702,7 +693,7 @@ RUSSIA: 0.000000
 JORDAN: 0.000000
 PERU: 0.000000
 
-q5 took (s): real 0.068014s user 0.067978s sys 0.000000s
+q5 took (s): real 0.061224s user 0.061194s sys 0.000000s
 q5 val: INDONESIA: 115979499.651800
 GERMANY: 0.000000
 VIETNAM: 98052109.129300
@@ -729,7 +720,7 @@ RUSSIA: 0.000000
 JORDAN: 0.000000
 PERU: 0.000000
 
-q5 took (s): real 0.067060s user 0.067024s sys 0.000000s
+q5 took (s): real 0.059654s user 0.059628s sys 0.000000s
 q5 val: INDONESIA: 115979499.651800
 GERMANY: 0.000000
 VIETNAM: 98052109.129300
@@ -756,7 +747,7 @@ RUSSIA: 0.000000
 JORDAN: 0.000000
 PERU: 0.000000
 
-q5 took (s): real 0.067204s user 0.067164s sys 0.000000s
+q5 took (s): real 0.059923s user 0.059897s sys 0.000000s
 q5 val: INDONESIA: 115979499.651800
 GERMANY: 0.000000
 VIETNAM: 98052109.129300
@@ -783,7 +774,7 @@ RUSSIA: 0.000000
 JORDAN: 0.000000
 PERU: 0.000000
 
-q5 took (s): real 0.066900s user 0.066870s sys 0.000000s
+q5 took (s): real 0.059831s user 0.059806s sys 0.000000s
 q5 val: INDONESIA: 115979499.651800
 GERMANY: 0.000000
 VIETNAM: 98052109.129300
@@ -810,6 +801,5 @@ RUSSIA: 0.000000
 JORDAN: 0.000000
 PERU: 0.000000
 
-q5 took (s): real 0.067456s user 0.067420s sys 0.000000s
-q5 took (avg): real 0.067327s user 0.067291s sys 0.000000s
-rm TPC-H.db
+q5 took (s): real 0.059798s user 0.059772s sys 0.000000s
+q5 took (avg): real 0.060086s user 0.060059s sys 0.000000s

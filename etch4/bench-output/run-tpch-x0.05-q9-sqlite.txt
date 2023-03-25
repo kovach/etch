@@ -1,11 +1,11 @@
-./bench-sqlite <(sed 's/TPC-H\.db/TPC-H-x0.05.db/g' bench/tpch-q9-sqlite-prep.sql) 5:bench/tpch-q9-sqlite.sql
-34983936
+./bench-sqlite <(sed 's#TPC-H\.db#data/TPC-H-x0.05.db#g' bench/tpch-q9-sqlite-prep.sql) 5:bench/tpch-q9-sqlite.sql
+35074048
 q1 val: 0
-q1 took (s): real 0.405538s user 0.365435s sys 0.039831s
-q1 took (avg): real 0.405538s user 0.365435s sys 0.039831s
+q1 took (s): real 0.612417s user 0.571992s sys 0.039880s
+q1 took (avg): real 0.612417s user 0.571992s sys 0.039880s
 q2 prep val: 0
-q2 prep took (s): real 0.000089s user 0.000081s sys 0.000009s
-q2 prep took (avg): real 0.000089s user 0.000081s sys 0.000009s
+q2 prep took (s): real 0.000092s user 0.000087s sys 0.000006s
+q2 prep took (avg): real 0.000092s user 0.000087s sys 0.000006s
 ALGERIA|1992|2392953.9278
 ALGERIA|1993|2248528.3924
 ALGERIA|1994|1749720.3643
@@ -182,7 +182,7 @@ VIETNAM|1996|2223937.0755
 VIETNAM|1997|2222489.4976
 VIETNAM|1998|1141359.3083
 q2 val: 101
-q2 took (s): real 0.048720s user 0.048690s sys 0.000000s
+q2 took (s): real 0.049879s user 0.049789s sys 0.000000s
 ALGERIA|1992|2392953.9278
 ALGERIA|1993|2248528.3924
 ALGERIA|1994|1749720.3643
@@ -359,7 +359,7 @@ VIETNAM|1996|2223937.0755
 VIETNAM|1997|2222489.4976
 VIETNAM|1998|1141359.3083
 q2 val: 101
-q2 took (s): real 0.048030s user 0.047977s sys 0.000032s
+q2 took (s): real 0.048327s user 0.048209s sys 0.000097s
 ALGERIA|1992|2392953.9278
 ALGERIA|1993|2248528.3924
 ALGERIA|1994|1749720.3643
@@ -536,7 +536,7 @@ VIETNAM|1996|2223937.0755
 VIETNAM|1997|2222489.4976
 VIETNAM|1998|1141359.3083
 q2 val: 101
-q2 took (s): real 0.047560s user 0.047468s sys 0.000073s
+q2 took (s): real 0.048609s user 0.048564s sys 0.000000s
 ALGERIA|1992|2392953.9278
 ALGERIA|1993|2248528.3924
 ALGERIA|1994|1749720.3643
@@ -713,7 +713,7 @@ VIETNAM|1996|2223937.0755
 VIETNAM|1997|2222489.4976
 VIETNAM|1998|1141359.3083
 q2 val: 101
-q2 took (s): real 0.048081s user 0.048058s sys 0.000000s
+q2 took (s): real 0.048402s user 0.048369s sys 0.000014s
 ALGERIA|1992|2392953.9278
 ALGERIA|1993|2248528.3924
 ALGERIA|1994|1749720.3643
@@ -890,13 +890,13 @@ VIETNAM|1996|2223937.0755
 VIETNAM|1997|2222489.4976
 VIETNAM|1998|1141359.3083
 q2 val: 101
-q2 took (s): real 0.047560s user 0.047539s sys 0.000000s
-q2 took (avg): real 0.047990s user 0.047946s sys 0.000021s
-./bench-sqlite <(sed 's/TPC-H\.db/TPC-H-x0.05.db/g' bench/tpch-q9-sqlite-prep.sql) 5:bench/tpch-q9-sqlite.sql
-34983936
+q2 took (s): real 0.047869s user 0.047822s sys 0.000000s
+q2 took (avg): real 0.048617s user 0.048551s sys 0.000022s
+./bench-sqlite <(sed 's#TPC-H\.db#data/TPC-H-x0.05.db#g' bench/tpch-q9-sqlite-prep.sql) 5:bench/tpch-q9-sqlite.sql
+35074048
 q1 val: 0
-q1 took (s): real 0.407383s user 0.376694s sys 0.030383s
-q1 took (avg): real 0.407383s user 0.376694s sys 0.030383s
+q1 took (s): real 0.607830s user 0.557389s sys 0.050122s
+q1 took (avg): real 0.607830s user 0.557389s sys 0.050122s
 q2 prep val: 0
 q2 prep took (s): real 0.000090s user 0.000083s sys 0.000007s
 q2 prep took (avg): real 0.000090s user 0.000083s sys 0.000007s
@@ -1076,7 +1076,7 @@ VIETNAM|1996|2223937.0755
 VIETNAM|1997|2222489.4976
 VIETNAM|1998|1141359.3083
 q2 val: 101
-q2 took (s): real 0.048901s user 0.048869s sys 0.000000s
+q2 took (s): real 0.049293s user 0.049260s sys 0.000000s
 ALGERIA|1992|2392953.9278
 ALGERIA|1993|2248528.3924
 ALGERIA|1994|1749720.3643
@@ -1253,7 +1253,7 @@ VIETNAM|1996|2223937.0755
 VIETNAM|1997|2222489.4976
 VIETNAM|1998|1141359.3083
 q2 val: 101
-q2 took (s): real 0.048177s user 0.048134s sys 0.000021s
+q2 took (s): real 0.047902s user 0.047815s sys 0.000068s
 ALGERIA|1992|2392953.9278
 ALGERIA|1993|2248528.3924
 ALGERIA|1994|1749720.3643
@@ -1430,7 +1430,7 @@ VIETNAM|1996|2223937.0755
 VIETNAM|1997|2222489.4976
 VIETNAM|1998|1141359.3083
 q2 val: 101
-q2 took (s): real 0.048254s user 0.048229s sys 0.000000s
+q2 took (s): real 0.046596s user 0.046575s sys 0.000003s
 ALGERIA|1992|2392953.9278
 ALGERIA|1993|2248528.3924
 ALGERIA|1994|1749720.3643
@@ -1607,7 +1607,7 @@ VIETNAM|1996|2223937.0755
 VIETNAM|1997|2222489.4976
 VIETNAM|1998|1141359.3083
 q2 val: 101
-q2 took (s): real 0.047538s user 0.047518s sys 0.000000s
+q2 took (s): real 0.046963s user 0.046917s sys 0.000028s
 ALGERIA|1992|2392953.9278
 ALGERIA|1993|2248528.3924
 ALGERIA|1994|1749720.3643
@@ -1784,16 +1784,16 @@ VIETNAM|1996|2223937.0755
 VIETNAM|1997|2222489.4976
 VIETNAM|1998|1141359.3083
 q2 val: 101
-q2 took (s): real 0.047351s user 0.047331s sys 0.000000s
-q2 took (avg): real 0.048044s user 0.048016s sys 0.000004s
-./bench-sqlite <(sed 's/TPC-H\.db/TPC-H-x0.05.db/g' bench/tpch-q9-sqlite-prep.sql) 5:bench/tpch-q9-sqlite.sql
-34983936
+q2 took (s): real 0.047662s user 0.047575s sys 0.000068s
+q2 took (avg): real 0.047683s user 0.047628s sys 0.000033s
+./bench-sqlite <(sed 's#TPC-H\.db#data/TPC-H-x0.05.db#g' bench/tpch-q9-sqlite-prep.sql) 5:bench/tpch-q9-sqlite.sql
+35074048
 q1 val: 0
-q1 took (s): real 0.408054s user 0.394441s sys 0.013355s
-q1 took (avg): real 0.408054s user 0.394441s sys 0.013355s
+q1 took (s): real 0.614262s user 0.583941s sys 0.030011s
+q1 took (avg): real 0.614262s user 0.583941s sys 0.030011s
 q2 prep val: 0
-q2 prep took (s): real 0.000089s user 0.000088s sys 0.000003s
-q2 prep took (avg): real 0.000089s user 0.000088s sys 0.000003s
+q2 prep took (s): real 0.000089s user 0.000086s sys 0.000005s
+q2 prep took (avg): real 0.000089s user 0.000086s sys 0.000005s
 ALGERIA|1992|2392953.9278
 ALGERIA|1993|2248528.3924
 ALGERIA|1994|1749720.3643
@@ -1970,7 +1970,7 @@ VIETNAM|1996|2223937.0755
 VIETNAM|1997|2222489.4976
 VIETNAM|1998|1141359.3083
 q2 val: 101
-q2 took (s): real 0.048663s user 0.048627s sys 0.000000s
+q2 took (s): real 0.050575s user 0.050537s sys 0.000000s
 ALGERIA|1992|2392953.9278
 ALGERIA|1993|2248528.3924
 ALGERIA|1994|1749720.3643
@@ -2147,7 +2147,7 @@ VIETNAM|1996|2223937.0755
 VIETNAM|1997|2222489.4976
 VIETNAM|1998|1141359.3083
 q2 val: 101
-q2 took (s): real 0.048660s user 0.048635s sys 0.000000s
+q2 took (s): real 0.048697s user 0.048676s sys 0.000000s
 ALGERIA|1992|2392953.9278
 ALGERIA|1993|2248528.3924
 ALGERIA|1994|1749720.3643
@@ -2324,7 +2324,7 @@ VIETNAM|1996|2223937.0755
 VIETNAM|1997|2222489.4976
 VIETNAM|1998|1141359.3083
 q2 val: 101
-q2 took (s): real 0.047614s user 0.044316s sys 0.003278s
+q2 took (s): real 0.048293s user 0.048273s sys 0.000000s
 ALGERIA|1992|2392953.9278
 ALGERIA|1993|2248528.3924
 ALGERIA|1994|1749720.3643
@@ -2501,7 +2501,7 @@ VIETNAM|1996|2223937.0755
 VIETNAM|1997|2222489.4976
 VIETNAM|1998|1141359.3083
 q2 val: 101
-q2 took (s): real 0.047562s user 0.047515s sys 0.000026s
+q2 took (s): real 0.048452s user 0.045131s sys 0.003301s
 ALGERIA|1992|2392953.9278
 ALGERIA|1993|2248528.3924
 ALGERIA|1994|1749720.3643
@@ -2678,16 +2678,16 @@ VIETNAM|1996|2223937.0755
 VIETNAM|1997|2222489.4976
 VIETNAM|1998|1141359.3083
 q2 val: 101
-q2 took (s): real 0.047358s user 0.047321s sys 0.000017s
-q2 took (avg): real 0.047971s user 0.047283s sys 0.000664s
-./bench-sqlite <(sed 's/TPC-H\.db/TPC-H-x0.05.db/g' bench/tpch-q9-sqlite-prep.sql) 5:bench/tpch-q9-sqlite.sql
-34983936
+q2 took (s): real 0.048299s user 0.048277s sys 0.000000s
+q2 took (avg): real 0.048863s user 0.048179s sys 0.000660s
+./bench-sqlite <(sed 's#TPC-H\.db#data/TPC-H-x0.05.db#g' bench/tpch-q9-sqlite-prep.sql) 5:bench/tpch-q9-sqlite.sql
+35074048
 q1 val: 0
-q1 took (s): real 0.431474s user 0.407138s sys 0.023706s
-q1 took (avg): real 0.431474s user 0.407138s sys 0.023706s
+q1 took (s): real 0.607780s user 0.570714s sys 0.036759s
+q1 took (avg): real 0.607780s user 0.570714s sys 0.036759s
 q2 prep val: 0
-q2 prep took (s): real 0.000089s user 0.000085s sys 0.000006s
-q2 prep took (avg): real 0.000089s user 0.000085s sys 0.000006s
+q2 prep took (s): real 0.000090s user 0.000085s sys 0.000006s
+q2 prep took (avg): real 0.000090s user 0.000085s sys 0.000006s
 ALGERIA|1992|2392953.9278
 ALGERIA|1993|2248528.3924
 ALGERIA|1994|1749720.3643
@@ -2864,7 +2864,7 @@ VIETNAM|1996|2223937.0755
 VIETNAM|1997|2222489.4976
 VIETNAM|1998|1141359.3083
 q2 val: 101
-q2 took (s): real 0.048881s user 0.045562s sys 0.003262s
+q2 took (s): real 0.049814s user 0.049777s sys 0.000000s
 ALGERIA|1992|2392953.9278
 ALGERIA|1993|2248528.3924
 ALGERIA|1994|1749720.3643
@@ -3041,7 +3041,7 @@ VIETNAM|1996|2223937.0755
 VIETNAM|1997|2222489.4976
 VIETNAM|1998|1141359.3083
 q2 val: 101
-q2 took (s): real 0.048090s user 0.048014s sys 0.000000s
+q2 took (s): real 0.048233s user 0.048115s sys 0.000098s
 ALGERIA|1992|2392953.9278
 ALGERIA|1993|2248528.3924
 ALGERIA|1994|1749720.3643
@@ -3218,7 +3218,7 @@ VIETNAM|1996|2223937.0755
 VIETNAM|1997|2222489.4976
 VIETNAM|1998|1141359.3083
 q2 val: 101
-q2 took (s): real 0.047407s user 0.047351s sys 0.000000s
+q2 took (s): real 0.048741s user 0.048721s sys 0.000000s
 ALGERIA|1992|2392953.9278
 ALGERIA|1993|2248528.3924
 ALGERIA|1994|1749720.3643
@@ -3395,7 +3395,7 @@ VIETNAM|1996|2223937.0755
 VIETNAM|1997|2222489.4976
 VIETNAM|1998|1141359.3083
 q2 val: 101
-q2 took (s): real 0.047398s user 0.047360s sys 0.000000s
+q2 took (s): real 0.049390s user 0.049369s sys 0.000000s
 ALGERIA|1992|2392953.9278
 ALGERIA|1993|2248528.3924
 ALGERIA|1994|1749720.3643
@@ -3572,16 +3572,16 @@ VIETNAM|1996|2223937.0755
 VIETNAM|1997|2222489.4976
 VIETNAM|1998|1141359.3083
 q2 val: 101
-q2 took (s): real 0.047364s user 0.043919s sys 0.003340s
-q2 took (avg): real 0.047828s user 0.046441s sys 0.001320s
-./bench-sqlite <(sed 's/TPC-H\.db/TPC-H-x0.05.db/g' bench/tpch-q9-sqlite-prep.sql) 5:bench/tpch-q9-sqlite.sql
-34983936
+q2 took (s): real 0.048530s user 0.048485s sys 0.000010s
+q2 took (avg): real 0.048942s user 0.048893s sys 0.000022s
+./bench-sqlite <(sed 's#TPC-H\.db#data/TPC-H-x0.05.db#g' bench/tpch-q9-sqlite-prep.sql) 5:bench/tpch-q9-sqlite.sql
+35074048
 q1 val: 0
-q1 took (s): real 0.405333s user 0.381859s sys 0.023204s
-q1 took (avg): real 0.405333s user 0.381859s sys 0.023204s
+q1 took (s): real 0.612171s user 0.588600s sys 0.023263s
+q1 took (avg): real 0.612171s user 0.588600s sys 0.023263s
 q2 prep val: 0
-q2 prep took (s): real 0.000091s user 0.000087s sys 0.000006s
-q2 prep took (avg): real 0.000091s user 0.000087s sys 0.000006s
+q2 prep took (s): real 0.000090s user 0.000088s sys 0.000004s
+q2 prep took (avg): real 0.000090s user 0.000088s sys 0.000004s
 ALGERIA|1992|2392953.9278
 ALGERIA|1993|2248528.3924
 ALGERIA|1994|1749720.3643
@@ -3758,7 +3758,7 @@ VIETNAM|1996|2223937.0755
 VIETNAM|1997|2222489.4976
 VIETNAM|1998|1141359.3083
 q2 val: 101
-q2 took (s): real 0.049804s user 0.049777s sys 0.000000s
+q2 took (s): real 0.050797s user 0.050730s sys 0.000032s
 ALGERIA|1992|2392953.9278
 ALGERIA|1993|2248528.3924
 ALGERIA|1994|1749720.3643
@@ -3935,7 +3935,7 @@ VIETNAM|1996|2223937.0755
 VIETNAM|1997|2222489.4976
 VIETNAM|1998|1141359.3083
 q2 val: 101
-q2 took (s): real 0.048251s user 0.048228s sys 0.000000s
+q2 took (s): real 0.048639s user 0.048617s sys 0.000000s
 ALGERIA|1992|2392953.9278
 ALGERIA|1993|2248528.3924
 ALGERIA|1994|1749720.3643
@@ -4112,7 +4112,7 @@ VIETNAM|1996|2223937.0755
 VIETNAM|1997|2222489.4976
 VIETNAM|1998|1141359.3083
 q2 val: 101
-q2 took (s): real 0.047951s user 0.047929s sys 0.000000s
+q2 took (s): real 0.047836s user 0.047816s sys 0.000000s
 ALGERIA|1992|2392953.9278
 ALGERIA|1993|2248528.3924
 ALGERIA|1994|1749720.3643
@@ -4289,7 +4289,7 @@ VIETNAM|1996|2223937.0755
 VIETNAM|1997|2222489.4976
 VIETNAM|1998|1141359.3083
 q2 val: 101
-q2 took (s): real 0.047169s user 0.047126s sys 0.000023s
+q2 took (s): real 0.048093s user 0.048070s sys 0.000000s
 ALGERIA|1992|2392953.9278
 ALGERIA|1993|2248528.3924
 ALGERIA|1994|1749720.3643
@@ -4466,5 +4466,5 @@ VIETNAM|1996|2223937.0755
 VIETNAM|1997|2222489.4976
 VIETNAM|1998|1141359.3083
 q2 val: 101
-q2 took (s): real 0.047178s user 0.047135s sys 0.000023s
-q2 took (avg): real 0.048071s user 0.048039s sys 0.000009s
+q2 took (s): real 0.047467s user 0.047448s sys 0.000000s
+q2 took (avg): real 0.048566s user 0.048536s sys 0.000006s

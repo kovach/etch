@@ -10,7 +10,7 @@
 #include "operators.h"
 #include "sqlite3.h"
 
-#define TPCH_SF 1
+#define TPCH_SF 4
 
 // populated later
 int tpch9_lineitem1_pos[2];  // partkey
@@ -40,7 +40,7 @@ double tpch9_partsupp3_crd[TPCH_SF * 801000 + 10];  // supplycost
 // tpch9_nation1 = nationkey (dense)
 const char* tpch9_nation2_crd[25 + 10];  // nationname
 
-static int date_to_year(std::time_t date) {
+static inline int date_to_year [[gnu::pure]] (std::time_t date) {
   tm result;
   gmtime_r(&date, &result);
   return 1900 + result.tm_year;
@@ -191,20 +191,8 @@ static int date_to_year(std::time_t date) {
 #define STR_EQ(a, b) (strcmp(a, b) == 0)
 #define ID(a) (a)
 
-GEN_SSS___(tpch9_lineitem,
-           false,
-           EQ,
-           atoi,
-           atoi,
-           EQ,
-           atoi,
-           atoi,
-           EQ,
-           atoi,
-           atoi,
-           atof,
-           atof,
-           atof)
+GEN_SSS___(tpch9_lineitem, false, EQ, atoi, atoi, EQ, atoi, atoi, EQ, atoi,
+           atoi, atof, atof, atof)
 GEN_D_(tpch9_part, strdup)
 GEN_D_(tpch9_orders, atoi)
 GEN_D_(tpch9_supplier, atoi)

@@ -1,140 +1,52 @@
-./bench-sqlite <(sed 's/TPC-H\.db/TPC-H-x0.5.db/g' bench/tpch-q5-sqlite-prep.sql) 5:bench/tpch-q5-sqlite.sql
+./bench-sqlite <(sed 's#TPC-H\.db#data/TPC-H-x0.5.db#g' bench/tpch-q5-sqlite-prep.sql) 5:bench/tpch-q5-sqlite.sql
 298618880
 q1 val: 0
-q1 took (s): real 2.308430s user 2.120352s sys 0.186663s
-q1 took (avg): real 2.308430s user 2.120352s sys 0.186663s
+q1 took (s): real 2.900735s user 2.724469s sys 0.173037s
+q1 took (avg): real 2.900735s user 2.724469s sys 0.173037s
 q2 prep val: 0
-q2 prep took (s): real 0.000075s user 0.000069s sys 0.000006s
-q2 prep took (avg): real 0.000075s user 0.000069s sys 0.000006s
+q2 prep took (s): real 0.000073s user 0.000070s sys 0.000005s
+q2 prep took (avg): real 0.000073s user 0.000070s sys 0.000005s
 CHINA|29991841.8798
 INDIA|27363347.9786
 INDONESIA|26385461.7147
 JAPAN|24082606.5465
 VIETNAM|22941394.792
 q2 val: 101
-q2 took (s): real 0.574213s user 0.573895s sys 0.000032s
+q2 took (s): real 0.551605s user 0.550977s sys 0.000107s
 CHINA|29991841.8798
 INDIA|27363347.9786
 INDONESIA|26385461.7147
 JAPAN|24082606.5465
 VIETNAM|22941394.792
 q2 val: 101
-q2 took (s): real 0.566638s user 0.566386s sys 0.000000s
+q2 took (s): real 0.550421s user 0.549873s sys 0.000026s
 CHINA|29991841.8798
 INDIA|27363347.9786
 INDONESIA|26385461.7147
 JAPAN|24082606.5465
 VIETNAM|22941394.792
 q2 val: 101
-q2 took (s): real 0.573584s user 0.573327s sys 0.000000s
+q2 took (s): real 0.551056s user 0.550505s sys 0.000000s
 CHINA|29991841.8798
 INDIA|27363347.9786
 INDONESIA|26385461.7147
 JAPAN|24082606.5465
 VIETNAM|22941394.792
 q2 val: 101
-q2 took (s): real 0.573553s user 0.573291s sys 0.000000s
+q2 took (s): real 0.558472s user 0.550950s sys 0.000000s
 CHINA|29991841.8798
 INDIA|27363347.9786
 INDONESIA|26385461.7147
 JAPAN|24082606.5465
 VIETNAM|22941394.792
 q2 val: 101
-q2 took (s): real 0.579143s user 0.570637s sys 0.000000s
-q2 took (avg): real 0.573426s user 0.571507s sys 0.000006s
-./bench-sqlite <(sed 's/TPC-H\.db/TPC-H-x0.5.db/g' bench/tpch-q5-sqlite-prep.sql) 5:bench/tpch-q5-sqlite.sql
+q2 took (s): real 0.562398s user 0.561920s sys 0.000000s
+q2 took (avg): real 0.554790s user 0.552845s sys 0.000027s
+./bench-sqlite <(sed 's#TPC-H\.db#data/TPC-H-x0.5.db#g' bench/tpch-q5-sqlite-prep.sql) 5:bench/tpch-q5-sqlite.sql
 298618880
 q1 val: 0
-q1 took (s): real 2.311459s user 2.116854s sys 0.193014s
-q1 took (avg): real 2.311459s user 2.116854s sys 0.193014s
-q2 prep val: 0
-q2 prep took (s): real 0.000075s user 0.000070s sys 0.000006s
-q2 prep took (avg): real 0.000075s user 0.000070s sys 0.000006s
-CHINA|29991841.8798
-INDIA|27363347.9786
-INDONESIA|26385461.7147
-JAPAN|24082606.5465
-VIETNAM|22941394.792
-q2 val: 101
-q2 took (s): real 0.562676s user 0.562365s sys 0.000000s
-CHINA|29991841.8798
-INDIA|27363347.9786
-INDONESIA|26385461.7147
-JAPAN|24082606.5465
-VIETNAM|22941394.792
-q2 val: 101
-q2 took (s): real 0.561836s user 0.561452s sys 0.000123s
-CHINA|29991841.8798
-INDIA|27363347.9786
-INDONESIA|26385461.7147
-JAPAN|24082606.5465
-VIETNAM|22941394.792
-q2 val: 101
-q2 took (s): real 0.565059s user 0.564722s sys 0.000000s
-CHINA|29991841.8798
-INDIA|27363347.9786
-INDONESIA|26385461.7147
-JAPAN|24082606.5465
-VIETNAM|22941394.792
-q2 val: 101
-q2 took (s): real 0.563464s user 0.563175s sys 0.000000s
-CHINA|29991841.8798
-INDIA|27363347.9786
-INDONESIA|26385461.7147
-JAPAN|24082606.5465
-VIETNAM|22941394.792
-q2 val: 101
-q2 took (s): real 0.584341s user 0.575800s sys 0.000000s
-q2 took (avg): real 0.567475s user 0.565503s sys 0.000025s
-./bench-sqlite <(sed 's/TPC-H\.db/TPC-H-x0.5.db/g' bench/tpch-q5-sqlite-prep.sql) 5:bench/tpch-q5-sqlite.sql
-298618880
-q1 val: 0
-q1 took (s): real 2.309193s user 2.051219s sys 0.256765s
-q1 took (avg): real 2.309193s user 2.051219s sys 0.256765s
-q2 prep val: 0
-q2 prep took (s): real 0.000075s user 0.000067s sys 0.000009s
-q2 prep took (avg): real 0.000075s user 0.000067s sys 0.000009s
-CHINA|29991841.8798
-INDIA|27363347.9786
-INDONESIA|26385461.7147
-JAPAN|24082606.5465
-VIETNAM|22941394.792
-q2 val: 101
-q2 took (s): real 0.565991s user 0.565474s sys 0.000263s
-CHINA|29991841.8798
-INDIA|27363347.9786
-INDONESIA|26385461.7147
-JAPAN|24082606.5465
-VIETNAM|22941394.792
-q2 val: 101
-q2 took (s): real 0.553287s user 0.553040s sys 0.000000s
-CHINA|29991841.8798
-INDIA|27363347.9786
-INDONESIA|26385461.7147
-JAPAN|24082606.5465
-VIETNAM|22941394.792
-q2 val: 101
-q2 took (s): real 0.552253s user 0.552024s sys 0.000000s
-CHINA|29991841.8798
-INDIA|27363347.9786
-INDONESIA|26385461.7147
-JAPAN|24082606.5465
-VIETNAM|22941394.792
-q2 val: 101
-q2 took (s): real 0.555303s user 0.555000s sys 0.000000s
-CHINA|29991841.8798
-INDIA|27363347.9786
-INDONESIA|26385461.7147
-JAPAN|24082606.5465
-VIETNAM|22941394.792
-q2 val: 101
-q2 took (s): real 0.559523s user 0.551011s sys 0.000000s
-q2 took (avg): real 0.557271s user 0.555310s sys 0.000053s
-./bench-sqlite <(sed 's/TPC-H\.db/TPC-H-x0.5.db/g' bench/tpch-q5-sqlite-prep.sql) 5:bench/tpch-q5-sqlite.sql
-298618880
-q1 val: 0
-q1 took (s): real 2.258316s user 2.110478s sys 0.146447s
-q1 took (avg): real 2.258316s user 2.110478s sys 0.146447s
+q1 took (s): real 2.894786s user 2.712562s sys 0.180328s
+q1 took (avg): real 2.894786s user 2.712562s sys 0.180328s
 q2 prep val: 0
 q2 prep took (s): real 0.000074s user 0.000070s sys 0.000004s
 q2 prep took (avg): real 0.000074s user 0.000070s sys 0.000004s
@@ -144,77 +56,165 @@ INDONESIA|26385461.7147
 JAPAN|24082606.5465
 VIETNAM|22941394.792
 q2 val: 101
-q2 took (s): real 0.553970s user 0.553654s sys 0.000058s
+q2 took (s): real 0.547734s user 0.547496s sys 0.000000s
 CHINA|29991841.8798
 INDIA|27363347.9786
 INDONESIA|26385461.7147
 JAPAN|24082606.5465
 VIETNAM|22941394.792
 q2 val: 101
-q2 took (s): real 0.551415s user 0.551128s sys 0.000000s
+q2 took (s): real 0.544867s user 0.544648s sys 0.000000s
 CHINA|29991841.8798
 INDIA|27363347.9786
 INDONESIA|26385461.7147
 JAPAN|24082606.5465
 VIETNAM|22941394.792
 q2 val: 101
-q2 took (s): real 0.552082s user 0.551813s sys 0.000024s
+q2 took (s): real 0.546000s user 0.545711s sys 0.000000s
 CHINA|29991841.8798
 INDIA|27363347.9786
 INDONESIA|26385461.7147
 JAPAN|24082606.5465
 VIETNAM|22941394.792
 q2 val: 101
-q2 took (s): real 0.550864s user 0.550573s sys 0.000033s
+q2 took (s): real 0.565133s user 0.564896s sys 0.000000s
 CHINA|29991841.8798
 INDIA|27363347.9786
 INDONESIA|26385461.7147
 JAPAN|24082606.5465
 VIETNAM|22941394.792
 q2 val: 101
-q2 took (s): real 0.560700s user 0.552224s sys 0.000000s
-q2 took (avg): real 0.553806s user 0.551878s sys 0.000023s
-./bench-sqlite <(sed 's/TPC-H\.db/TPC-H-x0.5.db/g' bench/tpch-q5-sqlite-prep.sql) 5:bench/tpch-q5-sqlite.sql
+q2 took (s): real 0.554873s user 0.554649s sys 0.000000s
+q2 took (avg): real 0.551722s user 0.551480s sys 0.000000s
+./bench-sqlite <(sed 's#TPC-H\.db#data/TPC-H-x0.5.db#g' bench/tpch-q5-sqlite-prep.sql) 5:bench/tpch-q5-sqlite.sql
 298618880
 q1 val: 0
-q1 took (s): real 2.250831s user 2.047794s sys 0.201443s
-q1 took (avg): real 2.250831s user 2.047794s sys 0.201443s
+q1 took (s): real 2.902526s user 2.697822s sys 0.203138s
+q1 took (avg): real 2.902526s user 2.697822s sys 0.203138s
 q2 prep val: 0
-q2 prep took (s): real 0.000075s user 0.000069s sys 0.000007s
-q2 prep took (avg): real 0.000075s user 0.000069s sys 0.000007s
+q2 prep took (s): real 0.000072s user 0.000067s sys 0.000005s
+q2 prep took (avg): real 0.000072s user 0.000067s sys 0.000005s
 CHINA|29991841.8798
 INDIA|27363347.9786
 INDONESIA|26385461.7147
 JAPAN|24082606.5465
 VIETNAM|22941394.792
 q2 val: 101
-q2 took (s): real 0.552610s user 0.552309s sys 0.000000s
+q2 took (s): real 0.554428s user 0.554126s sys 0.000077s
 CHINA|29991841.8798
 INDIA|27363347.9786
 INDONESIA|26385461.7147
 JAPAN|24082606.5465
 VIETNAM|22941394.792
 q2 val: 101
-q2 took (s): real 0.551012s user 0.550653s sys 0.000101s
+q2 took (s): real 0.553227s user 0.552905s sys 0.000000s
 CHINA|29991841.8798
 INDIA|27363347.9786
 INDONESIA|26385461.7147
 JAPAN|24082606.5465
 VIETNAM|22941394.792
 q2 val: 101
-q2 took (s): real 0.552132s user 0.551868s sys 0.000000s
+q2 took (s): real 0.557802s user 0.557562s sys 0.000000s
 CHINA|29991841.8798
 INDIA|27363347.9786
 INDONESIA|26385461.7147
 JAPAN|24082606.5465
 VIETNAM|22941394.792
 q2 val: 101
-q2 took (s): real 0.551581s user 0.551197s sys 0.000053s
+q2 took (s): real 0.551999s user 0.551789s sys 0.000000s
 CHINA|29991841.8798
 INDIA|27363347.9786
 INDONESIA|26385461.7147
 JAPAN|24082606.5465
 VIETNAM|22941394.792
 q2 val: 101
-q2 took (s): real 0.559856s user 0.551414s sys 0.000000s
-q2 took (avg): real 0.553438s user 0.551488s sys 0.000031s
+q2 took (s): real 0.554517s user 0.554284s sys 0.000000s
+q2 took (avg): real 0.554395s user 0.554133s sys 0.000015s
+./bench-sqlite <(sed 's#TPC-H\.db#data/TPC-H-x0.5.db#g' bench/tpch-q5-sqlite-prep.sql) 5:bench/tpch-q5-sqlite.sql
+298618880
+q1 val: 0
+q1 took (s): real 2.984087s user 2.775636s sys 0.206807s
+q1 took (avg): real 2.984087s user 2.775636s sys 0.206807s
+q2 prep val: 0
+q2 prep took (s): real 0.000074s user 0.000069s sys 0.000006s
+q2 prep took (avg): real 0.000074s user 0.000069s sys 0.000006s
+CHINA|29991841.8798
+INDIA|27363347.9786
+INDONESIA|26385461.7147
+JAPAN|24082606.5465
+VIETNAM|22941394.792
+q2 val: 101
+q2 took (s): real 0.547132s user 0.546894s sys 0.000000s
+CHINA|29991841.8798
+INDIA|27363347.9786
+INDONESIA|26385461.7147
+JAPAN|24082606.5465
+VIETNAM|22941394.792
+q2 val: 101
+q2 took (s): real 0.576700s user 0.576458s sys 0.000000s
+CHINA|29991841.8798
+INDIA|27363347.9786
+INDONESIA|26385461.7147
+JAPAN|24082606.5465
+VIETNAM|22941394.792
+q2 val: 101
+q2 took (s): real 0.561082s user 0.560844s sys 0.000000s
+CHINA|29991841.8798
+INDIA|27363347.9786
+INDONESIA|26385461.7147
+JAPAN|24082606.5465
+VIETNAM|22941394.792
+q2 val: 101
+q2 took (s): real 0.560458s user 0.560246s sys 0.000000s
+CHINA|29991841.8798
+INDIA|27363347.9786
+INDONESIA|26385461.7147
+JAPAN|24082606.5465
+VIETNAM|22941394.792
+q2 val: 101
+q2 took (s): real 0.548444s user 0.548229s sys 0.000000s
+q2 took (avg): real 0.558763s user 0.558534s sys 0.000000s
+./bench-sqlite <(sed 's#TPC-H\.db#data/TPC-H-x0.5.db#g' bench/tpch-q5-sqlite-prep.sql) 5:bench/tpch-q5-sqlite.sql
+298618880
+q1 val: 0
+q1 took (s): real 2.893655s user 2.679093s sys 0.212964s
+q1 took (avg): real 2.893655s user 2.679093s sys 0.212964s
+q2 prep val: 0
+q2 prep took (s): real 0.000263s user 0.000248s sys 0.000020s
+q2 prep took (avg): real 0.000263s user 0.000248s sys 0.000020s
+CHINA|29991841.8798
+INDIA|27363347.9786
+INDONESIA|26385461.7147
+JAPAN|24082606.5465
+VIETNAM|22941394.792
+q2 val: 101
+q2 took (s): real 0.563620s user 0.563302s sys 0.000052s
+CHINA|29991841.8798
+INDIA|27363347.9786
+INDONESIA|26385461.7147
+JAPAN|24082606.5465
+VIETNAM|22941394.792
+q2 val: 101
+q2 took (s): real 0.547408s user 0.547143s sys 0.000062s
+CHINA|29991841.8798
+INDIA|27363347.9786
+INDONESIA|26385461.7147
+JAPAN|24082606.5465
+VIETNAM|22941394.792
+q2 val: 101
+q2 took (s): real 0.556141s user 0.555896s sys 0.000000s
+CHINA|29991841.8798
+INDIA|27363347.9786
+INDONESIA|26385461.7147
+JAPAN|24082606.5465
+VIETNAM|22941394.792
+q2 val: 101
+q2 took (s): real 0.546370s user 0.546123s sys 0.000000s
+CHINA|29991841.8798
+INDIA|27363347.9786
+INDONESIA|26385461.7147
+JAPAN|24082606.5465
+VIETNAM|22941394.792
+q2 val: 101
+q2 took (s): real 0.547426s user 0.547182s sys 0.000028s
+q2 took (avg): real 0.552193s user 0.551929s sys 0.000028s

@@ -1,26 +1,26 @@
-./bench-duckdb <(sed -e 's#tpch-csv-q5#tpch-csv-x2-q5#g' bench/tpch-q5-duckdb-prep.sql) 5:bench/tpch-q5-duckdb.sql
+./bench-duckdb <(sed 's#tpch-csv#data/tpch-csv-x2-q5#g' bench/tpch-q5-duckdb-prep.sql) 5:bench/tpch-q5-duckdb.sql
 q1 val: 0
-q1 took (s): real 9.547015s user 8.662312s sys 0.879058s
-q1 took (avg): real 9.547015s user 8.662312s sys 0.879058s
+q1 took (s): real 16.720653s user 17.912419s sys 3.677945s
+q1 took (avg): real 16.720653s user 17.912419s sys 3.677945s
 Count	
 BIGINT	
 [ Rows: 0]
 
 
 q2 prep val: 0
-q2 prep took (s): real 0.001869s user 0.001866s sys 0.000000s
-q2 prep took (avg): real 0.001869s user 0.001866s sys 0.000000s
+q2 prep took (s): real 0.001837s user 0.001834s sys 0.000000s
+q2 prep took (avg): real 0.001837s user 0.001834s sys 0.000000s
 q2 val: 0
-q2 took (s): real 0.157626s user 0.157449s sys 0.000000s
+q2 took (s): real 0.159434s user 0.159272s sys 0.000000s
 q2 val: 0
-q2 took (s): real 0.158156s user 0.157849s sys 0.000000s
+q2 took (s): real 0.175921s user 0.175756s sys 0.000000s
 q2 val: 0
-q2 took (s): real 0.158075s user 0.157869s sys 0.000039s
+q2 took (s): real 0.159688s user 0.159537s sys 0.000000s
 q2 val: 0
-q2 took (s): real 0.157630s user 0.157468s sys 0.000000s
+q2 took (s): real 0.159744s user 0.159597s sys 0.000000s
 q2 val: 0
-q2 took (s): real 0.157401s user 0.157224s sys 0.000000s
-q2 took (avg): real 0.157777s user 0.157572s sys 0.000008s
+q2 took (s): real 0.158733s user 0.158488s sys 0.000099s
+q2 took (avg): real 0.162704s user 0.162530s sys 0.000020s
 N_NAME	revenue	
 VARCHAR	DOUBLE	
 [ Rows: 5]
@@ -28,32 +28,32 @@ JAPAN	104738341.03109981
 INDONESIA	115979499.65179972
 CHINA	109568736.21629986
 VIETNAM	98052109.12930013
-INDIA	106258458.1655999
+INDIA	106258458.16559988
 
 
-./bench-duckdb <(sed -e 's#tpch-csv-q5#tpch-csv-x2-q5#g' bench/tpch-q5-duckdb-prep.sql) 5:bench/tpch-q5-duckdb.sql
+./bench-duckdb <(sed 's#tpch-csv#data/tpch-csv-x2-q5#g' bench/tpch-q5-duckdb-prep.sql) 5:bench/tpch-q5-duckdb.sql
 q1 val: 0
-q1 took (s): real 9.781429s user 8.797782s sys 0.976906s
-q1 took (avg): real 9.781429s user 8.797782s sys 0.976906s
+q1 took (s): real 16.706553s user 17.687433s sys 3.445857s
+q1 took (avg): real 16.706553s user 17.687433s sys 3.445857s
 Count	
 BIGINT	
 [ Rows: 0]
 
 
 q2 prep val: 0
-q2 prep took (s): real 0.001863s user 0.001858s sys 0.000000s
-q2 prep took (avg): real 0.001863s user 0.001858s sys 0.000000s
+q2 prep took (s): real 0.001828s user 0.001826s sys 0.000000s
+q2 prep took (avg): real 0.001828s user 0.001826s sys 0.000000s
 q2 val: 0
-q2 took (s): real 0.160051s user 0.159917s sys 0.000004s
+q2 took (s): real 0.155722s user 0.155591s sys 0.000000s
 q2 val: 0
-q2 took (s): real 0.161156s user 0.160903s sys 0.000107s
+q2 took (s): real 0.155841s user 0.155699s sys 0.000000s
 q2 val: 0
-q2 took (s): real 0.161707s user 0.161551s sys 0.000000s
+q2 took (s): real 0.155916s user 0.155781s sys 0.000000s
 q2 val: 0
-q2 took (s): real 0.161736s user 0.161609s sys 0.000007s
+q2 took (s): real 0.157175s user 0.157039s sys 0.000000s
 q2 val: 0
-q2 took (s): real 0.161609s user 0.161465s sys 0.000000s
-q2 took (avg): real 0.161252s user 0.161089s sys 0.000024s
+q2 took (s): real 0.156794s user 0.156651s sys 0.000000s
+q2 took (avg): real 0.156290s user 0.156152s sys 0.000000s
 N_NAME	revenue	
 VARCHAR	DOUBLE	
 [ Rows: 5]
@@ -61,32 +61,32 @@ JAPAN	104738341.03109981
 INDONESIA	115979499.65179972
 CHINA	109568736.21629986
 VIETNAM	98052109.12930013
-INDIA	106258458.1655999
+INDIA	106258458.16559988
 
 
-./bench-duckdb <(sed -e 's#tpch-csv-q5#tpch-csv-x2-q5#g' bench/tpch-q5-duckdb-prep.sql) 5:bench/tpch-q5-duckdb.sql
+./bench-duckdb <(sed 's#tpch-csv#data/tpch-csv-x2-q5#g' bench/tpch-q5-duckdb-prep.sql) 5:bench/tpch-q5-duckdb.sql
 q1 val: 0
-q1 took (s): real 9.809263s user 8.890805s sys 0.913293s
-q1 took (avg): real 9.809263s user 8.890805s sys 0.913293s
+q1 took (s): real 16.634192s user 17.264801s sys 3.638695s
+q1 took (avg): real 16.634192s user 17.264801s sys 3.638695s
 Count	
 BIGINT	
 [ Rows: 0]
 
 
 q2 prep val: 0
-q2 prep took (s): real 0.001937s user 0.001909s sys 0.000000s
-q2 prep took (avg): real 0.001937s user 0.001909s sys 0.000000s
+q2 prep took (s): real 0.001757s user 0.001452s sys 0.000306s
+q2 prep took (avg): real 0.001757s user 0.001452s sys 0.000306s
 q2 val: 0
-q2 took (s): real 0.158706s user 0.158564s sys 0.000000s
+q2 took (s): real 0.156090s user 0.155952s sys 0.000000s
 q2 val: 0
-q2 took (s): real 0.158664s user 0.158462s sys 0.000053s
+q2 took (s): real 0.156324s user 0.155683s sys 0.000515s
 q2 val: 0
-q2 took (s): real 0.158453s user 0.158290s sys 0.000000s
+q2 took (s): real 0.157050s user 0.156919s sys 0.000000s
 q2 val: 0
-q2 took (s): real 0.158610s user 0.158452s sys 0.000023s
+q2 took (s): real 0.156519s user 0.156382s sys 0.000000s
 q2 val: 0
-q2 took (s): real 0.158828s user 0.158684s sys 0.000000s
-q2 took (avg): real 0.158652s user 0.158490s sys 0.000015s
+q2 took (s): real 0.156533s user 0.156227s sys 0.000166s
+q2 took (avg): real 0.156503s user 0.156233s sys 0.000136s
 N_NAME	revenue	
 VARCHAR	DOUBLE	
 [ Rows: 5]
@@ -94,32 +94,32 @@ JAPAN	104738341.03109981
 INDONESIA	115979499.65179972
 CHINA	109568736.21629986
 VIETNAM	98052109.12930013
-INDIA	106258458.1655999
+INDIA	106258458.16559988
 
 
-./bench-duckdb <(sed -e 's#tpch-csv-q5#tpch-csv-x2-q5#g' bench/tpch-q5-duckdb-prep.sql) 5:bench/tpch-q5-duckdb.sql
+./bench-duckdb <(sed 's#tpch-csv#data/tpch-csv-x2-q5#g' bench/tpch-q5-duckdb-prep.sql) 5:bench/tpch-q5-duckdb.sql
 q1 val: 0
-q1 took (s): real 9.511879s user 8.606698s sys 0.899426s
-q1 took (avg): real 9.511879s user 8.606698s sys 0.899426s
+q1 took (s): real 16.781072s user 17.793153s sys 3.780960s
+q1 took (avg): real 16.781072s user 17.793153s sys 3.780960s
 Count	
 BIGINT	
 [ Rows: 0]
 
 
 q2 prep val: 0
-q2 prep took (s): real 0.001868s user 0.001865s sys 0.000000s
-q2 prep took (avg): real 0.001868s user 0.001865s sys 0.000000s
+q2 prep took (s): real 0.001816s user 0.001814s sys 0.000000s
+q2 prep took (avg): real 0.001816s user 0.001814s sys 0.000000s
 q2 val: 0
-q2 took (s): real 0.155272s user 0.155079s sys 0.000000s
+q2 took (s): real 0.154727s user 0.154284s sys 0.000318s
 q2 val: 0
-q2 took (s): real 0.156336s user 0.156160s sys 0.000000s
+q2 took (s): real 0.154497s user 0.154104s sys 0.000275s
 q2 val: 0
-q2 took (s): real 0.155774s user 0.155606s sys 0.000036s
+q2 took (s): real 0.154341s user 0.154211s sys 0.000000s
 q2 val: 0
-q2 took (s): real 0.156307s user 0.156155s sys 0.000000s
+q2 took (s): real 0.154492s user 0.154346s sys 0.000000s
 q2 val: 0
-q2 took (s): real 0.155653s user 0.155502s sys 0.000000s
-q2 took (avg): real 0.155868s user 0.155700s sys 0.000007s
+q2 took (s): real 0.154151s user 0.153857s sys 0.000167s
+q2 took (avg): real 0.154442s user 0.154160s sys 0.000152s
 N_NAME	revenue	
 VARCHAR	DOUBLE	
 [ Rows: 5]
@@ -127,32 +127,32 @@ JAPAN	104738341.03109981
 INDONESIA	115979499.65179972
 CHINA	109568736.21629986
 VIETNAM	98052109.12930013
-INDIA	106258458.1655999
+INDIA	106258458.16559988
 
 
-./bench-duckdb <(sed -e 's#tpch-csv-q5#tpch-csv-x2-q5#g' bench/tpch-q5-duckdb-prep.sql) 5:bench/tpch-q5-duckdb.sql
+./bench-duckdb <(sed 's#tpch-csv#data/tpch-csv-x2-q5#g' bench/tpch-q5-duckdb-prep.sql) 5:bench/tpch-q5-duckdb.sql
 q1 val: 0
-q1 took (s): real 9.544693s user 8.655670s sys 0.883697s
-q1 took (avg): real 9.544693s user 8.655670s sys 0.883697s
+q1 took (s): real 16.764592s user 17.776724s sys 3.633501s
+q1 took (avg): real 16.764592s user 17.776724s sys 3.633501s
 Count	
 BIGINT	
 [ Rows: 0]
 
 
 q2 prep val: 0
-q2 prep took (s): real 0.001805s user 0.001802s sys 0.000000s
-q2 prep took (avg): real 0.001805s user 0.001802s sys 0.000000s
+q2 prep took (s): real 0.001767s user 0.001469s sys 0.000300s
+q2 prep took (avg): real 0.001767s user 0.001469s sys 0.000300s
 q2 val: 0
-q2 took (s): real 0.159775s user 0.159643s sys 0.000000s
+q2 took (s): real 0.157628s user 0.157293s sys 0.000197s
 q2 val: 0
-q2 took (s): real 0.159966s user 0.159825s sys 0.000000s
+q2 took (s): real 0.156843s user 0.156638s sys 0.000065s
 q2 val: 0
-q2 took (s): real 0.159717s user 0.159560s sys 0.000000s
+q2 took (s): real 0.156840s user 0.156633s sys 0.000062s
 q2 val: 0
-q2 took (s): real 0.159468s user 0.159140s sys 0.000202s
+q2 took (s): real 0.158310s user 0.157858s sys 0.000302s
 q2 val: 0
-q2 took (s): real 0.159220s user 0.159048s sys 0.000000s
-q2 took (avg): real 0.159629s user 0.159443s sys 0.000040s
+q2 took (s): real 0.157467s user 0.157311s sys 0.000000s
+q2 took (avg): real 0.157417s user 0.157147s sys 0.000125s
 N_NAME	revenue	
 VARCHAR	DOUBLE	
 [ Rows: 5]
@@ -160,6 +160,6 @@ JAPAN	104738341.03109981
 INDONESIA	115979499.65179972
 CHINA	109568736.21629986
 VIETNAM	98052109.12930013
-INDIA	106258458.1655999
+INDIA	106258458.16559988
 
 

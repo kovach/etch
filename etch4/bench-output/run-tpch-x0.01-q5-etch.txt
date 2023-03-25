@@ -1,5 +1,4 @@
-ln -sf TPC-H-x0.01.db TPC-H.db
-./out
+./bench-tpch-q5 data/TPC-H-x0.01.db
 tpch_lineitem_out: 60175
 tpch_lineitem1_crd: 15000
 tpch_lineitem2_pos: 15001
@@ -20,9 +19,9 @@ tpch_nation2_crd: 25
 tpch_nation3_crd: 25
 tpch_region2_pos: 6
 tpch_region2_crd: 5
-populate_tpch val: 0
-populate_tpch took (s): real 0.058297s user 0.054972s sys 0.003290s
-populate_tpch took (avg): real 0.058297s user 0.054972s sys 0.003290s
+populate_tpch_q5 val: 0
+populate_tpch_q5 took (s): real 0.058093s user 0.049219s sys 0.008848s
+populate_tpch_q5 took (avg): real 0.058093s user 0.049219s sys 0.008848s
 Loaded
 q5 val: JORDAN: 0.000000
 FRANCE: 0.000000
@@ -50,7 +49,7 @@ ROMANIA: 0.000000
 JAPAN: 660651.242500
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.000280s user 0.000265s sys 0.000015s
+q5 took (s): real 0.000237s user 0.000198s sys 0.000040s
 q5 val: JORDAN: 0.000000
 FRANCE: 0.000000
 IRAN: 0.000000
@@ -77,7 +76,7 @@ ROMANIA: 0.000000
 JAPAN: 660651.242500
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.000265s user 0.000251s sys 0.000015s
+q5 took (s): real 0.000225s user 0.000189s sys 0.000037s
 q5 val: JORDAN: 0.000000
 FRANCE: 0.000000
 IRAN: 0.000000
@@ -104,7 +103,7 @@ ROMANIA: 0.000000
 JAPAN: 660651.242500
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.000263s user 0.000250s sys 0.000014s
+q5 took (s): real 0.000222s user 0.000186s sys 0.000037s
 q5 val: JORDAN: 0.000000
 FRANCE: 0.000000
 IRAN: 0.000000
@@ -131,7 +130,7 @@ ROMANIA: 0.000000
 JAPAN: 660651.242500
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.000262s user 0.000248s sys 0.000015s
+q5 took (s): real 0.000223s user 0.000186s sys 0.000037s
 q5 val: JORDAN: 0.000000
 FRANCE: 0.000000
 IRAN: 0.000000
@@ -158,11 +157,9 @@ ROMANIA: 0.000000
 JAPAN: 660651.242500
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.000268s user 0.000264s sys 0.000000s
-q5 took (avg): real 0.000268s user 0.000256s sys 0.000012s
-rm TPC-H.db
-ln -sf TPC-H-x0.01.db TPC-H.db
-./out
+q5 took (s): real 0.000223s user 0.000187s sys 0.000038s
+q5 took (avg): real 0.000226s user 0.000189s sys 0.000038s
+./bench-tpch-q5 data/TPC-H-x0.01.db
 tpch_lineitem_out: 60175
 tpch_lineitem1_crd: 15000
 tpch_lineitem2_pos: 15001
@@ -183,9 +180,9 @@ tpch_nation2_crd: 25
 tpch_nation3_crd: 25
 tpch_region2_pos: 6
 tpch_region2_crd: 5
-populate_tpch val: 0
-populate_tpch took (s): real 0.058689s user 0.058579s sys 0.000000s
-populate_tpch took (avg): real 0.058689s user 0.058579s sys 0.000000s
+populate_tpch_q5 val: 0
+populate_tpch_q5 took (s): real 0.071366s user 0.071285s sys 0.000000s
+populate_tpch_q5 took (avg): real 0.071366s user 0.071285s sys 0.000000s
 Loaded
 q5 val: JORDAN: 0.000000
 FRANCE: 0.000000
@@ -213,7 +210,7 @@ ROMANIA: 0.000000
 JAPAN: 660651.242500
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.000278s user 0.000275s sys 0.000000s
+q5 took (s): real 0.000246s user 0.000246s sys 0.000000s
 q5 val: JORDAN: 0.000000
 FRANCE: 0.000000
 IRAN: 0.000000
@@ -240,7 +237,7 @@ ROMANIA: 0.000000
 JAPAN: 660651.242500
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.000258s user 0.000258s sys 0.000000s
+q5 took (s): real 0.000232s user 0.000233s sys 0.000000s
 q5 val: JORDAN: 0.000000
 FRANCE: 0.000000
 IRAN: 0.000000
@@ -267,7 +264,7 @@ ROMANIA: 0.000000
 JAPAN: 660651.242500
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.000254s user 0.000255s sys 0.000000s
+q5 took (s): real 0.000229s user 0.000230s sys 0.000000s
 q5 val: JORDAN: 0.000000
 FRANCE: 0.000000
 IRAN: 0.000000
@@ -294,7 +291,7 @@ ROMANIA: 0.000000
 JAPAN: 660651.242500
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.000254s user 0.000254s sys 0.000000s
+q5 took (s): real 0.000228s user 0.000229s sys 0.000000s
 q5 val: JORDAN: 0.000000
 FRANCE: 0.000000
 IRAN: 0.000000
@@ -321,11 +318,9 @@ ROMANIA: 0.000000
 JAPAN: 660651.242500
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.000256s user 0.000257s sys 0.000000s
-q5 took (avg): real 0.000260s user 0.000260s sys 0.000000s
-rm TPC-H.db
-ln -sf TPC-H-x0.01.db TPC-H.db
-./out
+q5 took (s): real 0.000227s user 0.000228s sys 0.000000s
+q5 took (avg): real 0.000232s user 0.000233s sys 0.000000s
+./bench-tpch-q5 data/TPC-H-x0.01.db
 tpch_lineitem_out: 60175
 tpch_lineitem1_crd: 15000
 tpch_lineitem2_pos: 15001
@@ -346,9 +341,9 @@ tpch_nation2_crd: 25
 tpch_nation3_crd: 25
 tpch_region2_pos: 6
 tpch_region2_crd: 5
-populate_tpch val: 0
-populate_tpch took (s): real 0.058501s user 0.055160s sys 0.003300s
-populate_tpch took (avg): real 0.058501s user 0.055160s sys 0.003300s
+populate_tpch_q5 val: 0
+populate_tpch_q5 took (s): real 0.058308s user 0.054986s sys 0.003293s
+populate_tpch_q5 took (avg): real 0.058308s user 0.054986s sys 0.003293s
 Loaded
 q5 val: JORDAN: 0.000000
 FRANCE: 0.000000
@@ -376,7 +371,7 @@ ROMANIA: 0.000000
 JAPAN: 660651.242500
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.000275s user 0.000260s sys 0.000015s
+q5 took (s): real 0.000250s user 0.000237s sys 0.000014s
 q5 val: JORDAN: 0.000000
 FRANCE: 0.000000
 IRAN: 0.000000
@@ -403,7 +398,7 @@ ROMANIA: 0.000000
 JAPAN: 660651.242500
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.000266s user 0.000252s sys 0.000015s
+q5 took (s): real 0.000238s user 0.000226s sys 0.000013s
 q5 val: JORDAN: 0.000000
 FRANCE: 0.000000
 IRAN: 0.000000
@@ -430,7 +425,7 @@ ROMANIA: 0.000000
 JAPAN: 660651.242500
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.000262s user 0.000248s sys 0.000014s
+q5 took (s): real 0.000238s user 0.000226s sys 0.000014s
 q5 val: JORDAN: 0.000000
 FRANCE: 0.000000
 IRAN: 0.000000
@@ -457,7 +452,7 @@ ROMANIA: 0.000000
 JAPAN: 660651.242500
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.000262s user 0.000248s sys 0.000015s
+q5 took (s): real 0.000237s user 0.000224s sys 0.000014s
 q5 val: JORDAN: 0.000000
 FRANCE: 0.000000
 IRAN: 0.000000
@@ -484,11 +479,9 @@ ROMANIA: 0.000000
 JAPAN: 660651.242500
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.000262s user 0.000248s sys 0.000014s
-q5 took (avg): real 0.000265s user 0.000251s sys 0.000015s
-rm TPC-H.db
-ln -sf TPC-H-x0.01.db TPC-H.db
-./out
+q5 took (s): real 0.000235s user 0.000222s sys 0.000013s
+q5 took (avg): real 0.000240s user 0.000227s sys 0.000014s
+./bench-tpch-q5 data/TPC-H-x0.01.db
 tpch_lineitem_out: 60175
 tpch_lineitem1_crd: 15000
 tpch_lineitem2_pos: 15001
@@ -509,9 +502,9 @@ tpch_nation2_crd: 25
 tpch_nation3_crd: 25
 tpch_region2_pos: 6
 tpch_region2_crd: 5
-populate_tpch val: 0
-populate_tpch took (s): real 0.058492s user 0.058450s sys 0.000000s
-populate_tpch took (avg): real 0.058492s user 0.058450s sys 0.000000s
+populate_tpch_q5 val: 0
+populate_tpch_q5 took (s): real 0.058294s user 0.058242s sys 0.000000s
+populate_tpch_q5 took (avg): real 0.058294s user 0.058242s sys 0.000000s
 Loaded
 q5 val: JORDAN: 0.000000
 FRANCE: 0.000000
@@ -539,7 +532,7 @@ ROMANIA: 0.000000
 JAPAN: 660651.242500
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.000269s user 0.000270s sys 0.000000s
+q5 took (s): real 0.000243s user 0.000244s sys 0.000000s
 q5 val: JORDAN: 0.000000
 FRANCE: 0.000000
 IRAN: 0.000000
@@ -566,7 +559,7 @@ ROMANIA: 0.000000
 JAPAN: 660651.242500
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.000257s user 0.000258s sys 0.000000s
+q5 took (s): real 0.000232s user 0.000232s sys 0.000000s
 q5 val: JORDAN: 0.000000
 FRANCE: 0.000000
 IRAN: 0.000000
@@ -593,7 +586,7 @@ ROMANIA: 0.000000
 JAPAN: 660651.242500
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.000255s user 0.000255s sys 0.000000s
+q5 took (s): real 0.000229s user 0.000229s sys 0.000000s
 q5 val: JORDAN: 0.000000
 FRANCE: 0.000000
 IRAN: 0.000000
@@ -620,7 +613,7 @@ ROMANIA: 0.000000
 JAPAN: 660651.242500
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.000255s user 0.000255s sys 0.000000s
+q5 took (s): real 0.000231s user 0.000231s sys 0.000000s
 q5 val: JORDAN: 0.000000
 FRANCE: 0.000000
 IRAN: 0.000000
@@ -647,11 +640,9 @@ ROMANIA: 0.000000
 JAPAN: 660651.242500
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.000255s user 0.000256s sys 0.000000s
-q5 took (avg): real 0.000258s user 0.000259s sys 0.000000s
-rm TPC-H.db
-ln -sf TPC-H-x0.01.db TPC-H.db
-./out
+q5 took (s): real 0.000230s user 0.000231s sys 0.000000s
+q5 took (avg): real 0.000233s user 0.000233s sys 0.000000s
+./bench-tpch-q5 data/TPC-H-x0.01.db
 tpch_lineitem_out: 60175
 tpch_lineitem1_crd: 15000
 tpch_lineitem2_pos: 15001
@@ -672,9 +663,9 @@ tpch_nation2_crd: 25
 tpch_nation3_crd: 25
 tpch_region2_pos: 6
 tpch_region2_crd: 5
-populate_tpch val: 0
-populate_tpch took (s): real 0.064299s user 0.064261s sys 0.000000s
-populate_tpch took (avg): real 0.064299s user 0.064261s sys 0.000000s
+populate_tpch_q5 val: 0
+populate_tpch_q5 took (s): real 0.057752s user 0.054460s sys 0.003259s
+populate_tpch_q5 took (avg): real 0.057752s user 0.054460s sys 0.003259s
 Loaded
 q5 val: JORDAN: 0.000000
 FRANCE: 0.000000
@@ -702,7 +693,7 @@ ROMANIA: 0.000000
 JAPAN: 660651.242500
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.000270s user 0.000271s sys 0.000000s
+q5 took (s): real 0.000321s user 0.000304s sys 0.000018s
 q5 val: JORDAN: 0.000000
 FRANCE: 0.000000
 IRAN: 0.000000
@@ -729,7 +720,7 @@ ROMANIA: 0.000000
 JAPAN: 660651.242500
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.000255s user 0.000256s sys 0.000000s
+q5 took (s): real 0.000224s user 0.000213s sys 0.000013s
 q5 val: JORDAN: 0.000000
 FRANCE: 0.000000
 IRAN: 0.000000
@@ -756,7 +747,7 @@ ROMANIA: 0.000000
 JAPAN: 660651.242500
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.000254s user 0.000255s sys 0.000000s
+q5 took (s): real 0.000224s user 0.000212s sys 0.000012s
 q5 val: JORDAN: 0.000000
 FRANCE: 0.000000
 IRAN: 0.000000
@@ -783,7 +774,7 @@ ROMANIA: 0.000000
 JAPAN: 660651.242500
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.000254s user 0.000255s sys 0.000000s
+q5 took (s): real 0.000223s user 0.000210s sys 0.000012s
 q5 val: JORDAN: 0.000000
 FRANCE: 0.000000
 IRAN: 0.000000
@@ -810,6 +801,5 @@ ROMANIA: 0.000000
 JAPAN: 660651.242500
 SAUDI ARABIA: 0.000000
 
-q5 took (s): real 0.000254s user 0.000255s sys 0.000000s
-q5 took (avg): real 0.000257s user 0.000258s sys 0.000000s
-rm TPC-H.db
+q5 took (s): real 0.000224s user 0.000213s sys 0.000013s
+q5 took (avg): real 0.000243s user 0.000230s sys 0.000014s

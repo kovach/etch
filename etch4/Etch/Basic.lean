@@ -23,4 +23,5 @@ infixr:90 "⊚" => rev_fmap_comp
 def rev_app : α → (α → β) → β := Function.swap (. $ .)
 infixr:9 "&" => rev_app
 
-example : Add ℕ := inferInstance
+abbrev DecidableLE (α : Type u) [LE α] := @DecidableRel α LE.le
+abbrev DecidableLT (α : Type u) [LT α] := @DecidableRel α LT.lt

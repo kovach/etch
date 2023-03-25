@@ -33,27 +33,33 @@ ATTACH DATABASE 'TPC-H.db' AS t;
 
 INSERT INTO region
 SELECT r_regionkey, r_name
-FROM t.region;
+FROM t.region
+ORDER BY 1, 2;
 
 INSERT INTO nation
 SELECT n_nationkey, n_regionkey, n_name
-FROM t.nation;
+FROM t.nation
+ORDER BY 1, 2, 3;
 
 INSERT INTO supplier
 SELECT s_suppkey, s_nationkey
-FROM t.supplier;
+FROM t.supplier
+ORDER BY 1, 2;
 
 INSERT INTO customer
 SELECT c_custkey, c_nationkey
-FROM t.customer;
+FROM t.customer
+ORDER BY 1, 2;
 
 INSERT INTO orders
 SELECT o_orderkey, o_custkey, o_orderdate
-FROM t.orders;
+FROM t.orders
+ORDER BY 1, 2, 3;
 
 INSERT INTO lineitem
 SELECT l_orderkey, l_suppkey, l_linenumber, l_extendedprice, l_discount
-FROM t.lineitem;
+FROM t.lineitem
+ORDER BY 1, 2, 4, 5;
 
 DETACH DATABASE t;
 
