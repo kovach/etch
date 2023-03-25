@@ -80,7 +80,7 @@ int main(int argc, char* argv[]) {
   for (double threshold :
        std::initializer_list<double>{0.0, 0.2, 0.4, 0.6, 0.8, 1.0}) {
     time([threshold]() { return filter_spmv(threshold); },
-         ("filter_spmv_" + std::to_string(threshold)).c_str(), 5);
+         ("filter_spmv_" + std::to_string(threshold)).c_str(), 50);
   }
 
   sqlite3_close(db);

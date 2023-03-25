@@ -1,0 +1,3055 @@
+./bench-filtered-spmv data/filtered-spmv-2000000.db
+populate_filtered_spmv val: 0
+populate_filtered_spmv took (s): real 1.796957s user 1.739613s sys 0.056577s
+populate_filtered_spmv took (avg): real 1.796957s user 1.739613s sys 0.056577s
+Loaded
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000213s user 0.000207s sys 0.000006s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000179s user 0.000174s sys 0.000005s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000094s user 0.000092s sys 0.000003s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000085s user 0.000084s sys 0.000002s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000085s user 0.000083s sys 0.000002s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000083s sys 0.000002s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000083s sys 0.000003s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000082s sys 0.000003s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000082s sys 0.000003s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000082s sys 0.000003s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000082s sys 0.000003s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000082s sys 0.000002s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000082s sys 0.000002s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000082s sys 0.000002s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000082s sys 0.000003s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000081s sys 0.000003s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000081s sys 0.000003s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000081s sys 0.000003s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000081s sys 0.000003s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000088s user 0.000085s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000085s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000085s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000085s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000085s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000085s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000085s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000085s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000085s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000085s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000085s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 took (avg): real 0.000088s user 0.000088s sys 0.000001s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000072s user 0.000073s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000071s user 0.000072s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000071s user 0.000072s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000070s sys 0.000001s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000102s user 0.000100s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 took (avg): real 0.000071s user 0.000072s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000067s user 0.000061s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000059s user 0.000060s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000058s user 0.000060s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000058s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000058s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000058s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000058s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000058s user 0.000059s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000058s user 0.000059s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000058s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000059s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000059s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000058s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000059s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000058s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000059s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000059s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000058s user 0.000059s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000058s user 0.000059s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000058s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000058s user 0.000059s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000058s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000059s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 took (avg): real 0.000058s user 0.000058s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000047s user 0.000048s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000046s user 0.000047s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000047s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 took (avg): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000034s user 0.000035s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000034s user 0.000035s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000033s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000051s user 0.000050s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000033s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000033s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 took (avg): real 0.000034s user 0.000034s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000002s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000002s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000002s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000002s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 took (avg): real 0.000002s user 0.000003s sys 0.000000s
+./bench-filtered-spmv data/filtered-spmv-2000000.db
+populate_filtered_spmv val: 0
+populate_filtered_spmv took (s): real 1.770154s user 1.726112s sys 0.043263s
+populate_filtered_spmv took (avg): real 1.770154s user 1.726112s sys 0.043263s
+Loaded
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000211s user 0.000207s sys 0.000006s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000178s user 0.000175s sys 0.000004s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000091s user 0.000089s sys 0.000003s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000082s sys 0.000002s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000082s sys 0.000002s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000082s sys 0.000002s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000081s sys 0.000002s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000081s sys 0.000002s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000081s sys 0.000002s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000081s sys 0.000002s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000081s sys 0.000002s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000082s sys 0.000002s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000081s sys 0.000002s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000081s sys 0.000002s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000081s sys 0.000002s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000081s sys 0.000002s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000081s sys 0.000002s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000082s sys 0.000002s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000081s sys 0.000002s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000081s sys 0.000002s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000082s sys 0.000002s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000081s sys 0.000002s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000081s sys 0.000002s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000081s sys 0.000002s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000081s sys 0.000002s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000087s user 0.000085s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000083s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000083s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000083s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000083s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000083s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000083s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000083s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000083s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000083s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000083s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000083s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000083s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000083s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000083s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000083s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000083s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 took (avg): real 0.000087s user 0.000087s sys 0.000001s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000071s user 0.000072s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000069s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000072s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000069s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000069s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000069s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000069s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 took (avg): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000059s user 0.000060s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000058s user 0.000060s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000058s user 0.000059s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000058s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000059s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000057s sys 0.000001s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000075s user 0.000073s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000071s user 0.000072s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000058s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000057s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000057s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000057s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000057s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000057s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000057s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 took (avg): real 0.000058s user 0.000059s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000047s user 0.000047s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000046s user 0.000047s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000047s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000077s user 0.000058s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000060s user 0.000060s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000057s user 0.000059s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 took (avg): real 0.000046s user 0.000046s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000034s user 0.000035s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000034s user 0.000035s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000034s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000033s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000033s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000036s user 0.000035s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 took (avg): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000002s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000002s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 took (avg): real 0.000002s user 0.000003s sys 0.000000s
+./bench-filtered-spmv data/filtered-spmv-2000000.db
+populate_filtered_spmv val: 0
+populate_filtered_spmv took (s): real 1.774158s user 1.693326s sys 0.079870s
+populate_filtered_spmv took (avg): real 1.774158s user 1.693326s sys 0.079870s
+Loaded
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000211s user 0.000202s sys 0.000010s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000179s user 0.000172s sys 0.000009s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000091s user 0.000088s sys 0.000004s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000080s sys 0.000004s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000079s sys 0.000004s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000080s sys 0.000004s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000080s sys 0.000004s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000079s sys 0.000003s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000079s sys 0.000003s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000079s sys 0.000003s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000079s sys 0.000003s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000079s sys 0.000003s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000080s sys 0.000003s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000079s sys 0.000003s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000079s sys 0.000003s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000079s sys 0.000003s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000079s sys 0.000003s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000079s sys 0.000003s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000079s sys 0.000003s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000079s sys 0.000003s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000079s sys 0.000003s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000079s sys 0.000003s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000079s sys 0.000004s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000079s sys 0.000004s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000079s sys 0.000004s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000086s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000082s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000082s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000082s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000082s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000083s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000110s user 0.000111s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000098s user 0.000098s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000095s user 0.000096s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000083s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000082s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000083s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000083s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000083s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000082s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000081s user 0.000082s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000082s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000082s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000082s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000082s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000081s user 0.000082s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000082s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000083s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000082s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000082s user 0.000083s sys 0.000000s
+filter_spmv_0.000000 took (avg): real 0.000088s user 0.000086s sys 0.000002s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000071s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000069s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000069s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000069s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000069s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000069s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000069s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000069s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000069s sys 0.000001s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000100s user 0.000099s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000069s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000069s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000069s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000068s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000069s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000068s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000069s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000068s user 0.000069s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000068s user 0.000069s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000068s user 0.000069s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000068s user 0.000069s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000068s user 0.000069s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000068s user 0.000069s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000068s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000068s user 0.000069s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000068s user 0.000069s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000068s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000069s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000068s user 0.000069s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000068s user 0.000069s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000069s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000068s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000068s user 0.000069s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000068s user 0.000069s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000068s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000068s user 0.000069s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000069s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000068s user 0.000069s sys 0.000000s
+filter_spmv_0.200000 took (avg): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000058s user 0.000059s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000058s user 0.000059s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000062s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000057s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000057s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000057s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000057s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000057s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000057s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000057s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000057s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000057s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000057s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000057s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000057s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000057s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000057s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000057s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000057s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000057s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000057s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000057s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000057s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000057s sys 0.000000s
+filter_spmv_0.400000 took (avg): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000046s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000046s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000047s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000044s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 took (avg): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000034s user 0.000035s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000034s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000033s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000033s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000033s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000033s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000033s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000033s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000033s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000033s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000033s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000033s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000033s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000035s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000077s user 0.000078s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000033s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000033s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000033s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 took (avg): real 0.000034s user 0.000035s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000002s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000002s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000002s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 took (avg): real 0.000002s user 0.000003s sys 0.000000s
+./bench-filtered-spmv data/filtered-spmv-2000000.db
+populate_filtered_spmv val: 0
+populate_filtered_spmv took (s): real 1.773546s user 1.695847s sys 0.076527s
+populate_filtered_spmv took (avg): real 1.773546s user 1.695847s sys 0.076527s
+Loaded
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000209s user 0.000201s sys 0.000010s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000177s user 0.000171s sys 0.000008s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000092s user 0.000089s sys 0.000004s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000081s sys 0.000004s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000081s sys 0.000004s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000081s sys 0.000004s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000082s sys 0.000004s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000081s sys 0.000004s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000081s sys 0.000004s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000081s sys 0.000003s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000080s sys 0.000003s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000080s sys 0.000003s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000080s sys 0.000003s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000080s sys 0.000003s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000080s sys 0.000004s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000081s sys 0.000004s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000080s sys 0.000004s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000080s sys 0.000004s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000081s sys 0.000004s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000081s sys 0.000004s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000080s sys 0.000004s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000081s sys 0.000004s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000080s sys 0.000004s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000080s sys 0.000003s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000080s sys 0.000003s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000080s sys 0.000003s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000080s sys 0.000003s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000081s sys 0.000004s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000081s sys 0.000004s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000080s sys 0.000004s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000081s sys 0.000004s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000086s user 0.000085s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000083s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000083s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 took (avg): real 0.000088s user 0.000086s sys 0.000003s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000072s user 0.000072s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000087s user 0.000086s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000069s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 took (avg): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000059s user 0.000060s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000059s user 0.000059s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000058s user 0.000059s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000058s user 0.000059s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000058s user 0.000059s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000058s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000059s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000059s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000059s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000059s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000057s sys 0.000001s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000069s user 0.000060s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000059s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000059s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 took (avg): real 0.000058s user 0.000058s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000047s user 0.000047s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000046s user 0.000047s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000046s user 0.000047s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000047s user 0.000047s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 took (avg): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000034s user 0.000035s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000034s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000033s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000033s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000033s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000033s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000050s user 0.000050s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000046s user 0.000047s sys 0.000000s
+filter_spmv_0.800000 took (avg): real 0.000034s user 0.000035s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000002s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000002s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 took (avg): real 0.000002s user 0.000003s sys 0.000000s
+./bench-filtered-spmv data/filtered-spmv-2000000.db
+populate_filtered_spmv val: 0
+populate_filtered_spmv took (s): real 1.770579s user 1.709802s sys 0.060027s
+populate_filtered_spmv took (avg): real 1.770579s user 1.709802s sys 0.060027s
+Loaded
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000211s user 0.000000s sys 0.000211s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000175s user 0.000000s sys 0.000177s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000093s user 0.000000s sys 0.000093s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000085s user 0.000000s sys 0.000085s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000000s sys 0.000085s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000000s sys 0.000084s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000000s sys 0.000085s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000000s sys 0.000085s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000000s sys 0.000084s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000000s sys 0.000085s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000000s sys 0.000085s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000000s sys 0.000085s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000000s sys 0.000085s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000000s sys 0.000085s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000000s sys 0.000084s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000000s sys 0.000084s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000000s sys 0.000084s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000000s sys 0.000085s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000000s sys 0.000084s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000000s sys 0.000085s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000000s sys 0.000085s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000000s sys 0.000084s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000000s sys 0.000084s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000000s sys 0.000085s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000000s sys 0.000085s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000000s sys 0.000085s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000000s sys 0.000085s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000000s sys 0.000084s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000000s sys 0.000085s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000000s sys 0.000084s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000000s sys 0.000084s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000000s sys 0.000084s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000000s sys 0.000084s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000087s user 0.000085s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000083s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000084s user 0.000085s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000085s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000085s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000085s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000085s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000085s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 val: 48696.605672
+filter_spmv_0.000000 took (s): real 0.000083s user 0.000084s sys 0.000000s
+filter_spmv_0.000000 took (avg): real 0.000088s user 0.000029s sys 0.000060s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000072s user 0.000074s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000071s user 0.000072s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000071s user 0.000072s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000070s sys 0.000001s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000069s sys 0.000002s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000068s sys 0.000003s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000068s sys 0.000003s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000068s sys 0.000002s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000068s sys 0.000002s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000069s sys 0.000003s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000068s sys 0.000003s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000069s sys 0.000002s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000068s sys 0.000002s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000068s sys 0.000003s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000068s sys 0.000003s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000068s sys 0.000002s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000068s sys 0.000002s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000100s user 0.000099s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000071s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 val: 46592.891609
+filter_spmv_0.200000 took (s): real 0.000070s user 0.000070s sys 0.000000s
+filter_spmv_0.200000 took (avg): real 0.000071s user 0.000071s sys 0.000001s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000059s user 0.000060s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000059s user 0.000059s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000058s user 0.000059s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000058s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000058s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000058s user 0.000059s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000058s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000058s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000059s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000058s user 0.000059s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000059s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000001s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000070s user 0.000059s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000059s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000059s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000058s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000059s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000059s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000059s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000059s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 val: 40372.873459
+filter_spmv_0.400000 took (s): real 0.000057s user 0.000058s sys 0.000000s
+filter_spmv_0.400000 took (avg): real 0.000058s user 0.000058s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000047s user 0.000048s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000046s user 0.000047s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000046s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000047s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000044s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000046s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 val: 29713.699781
+filter_spmv_0.600000 took (s): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.600000 took (avg): real 0.000045s user 0.000045s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000034s user 0.000035s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000034s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000033s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000033s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000033s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000033s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000033s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000033s sys 0.000000s
+filter_spmv_0.800000 val: 16161.069379
+filter_spmv_0.800000 took (s): real 0.000033s user 0.000033s sys 0.000000s
+filter_spmv_0.800000 took (avg): real 0.000033s user 0.000034s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000003s sys 0.000000s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000017s user 0.000000s sys 0.000018s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000003s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000015s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000002s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000003s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000003s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000002s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000002s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000003s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000003s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000003s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000003s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000003s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000003s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000003s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000003s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000003s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000003s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000003s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000003s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000003s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000003s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000003s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000003s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000003s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000003s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000003s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000003s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000003s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000003s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000003s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000003s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000003s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000003s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000003s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000003s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000003s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000003s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000003s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000002s
+filter_spmv_1.000000 val: 0.000000
+filter_spmv_1.000000 took (s): real 0.000002s user 0.000000s sys 0.000002s
+filter_spmv_1.000000 took (avg): real 0.000003s user 0.000001s sys 0.000003s
