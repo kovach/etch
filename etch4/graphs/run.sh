@@ -44,9 +44,6 @@ done
 # TPC-H Q9
 for size in x0.01 x0.025 x0.05 x0.1 x0.25 x0.5 x1 x2 x4; do
 	dbs='duckdb duckdbforeign etch sqlite'
-	if [[ $size = x4 ]]; then
-		dbs='etch sqlite'
-	fi
 
 	for db in $dbs; do
 		# warm up
