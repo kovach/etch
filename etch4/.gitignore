@@ -19,10 +19,5 @@ sqlite3/
 libduckdb-*
 duckdb_cli-*
 duckdb/
-tmp.duckdb
-TPC-H.db
-TPC-H-*.db
-tpch-csv-*/
-wcoj-x*.db
-wcoj-csv-*/
+tmp-*.duckdb
 data/

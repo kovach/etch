@@ -21,16 +21,16 @@ abbrev extendedprice := (8, R)
 abbrev discount   := (9, R)
 
 def lineitem : orderkey ↠ₛ suppkey ↠ₛ extendedprice ↠ₛ discount ↠ₛ E R :=
-  (SQL.ss__ "tpch_lineitem" .search : ℕ →ₛ ℕ →ₛ R →ₛ R →ₛ E R)
+  (SQL.ss__ "tpch_lineitem" : ℕ →ₛ ℕ →ₛ R →ₛ R →ₛ E R)
 
 def revenue_calc' : R →ₐ R →ₐ E R := fun p d => p * (1 - d)
 def revenue_calc : extendedprice ↠ₐ discount ↠ₐ E R := revenue_calc'
 def lineitem_revenue : orderkey ↠ₛ suppkey ↠ₛ extendedprice ↠ₛ discount ↠ₛ E R := lineitem * revenue_calc
 
-def orders   : orderkey  ↠ₐ orderdate ↠ₛ custkey ↠ₛ E R := (SQL.dss "tpch_orders" .search : ℕ →ₐ ℕ →ₛ ℕ →ₛ E R)
+def orders   : orderkey  ↠ₐ orderdate ↠ₛ custkey ↠ₛ E R := (SQL.dss "tpch_orders" .binarySearch : ℕ →ₐ ℕ →ₛ ℕ →ₛ E R)
 def customer : custkey   ↠ₐ nationkey ↠ₛ E R := (SQL.ds "tpch_customer" : ℕ →ₐ ℕ →ₛ E R)
 def supplier : suppkey   ↠ₐ nationkey ↠ₛ E R := (SQL.ds "tpch_supplier" : ℕ →ₐ ℕ →ₛ E R)
-def nation   : nationkey ↠ₐ regionkey ↠ₛ nationname ↠ₛ E R := (SQL.ds_ "tpch_nation" .search : ℕ →ₐ ℕ →ₛ String →ₛ E R)
+def nation   : nationkey ↠ₐ regionkey ↠ₛ nationname ↠ₛ E R := (SQL.ds_ "tpch_nation" : ℕ →ₐ ℕ →ₛ String →ₛ E R)
 def region   : regionkey ↠ₐ regionname ↠ₛ E R := (SQL.ds "tpch_region" : ℕ →ₐ String →ₛ E R)
 
 -- Query

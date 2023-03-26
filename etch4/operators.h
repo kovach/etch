@@ -61,9 +61,9 @@ static inline int int_ofBool(bool x) { return x; }
 // static inline bool bool_mul(bool a, bool b) { return a && b; }
 #define bool_add(a, b) ((a) || (b))
 #define bool_mul(a, b) ((a) && (b))
-static inline bool bool_one() { return true; }
-static inline bool bool_zero() { return false; }
-static inline bool bool_neg(bool x) { return !x; }
+#define bool_one() true
+#define bool_zero() false
+#define bool_neg(a) (!(a))
 
 // Treat NULL as the top value (e.g., empty space at the end of the array).
 static inline const char* str_zero() { return ""; }

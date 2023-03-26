@@ -1,7 +1,6 @@
 ---------------- load data into memory
 
 
-
 CREATE TABLE REGION  ( R_REGIONKEY  INTEGER NOT NULL,
                             R_NAME       CHAR(25) NOT NULL,
                             PRIMARY KEY (R_REGIONKEY));
@@ -26,12 +25,44 @@ CREATE TABLE LINEITEM ( L_ORDERKEY    INTEGER NOT NULL,
                              L_DISCOUNT    DOUBLE NOT NULL,
                              PRIMARY KEY (L_ORDERKEY, L_LINENUMBER));
 
-COPY REGION   FROM 'tpch-csv-q5/region.csv'   (HEADER TRUE, DELIMITER ',');
-COPY NATION   FROM 'tpch-csv-q5/nation.csv'   (HEADER TRUE, DELIMITER ',');
-COPY SUPPLIER FROM 'tpch-csv-q5/supplier.csv' (HEADER TRUE, DELIMITER ',');
-COPY CUSTOMER FROM 'tpch-csv-q5/customer.csv' (HEADER TRUE, DELIMITER ',');
-COPY ORDERS   FROM 'tpch-csv-q5/orders.csv'   (HEADER TRUE, DELIMITER ',');
-COPY LINEITEM FROM 'tpch-csv-q5/lineitem.csv' (HEADER TRUE, DELIMITER ',');
+-- Note: adding these indices (and also the ORDER BY in INSERT) don't help DuckDB, but we do it out of fairness.
+
+CREATE INDEX REGION_idx_q5 ON REGION(R_REGIONKEY, R_NAME);
+CREATE INDEX NATION_idx_q5 ON NATION(N_NATIONKEY, N_REGIONKEY, N_NAME);
+CREATE INDEX SUPPLIER_idx_q5 ON SUPPLIER(S_SUPPKEY, S_NATIONKEY);
+CREATE INDEX ORDERS_idx_q5 ON ORDERS(O_ORDERKEY, O_ORDERDATE, O_CUSTKEY);
+CREATE INDEX CUSTOMER_idx_q5 ON CUSTOMER(C_CUSTKEY, C_NATIONKEY);
+CREATE INDEX LINEITEM_idx_q5 ON LINEITEM(L_ORDERKEY, L_SUPPKEY, L_EXTENDEDPRICE, L_DISCOUNT);
+
+INSERT INTO REGION
+SELECT R_REGIONKEY, R_NAME
+FROM read_csv_auto('tpch-csv/region.csv', delim=',', header=True)
+ORDER BY 1, 2;
+
+INSERT INTO NATION
+SELECT N_NATIONKEY, N_REGIONKEY, N_NAME
+FROM read_csv_auto('tpch-csv/nation.csv', delim=',', header=True)
+ORDER BY 1, 2, 3;
+
+INSERT INTO SUPPLIER
+SELECT S_SUPPKEY, S_NATIONKEY
+FROM read_csv_auto('tpch-csv/supplier.csv', delim=',', header=True)
+ORDER BY 1, 2;
+
+INSERT INTO CUSTOMER
+SELECT C_CUSTKEY, C_NATIONKEY
+FROM read_csv_auto('tpch-csv/customer.csv', delim=',', header=True)
+ORDER BY 1, 2;
+
+INSERT INTO ORDERS
+SELECT O_ORDERKEY, O_CUSTKEY, O_ORDERDATE
+FROM read_csv_auto('tpch-csv/orders.csv', delim=',', header=True)
+ORDER BY 1, 2, 3;
+
+INSERT INTO LINEITEM
+SELECT L_ORDERKEY, L_SUPPKEY, L_LINENUMBER, L_EXTENDEDPRICE, L_DISCOUNT
+FROM read_csv_auto('tpch-csv/lineitem.csv', delim=',', header=True)
+ORDER BY 1, 2, 3, 4, 5;
 
 PRAGMA database_size;
 

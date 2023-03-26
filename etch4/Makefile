@@ -125,32 +125,39 @@ duckdb/libduckdb.so duckdb/duckdb.hpp duckdb/duckdb.h &: $(LIBDUCKDB_ZIP)
 	touch duckdb/libduckdb.so duckdb/duckdb.hpp duckdb/duckdb.h
 
 # Files produced using https://github.com/lovasoa/TPCH-sqlite
-TPC-H-x0.01.db:
+data/TPC-H-x0.01.db:
+	mkdir -p $(@D)
 	curl -Lo $@ https://github.com/lovasoa/TPCH-sqlite/releases/download/v1.0/TPC-H-small.db
 	echo '3e178ac56ffad2446ce9a555fab14333eb8a1038d59f4f1c30496914e2a87171 $@' | sha256sum -c
-TPC-H-x0.025.db:
+data/TPC-H-x0.025.db:
+	mkdir -p $(@D)
 	curl -Lo $@ https://github.com/kovach/etch/releases/download/files/TPC-H-x0.025.db
 	echo '19bb3bf0efe421959ad28d8a99ee361d6c7e1a1cd2747d5ae6268b374d49b822 $@' | sha256sum -c
-TPC-H-x0.05.db:
+data/TPC-H-x0.05.db:
+	mkdir -p $(@D)
 	curl -Lo $@ https://github.com/kovach/etch/releases/download/files/TPC-H-x0.05.db
 	echo '2d99f10cb5786ae409d3730ad778f8e837937b5b91e466cb2cbae0e386fd784f $@' | sha256sum -c
-TPC-H-x0.1.db:
+data/TPC-H-x0.1.db:
+	mkdir -p $(@D)
 	curl -Lo $@ https://github.com/kovach/etch/releases/download/files/TPC-H-x0.1.db
 	echo 'cfe8f5724d78eebf27ce2b1f447a29266d874750689f43835791b2ee51101e75 $@' | sha256sum -c
-TPC-H-x0.25.db:
+data/TPC-H-x0.25.db:
+	mkdir -p $(@D)
 	curl -Lo $@ https://github.com/kovach/etch/releases/download/files/TPC-H-x0.25.db
 	echo '384483c067fc46ef4384dcb44d5c66b9415939d448a9d03dce2d80cb5b16c692 $@' | sha256sum -c
-TPC-H-x0.5.db:
+data/TPC-H-x0.5.db:
+	mkdir -p $(@D)
 	curl -Lo $@ https://github.com/kovach/etch/releases/download/files/TPC-H-x0.5.db
 	echo 'f2788cbedb42f4cc4fb4f5fd09d9d61cf9c738a9030d4de1da0c3fe739fa0cde $@' | sha256sum -c
-TPC-H-x1.db:
+data/TPC-H-x1.db:
+	mkdir -p $(@D)
 	curl -Lo $@ https://github.com/lovasoa/TPCH-sqlite/releases/download/v1.0/TPC-H.db
 	echo 'be2a81a548d930ae8c7a9eb427c44f73e2a753d53ffb16bb2a13f89ec8eb8bc8 $@' | sha256sum -c
-TPC-H-x2.db:
-	@echo 'Download this file at https://drive.google.com/file/d/158GjzzWj4wnGxDt3NfBKXFg-Hgj5e74O/view?usp=sharing' && false
+data/TPC-H-x2.db:
+	@echo 'Download $@ at https://drive.google.com/file/d/158GjzzWj4wnGxDt3NfBKXFg-Hgj5e74O/view?usp=sharing' && false
 	@#echo 'aa73478b811c4cb1323fbc98993899ab2018064e6b47e7c31868a661c7f8b5b6 $@' | sha256sum -c
-TPC-H-x4.db:
-	@echo 'Download this file at https://drive.google.com/file/d/14aM_1IY7ACLOzRtS1LKpRYGweDXZZF0M/view?usp=sharing' && false
+data/TPC-H-x4.db:
+	@echo 'Download $@ at https://drive.google.com/file/d/14aM_1IY7ACLOzRtS1LKpRYGweDXZZF0M/view?usp=sharing' && false
 	@#echo '9530ea95daecc3c8e411f9a7eb8a78ece3aaaae4b285729e45253283ea091f36 $@' | sha256sum -c
 
 define FILTERED_SPMV_TEMPLATE
@@ -200,59 +207,54 @@ $(foreach sparsity,0.0001 0.0003 0.0007 0.001 0.003 0.007 0.01 0.03 0.07 0.1 0.3
 
 define WCOJ_TEMPLATE
 # Generate CSV files for the worse-case optimal join benchmark
-wcoj-csv-x$(1): bench/wcoj-datagen.py
+data/wcoj-csv-x$(1): bench/wcoj-datagen.py
 	rm -rf $$@
 	mkdir -p $$@
 	python3 $$< $$@ $$$$((100*$(1)))
 
 .PHONY: run-wcoj-x$(1)-duckdb
-run-wcoj-x$(1)-duckdb: wcoj-csv-x$(1) bench/wcoj-duckdb-prep.sql bench/wcoj-duckdb.sql bench-duckdb
+run-wcoj-x$(1)-duckdb: data/wcoj-csv-x$(1) bench/wcoj-duckdb-prep.sql bench/wcoj-duckdb.sql bench-duckdb
 	./bench-duckdb <(sed -e 's#wcoj-csv#$$<#g' bench/wcoj-duckdb-prep.sql) 5:bench/wcoj-duckdb.sql
 
-wcoj-x$(1).db: wcoj-csv-x$(1) bench/wcoj-sqlite-import.sql sqlite3/shell
+data/wcoj-x$(1).db: data/wcoj-csv-x$(1) bench/wcoj-sqlite-import.sql sqlite3/shell
+	mkdir -p $$(@D)
 	rm -f $$@
 	sed 's#wcoj-csv#$$<#g' bench/wcoj-sqlite-import.sql | sqlite3/shell $$@
 
 .PHONY: run-wcoj-x$(1)-etch
-run-wcoj-x$(1)-etch: bench-wcoj wcoj-x$(1).db
-	./bench-wcoj wcoj-x$(1).db
+run-wcoj-x$(1)-etch: bench-wcoj data/wcoj-x$(1).db
+	./bench-wcoj data/wcoj-x$(1).db
 
 .PHONY: run-wcoj-x$(1)-sqlite
-run-wcoj-x$(1)-sqlite: wcoj-x$(1).db bench/wcoj-sqlite-prep.sql bench/wcoj-sqlite.sql bench-sqlite
+run-wcoj-x$(1)-sqlite: data/wcoj-x$(1).db bench/wcoj-sqlite-prep.sql bench/wcoj-sqlite.sql bench-sqlite
 	./bench-sqlite <(sed -e 's#wcoj\.db#$$<#g' bench/wcoj-sqlite-prep.sql) 5:bench/wcoj-sqlite.sql
 
 endef
 
 $(foreach scale,1 3 5 10 25 30 50 100 250 300 500 1000 3000 10000,$(eval $(call WCOJ_TEMPLATE,$(scale))))
 
-define TPCH_TEMPLATE_SMALL
-# Generate CSV files for TPC-H datasets
-tpch-csv-$(1)-$(2): TPC-H-$(1).db bench/tpch-$(2)-duckdb-export-to-csv.sql $$(DUCKDB)
+define TPCH_TEMPLATE
+data/tpch-csv-$(1)-$(2): data/TPC-H-$(1).db bench/tpch-$(2)-duckdb-export-to-csv.sql $$(DUCKDB)
 	mkdir -p $$@
-	rm -rf tmp.duckdb
-	sed -e 's#TPC-H\.db#$$<#g' -e 's#tpch-csv#$$@#g' bench/tpch-$(2)-duckdb-export-to-csv.sql | $$(DUCKDB) tmp.duckdb
-	rm tmp.duckdb
+	rm -rf tmp-tpch-csv-$(1)-$(2).duckdb
+	sed -e 's#TPC-H\.db#$$<#g' -e 's#tpch-csv#$$@#g' bench/tpch-$(2)-duckdb-export-to-csv.sql | $$(DUCKDB) tmp-tpch-csv-$(1)-$(2).duckdb
+	rm tmp-tpch-csv-$(1)-$(2).duckdb
 
 .PHONY: run-tpch-$(1)-$(2)-duckdb
-run-tpch-$(1)-$(2)-duckdb: tpch-csv-$(1)-$(2) bench/tpch-$(2)-duckdb-prep.sql bench/tpch-$(2)-duckdb.sql bench-duckdb
-	./bench-duckdb <(sed -e 's#tpch-csv-$(2)#$$<#g' bench/tpch-$(2)-duckdb-prep.sql) 5:bench/tpch-$(2)-duckdb.sql
+run-tpch-$(1)-$(2)-duckdb: data/tpch-csv-$(1)-$(2) bench/tpch-$(2)-duckdb-prep.sql bench/tpch-$(2)-duckdb.sql bench-duckdb
+	./bench-duckdb <(sed 's#tpch-csv#$$<#g' bench/tpch-$(2)-duckdb-prep.sql) 5:bench/tpch-$(2)-duckdb.sql
 
 .PHONY: run-tpch-$(1)-$(2)-duckdbforeign
-run-tpch-$(1)-$(2)-duckdbforeign: tpch-csv-$(1)-$(2) bench/tpch-$(2)-duckdb-prep-foreign-key.sql bench/tpch-$(2)-duckdb.sql bench-duckdb
-	./bench-duckdb <(sed -e 's#tpch-csv-$(2)#$$<#g' bench/tpch-$(2)-duckdb-prep-foreign-key.sql) 5:bench/tpch-$(2)-duckdb.sql
+run-tpch-$(1)-$(2)-duckdbforeign: data/tpch-csv-$(1)-$(2) bench/tpch-$(2)-duckdb-prep-foreign-key.sql bench/tpch-$(2)-duckdb.sql bench-duckdb
+	./bench-duckdb <(sed 's#tpch-csv#$$<#g' bench/tpch-$(2)-duckdb-prep-foreign-key.sql) 5:bench/tpch-$(2)-duckdb.sql
 
 .PHONY: run-tpch-$(1)-$(2)-sqlite
-run-tpch-$(1)-$(2)-sqlite: bench/tpch-$(2)-sqlite-prep.sql bench/tpch-$(2)-sqlite.sql TPC-H-$(1).db bench-sqlite
-	./bench-sqlite <(sed 's/TPC-H\.db/TPC-H-$(1).db/g' bench/tpch-$(2)-sqlite-prep.sql) 5:bench/tpch-$(2)-sqlite.sql
-
-endef
-
-define TPCH_TEMPLATE
-$(call TPCH_TEMPLATE_SMALL,$(1),$(2))
+run-tpch-$(1)-$(2)-sqlite: bench/tpch-$(2)-sqlite-prep.sql bench/tpch-$(2)-sqlite.sql data/TPC-H-$(1).db bench-sqlite
+	./bench-sqlite <(sed 's#TPC-H\.db#data/TPC-H-$(1).db#g' bench/tpch-$(2)-sqlite-prep.sql) 5:bench/tpch-$(2)-sqlite.sql
 
 .PHONY: run-tpch-$(1)-$(2)-etch
-run-tpch-$(1)-$(2)-etch: bench-tpch-$(2) TPC-H-$(1).db
-	./bench-tpch-$(2) TPC-H-$(1).db
+run-tpch-$(1)-$(2)-etch: bench-tpch-$(2) data/TPC-H-$(1).db
+	./bench-tpch-$(2) data/TPC-H-$(1).db
 
 endef
 
@@ -263,4 +265,4 @@ $(foreach SIZE,x0.01 x0.025 x0.05 x0.1 x0.25 x0.5 x1 x2 x4,\
 
 .PHONY: clean
 clean:
-	rm -rf *.o tmp.duckdb tmp-sqlite3 sqlite3 out sqlite3.c sqlite3.h duckdb/duckdb
+	rm -rf *.o tmp-*.duckdb tmp-sqlite3 sqlite3 out sqlite3.c sqlite3.h duckdb/duckdb

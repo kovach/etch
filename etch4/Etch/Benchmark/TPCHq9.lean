@@ -77,12 +77,12 @@ abbrev discount      := (10, R)
 abbrev quantity      := (11, R)
 
 def lineitem : partkey ↠ₛ suppkey ↠ₛ orderkey ↠ₛ extendedprice ↠ₛ discount ↠ₛ quantity ↠ₛ E R :=
-  (SQL.sss___ "tpch9_lineitem" .search : ℕ →ₛ ℕ →ₛ ℕ →ₛ R →ₛ R →ₛ R →ₛ E R)
+  (SQL.sss___ "tpch9_lineitem" : ℕ →ₛ ℕ →ₛ ℕ →ₛ R →ₛ R →ₛ R →ₛ E R)
 
 def part     : partkey   ↠ₐ partname  ↠ₛ E R := (SQL.d_ "tpch9_part" : ℕ →ₐ String →ₛ E R)
 def orders   : orderkey  ↠ₐ orderdate ↠ₛ E R := (SQL.d_ "tpch9_orders" : ℕ →ₐ ℤ →ₛ E R)
 def supplier : suppkey   ↠ₐ nationkey ↠ₛ E R := (SQL.d_ "tpch9_supplier" : ℕ →ₐ ℕ →ₛ E R)
-def partsupp : partkey   ↠ₐ suppkey ↠ₛ supplycost ↠ₛ E R := (SQL.ds_ "tpch9_partsupp" .search : ℕ →ₐ ℕ →ₛ R →ₛ E R)
+def partsupp : partkey   ↠ₐ suppkey ↠ₛ supplycost ↠ₛ E R := (SQL.ds_ "tpch9_partsupp" .binarySearch : ℕ →ₐ ℕ →ₛ R →ₛ E R)
 def nation   : nationkey ↠ₐ nationname ↠ₛ E R := (SQL.d_ "tpch9_nation" : ℕ →ₐ String →ₛ E R)
 
 -- Query

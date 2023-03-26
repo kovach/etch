@@ -7,7 +7,7 @@
 #include "sqlite3.h"
 
 // populated later
-#define MAX_SCALE 100000
+#define MAX_SCALE 1000000
 
 int dsR1_pos[2];
 int dsR1_crd[MAX_SCALE + 10];
