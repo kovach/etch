@@ -24,6 +24,13 @@ tpch_labels = {
 }
 
 
+def format_frame(ax):
+    ax.tick_params(which="both", color="tab:gray", labelcolor="tab:gray")
+    for spine in ax.spines.values():
+        spine.set_edgecolor("tab:gray")
+    ax.spines[["right", "top"]].set_visible(False)
+
+
 def graph_q5(ax):
     SFS = ["x0.01", "x0.025", "x0.05", "x0.1", "x0.25", "x0.5", "x1", "x2", "x4"]
     SF_NUMS = [0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2, 4]
@@ -65,7 +72,18 @@ def graph_q5(ax):
             nums[db].append(1000 * np.average(tmp))  # s → ms
 
     print("q5")
-    print(nums)
+    print(
+        "duckdbforeign/etch",
+        np.max(np.array(nums["duckdbforeign"]) / np.array(nums["etch"])),
+    )
+    print(
+        "duckdbforeign/etch",
+        np.min(np.array(nums["duckdbforeign"]) / np.array(nums["etch"])),
+    )
+    print("duckdb/etch", np.max(np.array(nums["duckdb"]) / np.array(nums["etch"])))
+    print("duckdb/etch", np.min(np.array(nums["duckdb"]) / np.array(nums["etch"])))
+    print("sqlite/etch", np.max(np.array(nums["sqlite"]) / np.array(nums["etch"])))
+    print("sqlite/etch", np.min(np.array(nums["sqlite"]) / np.array(nums["etch"])))
 
     for db in DBS:
         ax.plot(SF_NUMS, nums[db], label=tpch_labels.get(db, db), **tpch_styles[db])
@@ -82,6 +100,7 @@ def graph_q5_standalone():
         axis.set_major_formatter(ticker.ScalarFormatter())
     ax.set_xlabel("scaling factor (SF)")
     fig.supylabel("milliseconds")
+    format_frame(ax)
     ax.legend()
     plt.tight_layout()
     plt.savefig("tpch_q5_scaling.pdf")
@@ -128,7 +147,18 @@ def graph_q9(ax):
             nums[db].append(1000 * np.average(tmp))  # s → ms
 
     print("q9")
-    print(nums)
+    print(
+        "duckdbforeign/etch",
+        np.max(np.array(nums["duckdbforeign"]) / np.array(nums["etch"])),
+    )
+    print(
+        "duckdbforeign/etch",
+        np.min(np.array(nums["duckdbforeign"]) / np.array(nums["etch"])),
+    )
+    print("duckdb/etch", np.max(np.array(nums["duckdb"]) / np.array(nums["etch"])))
+    print("duckdb/etch", np.min(np.array(nums["duckdb"]) / np.array(nums["etch"])))
+    print("sqlite/etch", np.max(np.array(nums["sqlite"]) / np.array(nums["etch"])))
+    print("sqlite/etch", np.min(np.array(nums["sqlite"]) / np.array(nums["etch"])))
 
     for db in DBS:
         ax.plot(SF_NUMS, nums[db], label=tpch_labels.get(db, db), **tpch_styles[db])
@@ -145,6 +175,7 @@ def graph_q9_standalone():
         axis.set_major_formatter(ticker.ScalarFormatter())
     ax.set_xlabel("scaling factor (SF)")
     fig.supylabel("milliseconds")
+    format_frame(ax)
     ax.legend()
     plt.tight_layout()
     plt.savefig("tpch_q9_scaling.pdf")
@@ -161,6 +192,9 @@ def graph_tpch():
 
     graph_q5(axes[0])
     graph_q9(axes[1])
+    format_frame(axes[0])
+    format_frame(axes[1])
+
     fig.supxlabel("scaling factor (SF)", y=0.08)
     fig.supylabel("milliseconds")
 
@@ -270,21 +304,39 @@ def graph_wcoj_standalone():
     ax.set_xlabel("rows ($n$)")
     ax.set_ylabel("milliseconds")
     # ax.legend()
+    format_frame(ax)
     plt.tight_layout()
     plt.savefig("wcoj_scaling.pdf", bbox_inches="tight")
 
 
 def graph_taco():
-    SFS = ["s0.0001", "s0.0003", "s0.0007", "s0.001", "s0.003", "s0.007", "s0.01", "s0.03", "s0.07", "s0.1", "s0.3", "s0.5"]
-    SF_NUMS = np.array([0.0001, 0.0003, 0.0007, 0.001, 0.003, 0.007, 0.01, 0.03, 0.07, 0.1, 0.3, 0.5])
+    SFS = [
+        "s0.0001",
+        "s0.0003",
+        "s0.0007",
+        "s0.001",
+        "s0.003",
+        "s0.007",
+        "s0.01",
+        "s0.03",
+        "s0.07",
+        "s0.1",
+        "s0.3",
+        "s0.5",
+    ]
+    SF_NUMS = np.array(
+        [0.0001, 0.0003, 0.0007, 0.001, 0.003, 0.007, 0.01, 0.03, 0.07, 0.1, 0.3, 0.5]
+    )
     QUERIES = ["inner2ss", "sum_add2", "sum_mul2_csr", "sum_mul2", "mttkrp", "spmv"]
     DESC = ["inner", "add", "mmul", "smul", "MTTKRP", "SpMV"]
 
-    nums = defaultdict(lambda: defaultdict(list)) # inner2ss → taco → [x10, x16, ...]
+    nums = defaultdict(lambda: defaultdict(list))  # inner2ss → taco → [x10, x16, ...]
     for sz in SFS:
         with open(f"bench-output/run-taco-{sz}.txt") as f:
             r = re.compile(r"(etch|taco)_([^ ]*) took \(s\): real ([^ ]*)s.*")
-            tmp = defaultdict(lambda: defaultdict(list)) # inner2ss → taco → [att1, att2, ...]
+            tmp = defaultdict(
+                lambda: defaultdict(list)
+            )  # inner2ss → taco → [att1, att2, ...]
             for l in f:
                 res = r.match(l)
                 if not res:
@@ -295,24 +347,43 @@ def graph_taco():
                     nums[q][sys].append(np.average(tmp[q][sys]))
 
     print(nums)
-    print(np.max([np.array(nums[q]["taco"]) / np.array(nums[q]["etch"]) for q in QUERIES if q != "sum_add2" and q != "sum_mul2"]))
-    print(np.min([np.array(nums[q]["taco"]) / np.array(nums[q]["etch"]) for q in QUERIES if q != "sum_add2" and q != "sum_mul2"]))
+    print(
+        np.max(
+            [
+                np.array(nums[q]["taco"]) / np.array(nums[q]["etch"])
+                for q in QUERIES
+                if q != "sum_add2" and q != "sum_mul2"
+            ]
+        )
+    )
+    print(
+        np.min(
+            [
+                np.array(nums[q]["taco"]) / np.array(nums[q]["etch"])
+                for q in QUERIES
+                if q != "sum_add2" and q != "sum_mul2"
+            ]
+        )
+    )
     q = "sum_add2"
     print(q, np.max(np.array(nums[q]["etch"]) / np.array(nums[q]["taco"])))
 
-    fig, axes = plt.subplots(nrows=len(QUERIES), sharex=True)
-    fig.set_size_inches((5, 4))
+    fig, axes = plt.subplots(ncols=2, nrows=3, sharex=True)
+    fig.set_size_inches((9, 3))
 
     for i, q in enumerate(QUERIES):
-        ax = axes[i]
+        ax = axes[i // 2][i % 2]
         taco_by_etch = np.array(nums[q]["taco"]) / np.array(nums[q]["etch"])
         ax.plot(SF_NUMS, taco_by_etch, ".-")
         ax.plot(SF_NUMS, np.ones((len(SF_NUMS),)), "k:")
         ax.set_ylabel(DESC[i])
         ax.set_xscale("log", base=10)
         ax.xaxis.set_major_formatter(ticker.StrMethodFormatter("{x:g}"))
+        if i // 2 == 2:
+            ax.set_xlabel("sparsity", y=0.08)
 
-    fig.supxlabel("sparsity", y=0.08)
+        format_frame(ax)
+
     plt.tight_layout()
     plt.savefig("taco_scaling.pdf", bbox_inches="tight")
 
