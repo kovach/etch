@@ -388,8 +388,57 @@ def graph_taco():
     plt.savefig("taco_scaling.pdf", bbox_inches="tight")
 
 
+def graph_filtered_spmv():
+    NONZEROS = 2000000
+    DBS = ["duckdb", "etch", "sqlite"]
+    DBS_TO_SHOW = ["etch"]
+    SEL = [0, 0.2, 0.4, 0.6, 0.8, 1]
+    ETCH_NAME = [f"filter_spmv_{s:.6f}" for s in SEL]
+    QN = ["q2", "q3", "q4", "q5", "q6", "q7"]
+
+    nums = {}
+    for db in DBS:
+        nums[db] = []
+        for i in range(len(SEL)):
+            tmp = []
+            with open(f"bench-output/run-filtered-spmv-{NONZEROS}-{db}.txt") as f:
+                if db.startswith("duckdb") or db.startswith("sqlite"):
+                    r = re.compile(QN[i] + r" took \(s\): real ([^ ]*)s.*")
+                elif db.startswith("etch"):
+                    r = re.compile(ETCH_NAME[i] + r" took \(s\): real ([^ ]*)s.*")
+
+                for l in f:
+                    res = r.match(l)
+                    if not res:
+                        continue
+                    tmp.append(1000 * float(res[1]))  # s → ms
+            nums[db].append(np.average(tmp))
+
+    print("sqlite/etch", np.array(nums["sqlite"]) / np.array(nums["etch"]))
+    print("duckdb/etch", np.array(nums["duckdb"]) / np.array(nums["etch"]))
+
+    fig, ax = plt.subplots()
+    fig.set_size_inches((5, 2.5))
+    # ax.set_yscale("log", base=10)
+
+    if len(DBS_TO_SHOW) == 1:
+        ax.plot(SEL, nums[DBS_TO_SHOW[0]], ".-")
+    else:
+        for db in DBS_TO_SHOW:
+            ax.plot(SEL, nums[db], label=db, **styles[db])
+
+    format_frame(ax)
+    ax.set_xlabel("selectivity")
+    ax.set_ylabel("milliseconds")
+    if len(DBS_TO_SHOW) > 1:
+        ax.legend()
+    plt.tight_layout()
+    plt.savefig("filtered_spmv.pdf", bbox_inches="tight")
+
+
 graph_q5_standalone()
 graph_q9_standalone()
 graph_tpch()
 graph_wcoj_standalone()
 graph_taco()
+graph_filtered_spmv()

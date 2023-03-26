@@ -29,10 +29,16 @@ local instance (α) : ToString (Var α) := ⟨Var.toString⟩
 local instance : ToString (DeclType) := ⟨fun | .mk s => s⟩
 open TaggedC (tag)
 
-def compileFun [Compile (Var X) Z] (name : String) (exp : Z) : String :=
+def Arg := (a : Type) × TaggedC a × Var a
+def Arg.mk {a} [inst : TaggedC a] (v : Var a) : Arg := ⟨a, ⟨inst, v⟩⟩
+def Arg.toC : Arg → String
+  | ⟨a, ⟨_, v⟩⟩ => s!"{tag a} {v}"
+
+def compileFun [Compile (Var X) Z] (name : String) (exp : Z) (args : List Arg := []) : String :=
   let val : Var X := "val"
   let decl := (val.decl 0).compile.emit.run
-  s!"{tag X} {name}() \{\n {decl}\n {go val exp}\n return {val};\n}"
+  let argStr := args.map Arg.toC |> String.intercalate ", "
+  s!"{tag X} {name}({argStr}) \{\n {decl}\n {go val exp}\n return {val};\n}"
 
 def compileFunMap [Compile (lvl I (MemLoc X)) Z] (name : String) (exp : Z) : String :=
   let T := s!"std::unordered_map<{tag I}, {tag X}>"
