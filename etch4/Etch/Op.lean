@@ -8,47 +8,46 @@ def tag_mk_fun (α : Type _) [Tagged α] (fn : String) : String :=
 
 inductive R | mk
 
-def RMin := R
-def RMin.ofR : R → RMin := id
-
-def RMax := R
-def RMax.ofR : R → RMax := id
-
 instance : Tagged Unit := ⟨ "macro" ⟩ -- default type for actual monotypic function
 instance : Tagged ℕ := ⟨ "nat" ⟩
 instance : Tagged Int := ⟨ "int" ⟩
 instance : Tagged String := ⟨ "str" ⟩
 instance : Tagged Bool := ⟨ "bool" ⟩
 instance : Tagged R := ⟨ "num" ⟩
-instance : Tagged RMin := ⟨ "min" ⟩
-instance : Tagged RMax := ⟨ "max" ⟩
 
 instance : Inhabited R := ⟨ R.mk ⟩
-instance : Inhabited RMin := ⟨ R.mk ⟩
-instance : Inhabited RMax := ⟨ R.mk ⟩
 -- todo
 instance : Add R := ⟨ λ _ _ => default ⟩
-instance : Add RMin := ⟨ λ _ _ => default ⟩
-instance : Add RMax := ⟨ λ _ _ => default ⟩
 instance : LT R := ⟨ λ _ _  => false ⟩
 instance : DecidableRel (LT.lt : R → R → _) :=  λ .mk .mk => .isFalse (by simp [LT.lt] )
 instance : LE R := ⟨ λ _ _  => false ⟩
 instance : DecidableRel (LE.le : R → R → _) :=  λ .mk .mk => .isFalse (by simp [LE.le] )
 
+instance : DecidableEq R := fun .mk .mk => .isTrue (by simp)
+instance : Max R := ⟨fun _ _ => default⟩
 instance : Mul R := ⟨ λ _ _ => default ⟩
-instance : Mul RMin := ⟨ λ _ _ => default ⟩
-instance : Mul RMax := ⟨ λ _ _ => default ⟩
 
 instance : Sub R := ⟨ λ _ _ => default ⟩
 
 instance : OfNat R (nat_lit 0) := ⟨ default ⟩
 instance : OfNat R (nat_lit 1) := ⟨ default ⟩
-instance : OfNat RMin (nat_lit 0) := ⟨ default ⟩
-instance : OfNat RMin (nat_lit 1) := ⟨ default ⟩
-instance : OfNat RMax (nat_lit 0) := ⟨ default ⟩
-instance : OfNat RMax (nat_lit 1) := ⟨ default ⟩
 
 instance : Coe ℕ R := ⟨fun _ => default⟩
+
+namespace String
+
+instance instLEString : LE String := ⟨fun s₁ s₂ ↦ s₁ < s₂ || s₁ = s₂⟩
+
+instance decLe : @DecidableRel String (· ≤ ·)
+  | s₁, s₂ => if h₁ : s₁ < s₂ then isTrue (by simp [instLEString, h₁])
+              else if h₂ : s₁ = s₂ then isTrue (by simp [instLEString, h₂])
+              else isFalse (by simp [instLEString, h₁, h₂])
+
+instance zero : Zero String := ⟨""⟩
+
+instance max : Max String := ⟨fun s₁ s₂ ↦ if s₁ < s₂ then s₂ else s₁⟩
+
+end String
 
 --attribute [irreducible] RMin
 --attribute [irreducible] RMax
@@ -112,6 +111,11 @@ def Op.mul [Tagged α] [Mul α] : Op α where
   spec := λ a => a 0 * a 1
   opName := tag_mk_fun α "mul"
 
+def Op.div [Tagged α] [HDiv α α β] : Op β where
+  argTypes := ![α, α]
+  spec := λ a => a 0 / a 1
+  opName := tag_mk_fun α "div"
+
 @[simps]
 def Op.neg : Op Bool where
   argTypes := ![Bool]
@@ -148,50 +152,12 @@ def Op.toNum : Op R where
   spec := λ _ => default
   opName := tag_mk_fun ℕ "toNum"
 
-def Op.toMin : Op RMin where
-  argTypes := ![R]
-  spec := λ a => RMin.ofR (a 0)
-  opName := tag_mk_fun R "toMin"
-
-def Op.toMax : Op RMax where
-  argTypes := ![R]
-  spec := λ a => RMax.ofR (a 0)
-  opName := tag_mk_fun R "toMax"
-
 def Op.ternary : Op α where
   argTypes := ![Bool, α, α]
   spec := λ a => bif (a 0) then a 1 else a 2
   opName := "macro_ternary"
 
-def Op.udf : Op RMin := { argTypes := ![ℕ, ℕ], spec := default, opName := "udf" }
-def Op.udf_max : Op RMax where argTypes := ![ℕ, ℕ]; spec := default; opName := "udf_max"
-def Op.toGuard [Tagged α] [OfNat β 1] : Op β where argTypes := ![α]; spec := λ _ => 1; opName := tag_mk_fun α "toGuard"
-
 def Op.access {ι α : Type} : Op α :=
 { argTypes := ![ι → α, ι],
   spec := λ x  => (x 0) (x 1),
   opName := "arr_access" }
-
--- simple O(mn) algorithm
-partial def String.findStr? (s f : String) : Option String.Pos :=
-  loop 0
-where
-  loop (off : String.Pos) :=
-    if s.substrEq off f 0 f.length then
-      some off
-    else if off + f.endPos < s.endPos then
-      loop (s.next off)
-    else
-      none
-
--- `![a, b]` means find `b` within `a`
--- if found, ≥0 is byte index; if not found, -1
-def Op.findStr : Op Int where
-  argTypes := ![String, String]
-  spec := fun x => match (x 0).findStr? (x 1) with
-                   | some off => off.byteIdx
-                   | none     => -1
-  opName := "str_find"
-
-  -- We will implement this using C's strstr(), which is not exactly
-  -- the same thing since it's not UTF-8 aware, but close enough.

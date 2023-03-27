@@ -10,11 +10,16 @@ class Compile (location value : Type _) where compile : Name → location → va
 section Compile
 open Compile
 
+variable {L R}
+
 instance base_var [Tagged α] [Add α] : Compile (Var α) (E α) where
   compile _ l v := .store_var l (E.var l + v)
 
 instance base_mem [Tagged α] [Add α] : Compile (MemLoc α) (E α) where
   compile _ l v := .store_mem l.arr l.ind (l.access + v)
+
+instance base_dump [Tagged α] : Compile (Dump α) (E α) where
+  compile _ _ _ := .skip
 
 instance S.step [Compile L R] [TaggedC ι] : Compile (lvl ι L) (ι →ₛ R) where
   compile n l r :=
@@ -26,6 +31,9 @@ instance S.step [Compile L R] [TaggedC ι] : Compile (lvl ι L) (ι →ₛ R) wh
        .branch (r.ready s)
          (push;; compile (n.fresh 0) position (r.value s);; (r.succ s temp))
          (r.skip s temp))
+
+instance S.step' {n} [Compile L R] [TaggedC ι] : Compile (lvl ι L) (n × ι ⟶ₛ R) where
+  compile := fun n l (.str s) => S.step.compile n l s
 
 instance contract [Compile α β] : Compile α (Contraction β) where
   compile n := λ storage ⟨ι, _, v⟩ =>

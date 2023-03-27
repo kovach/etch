@@ -1,0 +1,21 @@
+CREATE TABLE A (I INTEGER NOT NULL,
+                J INTEGER NOT NULL,
+                V REAL NOT NULL,
+                PRIMARY KEY (I, J));
+CREATE TABLE V (I INTEGER NOT NULL,
+                V REAL NOT NULL,
+                PRIMARY KEY (I));
+
+ATTACH DATABASE 'data/filtered-spmv-2000000.db' AS t;
+
+INSERT INTO A
+SELECT *
+FROM t.A
+ORDER BY I, J;
+
+INSERT INTO V
+SELECT *
+FROM t.V
+ORDER BY I;
+
+DETACH DATABASE t;

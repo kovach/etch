@@ -1,0 +1,59 @@
+-- Load TPC-H dataset for Query 9
+
+.echo on
+
+INSTALL sqlite;
+LOAD sqlite;
+
+SET GLOBAL sqlite_all_varchar=true;
+
+CREATE TABLE NATION  ( N_NATIONKEY  INTEGER NOT NULL,
+                            N_NAME       CHAR(25) NOT NULL,
+                            PRIMARY KEY (N_NATIONKEY));
+CREATE TABLE PART  ( P_PARTKEY     INTEGER NOT NULL,
+                          P_NAME        VARCHAR(55) NOT NULL,
+                          PRIMARY KEY (P_PARTKEY));
+CREATE TABLE SUPPLIER ( S_SUPPKEY     INTEGER NOT NULL,
+                             S_NATIONKEY   INTEGER NOT NULL REFERENCES NATION (N_NATIONKEY),
+                             PRIMARY KEY (S_SUPPKEY));
+CREATE TABLE PARTSUPP ( PS_PARTKEY     INTEGER NOT NULL REFERENCES PART (P_PARTKEY),
+                             PS_SUPPKEY     INTEGER NOT NULL REFERENCES SUPPLIER (S_SUPPKEY),
+                             PS_SUPPLYCOST  DOUBLE  NOT NULL,
+                             PRIMARY KEY (PS_PARTKEY, PS_SUPPKEY));
+CREATE TABLE ORDERS  ( O_ORDERKEY       INTEGER NOT NULL,
+                           O_ORDERDATE      DATE NOT NULL,
+                           PRIMARY KEY (O_ORDERKEY));
+CREATE TABLE LINEITEM ( L_PARTKEY     INTEGER NOT NULL REFERENCES PART (P_PARTKEY),
+                             L_SUPPKEY     INTEGER NOT NULL REFERENCES SUPPLIER (S_SUPPKEY),
+                             L_ORDERKEY    INTEGER NOT NULL REFERENCES ORDERS (O_ORDERKEY),
+                             L_LINENUMBER  INTEGER NOT NULL,
+                             L_QUANTITY    DOUBLE NOT NULL,
+                             L_EXTENDEDPRICE  DOUBLE NOT NULL,
+                             L_DISCOUNT    DOUBLE NOT NULL,
+                             PRIMARY KEY (L_ORDERKEY, L_LINENUMBER));
+
+
+INSERT INTO NATION
+SELECT N_NATIONKEY, N_NAME FROM sqlite_scan('TPC-H.db', 'NATION');
+
+INSERT INTO PART
+SELECT P_PARTKEY, P_NAME FROM sqlite_scan('TPC-H.db', 'PART');
+
+INSERT INTO SUPPLIER
+SELECT S_SUPPKEY, S_NATIONKEY FROM sqlite_scan('TPC-H.db', 'SUPPLIER');
+
+INSERT INTO PARTSUPP
+SELECT PS_PARTKEY, PS_SUPPKEY, PS_SUPPLYCOST FROM sqlite_scan('TPC-H.db', 'PARTSUPP');
+
+INSERT INTO ORDERS
+SELECT O_ORDERKEY, O_ORDERDATE FROM sqlite_scan('TPC-H.db', 'ORDERS');
+
+INSERT INTO LINEITEM
+SELECT L_PARTKEY, L_SUPPKEY, L_ORDERKEY, L_LINENUMBER, L_QUANTITY, L_EXTENDEDPRICE, L_DISCOUNT FROM sqlite_scan('TPC-H.db', 'LINEITEM');
+
+COPY NATION   TO 'tpch-csv/nation.csv'   (HEADER, DELIMITER ',');
+COPY PART     TO 'tpch-csv/part.csv'     (HEADER, DELIMITER ',');
+COPY SUPPLIER TO 'tpch-csv/supplier.csv' (HEADER, DELIMITER ',');
+COPY PARTSUPP TO 'tpch-csv/partsupp.csv' (HEADER, DELIMITER ',');
+COPY ORDERS   TO 'tpch-csv/orders.csv'   (HEADER, DELIMITER ',');
+COPY LINEITEM TO 'tpch-csv/lineitem.csv' (HEADER, DELIMITER ',');

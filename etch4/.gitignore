@@ -1,14 +1,23 @@
-lake-packages
+/build
+/lake-packages
 
 *.o
-out
+.gdb_history
+bench-duckdb
+bench-filtered-spmv
+bench-matmul
+bench-sqlite
+bench-taco
+bench-tpch-q[0-9]
+bench-wcoj
 
 # data files (see Makefile)
 sqlite3.c
 sqlite3.h
 sqlite-amalgamation-*
+sqlite3/
+libduckdb-*
 duckdb_cli-*
 duckdb/
-tmp.duckdb
-TPC-H-x1.db
-tpch-csv-x1-q5/
+tmp-*.duckdb
+data/

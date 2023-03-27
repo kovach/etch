@@ -4,7 +4,20 @@
 
 int size[] = {0,0};
 
-int array_size = 105000;
+int array_size = 4000000;
+
+int dV_i1_;
+int dsA_i1_;
+int dsB_i1_;
+int i1_;
+int i2_;
+int i3_;
+int j1_;
+int j2_;
+int j3_;
+int k1_;
+int k2_;
+int k3_;
 
 ind* out1_crd = (ind*)calloc(array_size, sizeof(ind));
 ind* out1_pos = (ind*)calloc(array_size, sizeof(ind));

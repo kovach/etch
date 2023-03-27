@@ -53,4 +53,4 @@
 
 #define str_zero() ""
 #define macro_ternary(c, x, y) ((c) ? x : y)
-#define index_str_map(m, s) &m[s]
+#define index_map(a, ...) &a[{__VA_ARGS__}]
