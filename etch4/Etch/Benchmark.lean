@@ -429,11 +429,6 @@ def taco_ops : List (String × String × String) :=
 --("sum_mul2_inner_ss", compile_fun "sum_mul2_inner_ss" $ [go outVal mul_inner]),
 --("sum_add2", compile_fun "sum_add2" $ [go outVal $ sum2 $ ssA, go outVal $ sum2 $ ssB]),
 
-def aux_functions : List String := [
-  --compile_fun "filter_spmv" $ [go outVal filter_spmv],
-  compile_fun "triangle" $ [go outVal $ ∑ i, j, k : dsR * dsS * dsT ]
-]
-
 instance S.step' {L R} [Compile L R] [TaggedC ι] {n : ℕ} : Compile (lvl ι L) (n × ι ⟶ R) where
   compile n l
   | .str r =>
@@ -464,8 +459,6 @@ def main : IO Unit := do
   for (taco_name, etch_name, etch_body) in taco_ops do
     funs := funs.append (etch_body ++ "\n")
     main_taco := main_taco.append $ s!"printf(\"{taco_name}\\n\");time(&taco_{taco_name}_, \"taco\", {reps}); time({etch_name}, \"etch\", {reps});\nprintf(\"\\n\");"
-  for etch_body in aux_functions do
-    funs := funs.append $ etch_body ++ "\n"
   reps := 10
   for x in sql_ops do
     funs := funs.append (x.2 ++ "\n")
