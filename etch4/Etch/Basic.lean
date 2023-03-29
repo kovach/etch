@@ -25,3 +25,5 @@ infixr:9 "&" => rev_app
 
 abbrev DecidableLE (α : Type u) [LE α] := @DecidableRel α LE.le
 abbrev DecidableLT (α : Type u) [LT α] := @DecidableRel α LT.lt
+
+instance : Zero (Option α) where zero := none
