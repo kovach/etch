@@ -41,11 +41,11 @@ def stream_order (ι : Type) : Type := ι ×ₗ bool
 def Stream.to_order (s : Stream ι α) (q : s.σ) (h : s.valid q) : stream_order ι :=
 (s.index q h, s.ready q)
 
-def Stream.to_order' (s : Stream ι α) (q : s.σ) : (with_top ι) ×ₗ bool :=
-if h : s.valid q then (↑(s.to_order q h).1, (s.to_order q h).2)  else (⊤, ff)
-
 def Stream.index' (s : Stream ι α) (x : s.σ) : with_top ι :=
 if h : s.valid x then s.index x h else ⊤ 
+
+def Stream.to_order' (s : Stream ι α) (q : s.σ) : (with_top ι) ×ₗ bool :=
+(s.index' q, s.valid q ∧ s.ready q)
 
 def Stream.value' [has_zero α] (s : Stream ι α) (x : s.σ) : α :=
 if h : s.ready x then s.value _ h else 0
@@ -81,7 +81,7 @@ coe_lex_injective.eq_iff
 @[simp] lemma Stream.next_invalid {s : Stream ι α} {x : s.σ} (h : ¬s.valid x) : s.next x = x := dif_neg h
 
 @[simp] lemma Stream.to_order'_fst (s : Stream ι α) (q : s.σ) :
-  (s.to_order' q).1 = s.index' q := by simp [Stream.to_order', Stream.index', apply_dite prod.fst]
+  (s.to_order' q).1 = s.index' q := rfl
 
 @[simp] lemma Stream.skip'_val {s : Stream ι α} {q : s.σ} (hq : s.valid q) (i : ι ×ₗ bool) :
   s.skip' q i = s.skip q hq i := dif_pos hq
@@ -184,6 +184,10 @@ def Stream.is_monotonic (s : Stream ι α) : Prop :=
 
 section mono
 
+lemma Stream.is_monotonic.skip' {s : Stream ι α} (hs : s.is_monotonic) (q i) :
+  s.index' q ≤ s.index' (s.skip' q i) :=
+by { by_cases hq : s.valid q, { rw [Stream.skip'_val hq], apply hs, }, rw [Stream.skip'_invalid hq], exact rfl.le, }
+
 lemma Stream.is_monotonic.index_le_index_next {s : Stream ι α} (h : s.is_monotonic) (q : s.σ) :
   s.index' q ≤ s.index' (s.next q) :=
 begin
@@ -285,6 +289,10 @@ begin
   have : ↑j < s.index' q := by simpa [hq] using fst_lt_of_lt_of_lt (show (j, ff) <ₗ (j, tt), by simp) (not_le.mp H),
   rw [s.mono.eq_zero_of_lt_index j this, s.mono.eq_zero_of_lt_index _ (this.trans_le (s.mono q hq i))],
 end
+
+lemma Stream.skip'_spec (s : Stream ι α) [is_lawful s] (q : s.σ) (i : stream_order ι) (j : ι) (h : i ≤ (j, ff)) :
+  s.eval (s.skip' q i) j = s.eval q j :=
+by { by_cases hq : s.valid q, { rw [Stream.skip'_val hq, is_lawful.skip_spec _ hq _ _ h], }, rw Stream.skip'_invalid hq, }
 
 lemma Stream.skip'_lt_to_order {s : Stream ι α} [is_lawful s] {q : s.σ}
   {i : stream_order ι} (hi : coe_lex i < s.to_order' q) :

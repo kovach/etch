@@ -92,6 +92,33 @@ is_bounded.mk' ⟨prod.rprod_eq a.wf_rel b.wf_rel, prod.rprod_eq_wf a.wf b.wf, �
   { rw [add_to_order_eq_min, lt_min_iff], split; assumption, }, { ext; simpa, }
 end⟩
 
+lemma add_mono {a b : Stream ι α}  (ha : a.is_monotonic) (hb : b.is_monotonic) : (a.add b).is_monotonic :=
+by { intros q hv i, simp only [add_index_eq_min], exact min_le_min (ha.skip' _ _) (hb.skip' _ _), }
+
+lemma add_strict_mono {a b : Stream ι α} (ha : a.is_strict_mono) (hb : b.is_strict_mono) : (a.add b).is_strict_mono :=
+⟨add_mono ha.1 hb.1, λ q hq i hi hr, ne_of_lt begin
+  replace hi : min (a.to_order' q.1) (b.to_order' q.2) ≤ coe_lex i, { rwa [← add_to_order_eq_min, ← Stream.coe_lex_to_order hq, coe_lex_le_iff], },
+  rcases (lt_trichotomy (a.to_order' q.1) (b.to_order' q.2)) with (h|h|h),
+  { replace hr : a.ready q.1 := by simpa [h.le, h.not_le] using hr,
+    have hqa : a.valid q.1 := valid_of_to_order_lt h,
+    replace hi : a.to_order q.1 hqa ≤ i, { rw [min_eq_left h.le] at hi, rwa [← coe_lex_le_iff, Stream.coe_lex_to_order], }, 
+    have : a.index' q.1 < b.index' q.2, { refine prod.lex.fst_lt_of_lt_of_le h _, simp [hqa, hr], },
+    simp only [add_index_eq_min, min_eq_left this.le, Stream.add_skip, add_index_eq_min, lt_min_iff, Stream.skip'_val hqa],
+    split, { exact ha.lt _ _ _ hi hr, }, { refine this.trans_le _, apply hb.1.skip', }, },
+  { obtain ⟨hv₀, hv₁, hv₂, hr_iff, hind⟩ := (of_to_order_eq _ h).resolve_left (λ h', h'.1 hq),
+    simp only [add_index_eq_min, hind, min_self, Stream.add_skip, lt_min_iff],
+    obtain ⟨hr₁, hr₂⟩ : a.ready q.1 ∧ b.ready q.2, { split; simpa [h, hr_iff] using hr, }, 
+    split,
+    { rw [← hind, Stream.skip'_val hv₁], rw [← h, min_self, ← Stream.coe_lex_to_order hv₁, coe_lex_le_iff] at hi, exact ha.lt _ _ _ hi hr₁, },
+    { rw [Stream.skip'_val hv₂], rw [h, min_self, ← Stream.coe_lex_to_order hv₂, coe_lex_le_iff] at hi, exact hb.lt _ _ _ hi hr₂, }, },
+  { replace hr : b.ready q.2 := by simpa [h.le, h.not_le] using hr,
+    have hqb : b.valid q.2 := valid_of_to_order_lt h,
+    replace hi : b.to_order q.2 hqb ≤ i, { rw [min_eq_right h.le] at hi, rwa [← coe_lex_le_iff, Stream.coe_lex_to_order], }, 
+    have : b.index' q.2 < a.index' q.1, { refine prod.lex.fst_lt_of_lt_of_le h _, simp [hqb, hr], },
+    simp only [add_index_eq_min, min_eq_right this.le, Stream.add_skip, add_index_eq_min, lt_min_iff, Stream.skip'_val hqb],
+    split, swap, { exact hb.lt _ _ _ hi hr, }, { refine this.trans_le _, apply ha.1.skip', }, },
+end⟩
+
 end index_lemmas
 
 section value_lemmas
@@ -157,6 +184,15 @@ begin
       add_to_order_right hq hv h.le, Stream.skip'_val hv, b.eval_valid _ hv, add_left_comm, Stream.add.eval₀_eq_right hq h, Stream.next_val hv],
     simpa [add_to_order_eq_min], },
 end
+
+instance (a b : Stream ι α) [is_lawful a] [is_lawful b] : is_lawful (a.add b) :=
+⟨add_mono a.mono b.mono, λ q hq i j hj, begin
+  simp only [Stream.add_spec], dsimp,
+  congr' 1; rwa Stream.skip'_spec,
+end⟩
+
+instance (a b : Stream ι α) [is_strict_lawful a] [is_strict_lawful b] : is_strict_lawful (a.add b) :=
+{ strict_mono := add_strict_mono a.strict_mono b.strict_mono }
 
 end value_lemmas
 
