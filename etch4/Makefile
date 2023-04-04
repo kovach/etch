@@ -54,7 +54,7 @@ SQLITE3 ?= sqlite3/shell
 ALL_BENCH := bench-tpch-q5 bench-tpch-q9 bench-wcoj bench-taco bench-matmul bench-filtered-spmv
 
 .PHONY: all
-all: $(ALL_BENCH)
+all: $(ALL_BENCH) $(DUCKDB) $(SQLITE3) bench-duckdb bench-sqlite
 
 bench-tpch-q5: bench-tpch-q5.cpp gen_tpch_q5.c
 bench-tpch-q9: bench-tpch-q9.cpp gen_tpch_q9.c
@@ -220,10 +220,10 @@ data/wcoj-csv-x$(1): bench/wcoj-datagen.py
 run-wcoj-x$(1)-duckdb: data/wcoj-csv-x$(1) bench/wcoj-duckdb-prep.sql bench/wcoj-duckdb.sql bench-duckdb
 	./bench-duckdb <(sed -e 's#wcoj-csv#$$<#g' bench/wcoj-duckdb-prep.sql) 5:bench/wcoj-duckdb.sql
 
-data/wcoj-x$(1).db: data/wcoj-csv-x$(1) bench/wcoj-sqlite-import.sql sqlite3/shell
+data/wcoj-x$(1).db: data/wcoj-csv-x$(1) bench/wcoj-sqlite-import.sql $$(SQLITE3)
 	mkdir -p $$(@D)
 	rm -f $$@
-	sed 's#wcoj-csv#$$<#g' bench/wcoj-sqlite-import.sql | sqlite3/shell $$@
+	sed 's#wcoj-csv#$$<#g' bench/wcoj-sqlite-import.sql | $$(SQLITE3) $$@
 
 .PHONY: run-wcoj-x$(1)-etch
 run-wcoj-x$(1)-etch: bench-wcoj data/wcoj-x$(1).db
