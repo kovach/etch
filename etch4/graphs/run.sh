@@ -128,7 +128,14 @@ for size in x1 x3 x10 x30 x100 x300 x1000 x3000 x10000; do
 			make run-wcoj-$size-$db >>bench-output/run-wcoj-$size-$db.txt
 		done
 	done
-	sed -n 's/^q2 took (s): real \([^ ]*\)s.*/\1/p' <bench-output/run-wcoj-$size-duckdb.txt | awk '{x+=$0}END{print "duckdb:",x/NR}'
-	sed -n 's/^wcojx1000 took (s): real \([^ ]*\)s.*/\1/p' <bench-output/run-wcoj-$size-etch.txt | awk '{x+=$0}END{print "etch:",x/NR}'
-	sed -n 's/^q2 took (s): real \([^ ]*\)s.*/\1/p' <bench-output/run-wcoj-$size-sqlite.txt | awk '{x+=$0}END{print "sqlite:",x/NR}'
+
+	if [[ $dbs =~ duckdb ]]; then
+		sed -n 's/^q2 took (s): real \([^ ]*\)s.*/\1/p' <bench-output/run-wcoj-$size-duckdb.txt | awk '{x+=$0}END{print "duckdb:",x/NR}'
+	fi
+	if [[ $dbs =~ etch ]]; then
+		sed -n 's/^wcojx1000 took (s): real \([^ ]*\)s.*/\1/p' <bench-output/run-wcoj-$size-etch.txt | awk '{x+=$0}END{print "etch:",x/NR}'
+	fi
+	if [[ $dbs =~ sqlite ]]; then
+		sed -n 's/^q2 took (s): real \([^ ]*\)s.*/\1/p' <bench-output/run-wcoj-$size-sqlite.txt | awk '{x+=$0}END{print "sqlite:",x/NR}'
+	fi
 done
