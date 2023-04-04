@@ -13,7 +13,7 @@ make -j$(nproc)
 done) | xargs make -j$(nproc)
 
 # TACO
-(for size in 0.0001 0.0003 0.0007 0.001 0.003 0.007 0.01 0.03 0.07 0.1 0.3 0.5 0.7 0.9; do
+(for size in 0.0001 0.0003 0.0007 0.001 0.003 0.007 0.01 0.03 0.07 0.1 0.3 0.5; do
 	echo data/taco-s$size.db
 done) | xargs make -j$(nproc)
 
@@ -47,7 +47,7 @@ for nonzeros in 2000000; do
 done
 
 # TACO
-for size in 0.0001 0.0003 0.0007 0.001 0.003 0.007 0.01 0.03 0.07 0.1 0.3 0.5 0.7 0.9; do
+for size in 0.0001 0.0003 0.0007 0.001 0.003 0.007 0.01 0.03 0.07 0.1 0.3 0.5; do
 	echo run-taco-s$size
 
 	# warm up
