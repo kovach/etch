@@ -303,6 +303,14 @@ begin
   rw [Stream.skip'_val hq, Stream.skip_lt_to_order hi],
 end
 
+lemma Stream.eval_skip_eq_of_ff (s : Stream ι α) [is_lawful s] (q : s.σ) (hq : s.valid q) :
+  s.eval (s.skip q hq (s.index q hq, ff)) = s.eval q :=
+begin
+  by_cases hr : s.ready q,
+  { apply Stream.skip_lt_to_order, simp [Stream.to_order, hr], },
+  simp [s.eval_valid q hq, Stream.eval₀, hr, Stream.next_val hq, Stream.to_order],
+end
+
 section sanity_check
 
 -- def Stream.denseVec {n : ℕ} (vals : vector α n) : BoundedStream (fin n) α :=
