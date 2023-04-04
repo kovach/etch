@@ -33,6 +33,8 @@ done) | xargs make -j$(nproc)
 # filtered SpMV
 for nonzeros in 2000000; do
 	for db in duckdb etch sqlite; do
+		echo run-filtered-spmv-$nonzeros-$db
+
 		# warm up
 		make run-filtered-spmv-$nonzeros-$db >/dev/null
 		make run-filtered-spmv-$nonzeros-$db >/dev/null
@@ -46,7 +48,10 @@ done
 
 # TACO
 for size in 0.0001 0.0003 0.0007 0.001 0.003 0.007 0.01 0.03 0.07 0.1 0.3 0.5 0.7 0.9; do
-	echo $size
+	echo run-taco-s$size
+
+	# warm up
+	make run-taco-s$size >/dev/null
 	make run-taco-s$size >/dev/null
 
 	rm -f bench-output/run-taco-s$size.txt
@@ -57,11 +62,13 @@ done
 
 # TPC-H Q5
 for size in x0.01 x0.025 x0.05 x0.1 x0.25 x0.5 x1; do
-	for db in duckdb duckdbforeign etch sqlite; do
+	dbs='duckdb duckdbforeign etch sqlite'
+
+	for db in $dbs; do
+		echo run-tpch-$size-q5-$db
+
 		# warm up
-		# echo run-tpch-$size-q5-$db time -2
 		make run-tpch-$size-q5-$db >/dev/null
-		# echo run-tpch-$size-q5-$db time -1
 		make run-tpch-$size-q5-$db >/dev/null
 
 		rm -f bench-output/run-tpch-$size-q5-$db.txt
@@ -70,7 +77,6 @@ for size in x0.01 x0.025 x0.05 x0.1 x0.25 x0.5 x1; do
 			make run-tpch-$size-q5-$db >>bench-output/run-tpch-$size-q5-$db.txt
 		done
 	done
-	echo run-tpch-$size-q5
 	sed -n 's/^q2 took (s): real \([^ ]*\)s.*/\1/p' <bench-output/run-tpch-$size-q5-duckdb.txt | awk '{x+=$0}END{print "duckdb:",x/NR}'
 	sed -n 's/^q2 took (s): real \([^ ]*\)s.*/\1/p' <bench-output/run-tpch-$size-q5-duckdbforeign.txt | awk '{x+=$0}END{print "duckdbforeign:",x/NR}'
 	sed -n 's/^q5 took (s): real \([^ ]*\)s.*/\1/p' <bench-output/run-tpch-$size-q5-etch.txt | awk '{x+=$0}END{print "etch:",x/NR}'
@@ -82,10 +88,10 @@ for size in x0.01 x0.025 x0.05 x0.1 x0.25 x0.5 x1; do
 	dbs='duckdb duckdbforeign etch sqlite'
 
 	for db in $dbs; do
+		echo run-tpch-$size-q9-$db
+
 		# warm up
-		# echo run-tpch-$size-q9-$db time -2
 		make run-tpch-$size-q9-$db >/dev/null
-		# echo run-tpch-$size-q9-$db time -1
 		make run-tpch-$size-q9-$db >/dev/null
 
 		rm -f bench-output/run-tpch-$size-q9-$db.txt
@@ -94,7 +100,6 @@ for size in x0.01 x0.025 x0.05 x0.1 x0.25 x0.5 x1; do
 			make run-tpch-$size-q9-$db >>bench-output/run-tpch-$size-q9-$db.txt
 		done
 	done
-	echo run-tpch-$size-q9
 	sed -n 's/^q2 took (s): real \([^ ]*\)s.*/\1/p' <bench-output/run-tpch-$size-q9-duckdb.txt | awk '{x+=$0}END{print "duckdb:",x/NR}'
 	sed -n 's/^q2 took (s): real \([^ ]*\)s.*/\1/p' <bench-output/run-tpch-$size-q9-duckdbforeign.txt | awk '{x+=$0}END{print "duckdbforeign:",x/NR}'
 	sed -n 's/^q9 took (s): real \([^ ]*\)s.*/\1/p' <bench-output/run-tpch-$size-q9-etch.txt | awk '{x+=$0}END{print "etch:",x/NR}'
@@ -111,10 +116,10 @@ for size in x1 x3 x10 x30 x100 x300 x1000 x3000 x10000; do
 	fi
 
 	for db in $dbs; do
+		echo run-wcoj-$size-$db
+
 		# warm up
-		# echo run-wcoj-$size-$db time -2
 		make run-wcoj-$size-$db >/dev/null
-		# echo run-wcoj-$size-$db time -1
 		make run-wcoj-$size-$db >/dev/null
 
 		rm -f bench-output/run-wcoj-$size-$db.txt
@@ -123,7 +128,6 @@ for size in x1 x3 x10 x30 x100 x300 x1000 x3000 x10000; do
 			make run-wcoj-$size-$db >>bench-output/run-wcoj-$size-$db.txt
 		done
 	done
-	echo run-wcoj-$size
 	sed -n 's/^q2 took (s): real \([^ ]*\)s.*/\1/p' <bench-output/run-wcoj-$size-duckdb.txt | awk '{x+=$0}END{print "duckdb:",x/NR}'
 	sed -n 's/^wcojx1000 took (s): real \([^ ]*\)s.*/\1/p' <bench-output/run-wcoj-$size-etch.txt | awk '{x+=$0}END{print "etch:",x/NR}'
 	sed -n 's/^q2 took (s): real \([^ ]*\)s.*/\1/p' <bench-output/run-wcoj-$size-sqlite.txt | awk '{x+=$0}END{print "sqlite:",x/NR}'
