@@ -32,24 +32,8 @@ def format_frame(ax):
 
 
 def graph_q5(ax):
-    SFS = ["x0.01", "x0.025", "x0.05", "x0.1", "x0.25", "x0.5", "x1", "x2", "x4"]
-    SF_NUMS = [0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2, 4]
-    # ❯ for size in x0.01 x0.025 x0.05 x0.1 x0.25 x0.5 x1 x2 x4; do echo $size `wc -c tpch-csv-$size-q5/*.csv | grep total`; done
-    BYTES = [
-        1780915,
-        4648233,
-        9487650,
-        19271743,
-        50144641,
-        102488785,
-        207793787,
-        427239748,
-        876270111,
-    ]
-    sf_to_byte = np.poly1d(np.polyfit(SF_NUMS, BYTES, 1))
-    byte_to_sf = np.poly1d(np.polyfit(BYTES, SF_NUMS, 1))
-
-    print(sf_to_byte)
+    SFS = ["x0.01", "x0.025", "x0.05", "x0.1", "x0.25", "x0.5", "x1"]
+    SF_NUMS = [0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1]
 
     DBS = ["duckdb", "duckdbforeign", "etch", "sqlite"]
 
@@ -107,24 +91,8 @@ def graph_q5_standalone():
 
 
 def graph_q9(ax):
-    SFS = ["x0.01", "x0.025", "x0.05", "x0.1", "x0.25", "x0.5", "x1", "x2", "x4"]
-    SF_NUMS = [0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2, 4]
-    # ❯ for size in x0.01 x0.025 x0.05 x0.1 x0.25 x0.5 x1 x2 x4; do echo $size `wc -c tpch-csv-$size-q9/*.csv | grep total`; done
-    BYTES = [
-        2453811,
-        6383292,
-        12983685,
-        26604032,
-        68989290,
-        140539517,
-        287217107,
-        589590576,
-        1204531842,
-    ]
-    sf_to_byte = np.poly1d(np.polyfit(SF_NUMS, BYTES, 1))
-    byte_to_sf = np.poly1d(np.polyfit(BYTES, SF_NUMS, 1))
-
-    print(sf_to_byte)
+    SFS = ["x0.01", "x0.025", "x0.05", "x0.1", "x0.25", "x0.5", "x1"]
+    SF_NUMS = [0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1]
 
     DBS = ["duckdbforeign", "duckdb", "etch", "sqlite"]
 

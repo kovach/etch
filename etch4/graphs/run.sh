@@ -1,10 +1,51 @@
+set -e
+
 mkdir -p bench-output
+
+############################# Preparations
+
+# Lean / Binaries
+make -j$(nproc)
+
+# filtered SpMV
+(for nonzeros in 2000000; do
+	echo data/filtered-spmv-$nonzeros.db
+done) | xargs make -j$(nproc)
 
 # TACO
 (for size in 0.0001 0.0003 0.0007 0.001 0.003 0.007 0.01 0.03 0.07 0.1 0.3 0.5 0.7 0.9; do
 	echo data/taco-s$size.db
 done) | xargs make -j$(nproc)
 
+# TPC-H
+(for size in x0.01 x0.025 x0.05 x0.1 x0.25 x0.5 x1; do
+	echo data/TPC-H-$size.db
+done) | xargs make -j$(nproc)
+
+# WCOJ
+(for size in x1 x3 x10 x30 x100 x300 x1000 x3000 x10000; do
+	echo data/wcoj-csv-$size data/wcoj-$size.db
+done) | xargs make -j$(nproc)
+
+
+############################# Benchmarks
+
+# filtered SpMV
+for nonzeros in 2000000; do
+	for db in duckdb etch sqlite; do
+		# warm up
+		make run-filtered-spmv-$nonzeros-$db >/dev/null
+		make run-filtered-spmv-$nonzeros-$db >/dev/null
+
+		rm -f bench-output/run-wcoj-$nonzeros-$db.txt
+		for i in `seq 5`; do
+			make run-filtered-spmv-$nonzeros-$db >>bench-output/run-filtered-spmv-$nonzeros-$db.txt
+		done
+	done
+done
+exit
+
+# TACO
 for size in 0.0001 0.0003 0.0007 0.001 0.003 0.007 0.01 0.03 0.07 0.1 0.3 0.5 0.7 0.9; do
 	echo $size
 	make run-taco-s$size >/dev/null
@@ -15,12 +56,8 @@ for size in 0.0001 0.0003 0.0007 0.001 0.003 0.007 0.01 0.03 0.07 0.1 0.3 0.5 0.
 	done
 done
 
-(for size in x0.01 x0.025 x0.05 x0.1 x0.25 x0.5 x1 x2 x4; do
-	echo data/TPC-H-$size.db
-done) | xargs make -j$(nproc)
-
 # TPC-H Q5
-for size in x0.01 x0.025 x0.05 x0.1 x0.25 x0.5 x1 x2 x4; do
+for size in x0.01 x0.025 x0.05 x0.1 x0.25 x0.5 x1; do
 	for db in duckdb duckdbforeign etch sqlite; do
 		# warm up
 		# echo run-tpch-$size-q5-$db time -2
@@ -42,7 +79,7 @@ for size in x0.01 x0.025 x0.05 x0.1 x0.25 x0.5 x1 x2 x4; do
 done
 
 # TPC-H Q9
-for size in x0.01 x0.025 x0.05 x0.1 x0.25 x0.5 x1 x2 x4; do
+for size in x0.01 x0.025 x0.05 x0.1 x0.25 x0.5 x1; do
 	dbs='duckdb duckdbforeign etch sqlite'
 
 	for db in $dbs; do
@@ -66,10 +103,6 @@ for size in x0.01 x0.025 x0.05 x0.1 x0.25 x0.5 x1 x2 x4; do
 done
 
 # WCOJ
-(for size in x1 x3 x10 x30 x100 x300 x1000 x3000 x10000; do
-	echo data/wcoj-csv-$size data/wcoj-$size.db
-done) | xargs make -j$(nproc)
-
 for size in x1 x3 x10 x30 x100 x300 x1000 x3000 x10000; do
 	dbs='duckdb etch sqlite'
 	if [[ $size = x300 ]]; then
