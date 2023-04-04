@@ -1,29 +1,4 @@
-import verification.semantics.skip_streamv2
-
-namespace prod
-variables {α β : Type*} (r₁ : α → α → Prop) (r₂ : β → β → Prop)
-
-def rprod_eq (s₁ s₂ : α × β) : Prop :=
-(r₁ s₁.1 s₂.1 ∧ (r₂ s₁.2 s₂.2 ∨ s₁.2 = s₂.2)) ∨
-  (r₂ s₁.2 s₂.2 ∧ (r₁ s₁.1 s₂.1 ∨ s₁.1 = s₂.1))
-
-variables {r₁ r₂}
-
-theorem rprod_eq_sub_lex (s₁ s₂ : α × β) (h : rprod_eq r₁ r₂ s₁ s₂) :
-  prod.lex r₁ r₂ s₁ s₂ :=
-begin
-  cases s₁ with a b, cases s₂ with c d,
-  rcases h with (⟨h₁, _⟩|⟨h₁, (h₂|h₂)⟩),
-  { exact prod.lex.left _ _ h₁, },
-  { exact prod.lex.left _ _ h₂, },
-  { dsimp only at h₁ h₂, rw h₂, exact prod.lex.right _ h₁, }
-end
-
-theorem rprod_eq_wf (h₁ : well_founded r₁) (h₂ : well_founded r₂) :
-  well_founded (rprod_eq r₁ r₂) :=
-subrelation.wf rprod_eq_sub_lex (lex_wf h₁ h₂)
-
-end prod
+import verification.semantics.skip_stream
 
 lemma mul_eq_zero_of {α : Type*} [mul_zero_class α] {x y : α} : x = 0 ∨ y = 0 → x * y = 0
 | (or.inl h) := by { rw h, exact zero_mul y, }

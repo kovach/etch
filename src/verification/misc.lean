@@ -86,8 +86,9 @@ by { erw [← list.map_uncurry_zip_eq_zip_with, list.map_snd_zip], exact hl, }
     (finset.univ.val : multiset (fin n)).map (λ i, l.nth_le i (by rw hn; exact i.prop)) = l :=
 by { subst hn, simp [finset.univ, fintype.elems], erw list.map_nth_le, }
 
-@[simp] lemma le_ff_iff {b : bool} : b ≤ ff ↔ b = ff :=
-by cases b; simp
+@[simp] lemma le_ff_iff : ∀ {b : bool}, b ≤ ff ↔ b = ff := dec_trivial
+
+@[simp] lemma lt_tt_iff : ∀ {b : bool}, b < tt ↔ b = ff := dec_trivial
 
 lemma bool.min_eq_and {a b : bool} : min a b = a && b := rfl
 
@@ -114,8 +115,30 @@ option.some_inj
 
 end with_top
 
-namespace prod.lex
-variables {α β : Type*}
+namespace prod
+variables {α β : Type*} (r₁ : α → α → Prop) (r₂ : β → β → Prop)
+
+def rprod_eq (s₁ s₂ : α × β) : Prop :=
+(r₁ s₁.1 s₂.1 ∧ (r₂ s₁.2 s₂.2 ∨ s₁.2 = s₂.2)) ∨
+  (r₂ s₁.2 s₂.2 ∧ (r₁ s₁.1 s₂.1 ∨ s₁.1 = s₂.1))
+
+variables {r₁ r₂}
+
+theorem rprod_eq_sub_lex (s₁ s₂ : α × β) (h : rprod_eq r₁ r₂ s₁ s₂) :
+  prod.lex r₁ r₂ s₁ s₂ :=
+begin
+  cases s₁ with a b, cases s₂ with c d,
+  rcases h with (⟨h₁, _⟩|⟨h₁, (h₂|h₂)⟩),
+  { exact prod.lex.left _ _ h₁, },
+  { exact prod.lex.left _ _ h₂, },
+  { dsimp only at h₁ h₂, rw h₂, exact prod.lex.right _ h₁, }
+end
+
+theorem rprod_eq_wf (h₁ : well_founded r₁) (h₂ : well_founded r₂) :
+  well_founded (rprod_eq r₁ r₂) :=
+subrelation.wf rprod_eq_sub_lex (lex_wf h₁ h₂)
+
+namespace lex
 
 local notation a ` <ₗ `:50 b := @has_lt.lt (α ×ₗ β) _ a b
 local notation a ` ≤ₗ `:50 b := @has_le.le (α ×ₗ β) _ a b
@@ -166,7 +189,9 @@ lemma mk_min [linear_order α] [linear_order β] (x : α) (y₁ y₂ : β) :
   @min (α ×ₗ β) _ (x, y₁) (x, y₂) = (x, min y₁ y₂) :=
 (@monotone.map_min _ (α ×ₗ β) _ _ (λ y, (x, y)) y₁ y₂ $ λ y₁ y₂, by simp).symm
 
-end prod.lex
+end lex
+
+end prod
 
 @[simp] lemma max_le_min_iff {α : Type*} [linear_order α] {x y : α} :
   max x y ≤ min x y ↔ x = y := by simpa using le_antisymm_iff.symm
