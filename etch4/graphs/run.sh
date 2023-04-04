@@ -43,7 +43,6 @@ for nonzeros in 2000000; do
 		done
 	done
 done
-exit
 
 # TACO
 for size in 0.0001 0.0003 0.0007 0.001 0.003 0.007 0.01 0.03 0.07 0.1 0.3 0.5 0.7 0.9; do
