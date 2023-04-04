@@ -1,3 +1,6 @@
+# we assume bash
+SHELL := bash
+
 CC := clang
 CXX := clang++
 
@@ -28,7 +31,7 @@ SQLITE_CPPFLAGS := -I. \
 	-DSQLITE_ENABLE_STMTVTAB \
 	-DSQLITE_ENABLE_MATH_FUNCTIONS \
 	-DHAVE_FDATASYNC=1 -DHAVE_USLEEP=1 -DHAVE_LOCALTIME_R=1 -DHAVE_GMTIME_R=1 -DHAVE_STRERROR_R=1 -DHAVE_POSIX_FALLOCATE=1
-SQLITE_LDLIBS += -lm
+SQLITE_LDLIBS += -lm -ldl
 
 DUCKDB_VERSION := v0.7.1
 DUCKDB_CLI_ZIP := duckdb_cli-$(DUCKDB_VERSION)-linux-amd64.zip
@@ -71,6 +74,7 @@ ifdef FORCE_REGEN
 endif
 gen_filtered_spmv.c gen_matmul.c gen_tpch_q5.c gen_tpch_q9.c gen_wcoj.c gen_taco.c &:
 	lake update
+	-lake exe cache get # get mathlib4 cache
 	lake exe bench
 
 %_readable.c: %.c impls_readable.h .clang-format

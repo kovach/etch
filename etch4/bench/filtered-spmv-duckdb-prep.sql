@@ -1,3 +1,4 @@
+INSTALL sqlite;
 LOAD sqlite;
 
 CREATE TABLE A (I INTEGER NOT NULL,
