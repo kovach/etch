@@ -14,10 +14,12 @@ class PositiveAlgebra {A : Type} [DecidableEq A] (α : Finset A → Type) where
   finite : ∀ {S : Finset A}, α S → Type _
   equiv  : A → A → Prop
 
-  mul      (a b : α S) : α S
-  expand   (i : A) (S : Finset A) : α S → α (insert i S)
-  contract (i : A) (S : Finset A) (s : α S) (fin : finite s) : α (Finset.erase S i)
-  rename   (S : Finset A) (ρ : S → A) (equiv : (i : S) → equiv i (ρ i)) : α S → α (S.attach.image ρ)
+  mul          (a b : α S) : α S
+  expand       (i : A) (S : Finset A) : α S → α (insert i S)
+  expand_sub   (sub : S ⊆ S') : α S → α S'
+  contract     (i : A) (S : Finset A) (s : α S) (fin : finite s) : α (Finset.erase S i)
+  contract_sub (sub : S ⊆ S') (s : α S') (fin : finite s) : α S
+  rename       (S : Finset A) (ρ : S → A) (equiv : (i : S) → equiv i (ρ i)) : α S → α (S.attach.image ρ)
 
 section KRel
 variable (K : Type) [Semiring K] {A : Type} [DecidableEq A] (I : A → Type) (S : Finset A) [(i : A) → DecidableEq (I i)]
@@ -43,6 +45,8 @@ instance KRel.positiveAlgebra : PositiveAlgebra (KRel K I) where
   mul a b := a * b
   expand i _ f x := f (x.erase' i)
   contract i S f fin := fun t ↦ fin.1.filter (fun t' : Tuple I S ↦ t'.erase i = t) |>.sum f
+  expand_sub sub f x := f (x.project sub)
+  contract_sub sub f fin := fun t ↦ fin.1.filter (fun t' : Tuple I _ ↦ t'.project sub = t) |>.sum f
   rename S ρ equiv f t := f (fun (a : S) ↦ equiv a ▸ t ⟨ ρ a, Finset.mem_image_of_mem _ (Finset.mem_attach _ a) ⟩ )
 
 #check @KRel.positiveAlgebra
@@ -78,6 +82,8 @@ def finite_ofList (l : List (Tuple I S × K)) : PositiveAlgebra.finite (KRel.ofL
 def Tuple.nil : Tuple I {} := {}
 def nil : Tuple I {} := Tuple.nil
 
+section examples
+
 abbrev I1 : Fin 2 → Type := fun _ ↦ Fin 3
 def t1 : Tuple I1 {0} := fun | ⟨0, _⟩ => 0
 def t2 : Tuple I1 {0} := fun | ⟨0, _⟩ => 1
@@ -92,11 +98,21 @@ open PositiveAlgebra
 def f0_finite : finite f0 := KRel.finite_ofList l0
 
 notation:15 "∑ " i "," a => contract i _ (ofList a) (finite_ofList a)
+--notation:15 "∑ " s "," a => contract_sub (by decide : s ⊆ _) (ofList a) (finite_ofList a)
 
 #check contract 0 _ (ofList l0) (finite_ofList l0)
+def asdf : ({0} : Finset ℕ) ⊆ {0,1} := by decide
+#print asdf.proof_1
+
+#check l0
+def fff : ({} : Finset (Fin 2)) ⊆ {0} := by decide
+#reduce contract_sub fff (ofList l0) (finite_ofList l0)
 #reduce contract 0 _ f0 f0_finite
 #eval contract 0 _ f0 f0_finite nil
 #check contract 1 _ (ofList l0) (finite_ofList l0)
+#eval (∑ 0, l0) nil
 #eval (∑ 1, l0) t2
+
+end examples
 
 end KRel
