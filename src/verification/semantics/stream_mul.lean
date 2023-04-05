@@ -1,8 +1,12 @@
 import verification.semantics.skip_stream
 
-lemma mul_eq_zero_of {α : Type*} [mul_zero_class α] {x y : α} : x = 0 ∨ y = 0 → x * y = 0
-| (or.inl h) := by { rw h, exact zero_mul y, }
-| (or.inr h) := by { rw h, exact mul_zero x, }
+/-!
+# Multiplication of indexed streams
+
+In this file, we define the product of indexed streams
+
+
+-/
 
 open_locale streams
 variables {ι : Type} [linear_order ι] {α : Type*}

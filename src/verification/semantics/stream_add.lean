@@ -16,22 +16,6 @@ variables {ι : Type} [linear_order ι] {α : Type*}
 section index_lemmas
 variables [has_zero α] [has_add α]
 
--- lemma to_order_of_a_invalid {a b : Stream ι α} {q : (a.add b).σ} (ha : ¬a.valid q.1) 
---   (hq : (a.add b).valid q) : (a.add b).to_order q hq = b.to_order q.2 (hq.resolve_left ha) :=
--- begin
---   have : b.to_order' q.2 < a.to_order' q.1,
---   { rw prod.lex.lt_iff', left, simpa [ha] using hq.resolve_left ha, },
---   simp [Stream.to_order, ha, this.le, this.not_le],
--- end
-
--- lemma to_order_of_b_invalid {a b : Stream ι α} {q : (a.add b).σ} (hb : ¬b.valid q.2) 
---   (hq : (a.add b).valid q) : (a.add b).to_order q hq = a.to_order q.1 (hq.resolve_right hb) :=
--- begin
---   have : a.to_order' q.1 < b.to_order' q.2,
---   { rw prod.lex.lt_iff', left, simpa [hb] using hq.resolve_right hb, },
---   simp [Stream.to_order, hb, this.le, this.not_le],
--- end
-
 @[simp] lemma add_index_eq_min {a b : Stream ι α} (q : (a.add b).σ) :
   (a.add b).index' q = min (a.index' q.1) (b.index' q.2) :=
 by { by_cases H : (a.add b).valid q, { simp [H], }, { simp [H, not_or_distrib.mp H], } }

@@ -8,6 +8,12 @@ import data.option.basic
 import data.pfun
 import data.prod.lex
 
+/-! 
+This is a collection of miscellaneous lemmas. Not all of these are used;
+many of them where used in previous versions of the formalization/are used 
+in the WIP verification of the code-generating compiler.
+-/
+
 lemma bool.coe_iff_eq_tt (b : bool) : b ↔ b = tt := iff.rfl
 @[simp] lemma option.bind_const_none {α β} (x : option α) :
   x.bind (λ _, none) = (none : option β) :=
@@ -200,33 +206,6 @@ end prod
    min x y = max x y ↔ x = y :=
 ⟨λ h, max_le_min_iff.mp h.symm.le, λ h, by simp [h]⟩ 
 
-/- NOTE: This stuff is already in mathlib (`data.finsupp.pointwise`) -/
-
--- variables {ι α : Type}
-
--- noncomputable instance finsupp.has_mul [mul_zero_class α] : has_mul (ι →₀ α) :=
--- ⟨λ a b, finsupp.zip_with (*) (zero_mul _) a b⟩
-
--- lemma finsupp.mul_apply [mul_zero_class α] (g₁ g₂ : ι →₀ α) (a : ι) : (g₁ * g₂) a = g₁ a * g₂ a := rfl
-
--- -- #check pi.distrib -- todo, tactic like this?
--- noncomputable instance finsupp.non_unital_semiring [non_unital_semiring α] : non_unital_semiring (ι →₀ α) :=
--- {
---   zero := 0,
---   add_assoc := λ a b c, fun_like.ext _ _ (by simp [finsupp.add_apply, add_assoc]),
---   zero_add  := λ a,     fun_like.ext _ _ (by simp [finsupp.add_apply]),
---   add_zero  := λ a,     fun_like.ext _ _ (by simp [finsupp.add_apply]),
---   add_comm  := λ a b,   fun_like.ext _ _ (by simp [finsupp.add_apply, add_comm] ),
---   zero_mul  := λ a,     fun_like.ext _ _ (by simp [finsupp.mul_apply]),
---   mul_zero  := λ a,     fun_like.ext _ _ (by simp [finsupp.mul_apply]),
-
---   left_distrib  := λ a b c, by simp [fun_like.ext_iff, finsupp.mul_apply, finsupp.add_apply, left_distrib],
---   right_distrib := λ a b c, by simp [fun_like.ext_iff, finsupp.mul_apply, finsupp.add_apply, right_distrib],
-
---   mul_assoc     := λ a b c, by simp [fun_like.ext_iff, finsupp.mul_apply, mul_assoc],
-
---   ..finsupp.has_mul, ..finsupp.has_add, }
-
 @[simp] lemma finsupp.mul_single {ι β : Type*} [mul_zero_class β] (i : ι) (x y : β) :
   (finsupp.single i x) * (finsupp.single i y) = finsupp.single i (x * y) :=
 by { ext a, by_cases i = a; simp [h], }
@@ -254,6 +233,7 @@ lemma finsupp.filter_ext_iff {ι β : Type*} [add_zero_class β] (P : ι → Pro
   (f.filter P = g.filter P) ↔ (∀ a, P a → f a = g a) :=
 by { classical, simp [fun_like.ext_iff, finsupp.filter_apply, apply_ite2 (=), ← imp_iff_not_or], }
 
-set_option pp.implicit true
-
+lemma mul_eq_zero_of {α : Type*} [mul_zero_class α] {x y : α} : x = 0 ∨ y = 0 → x * y = 0
+| (or.inl h) := by { rw h, exact zero_mul y, }
+| (or.inr h) := by { rw h, exact mul_zero x, }
 

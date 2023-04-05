@@ -2,11 +2,50 @@ import tactic.linarith
 import finsupp_lemmas
 import verification.misc
 
+/-!
+# Indexed streams
+
+This file defines indexed streams. We introduce `Stream`, the type of
+indexed streams with internal state.
+
+## Definitions
+  - `Stream ι α`: The type of indexed streams on indexing set `ι` and
+    value type `α`. Note that we model higher-order tensors using nested
+    streams (e.g. `Stream ι₁ (Stream ι₂ α)`)
+  - `is_bounded`: Typeclass asserting that stream evaluation terminates and is well-defined
+  - `Stream.eval`: Evaluation of a stream
+  - `Stream.is_monotonic`: Predicate that asserts that a stream `s` is monotone 
+    (i.e. produces indices in order)
+  - `is_lawful`: A lawful stream is one that is monotone and satisfies a certain predicate
+    on skip.
+  - `is_strict_lawful`: A strictly lawful stream is lawful and strictly monotonic, which
+    means that when the stream is ready, it necessarily advances the index.
+
+## References
+See *Indexed Streams: A Formal Intermediate Representation for the Fused
+Execution of Contraction Operations*
+
+-/
+
 open_locale classical
 noncomputable theory
 
 universes u
 
+/-- An *indexed stream* has the following fields:
+  - `σ`: The internal state for the stream
+  - `valid`: A predicate which checks if the stream has terminated
+  - `ready`: Predicate indicating if the stream will emit a value
+  - `skip`: Given a non-terminated `x : σ` and `(i, b)` for `i : ι` and `b : bool`,
+      `skip x _ (i, b)` should attempt to advance the stream as far as possible up
+      to index `i`, with `b` being a "strictness indicator," indicating whether we want to
+      go to `i` or strictly past `i`.
+  - `index`: The index of a non-terminated state `x : σ`
+  - `value`: The value emitted at a ready state `x : σ`
+
+Note that this contains the data of an indexed stream; when the streams are monotone
+and `skip` does what it is supposed to do, we consider it a `lawful_stream`.
+-/
 structure Stream (ι : Type) (α : Type u) : Type (max 1 u) :=
 (σ : Type)
 (valid : σ → Prop)
@@ -29,33 +68,48 @@ end
 
 
 section stream_defs
+
+/- In this section we give many simple, auxiliary definitions related to streams. 
+  Many of these simply give default values to partial functions e.g. `index'` gives the default value `⊤` when
+  the stream has terminated (is invalid). -/
 variables {ι : Type} {α : Type*}
 
+/-- The current emmited value; if ready, this is `index ↦ value`, otherwise it is 0.
+  This is denoted `index(r) ↦ −→ ready(r) · ⟦value(r)⟧` in the paper. -/
 def Stream.eval₀ [has_zero α] (s : Stream ι α) (σ₀ : s.σ) (h₁ : s.valid σ₀) : ι →₀ α :=
 if h₂ : s.ready σ₀ then finsupp.single (s.index _ h₁) (s.value _ h₂) else 0
 
+/-- Abbreviation for `ι × bool` with the lexicographic ordering (an index with a strictness indicator) -/
 @[reducible]
 def stream_order (ι : Type) : Type := ι ×ₗ bool
 
+/-- The current `(index, ready)` value of the stream -/
 @[simps]
 def Stream.to_order (s : Stream ι α) (q : s.σ) (h : s.valid q) : stream_order ι :=
 (s.index q h, s.ready q)
 
+/-- The index with a default value of `⊤` if the state `x` is not valid -/
 def Stream.index' (s : Stream ι α) (x : s.σ) : with_top ι :=
 if h : s.valid x then s.index x h else ⊤ 
 
+/-- The current `(index', ready)` value of the stream -/
 def Stream.to_order' (s : Stream ι α) (q : s.σ) : (with_top ι) ×ₗ bool :=
 (s.index' q, s.valid q ∧ s.ready q)
 
+/-- The value, with a default value of `0` if the stream is not ready -/
 def Stream.value' [has_zero α] (s : Stream ι α) (x : s.σ) : α :=
 if h : s.ready x then s.value _ h else 0
 
+/-- The next state, which is defined as the resulting state from skipping past the current index,
+  or the same state if the stream has terminated -/
 def Stream.next (s : Stream ι α) (q : s.σ) : s.σ :=
 if h : s.valid q then s.skip q h (s.to_order q h) else q
 
+/-- Skips to `i` from `q`, or stays at the same state if the stream has terminated -/
 def Stream.skip' (s : Stream ι α) (q : s.σ) (i : ι ×ₗ bool) : s.σ :=
-if h : s.valid q then s.skip q h i else q 
+if h : s.valid q then s.skip q h i else q
 
+/-- Order injection from `stream_order ι` to `(with_top ι) ×ₗ bool` by coercing the first argument -/
 abbreviation coe_lex (x : stream_order ι) : (with_top ι) ×ₗ bool := (↑x.1, x.2)
 
 @[simp] lemma coe_lex_le_iff [preorder ι] {x y : stream_order ι} :
@@ -106,13 +160,15 @@ by { rw [Stream.index'], split_ifs; simpa [with_top.coe_lt_top], }
   option.get h = s.index x (by simpa using h) :=
 by { generalize_proofs hq, simp [hq], }
 
-@[simp] noncomputable def Stream.evaln [add_zero_class α] (s : Stream ι α) : ℕ → s.σ → (ι →₀ α)
-| 0 q := 0
-| (n + 1) q := if h₁ : s.valid q then Stream.evaln n (s.next q) + (s.eval₀ _ h₁) else 0 
-
+-- We use this notation so that we can explicitly ask Lean to use lexicographic comparison (rather than pointwise comparison)
 localized "notation a ` <ₗ `:50 b := @has_lt.lt (stream_order _) _ a b" in streams
 localized "notation a ` ≤ₗ `:50 b := @has_le.le (stream_order _) _ a b" in streams
 
+/-- The stream is bounded if there is a well-founded relation `≺` on states such that
+    a) whenever we are asked to skip past an index `i` past the current index (i.e. `i ≥ s.to_order q`),
+        we strictly make progress (`s.skip q hq i ≺ q`)
+    b) We always either make progress or remain at the same state
+  These properties ensure that evaluation terminates. -/
 class is_bounded {ι : Type} {α : Type*} [linear_order ι] (s : Stream ι α) : Prop :=
 (out : ∃ (wf_rel : s.σ → s.σ → Prop), well_founded wf_rel ∧ 
   (∀ (q hq i), (wf_rel (s.skip q hq i) q) ∨ 
@@ -120,6 +176,7 @@ class is_bounded {ι : Type} {α : Type*} [linear_order ι] (s : Stream ι α) :
 
 variable [linear_order ι]
 
+/-- Extract the well-founded relation on a bounded stream -/
 def Stream.wf_rel (s : Stream ι α) [is_bounded s] : s.σ → s.σ → Prop := ‹is_bounded s›.out.some    
 localized "notation a ` ≺ `:50 b := Stream.wf_rel _ a b" in streams
 lemma Stream.wf (s : Stream ι α) [is_bounded s] : well_founded s.wf_rel := ‹is_bounded s›.out.some_spec.1
@@ -151,6 +208,7 @@ lemma Stream.no_backward (s : Stream ι α) [is_bounded s] (q hq i) :
   ((s.skip q hq i) ≺ q) ∨ ((s.skip q hq i) = q) :=
 (s.wf_valid q hq i).imp_right and.right
 
+/-- Evaluates `∑_{q →* r} eval₀ r`, which is well-defined for bounded streams. -/
 noncomputable def Stream.eval [add_zero_class α] (s : Stream ι α) [is_bounded s] : s.σ → ι →₀ α
 | q := 
   if h : s.valid q then
@@ -179,10 +237,16 @@ begin
   { simpa [Stream.to_order, Stream.index'_val h₁], }, { simpa using h₂, }
 end
 
+section mono
+
+/-- A stream is monotonic if the index does not decrease after `skip` is called. -/
 def Stream.is_monotonic (s : Stream ι α) : Prop :=
 ∀ q hq i, s.index' q ≤ s.index' (s.skip q hq i)
 
-section mono
+/-- A stream is strictly monotonic if it is monotonic and strictly advances its
+  index when (non-trivially) skipped from a ready state. -/
+def Stream.is_strict_mono (s : Stream ι α) : Prop :=
+s.is_monotonic ∧ ∀ (q hq i), s.to_order q hq ≤ i → s.ready q → s.index' q ≠ s.index' (s.skip q hq i)
 
 lemma Stream.is_monotonic.skip' {s : Stream ι α} (hs : s.is_monotonic) (q i) :
   s.index' q ≤ s.index' (s.skip' q i) :=
@@ -210,10 +274,6 @@ end
 
 lemma Stream.is_monotonic.eq_zero_of_lt_index [add_zero_class α] {s : Stream ι α} [is_bounded s] (hs : s.is_monotonic) {q : s.σ} (i : ι) :
   ↑i < s.index' q → s.eval q i = 0 := by { contrapose!, exact hs.index_le_of_mem_support i, }
-
-
-def Stream.is_strict_mono (s : Stream ι α) : Prop :=
-s.is_monotonic ∧ ∀ (q hq i), s.to_order q hq ≤ i → s.ready q → s.index' q ≠ s.index' (s.skip q hq i)
 
 lemma Stream.is_strict_mono.lt {s : Stream ι α} (hs : s.is_strict_mono) (q hq i) (H : s.to_order q hq ≤ i) (hr : s.ready q) :
   s.index' q < s.index' (s.skip q hq i) := lt_of_le_of_ne (hs.1 _ _ _) (hs.2 _ _ _ H hr)
@@ -260,10 +320,20 @@ end
 
 end mono
 
+/-- A stream is lawful if it is monotonic and satisfies the following property about `skip`:
+    Whenever we ask the stream to skip past `i : stream_order ι`, we do not affect the evaluation
+    of the stream at any `j ≥ i`, where `j : ι` is interpreted in `stream_order ι` as `(j, ff)`.
+    In other words, when we ask to skip past `i`, we do not skip past any `j ≥ i`.
+
+    This also demonstrates the interpretation of the strictness indicator: when `i = (i, ff)`, `skip q _ i` means
+    "skip up to (but not past) any ready states with index `i`" (since `(j, ff) ≥ (i, ff) ↔ j ≥ i`). On the other hand, when `i = (i, tt)`,
+    this means "skip up to and including states with index `i`, but not anything strictly past `i`".
+ -/
 class is_lawful {ι : Type} {α : Type*} [linear_order ι] [add_zero_class α] (s : Stream ι α) extends is_bounded s :=
 (mono : s.is_monotonic)
 (skip_spec : ∀ q hq i j, (i ≤ₗ (j, ff)) → s.eval (s.skip q hq i) j = s.eval q j)
 
+/-- A stream is strictly lawful if in addition to being lawful, it is strictly monotonic -/
 class is_strict_lawful {ι : Type} {α : Type*} [linear_order ι] [add_zero_class α] (s : Stream ι α) extends is_lawful s :=
 (strict_mono : s.is_strict_mono)
 
@@ -328,34 +398,7 @@ section sanity_check
 --     simp, sorry,
 --   end }
 
-
-
 end sanity_check
 
-/-
-(a * b).eval = (a * b).eval₀ + (a * b).next.eval
-             = (a.eval₀ * b.eval₀ or 0) + (a.skip (i, b) * b.skip (i, b)).eval
-             = a.eval₀ * b.eval₀ + (a.skip (i, b)).eval * (b.skip (i, b)).eval
-
-(ia, ir) ≤ (a.next.index, ff)
-(a.eval₀ * b.eval₀) = a.eval|_{(j, ff) < (ia, ir)} * b.eval|{(j, ff) < (ib, ir)}
-(a * b).eval₀ = (a.eval * b.eval)∣_{(i, ff) < to_order}
-
-(a * b).skip (i, b)
-
-a.eval * b.eval = (a.eval * b.eval)|_{(j, ff) < to_order} + (a.eval * b.eval)|_{to_order ≤ (j, ff)}
-                = (a * b).eval₀ + (a.eval * b.eval)|_{to_order ≤ (j, ff)}
-(a.eval * b.eval)|_{(i, b) ≤ (j, ff)} 
-  = a.eval|_{(i, b) ≤ (j, ff)} * b.eval|_{to_order ≤ (i, ff)}
-  = (a.eval (skip (i, b)))|_{(i, b) ≤ (j, ff)} * (b.eval.skip (i, b))|_{(i, b) ≤ (j, ff)}
-  = (a.eval (skip ..) * b.eval (skip ..))|_{(i, b) ≤ (j, ff)}
-  = (a.eval (next ) * (b.eval (next)))
-
-(a + b).eval = (a + b).eval₀ + (a + b).next.eval
-             = a.eval₀|_{(j, ff) < (i, b)} + b.eval₀|_{(j, ff) < (i, b)}
-                + (a.skip (i, b)).eval + (b.skip (i, b)).eval
-
-
--/
 end stream_defs
 
