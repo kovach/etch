@@ -252,6 +252,16 @@ lemma Stream.is_monotonic.skip' {s : Stream ι α} (hs : s.is_monotonic) (q i) :
   s.index' q ≤ s.index' (s.skip' q i) :=
 by { by_cases hq : s.valid q, { rw [Stream.skip'_val hq], apply hs, }, rw [Stream.skip'_invalid hq], exact rfl.le, }
 
+lemma Stream.is_monotonic_iff {s : Stream ι α} :
+  s.is_monotonic ↔ (∀ q hq i hq', s.index q hq ≤ s.index (s.skip q hq i) hq') :=
+begin
+  split, { intros h q hq i hq', specialize h q hq i, simp only [Stream.index'_val, hq, hq', with_top.coe_le_coe] at h, exact h, },
+  intros h q hq i,
+  by_cases hq' : s.valid (s.skip q hq i),
+  { simp only [Stream.index'_val, hq, hq', with_top.coe_le_coe], apply h, },
+  { rw Stream.index'_invalid hq', exact le_top, },
+end
+
 lemma Stream.is_monotonic.index_le_index_next {s : Stream ι α} (h : s.is_monotonic) (q : s.σ) :
   s.index' q ≤ s.index' (s.next q) :=
 begin
@@ -380,25 +390,6 @@ begin
   { apply Stream.skip_lt_to_order, simp [Stream.to_order, hr], },
   simp [s.eval_valid q hq, Stream.eval₀, hr, Stream.next_val hq, Stream.to_order],
 end
-
-section sanity_check
-
--- def Stream.denseVec {n : ℕ} (vals : vector α n) : BoundedStream (fin n) α :=
--- { σ := fin (n + 1),
---   valid := λ i, ↑i < n,
---   ready := λ i, ↑i < n,
---   skip := λ i hi j b, max i (cond b j.succ ↑j),
---   index := λ i hi, i.cast_lt hi,
---   value := λ i hi, vals.nth (i.cast_lt hi),
---   wf_rel := (>),
---   wf := finite.preorder.well_founded_gt,
---   wf_valid := λ (i : fin (n + 1)) (hi : ↑i < n) (j : fin n) (b : bool), begin
---     simp [Stream.to_order, hi],
---     cases b, { rw prod.lex.lt_iff'', simp, norm_cast, sorry, },
---     simp, sorry,
---   end }
-
-end sanity_check
 
 end stream_defs
 

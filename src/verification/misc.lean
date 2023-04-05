@@ -96,6 +96,8 @@ by { subst hn, simp [finset.univ, fintype.elems], erw list.map_nth_le, }
 
 @[simp] lemma lt_tt_iff : ∀ {b : bool}, b < tt ↔ b = ff := dec_trivial
 
+@[simp] lemma ff_lt_iff : ∀ {b : bool}, ff < b ↔ b = tt := dec_trivial
+
 lemma bool.min_eq_and {a b : bool} : min a b = a && b := rfl
 
 lemma ne_min_of_ne_and_ne {ι : Type*} [linear_order ι] {a x y : ι} (hx : a ≠ x) (hy : a ≠ y) :
@@ -191,9 +193,13 @@ lemma min_fst [linear_order α] [linear_order β] (x y : α ×ₗ β) :
 @[simp] lemma mk_ff_lt_mk_tt_iff [partial_order α] {x₁ x₂ : α} :
   (@has_lt.lt (α ×ₗ bool) _ (x₁, ff) (x₂, tt)) ↔ x₁ ≤ x₂ := by simp [lt_iff', le_iff_lt_or_eq]
 
+@[simp] lemma mk_tt_le_mk_ff_iff_lt [partial_order α] (x y : α) :
+  (@has_le.le (α ×ₗ bool) _ (x, tt) (y, ff)) ↔ x < y := by simp [le_iff']
+
 lemma mk_min [linear_order α] [linear_order β] (x : α) (y₁ y₂ : β) :
   @min (α ×ₗ β) _ (x, y₁) (x, y₂) = (x, min y₁ y₂) :=
 (@monotone.map_min _ (α ×ₗ β) _ _ (λ y, (x, y)) y₁ y₂ $ λ y₁ y₂, by simp).symm
+
 
 end lex
 
