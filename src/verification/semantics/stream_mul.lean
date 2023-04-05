@@ -3,9 +3,12 @@ import verification.semantics.skip_stream
 /-!
 # Multiplication of indexed streams
 
-In this file, we define the product of indexed streams
+In this file, we define the product of indexed streams `Stream.mul`.
 
-
+## Main results
+  - `mul_spec`: States that `(a.mul b).eval q = (a.eval q) * (b.eval q)` i.e. 
+      multiply does what it says it does, assuming `a` and `b` are strictly lawful.
+  - `is_strict_lawful (a.mul b)`: The product stream is strictly lawful assuming `a` and `b` are.
 -/
 
 open_locale streams
@@ -183,15 +186,9 @@ begin
   { dsimp, rwa is_lawful.skip_spec, }
 end
 
-instance Stream.mul.is_strict_lawful (a b : Stream ι α) [is_strict_lawful a] [is_strict_lawful b] : is_strict_lawful (a.mul b) :=
+instance (a b : Stream ι α) [is_strict_lawful a] [is_strict_lawful b] : is_strict_lawful (a.mul b) :=
 { skip_spec := mul_skip_spec a b,
   mono := (mul_strict_mono a.strict_mono b.strict_mono).1,
   strict_mono := mul_strict_mono a.strict_mono b.strict_mono, }
-
-instance : has_mul (Stream ι α) := ⟨Stream.mul⟩
-
-@[simp] lemma StrictLawfulStream.mul_spec (a b : Stream ι α) [is_strict_lawful a] [is_strict_lawful b] (q : (a * b).σ) :
-  (a * b).eval q = (a.eval q.1) * (b.eval q.2) :=
-by { change (a.mul b).eval q = _, rw mul_spec, }
 
 end value_lemmas

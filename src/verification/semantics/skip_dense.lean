@@ -15,12 +15,10 @@ an always-ready stream that outputs the elements of `vals`. The state of `denseV
 is considered to be `fin (n + 1)`, the natural numbers `0 ≤ q ≤ n`, where `q : fin (n + 1)` is the terminated state
 
 ## Main results:
-  - `is_bounded (Stream.denseVec vals)`: States the `Stream.denseVec` terminates when evaluated
   - `Stream.denseVec_eval`: Evaluating from a state `q : fin (n + 1)` results in
       emitting `vals[q:]` at the appropriate indices.
         - Corollary (`Stream.denseVec_eval_start`): Starting from `q = 0` produces the whole vector.
-  - `is_lawful (Stream.denseVec vals)`: The stream associated with a dense vector is lawful
-  - `is_strict_lawful (Stream.denseVec vals)`: idem, strictly lawful
+  - `is_strict_lawful (Stream.denseVec vals)`: The stream associated with a dense vector is strictly lawful
 -/
 
 

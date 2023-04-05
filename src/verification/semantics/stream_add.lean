@@ -1,5 +1,18 @@
 import verification.semantics.skip_stream
 
+/-!
+# Addition of indexed streams
+
+In this file, we define the sum of indexed streams `Stream.add`.
+
+## Main results
+  - `add_spec`: States that `(a.add b).eval q = (a.eval q) + (b.eval q)` i.e. 
+      add does what it says it does, assuming `a` and `b` are lawful (note that we
+      do not need to assume strict lawfulness).
+  - `is_lawful (a.add b)`: The sum stream is lawful assuming `a` and `b` are.
+  - `is_strict_lawful (a.add b)`: The sum stream is strictly lawful assuming `a` and `b` are.
+-/
+
 noncomputable theory
 open_locale streams
 variables {ι : Type} [linear_order ι] {α : Type*}
@@ -141,7 +154,7 @@ begin
   right, refine ⟨_, hr'⟩, rw [H],
 end
 
-lemma Stream.add_spec (a b : Stream ι α) [is_lawful a] [is_lawful b] (q : (a.add b).σ) :
+lemma add_spec (a b : Stream ι α) [is_lawful a] [is_lawful b] (q : (a.add b).σ) :
   (a.add b).eval q = (a.eval q.1) + (b.eval q.2) :=
 begin
   refine @well_founded.induction _ (a.add b).wf_rel (a.add b).wf _ q _,
@@ -171,7 +184,7 @@ end
 
 instance (a b : Stream ι α) [is_lawful a] [is_lawful b] : is_lawful (a.add b) :=
 ⟨add_mono a.mono b.mono, λ q hq i j hj, begin
-  simp only [Stream.add_spec], dsimp,
+  simp only [add_spec], dsimp,
   congr' 1; rwa Stream.skip'_spec,
 end⟩
 
