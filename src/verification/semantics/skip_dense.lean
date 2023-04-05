@@ -7,12 +7,20 @@ In this file, we show that `denseVec` (modelling dense vectors as a stream)
 satisfies the stream conditions (it is strictly lawful); therefore our conditions are not vacuous.
 A similar thing can be done for sparse vectors.
 
-This is mostly a lot of tedious casework. TODO: can we automate this to SMT? 
+This is mostly a lot of tedious casework. TODO: can we automate this to an SMT solver? 
+
+## Definitions:
+We define `Stream.denseVec vals`, which takes a vector `vals` and constructs
+an always-ready stream that outputs the elements of `vals`. The state of `denseVec`
+is considered to be `fin (n + 1)`, the natural numbers `0 ≤ q ≤ n`, where `q : fin (n + 1)` is the terminated state
 
 ## Main results:
-  - 
-
-
+  - `is_bounded (Stream.denseVec vals)`: States the `Stream.denseVec` terminates when evaluated
+  - `Stream.denseVec_eval`: Evaluating from a state `q : fin (n + 1)` results in
+      emitting `vals[q:]` at the appropriate indices.
+        - Corollary (`Stream.denseVec_eval_start`): Starting from `q = 0` produces the whole vector.
+  - `is_lawful (Stream.denseVec vals)`: The stream associated with a dense vector is lawful
+  - `is_strict_lawful (Stream.denseVec vals)`: idem, strictly lawful
 -/
 
 
@@ -75,6 +83,10 @@ begin
       rw [finsupp.single_apply_eq_zero.mpr, zero_add],
       rintro rfl, exfalso, simpa using h, } },
 end
+
+lemma Stream.denseVec_eval_start {n : ℕ} (vals : vector α n) :
+  ⇑((Stream.denseVec vals).eval 0) = vals.nth :=
+by { rw Stream.denseVec_eval, ext j, simp, }
 
 instance {n} (vals : vector α n) : is_lawful (Stream.denseVec vals) :=
 { mono := Stream.is_monotonic_iff.mpr $ λ q hq i hq', by { dsimp, rw fin.cast_lt_le_iff, exact le_max_left _ _, },
