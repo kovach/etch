@@ -1,4 +1,4 @@
-import verification.semantics.skip_dense
+import verification.semantics.dense
 
 /-!
 # Stream replicate

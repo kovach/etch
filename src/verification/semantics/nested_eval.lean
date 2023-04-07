@@ -1,9 +1,9 @@
 import verification.semantics.skip_stream
-import verification.semantics.stream_zero
-import verification.semantics.stream_add
-import verification.semantics.stream_mul
-import verification.semantics.skip_contract
-import verification.semantics.stream_replicate
+import verification.semantics.zero
+import verification.semantics.add
+import verification.semantics.mul
+import verification.semantics.contract
+import verification.semantics.replicate
 
 /-!
 # Nested stream evaluation
