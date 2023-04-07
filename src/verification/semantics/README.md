@@ -13,7 +13,7 @@ The folder is organized as follows:
  - `skip_add.lean`: Defines the sum of indexed streams; proves that addition is sound (i.e. `(a + b).eval = a.eval + b.eval`)
  - `skip_mul.lean`: Defines the product of indexed streams; prove that multiplication is sound (i.e. `(a * b).eval = a.eval * b.eval`)
  - `skip_contract.lean`: Defines the contraction of indexed streams; proves soundness (i.e. `s.contract.eval = sum of values of s.eval`, where "sum of values" is `finsupp.sum_range` defined in finsupp_lemmas)
- - `skip_replicate.lean`: Defines replication of indexed streams; proves soundness (i.e. (replicate n v).eval is the constant function which always returns v)
+ - `skip_replicate.lean`: Defines replication of indexed streams; proves soundness (i.e. `(replicate n v).eval` is the constant function which always returns `v`)
  - `nested_eval.lean`: Defines nested evaluation of streams, and puts together the results from the above files to prove that evaluation is a homomorphism.
 
 The figures from the paper are generated in `examples.lean`.
