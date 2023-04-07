@@ -17,9 +17,9 @@ function depending on the shape of the nested stream.
   - `LawfulStream`: A stream bundled with a proof that the stream is strictly lawful
   - `LawfulEval`: An evaluation function that preserves addition, multiplication, and zero
 
-## Main results
+## Main results 
   - `LawfulEval.ind`: Shows that if `α` lawfully evaluates to `β`,
-      then (lawful) streams of type `ι ⟶ α` lawfully evaluate to
+      then (lawful) streams of type `ι ⟶ₛ α` lawfully evaluate to
       finitely supported functions `ι →₀ β`. In the base case, `α = β`,
       and in the inductive case, `α` is itself another stream type which
       lawfully evaluates to `β`. This, together with `LawfulStream.eval_contract`
@@ -35,7 +35,7 @@ structure BoundedStream (ι : Type) [linear_order ι] (α : Type*) extends Strea
 (init : σ)
 (bdd : is_bounded to_Stream)
 
-infixr ` ⟶ₛ `:50 := BoundedStream
+infixr ` ⟶b `:50 := BoundedStream
 local notation `↟`s := s.to_Stream
 attribute [instance] BoundedStream.bdd
 
@@ -61,18 +61,18 @@ instance Eval.base {α : Type*} [add_zero_class α] : Eval α α :=
 { eval := id }
 
 instance Eval.ind (ι : Type) [linear_order ι] (α β : Type*) [add_zero_class β]
-  [Eval α β] : Eval (ι ⟶ₛ α) (ι →₀ β) :=
+  [Eval α β] : Eval (ι ⟶b α) (ι →₀ β) :=
 { eval := λ s, (s.map eval).eval s.init  }
 
 structure StrictLawfulStream (ι : Type) [linear_order ι] (α : Type*) {β : Type*} [add_zero_class β]
-  [Eval α β] extends (ι ⟶ₛ α) :=
+  [Eval α β] extends (ι ⟶b α) :=
 (strict_lawful : is_strict_lawful (to_Stream.map eval))
 
-infixr ` ⟶ `:50 := StrictLawfulStream
+infixr ` ⟶ₛ `:50 := StrictLawfulStream
 
 attribute [instance] StrictLawfulStream.strict_lawful
 
-@[simp] lemma StrictLawfulStream.to_BoundedStream_to_Stream [add_zero_class β] [Eval α β] (s : ι ⟶ α) :
+@[simp] lemma StrictLawfulStream.to_BoundedStream_to_Stream [add_zero_class β] [Eval α β] (s : ι ⟶ₛ α) :
   (↟(s.to_BoundedStream)) = ↟s := rfl
 
 class LawfulEval (α : Type*) (β : out_param Type*) [non_unital_non_assoc_semiring β]
@@ -87,19 +87,19 @@ instance LawfulEval.base {α : Type*} [non_unital_non_assoc_semiring α] :
   eval_add := λ x y, rfl,
   eval_mul := λ x y, rfl }
 
-@[simps] def BoundedStream.add [has_zero α] [has_add α] (q r : ι ⟶ₛ α) : ι ⟶ₛ α :=
+@[simps] def BoundedStream.add [has_zero α] [has_add α] (q r : ι ⟶b α) : ι ⟶b α :=
 ⟨q.add ↟r, (q.init, r.init), infer_instance⟩
 
-@[simps] def BoundedStream.mul [has_mul α] (q r : ι ⟶ₛ α) : ι ⟶ₛ α :=
+@[simps] def BoundedStream.mul [has_mul α] (q r : ι ⟶b α) : ι ⟶b α :=
 ⟨q.mul ↟r, (q.init, r.init), infer_instance⟩
 
-@[simps] def BoundedStream.zero : ι ⟶ₛ α :=
+@[simps] def BoundedStream.zero : ι ⟶b α :=
 ⟨Stream.zero ι α, (), infer_instance⟩
 
-@[simps] def BoundedStream.contract (s : ι ⟶ₛ α) : unit ⟶ₛ α :=
+@[simps] def BoundedStream.contract (s : ι ⟶b α) : unit ⟶b α :=
 ⟨(↟s).contract, s.init, infer_instance⟩
 
-@[simps] def BoundedStream.replicate (n : ℕ) (v : α) : (fin n) ⟶ₛ α :=
+@[simps] def BoundedStream.replicate (n : ℕ) (v : α) : (fin n) ⟶b α :=
 ⟨Stream.replicate n v, (0 : fin (n + 1)), infer_instance⟩
 
 def Stream.eval' [add_zero_class α] (s : Stream ι α) (q : s.σ) : ι →₀ α :=
@@ -120,16 +120,16 @@ lemma Stream.mul_map_eval [non_unital_non_assoc_semiring β] [LawfulEval α β] 
   ∀ (q r : Stream ι α), (q.mul r).map eval = ((q.map eval).mul (r.map eval)) :=
 Stream.mul_map eval LawfulEval.eval_mul
 
-lemma BoundedStream.add_map_eval [non_unital_non_assoc_semiring β] [LawfulEval α β] (q r : ι ⟶ₛ α) :
+lemma BoundedStream.add_map_eval [non_unital_non_assoc_semiring β] [LawfulEval α β] (q r : ι ⟶b α) :
   (q.add r).map eval = ((q.map eval).add (r.map eval)) :=
 by { ext : 1, { exact Stream.add_map_eval (↟q) (↟r), }, refl, }
 
-lemma BoundedStream.mul_map_eval [non_unital_non_assoc_semiring β] [LawfulEval α β] (q r : ι ⟶ₛ α) :
+lemma BoundedStream.mul_map_eval [non_unital_non_assoc_semiring β] [LawfulEval α β] (q r : ι ⟶b α) :
   (q.mul r).map eval = ((q.map eval).mul (r.map eval)) :=
 by { ext : 1, { exact Stream.mul_map_eval _ _, }, refl, }
 
 lemma BoundedStream.eval_add [non_unital_non_assoc_semiring β] [LawfulEval α β]
-  (q r : ι ⟶ₛ α) [is_lawful ((↟q).map eval)] [is_lawful ((↟r).map eval)] : eval (q.add r) = (eval q) + (eval r) :=
+  (q r : ι ⟶b α) [is_lawful ((↟q).map eval)] [is_lawful ((↟r).map eval)] : eval (q.add r) = (eval q) + (eval r) :=
 begin
   dsimp only [eval], conv_lhs { rw ← Stream.eval'_eq, },
   convert_to ((q.map eval).add (r.map eval)).eval' (q.add r).init = _,
@@ -138,11 +138,11 @@ begin
 end
 
 lemma BoundedStream.eval_contract [non_unital_non_assoc_semiring β] [LawfulEval α β]
-  (q : ι ⟶ₛ α) [is_lawful ((↟q).map eval)] : (eval q.contract : unit →₀ β) () = finsupp.sum_range (eval q) :=
+  (q : ι ⟶b α) [is_lawful ((↟q).map eval)] : (eval q.contract : unit →₀ β) () = finsupp.sum_range (eval q) :=
 by { dsimp [eval, ← contract_map], exact contract_eval _ _, }
 
 lemma BoundedStream.eval_mul [non_unital_non_assoc_semiring β] [LawfulEval α β]
-  (q r : ι ⟶ₛ α) [is_strict_lawful ((↟q).map eval)] [is_strict_lawful ((↟r).map eval)] :
+  (q r : ι ⟶b α) [is_strict_lawful ((↟q).map eval)] [is_strict_lawful ((↟r).map eval)] :
   eval (q.mul r) = (eval q) * (eval r) :=
 begin
   dsimp only [eval], conv_lhs { rw ← Stream.eval'_eq, },
@@ -152,11 +152,11 @@ begin
 end
 
 @[simps] def LawfulStream.replicate [non_unital_non_assoc_semiring β] [LawfulEval α β]
-  (n : ℕ) (v : α) : (fin n) ⟶ α :=
+  (n : ℕ) (v : α) : (fin n) ⟶ₛ α :=
 ⟨BoundedStream.replicate n v, (by { dsimp, apply_instance, })⟩
 
 instance LawfulEval.ind [non_unital_non_assoc_semiring β]
-  [LawfulEval α β] : LawfulEval (ι ⟶ α) (ι →₀ β) :=
+  [LawfulEval α β] : LawfulEval (ι ⟶ₛ α) (ι →₀ β) :=
 { eval := λ s, eval s.to_BoundedStream,
   add := λ x y, ⟨x.add y.to_BoundedStream, by { dsimp, rw Stream.add_map_eval, apply_instance, }⟩,
   mul := λ x y, ⟨x.mul y.to_BoundedStream, by { dsimp, rw Stream.mul_map_eval, apply_instance, }⟩,
@@ -169,7 +169,7 @@ attribute [simp] LawfulEval.eval_add LawfulEval.eval_zero
   LawfulEval.eval_mul
 
 @[simp] lemma LawfulStream.eval_contract [non_unital_non_assoc_semiring β]
-  [LawfulEval α β] (q : ι ⟶ α) : (eval q.contract : unit →₀ β) () = finsupp.sum_range (eval q) :=
+  [LawfulEval α β] (q : ι ⟶ₛ α) : (eval q.contract : unit →₀ β) () = finsupp.sum_range (eval q) :=
 BoundedStream.eval_contract _
 
 @[simp] lemma LawfulStream.eval_replicate [non_unital_non_assoc_semiring β]
