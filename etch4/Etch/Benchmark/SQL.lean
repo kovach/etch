@@ -13,6 +13,9 @@ variable
 (f : String)
 (t₁ t₂ t₃ t₄ := IterMethod.step)
 
+def s   : ι₁ →ₛ E α :=
+  ((csr.of f 1 ι₁).level t₁ 0) |>
+  Functor.mapConst 1
 def s_   : ι₁ →ₛ ι₂ →ₛ E α :=
   ((csr.of f 1 ι₁).level t₁ 0) |>
   ((csr.of f 2 ι₂).inherit <$> ·) ⊚
@@ -44,6 +47,11 @@ def ss__ : ι₁ →ₛ ι₂ →ₛ ι₃ →ₛ ι₄ →ₛ E α :=
   ((csr.of f 2 ι₂).level t₂ <$> ·) ⊚
   ((csr.of f 3 ι₃).inherit <$> ·) ⊚
   ((csr.of f 4 ι₄).inherit <$> ·) ⊚
+  Functor.mapConst 1
+def sss  : ι₁ →ₛ ι₂ →ₛ ι₃ →ₛ E α :=
+  ((csr.of f 1 ι₁).level t₁ 0) |>
+  ((csr.of f 2 ι₂).level t₂ <$> ·) ⊚
+  ((csr.of f 3 ι₃).level t₃ <$> ·) ⊚
   Functor.mapConst 1
 def sss___ : ι₁ →ₛ ι₂ →ₛ ι₃ →ₛ ι₄ →ₛ ι₅ →ₛ ι₆ →ₛ E α :=
   ((csr.of f 1 ι₁).level t₁ 0) |>

@@ -9,6 +9,7 @@ import Etch.Benchmark.OldSQL
 import Etch.Benchmark.TACO
 import Etch.Benchmark.TPCHq5
 import Etch.Benchmark.TPCHq9
+import Etch.Benchmark.TPCHq18
 import Etch.Benchmark.WCOJ
 
 open Etch.Benchmark
@@ -20,6 +21,7 @@ private def files : List (String × List (String × String)) := [
   ("filtered_spmv",  TACO.funcsFilterSpMV),
   ("tpch_q5", TPCHq5.funcs),
   ("tpch_q9", TPCHq9.funcs),
+  ("tpch_q18",TPCHq18.funcs),
   ("wcoj",    WCOJ.funcs) ]
 
 def main : IO Unit := do

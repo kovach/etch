@@ -75,11 +75,11 @@ $(ALL_BENCH): LDLIBS += $(SQLITE_LDLIBS)
 $(ALL_BENCH): sqlite3.o sqlite3.h common.h operators.h
 
 ifdef FORCE_REGEN
-.PHONY: gen_filtered_spmv.c gen_matmul.c gen_tpch_q5.c gen_tpch_q9.c gen_wcoj.c gen_taco.c
+.PHONY: gen_filtered_spmv.c gen_matmul.c gen_tpch_q5.c gen_tpch_q9.c gen_tpch_q18.c gen_wcoj.c gen_taco.c
 endif
-gen_filtered_spmv.c gen_matmul.c gen_tpch_q5.c gen_tpch_q9.c gen_wcoj.c gen_taco.c &:
+gen_filtered_spmv.c gen_matmul.c gen_tpch_q5.c gen_tpch_q9.c gen_tpch_q18.c gen_wcoj.c gen_taco.c &:
 	lake update
-	-lake exe cache get # get mathlib4 cache
+	# -lake exe cache get # get mathlib4 cache
 	lake exe bench
 
 %_readable.c: %.c impls_readable.h .clang-format
