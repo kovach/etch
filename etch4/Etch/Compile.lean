@@ -23,13 +23,13 @@ instance base_dump [Tagged α] : Compile (Dump α) (E α) where
 
 instance S.step [Compile L R] [TaggedC ι] : Compile (lvl ι L) (ι →ₛ R) where
   compile n l r :=
-    let (init, s) := r.init n
+    let (init, s) := r.init (n.fresh 0)
     let (push, position) := l.push (r.index s)
-    let temp := ("index_lower_bound" : Var ι).fresh n
+    let temp := ("index_lower_bound" : Var ι).fresh (n.fresh 1)
     init;; .while (r.valid s)
       (.decl temp (r.index s);;
        .branch (r.ready s)
-         (push;; compile (n.fresh 0) position (r.value s);; (r.succ s temp))
+         (push;; compile (n.fresh 2) position (r.value s);; r.succ s temp)
          (r.skip s temp))
 
 instance S.step' {n} [Compile L R] [TaggedC ι] : Compile (lvl ι L) (n × ι ⟶ₛ R) where
@@ -37,12 +37,12 @@ instance S.step' {n} [Compile L R] [TaggedC ι] : Compile (lvl ι L) (n × ι �
 
 instance contract [Compile α β] : Compile α (Contraction β) where
   compile n := λ storage ⟨ι, _, v⟩ =>
-    let (init, s) := v.init n
-    let temp := ("index_lower_bound" : Var ι).fresh n
+    let (init, s) := v.init (n.fresh 0)
+    let temp := ("index_lower_bound" : Var ι).fresh (n.fresh 1)
     init ;; .while (v.valid s)
       (.decl temp (v.index s);;
        .branch (v.ready s)
-        (Compile.compile (n.fresh 0) storage (v.value s);; v.succ s temp)
+        (compile (n.fresh 2) storage (v.value s);; v.succ s temp)
         (v.skip s temp))
 
 -- Used only to generate callback for data loading
