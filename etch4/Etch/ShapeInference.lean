@@ -28,12 +28,14 @@ instance [IndexedFunctor F] : Functor (F n) where
 
 inductive StrF (ι : Type _) (n : ℕ) (α : Type _)
 | fun (v : Ind n ι →ₐ α) : StrF ι n α
+def StrF.inner : (StrF ι n α) → (ι →ₐ α) | .fun s => s 
 
 instance : IndexedFunctor (StrF ι) where
   imap | f, .fun v => .fun (f ∘ v)
 
 inductive StrS (ι : Type _) (n : ℕ) (α : Type _)
 | str (s : Ind n ι →ₛ α) : StrS ι n α
+def StrS.inner : (StrS ι n α) → (ι →ₛ α) | .str s => s 
 
 instance : IndexedFunctor (StrS ι) where
   imap | f, .str g => .str { g with value := f ∘ g.value }

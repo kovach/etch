@@ -51,6 +51,9 @@
 #define bool_zero() false
 #define bool_neg(a) (!a)
 
+#define tuple_access1(t) &std::get<0>(*t)
+#define tuple_access2(t) &std::get<1>(*t)
+
 #define str_zero() ""
 #define macro_ternary(c, x, y) ((c) ? x : y)
 #define index_map(a, ...) &a[{__VA_ARGS__}]

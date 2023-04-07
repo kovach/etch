@@ -42,6 +42,17 @@ def ds_  : ℕ →ₐ ι₂ →ₛ ι₃ →ₛ E α :=
   ((csr.of f 2 ι₂).level t₂ <$> ·) ⊚
   ((csr.of f 3 ι₃).inherit <$> ·) ⊚
   Functor.mapConst 1
+def ds__ : ℕ →ₐ ι₂ →ₛ ι₃ →ₛ ι₄ →ₛ E α :=
+  range |>
+  ((csr.of f 2 ι₂).level t₂ <$> ·) ⊚
+  ((csr.of f 3 ι₃).inherit <$> ·) ⊚
+  ((csr.of f 4 ι₄).inherit <$> ·) ⊚
+  Functor.mapConst 1
+def ss_ : ι₁ →ₛ ι₂ →ₛ ι₃ →ₛ E α :=
+  ((csr.of f 1 ι₁).level t₁ 0) |>
+  ((csr.of f 2 ι₂).level t₂ <$> ·) ⊚
+  ((csr.of f 3 ι₃).inherit <$> ·) ⊚
+  Functor.mapConst 1
 def ss__ : ι₁ →ₛ ι₂ →ₛ ι₃ →ₛ ι₄ →ₛ E α :=
   ((csr.of f 1 ι₁).level t₁ 0) |>
   ((csr.of f 2 ι₂).level t₂ <$> ·) ⊚
