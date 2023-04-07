@@ -4,6 +4,28 @@ import verification.semantics.stream_add
 import verification.semantics.stream_mul
 import verification.semantics.skip_contract
 
+/-!
+# Nested stream evaluation
+
+In this file, we define how nested streams are evaluated.
+To do this, we use Lean's typeclass system to infer an evaluation
+function depending on the shape of the nested stream.
+
+## Main definitions
+  - `BoundedStream`: A stream bundled with an initial state and a proof that the stream is bounded
+  - `LawfulStream`: A stream bundled with a proof that the stream is strictly lawful
+  - `LawfulEval`: An evaluation function that preserves addition, multiplication, and zero
+
+## Main results
+  - `LawfulEval.ind`: Shows that if `α` lawfully evaluates to `β`,
+      then (lawful) streams of type `ι ⟶ α` lawfully evaluate to
+      finitely supported functions `ι →₀ β`. In the base case, `α = β`,
+      and in the inductive case, `α` is itself another stream type which
+      lawfully evaluates to `β`. This, together with `LawfulStream.eval_contract`,
+      corresponds to theorem 6.1 in the paper.
+
+-/
+
 noncomputable theory
 open_locale classical
 
