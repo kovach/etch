@@ -1,5 +1,16 @@
 import verification.semantics.skip_dense
 
+/-!
+# Stream replicate
+
+This file defines replicate, which is a specialization of the dense vector 
+stream to a constant function.
+
+**Note: the current version of the paper uses the terminology *expand*, which was from a previous version of the paper.
+The terms *replicate* and *expand* should be considered to be synonymous**.
+
+-/
+
 variables {α β : Type*}
 
 @[derive is_bounded]
