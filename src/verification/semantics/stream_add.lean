@@ -116,6 +116,10 @@ lemma add_strict_mono {a b : Stream ι α} (ha : a.is_strict_mono) (hb : b.is_st
     split, swap, { exact hb.lt _ _ _ hi hr, }, { refine this.trans_le _, apply ha.1.skip', }, },
 end⟩
 
+lemma Stream.add_map {β : Type*} [has_zero β] [has_add β] (f : α → β) (f_add : ∀ x y, f (x + y) = f x + f y)
+  (f_zero : f 0 = 0) (q r : Stream ι α) : (q.add r).map f = ((q.map f).add (r.map f)) :=
+by { ext; solve_refl, simp only [f_add, apply_ite f, f_zero, Stream.map_value' f f_zero], }
+
 end index_lemmas
 
 section value_lemmas
@@ -192,7 +196,5 @@ instance (a b : Stream ι α) [is_strict_lawful a] [is_strict_lawful b] : is_str
 { strict_mono := add_strict_mono a.strict_mono b.strict_mono }
 
 end value_lemmas
-
-
 
 

@@ -95,6 +95,10 @@ instance Stream.mul.is_bounded (a b : Stream ι α) [is_bounded a] [is_bounded b
   exact lt_of_lt_of_le (lt_min ha₁ hb₁) (min_to_order_le _ _ _ hq),
 end⟩⟩
 
+lemma Stream.mul_map {β : Type*} [has_mul β] (f : α → β) (f_mul : ∀ x y, f (x * y) = (f x) * (f y))
+  (q r : Stream ι α) : (q.mul r).map f = ((q.map f).mul (r.map f)) :=
+by { ext; solve_refl, { simp only [Stream.mul.ready_iff], refl, }, simp only [f_mul, apply_ite f], refl, }
+
 end index_lemmas
 
 section value_lemmas

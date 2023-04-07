@@ -38,6 +38,9 @@ end⟩⟩
 
 @[simp] lemma contract_next (s : Stream ι α) (q : s.σ) : (Stream.contract s).next q = s.next q := rfl
 
+lemma contract_map {β : Type*} (f : α → β) (s : Stream ι α) :
+  (s.map f).contract = s.contract.map f := rfl
+
 end index_lemmas
 
 section value_lemmas

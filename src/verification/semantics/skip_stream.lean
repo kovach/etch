@@ -169,7 +169,7 @@ localized "notation a ` ≤ₗ `:50 b := @has_le.le (stream_order _) _ a b" in s
         we strictly make progress (`s.skip q hq i ≺ q`)
     b) We always either make progress or remain at the same state
   These properties ensure that evaluation terminates. -/
-class is_bounded {ι : Type} {α : Type*} [linear_order ι] (s : Stream ι α) : Prop :=
+@[mk_iff] class is_bounded {ι : Type} {α : Type*} [linear_order ι] (s : Stream ι α) : Prop :=
 (out : ∃ (wf_rel : s.σ → s.σ → Prop), well_founded wf_rel ∧ 
   (∀ (q hq i), (wf_rel (s.skip q hq i) q) ∨ 
     ((i <ₗ s.to_order q hq) ∧ (s.skip q hq i) = q)))
@@ -393,3 +393,41 @@ end
 
 end stream_defs
 
+section functor
+variables {ι : Type} {α β γ : Type*}
+
+/-- Solve as many goals as possible by definitional simplification, use heq/eq, and `refl` -/
+meta def tactic.interactive.solve_refl : tactic unit :=
+let tactics : list (tactic unit) :=
+[`[dsimp],
+  `[simp only [heq_iff_eq]],
+  `[intros],
+  `[subst_vars],
+  `[refl]] in 
+sequence (tactics.map (λ t, tactic.try t)) >> tactic.skip
+
+@[simps] def Stream.map (f : α → β) (s : Stream ι α) : Stream ι β :=
+{ s with value := λ q hq, f (s.value q hq) }
+
+@[simp] lemma Stream.map_id (s : Stream ι α) : s.map id = s := by ext; solve_refl
+
+lemma Stream.map_map (g : α → β) (f : β → γ) (s : Stream ι α) :
+  (s.map g).map f = s.map (f ∘ g) := by ext; solve_refl 
+
+@[simp] lemma Stream.to_order_map (s : Stream ι α) (f : α → β) :
+  (s.map f).to_order = s.to_order := rfl
+
+@[simp] lemma Stream.to_order'_map (s : Stream ι α) (f : α → β) :
+  (s.map f).to_order' = s.to_order' := rfl
+
+lemma Stream.map_value' [has_zero α] [has_zero β] (f : α → β) (hf : f 0 = 0) (s : Stream ι α) (q : s.σ) :
+  (s.map f).value' q = f (s.value' q) :=
+by { simp only [Stream.value'], split_ifs, { refl, }, rw hf, }
+
+variables [linear_order ι]
+
+@[simp] lemma map_is_bounded_iff (f : α → β) (s : Stream ι α) :
+  is_bounded (s.map f) ↔ is_bounded s :=
+by { simp only [is_bounded_iff], refl, }
+
+end functor
