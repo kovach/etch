@@ -3,6 +3,7 @@
 
 #include <chrono>
 #include <iostream>
+#include <string>
 #include <tuple>
 #include <unordered_map>
 
@@ -58,6 +59,11 @@ void time(F f, char const* tag, int reps) {
            (usec(end.tv_usec) - usec(start.tv_usec));
   };
 
+  // Unfortunately, std::chrono::duration::operator<<() (C++20) still isn't well-supported yet.
+  auto sec_to_str = [](auto secs) {
+    return std::to_string(secs.count()) + "s";
+  };
+
   steady_clock::duration total_real{0};
   usec total_user{0};
   usec total_sys{0};
@@ -76,8 +82,8 @@ void time(F f, char const* tag, int reps) {
     auto udiff = tv_diff(s_start.ru_utime, s_end.ru_utime);
     auto sdiff = tv_diff(s_start.ru_stime, s_end.ru_stime);
     std::cout << tag << " val: " << std::fixed << val << std::endl;
-    std::cout << tag << " took (s): real " << as_fsec(rep_end - rep_start)
-              << " user " << as_fsec(udiff) << " sys " << as_fsec(sdiff)
+    std::cout << tag << " took (s): real " << sec_to_str(as_fsec(rep_end - rep_start))
+              << " user " << sec_to_str(as_fsec(udiff)) << " sys " << sec_to_str(as_fsec(sdiff))
               << std::endl;
 
     total_real += rep_end - rep_start;
@@ -85,9 +91,9 @@ void time(F f, char const* tag, int reps) {
     total_sys += sdiff;
   }
 
-  std::cout << tag << " took (avg): real " << (as_fsec(total_real) / reps)
-            << " user " << (as_fsec(total_user) / reps) << " sys "
-            << (as_fsec(total_sys) / reps) << std::endl;
+  std::cout << tag << " took (avg): real " << sec_to_str(as_fsec(total_real) / reps)
+            << " user " << sec_to_str(as_fsec(total_user) / reps) << " sys "
+            << sec_to_str(as_fsec(total_sys) / reps) << std::endl;
 }
 
 namespace hash_tuple {

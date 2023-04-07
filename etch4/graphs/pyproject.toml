@@ -6,6 +6,8 @@ authors = ["Timothy Gu <timothygu@stanford.edu>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
+# IMPORTANT: run: poetry export -f requirements.txt --output requirements.txt
+#            when changing dependencies
 python = "^3.10"
 matplotlib = "^3.7.1"
 

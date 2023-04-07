@@ -1,3 +1,4 @@
+INSTALL sqlite;
 LOAD sqlite;
 
 CREATE TABLE A (I INTEGER NOT NULL,
@@ -17,3 +18,5 @@ INSERT INTO V
 SELECT *
 FROM sqlite_scan('data/filtered-spmv-2000000.db', 'V')
 ORDER BY I;
+
+PRAGMA threads=1;
