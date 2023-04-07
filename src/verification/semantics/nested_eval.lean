@@ -3,6 +3,7 @@ import verification.semantics.stream_zero
 import verification.semantics.stream_add
 import verification.semantics.stream_mul
 import verification.semantics.skip_contract
+import verification.semantics.stream_replicate
 
 /-!
 # Nested stream evaluation
@@ -21,8 +22,8 @@ function depending on the shape of the nested stream.
       then (lawful) streams of type `ι ⟶ α` lawfully evaluate to
       finitely supported functions `ι →₀ β`. In the base case, `α = β`,
       and in the inductive case, `α` is itself another stream type which
-      lawfully evaluates to `β`. This, together with `LawfulStream.eval_contract`,
-      corresponds to theorem 6.1 in the paper.
+      lawfully evaluates to `β`. This, together with `LawfulStream.eval_contract`
+      and `LawfulStream.eval_replicate`, corresponds to theorem 6.1 in the paper.
 
 -/
 
@@ -98,6 +99,9 @@ instance LawfulEval.base {α : Type*} [non_unital_non_assoc_semiring α] :
 @[simps] def BoundedStream.contract (s : ι ⟶ₛ α) : unit ⟶ₛ α :=
 ⟨(↟s).contract, s.init, infer_instance⟩
 
+@[simps] def BoundedStream.replicate (n : ℕ) (v : α) : (fin n) ⟶ₛ α :=
+⟨Stream.replicate n v, (0 : fin (n + 1)), infer_instance⟩
+
 def Stream.eval' [add_zero_class α] (s : Stream ι α) (q : s.σ) : ι →₀ α :=
 if h : is_bounded s then by resetI; exact s.eval q else classical.arbitrary _
 
@@ -147,6 +151,10 @@ begin
   rw Stream.eval'_eq, dsimp, rw mul_spec,
 end
 
+@[simps] def LawfulStream.replicate [non_unital_non_assoc_semiring β] [LawfulEval α β]
+  (n : ℕ) (v : α) : (fin n) ⟶ α :=
+⟨BoundedStream.replicate n v, (by { dsimp, apply_instance, })⟩
+
 instance LawfulEval.ind [non_unital_non_assoc_semiring β]
   [LawfulEval α β] : LawfulEval (ι ⟶ α) (ι →₀ β) :=
 { eval := λ s, eval s.to_BoundedStream,
@@ -163,3 +171,7 @@ attribute [simp] LawfulEval.eval_add LawfulEval.eval_zero
 @[simp] lemma LawfulStream.eval_contract [non_unital_non_assoc_semiring β]
   [LawfulEval α β] (q : ι ⟶ α) : (eval q.contract : unit →₀ β) () = finsupp.sum_range (eval q) :=
 BoundedStream.eval_contract _
+
+@[simp] lemma LawfulStream.eval_replicate [non_unital_non_assoc_semiring β]
+  [LawfulEval α β] (n : ℕ) (v : α) (j : fin n) : (eval (LawfulStream.replicate n v) : fin n →₀ β) j = eval v :=
+by { dsimp [eval], simp, }

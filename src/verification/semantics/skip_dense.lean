@@ -25,20 +25,18 @@ is considered to be `fin (n + 1)`, the natural numbers `0 ≤ q ≤ n`, where `q
 
 variables {α : Type*}
 
-
-def Stream.denseVec {n : ℕ} (vals : vector α n) : Stream (fin n) α :=
+def Stream.denseVec {n : ℕ} (vals : fin n → α) : Stream (fin n) α :=
 { σ := fin (n + 1),
   valid := λ i, ↑i < n,
   ready := λ i, ↑i < n,
   skip := λ i hi j, max i (cond j.2 j.1.succ (fin.cast_le n.le_succ j.1)),
   index := λ i hi, i.cast_lt hi,
-  value := λ i hi, vals.nth (i.cast_lt hi), }
+  value := λ i hi, vals (i.cast_lt hi), }
 
 section
-variables [add_zero_class α]
 local attribute [reducible] Stream.denseVec
 
-instance {n} (vals : vector α n) : is_bounded (Stream.denseVec vals) :=
+instance {n} (vals : fin n → α) : is_bounded (Stream.denseVec vals) :=
 ⟨⟨(>), finite.preorder.well_founded_gt, λ i hi j, begin
   simp [Stream.to_order, hi],
   rcases j with ⟨j, (b|b)⟩,
@@ -46,15 +44,17 @@ instance {n} (vals : vector α n) : is_bounded (Stream.denseVec vals) :=
   { rw prod.lex.lt_iff'', cases i, cases j, simp [@lt_iff_not_le _ _ tt, imp_false, ← lt_iff_le_and_ne, nat.lt_succ_iff, nat.succ_le_iff], exact le_or_lt _ _, },
 end⟩⟩
 
+variables [add_zero_class α]
+
 lemma fin.cast_lt_le_iff {m n : ℕ} (a b : fin n) (h₁ : ↑a < m) (h₂ : ↑b < m) :
   a.cast_lt h₁ ≤ b.cast_lt h₂ ↔ a ≤ b :=
 by { cases a, cases b, simp, }
 
-lemma Stream.denseVec.eq_n_of_invalid {n : ℕ} {vals : vector α n} {q : fin (n + 1)}
+lemma Stream.denseVec.eq_n_of_invalid {n : ℕ} {vals : fin n → α} {q : fin (n + 1)}
   (hq : ¬(Stream.denseVec vals).valid q) : ↑q = n := eq_of_le_of_not_lt (nat.lt_succ_iff.mp q.prop) hq
 
-lemma Stream.denseVec_eval {n : ℕ} (vals : vector α n) (q : fin (n + 1)) :
-  ⇑((Stream.denseVec vals).eval q) = (λ j, if (fin.cast_succ j) < q then 0 else vals.nth j) :=
+lemma Stream.denseVec_eval {n : ℕ} (vals : fin n → α) (q : fin (n + 1)) :
+  ⇑((Stream.denseVec vals).eval q) = (λ j, if (fin.cast_succ j) < q then 0 else vals j) :=
 begin
   refine @well_founded.induction _ _ (Stream.denseVec vals).wf _ q _,
   clear q, intros q ih,
@@ -82,11 +82,11 @@ begin
       rintro rfl, exfalso, simpa using h, } },
 end
 
-lemma Stream.denseVec_eval_start {n : ℕ} (vals : vector α n) :
-  ⇑((Stream.denseVec vals).eval 0) = vals.nth :=
+@[simp] lemma Stream.denseVec_eval_start {n : ℕ} (vals : fin n → α) :
+  ⇑((Stream.denseVec vals).eval 0) = vals :=
 by { rw Stream.denseVec_eval, ext j, simp, }
 
-instance {n} (vals : vector α n) : is_lawful (Stream.denseVec vals) :=
+instance {n} (vals : fin n → α) : is_lawful (Stream.denseVec vals) :=
 { mono := Stream.is_monotonic_iff.mpr $ λ q hq i hq', by { dsimp, rw fin.cast_lt_le_iff, exact le_max_left _ _, },
   skip_spec := λ q hq i j hj, begin
     simp only [Stream.denseVec_eval],
@@ -101,7 +101,7 @@ instance {n} (vals : vector α n) : is_lawful (Stream.denseVec vals) :=
       simpa [prod.lex.le_iff'] using hj, },
   end }
 
-lemma Stream.denseVec_index'_mono {n} (vals : vector α n) : strict_mono (Stream.denseVec vals).index' :=
+lemma Stream.denseVec_index'_mono {n} (vals : fin n → α) : strict_mono (Stream.denseVec vals).index' :=
 λ q₁ q₂, begin
   simp only [Stream.index'], split_ifs with h₁ h₂ h₂,
   { cases q₁, cases q₂, simp, }, { simp only [with_top.coe_lt_top], exact λ _, trivial, },
@@ -109,7 +109,7 @@ lemma Stream.denseVec_index'_mono {n} (vals : vector α n) : strict_mono (Stream
   { simp [Stream.denseVec.eq_n_of_invalid h₁, Stream.denseVec.eq_n_of_invalid h₂, fin.lt_iff_coe_lt_coe], },
 end
 
-instance {n} (vals : vector α n) : is_strict_lawful (Stream.denseVec vals) :=
+instance {n} (vals : fin n → α) : is_strict_lawful (Stream.denseVec vals) :=
 ⟨⟨Stream.mono _, λ q hq i hi hr, ne_of_lt begin
   apply Stream.denseVec_index'_mono,
   rcases i with ⟨i, b⟩, dsimp only,
