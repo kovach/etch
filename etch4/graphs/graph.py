@@ -1,10 +1,13 @@
 from collections import defaultdict
 import re
 import numpy as np
+import matplotlib as mpl
 from matplotlib import pyplot as plt
 import matplotlib.ticker as ticker
 from matplotlib.legend_handler import HandlerTuple
 from numpy.polynomial import polynomial as P
+
+mpl.rcParams["pdf.fonttype"] = 42
 
 
 styles = {
