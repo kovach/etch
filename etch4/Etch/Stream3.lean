@@ -32,6 +32,28 @@ instance Find.head : Find x (x :: xs) where here := .head _
 def remove (x : α) (xs : List α) [Find x xs] : List α := xs.eraseHere (x := x) Find.here
 #eval remove 1 [3,3,3,1,2,3,3,1,3,4,5,55,5,6,2]
 
+-- Same as List.Sublist, except this lives in Type
+inductive SublistT {α} : List α → List α → Type
+/-- the base case: `[]` is a sublist of `[]` -/
+| slnil : SublistT [] []
+/-- If `l₁` is a subsequence of `l₂`, then it is also a subsequence of `a :: l₂`. -/
+| cons a : SublistT l₁ l₂ → SublistT l₁ (a :: l₂)
+/-- If `l₁` is a subsequence of `l₂`, then `a :: l₁` is a subsequence of `a :: l₂`. -/
+| cons₂ a : SublistT l₁ l₂ → SublistT (a :: l₁) (a :: l₂)
+
+theorem SublistT.toSublist : SublistT a b → Sublist a b
+| .slnil => .slnil
+| .cons a h => .cons a h.toSublist
+| .cons₂ a h => .cons₂ a h.toSublist
+
+def nil_sublistT : ∀ l : List α, SublistT [] l
+| [] => .slnil
+| a :: l => (nil_sublistT l).cons a
+
+def SublistT.refl : ∀ l : List α, SublistT l l
+| [] => .slnil
+| a :: l => (SublistT.refl l).cons₂ a
+
 end List
 
 namespace Etch
@@ -160,7 +182,7 @@ def LVal.incr : LVal A .int → P A := fun l ↦ .store l (l.expr + (1 : E A .in
 infixr:min "$!" => E.call
 
 def E.and : E A .bool → E A .bool → E A .bool := fun a b ↦ E.call Op.and ![a, b]
-def E.or : E A .bool → E A .bool → E A .bool := fun a b ↦ E.call Op.and ![a, b]
+def E.or : E A .bool → E A .bool → E A .bool := fun a b ↦ E.call Op.or ![a, b]
 
 variable {A}
 
@@ -236,14 +258,14 @@ inductive Stream {A : Type} : List A → A → Type
 
 infixr:26 " →ₛ " => Stream
 
-def Stream.default (is) : Stream is v :=
+namespace Stream
+
+def default (is) : Stream is v :=
 match is with
 | [] => .scalar 0
-| (_ :: is) => .fun fun _ ↦ Stream.default is
+| (_ :: is) => .fun fun _ ↦ default is
 
 instance : Inhabited (Stream is v) where default := Stream.default is
-
-namespace Stream
 
 -- "LVS" = L-value stream
 
@@ -307,16 +329,17 @@ def contract : ∀ {is} (here : is.Here i), Stream is v → Stream (is.eraseHere
 | _, .head _, s@(level ..) => .contraction s
 | _, .tail _ h, level l v => level l (v.contract h)
 
-def expand : ∀ {is} (here : is.Here i), Stream is v → Stream (is.eraseHere here) v
-| _, h, .contraction e => .contraction (e.contract (.tail _ h))
-| _, .head _, .fun .. => panic! "cannot contract functional stream"
-| _, .tail _ h', .fun f => .fun fun x ↦ (f x).contract h'
-| _, h, seq a b => .seq (a.contract h) (b.contract h)
-| _, .head _, s@(level ..) => .contraction s
-| _, .tail _ h, level l v => level l (v.contract h)
-
 def contract' (i : A) [h : List.Find i is] : Stream is v → Stream (is.eraseHere h.here) v
 | s => s.contract List.Find.here
+
+def expand {is js} : (h : List.SublistT is js) → Stream is u → Stream js u
+| .slnil,     a          => a
+| .cons  i h, a          => .fun fun _ => a.expand h
+| .cons₂ i h, .level l a => .level l (a.expand h)
+| .cons₂ i h, .seq a₁ a₂ => .seq (a₁.expand (h.cons₂ i)) (a₂.expand (h.cons₂ i))
+| .cons₂ i h, .fun f     => .fun fun x => (f x).expand h
+| .cons₂ _ _, .contraction _ => panic! "Cannot expand a contraction"
+termination_by expand is js h a => (is, Sigma.mk is a, Sigma.mk is (Sigma.mk js h))
 
 
 def compile : ∀ {is : List A}, LVS is v → is →ₛ v → P A
@@ -334,7 +357,7 @@ def compile : ∀ {is : List A}, LVS is v → is →ₛ v → P A
 -- | _, l, .memo p s => p ;; compile l s
 --| i, .level _ push l', @Stream.level _ _ _ _ r r' => let ready : Var A .bool := "ready"; let index : Var A i := "index"
 
-partial def mul {is : List A} {v : A} : is →ₛ v → is →ₛ v → is →ₛ v
+def mul {is : List A} {v : A} : is →ₛ v → is →ₛ v → is →ₛ v
 | l, seq a b => seq (l.mul a) (l.mul b)
 | seq a b, l => seq (a.mul l) (b.mul l)
 
@@ -350,96 +373,78 @@ partial def mul {is : List A} {v : A} : is →ₛ v → is →ₛ v → is →�
 | .scalar e₁, .scalar e₂ => .scalar (.mul $! ![e₁, e₂])
 -- | .memo p₁ s₁, .memo p₂ s₂ =>  .memo (p₁ ;; p₂) (s₁.mul s₂)
 
---termination_by _ x y => sizeOf (x, y) -- try just (x, y)
+termination_by mul is v x y => (is, Sigma.mk is (Sigma.mk v x), Sigma.mk is (Sigma.mk v y))
 --decreasing_by
 --  try decreasing_tactic <;>
 --  (simp [sizeOf]; sorry)
 
-variable [LinearOrder A]
+/- ## Merge -/
 
--- TODO try insertHere instead?
-def insert : A → List A → List A
-| j, []  => [j]
-| j, i :: is => if j = i then i :: is else if j < i then j :: i :: is else i :: is.insert j
+class AttrLT (i j : A) where
+instance AttrLT.trans [AttrLT i j] [AttrLT j k] : AttrLT i k := ⟨⟩
 
-#check ne_of_lt
-@[simp] theorem insert_lt (h : j < i) : insert j (i :: is) = j :: i :: is := by
-  dsimp [insert];
-  split; rename_i h'
-  cases ne_of_lt h h'; rfl
+@[reducible] abbrev AttrGT (i j : A) := AttrLT j i
 
-@[simp] theorem insert_gt (h : i < j) : insert j (i :: is) = i :: insert j is := by
-  dsimp [insert];
-  split <;> rename_i h'
-  . cases ne_of_lt h h'.symm;
-  . split; rename_i h''
-    cases not_lt_of_gt h h''
-    sorry
-    sorry
+class AttrMerge {A : Type} (a b : List A) (out : outParam (List A)) where
+  lmerge : List.SublistT a out
+  rmerge : List.SublistT b out
 
+instance AttrMerge.lnil : AttrMerge [] b b := ⟨List.nil_sublistT _, .refl _⟩
+instance AttrMerge.rnil : AttrMerge (a :: as) [] (a :: as) := ⟨.refl _, List.nil_sublistT _⟩
+instance AttrMerge.succ₂ [m : AttrMerge as bs out] : AttrMerge (a :: as) (a :: bs) (a :: out) where
+  lmerge := m.lmerge.cons₂ _
+  rmerge := m.rmerge.cons₂ _
+instance AttrMerge.lsucc [AttrLT a b] [m : AttrMerge as (b :: bs) out] :
+    AttrMerge (a :: as) (b :: bs) (a :: out) where
+  lmerge := m.lmerge.cons₂ _
+  rmerge := m.rmerge.cons _
+instance AttrMerge.rsucc [AttrGT a b] [m : AttrMerge (a :: as) bs out] :
+    AttrMerge (a :: as) (b :: bs) (b :: out) where
+  lmerge := m.lmerge.cons _
+  rmerge := m.rmerge.cons₂ _
 
-@[simp] theorem insert_lt (h : j < i) : insert j (i :: is) = j :: i :: is := by
-  dsimp [insert]; split; contradiction; rfl; contradiction
+def merge (a b : List A) [AttrMerge a b c] := c
 
--- need nested match in order for simp lemmas to work below
-def merge : List A → List A → List A
-| [], x => x
-| x :: xs, ys =>
-  match ys with
-    | [] => x :: xs
-    | y :: ys => if x = y then x :: merge xs ys else
-      if x < y then x :: merge xs (y :: ys) else y :: merge (x :: xs) ys
-termination_by _ x y => (x, y)
+variable {is js ks : List A}
 
-#print merge._unary
-#eval merge [1,3] [0,2]
+def mul' [m : AttrMerge is js ks] (as : is →ₛ v) (bs : js →ₛ v) : ks →ₛ v :=
+(as.expand m.lmerge).mul (bs.expand m.rmerge)
 
-section merge
-@[simp] theorem nil_merge (x : List A) : merge [] x = x := by rw [merge]
-@[simp] theorem merge_nil (x : List A) : merge x [] = x := by cases x <;> rw [merge] -- can't just `rw [merge]`
-end merge
+end Stream
+end Etch
 
-def expand_lt (j : A) (h : j < i) : ∀ {is}, Stream (i :: is) v → Stream (insert j (i :: is)) v
-|_, s => by rw [insert_lt h]; exact .fun fun _ ↦ s
-def expand_eq (j : A) (h : j = i) : Stream (i :: is) v → Stream (insert j (i :: is)) v
-| s => by dsimp [insert]; simpa [h] using s
-def expand_gt (j : A) (h : i < j) : ∀ {is}, Stream (i :: is) v → Stream (insert j (i :: is)) v
-| _, .contraction e => .contraction (e.expand (.tail _ h))
-| _,  .fun .. => panic! "cannot contract functional stream"
-| _, .fun f => .fun fun x ↦ (f x).contract h'
-| _, seq a b => .seq (a.contract h) (b.contract h)
-| _, s@(level ..) => .contraction s
-| _, level l v => level l (v.contract h)
+namespace Etch.Stream.Test
 
-example : ¬ j < i → i ≤ j := by simp?
+inductive A
+| attr1 | attr2 | attr3
+deriving Repr
+instance A.attrLT0 : AttrLT attr1 attr2 := ⟨⟩
+instance A.attrLT1 : AttrLT attr2 attr3 := ⟨⟩
+def A.toTag : A → String
+| attr1 => "attr1"
+| attr2 => "attr2"
+| attr3 => "attr3"
+instance A.represented : Represented A := ⟨A.toTag⟩
+open A (attr1 attr2 attr3)
 
-def expand (j : A) : ∀ {is}, is →ₛ v → insert j is →ₛ v
-| [], s => .fun fun _ ↦ s
-| i :: _, s => lt_by_cases j i (fun h ↦ expand_lt j h s) (fun h ↦ expand_eq j h s) fun h ↦
-  match s with
-  | .fun f => .fun fun i ↦ (f i).expand j
-  expand_gt j h s
-
-def expand : [] →ₛv →  is →ₛv := sorry
-
---def mul' [LinearOrder A] : (is : List A) → (js : List A) → is →ₛ v → js →ₛ v → ((merge is js →ₛ v) × ((merge is js →ₛ v)))
---| [], x, s, t => by rw [nil_merge]; exact (s.expand, t)
---| x, [], s, t => by rw [merge_nil]; exact (s, t.expand)
---| x :: xs, y :: ys, s, t => if x = y
---  then sorry else if true
---  then x :: merge xs (y :: ys) else y :: merge (x :: xs) ys
+#print attr1
 
 variable (i j k : A)
 #check (contract' i $ default [i, j])
 #check let a  : [j] →ₛ i := (contract' i (default [i, j])); a
 
-end Stream
-end Etch
+variable
+(s₁ : [attr1] →ₛ attr3)
+(s₂ : [attr2] →ₛ attr3)
+#eval merge [attr1] [attr2]
+#check (s₂.mul' s₁ : [attr1, attr2] →ₛ attr3)
+
+end Etch.Stream.Test
 
 /- todo
   define contraction, expansion, fast addition for new stream type
     [X] mapped contraction
-    [ ] mapped expansion, mul
+    [x] mapped expansion, mul
     [ ] (lval, rval) pairs. memo? finish compile.
   test output
 
