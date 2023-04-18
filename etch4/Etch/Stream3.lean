@@ -408,7 +408,7 @@ The user must ensure that [AttrLT] remains irreflexive and antisymmetric.
 class AttrLT (i j : A) where
 instance AttrLT.trans [AttrLT i j] [AttrLT j k] : AttrLT i k := ⟨⟩
 
-@[reducible] abbrev AttrGT (i j : A) := AttrLT j i
+abbrev AttrGT (i j : A) := AttrLT j i
 
 /-- Solve for how to merge two sets of indices together using [AttrLT]. -/
 class AttrMerge {A : Type} (a b : List A) (out : outParam (List A)) where
@@ -444,7 +444,9 @@ automatically elaborate the type of the result.
 -/
 
 /-- Define a linear order for attributes in `A`. -/
-class AttrOrder (A : Type) (order : outParam (Shape A)) where
+class AttrOrder (A : Type) where
+  order : Shape A
+attribute [reducible] AttrOrder.order
 
 def mergeAttr' {A : Type} : ∀ {order a b : List A},
   (ha : List.SublistT a order) → (hb : List.SublistT b order) →
@@ -468,18 +470,18 @@ def mergeAttr' {A : Type} : ∀ {order a b : List A},
   let ⟨out', ha', hb', ho'⟩ := mergeAttr' ha hb
   ⟨a :: out', ha'.cons₂ a, hb'.cons₂ a, ho'.cons₂ a⟩
 
-def mergeAttr {A : Type} {order} [AttrOrder A order] {a b : List A}
-  (ha : List.SublistT a order.val) (hb : List.SublistT b order.val) :
-  (out : Shape A) × (List.SublistT a out.val × List.SublistT b out.val × List.SublistT out.val order.val) :=
+def mergeAttr {A : Type} [o : AttrOrder A] {a b : List A}
+  (ha : List.SublistT a o.order.val) (hb : List.SublistT b o.order.val) :
+  (out : Shape A) × (List.SublistT a out.val × List.SublistT b out.val × List.SublistT out.val o.order.val) :=
 let ⟨out', ha', hb', ho'⟩ := mergeAttr' ha hb
-let out : Shape A := ⟨out', .sublist ho' order.nodup⟩
+let out : Shape A := ⟨out', .sublist ho' o.order.nodup⟩
 ⟨out, ha', hb', ho'⟩
 
 /-- Notice that the best we can do here is to output a [Sigma] containing the output shape.  -/
-def weirdMul [AttrOrder A order] {is js : List A}
-  (ha : List.SublistT is order.val) (hb : List.SublistT js order.val)
+def weirdMul [o : AttrOrder A] {is js : List A}
+  (ha : List.SublistT is o.order.val) (hb : List.SublistT js o.order.val)
   (as : is →ₛ v) (bs : js →ₛ v) :
-  (ks : List A) × ((ks →ₛ v) × List.SublistT ks order.val) :=
+  (ks : List A) × ((ks →ₛ v) × List.SublistT ks o.order.val) :=
   let ⟨ks, ha, hb, ho⟩ := mergeAttr ha hb
   ⟨ks.val, (as.expand ha).mul (bs.expand hb), ho⟩
 
@@ -517,9 +519,9 @@ instance succ₂ [m : AttrMerge' order a b out] : AttrMerge' (i :: order) (i :: 
 
 end AttrMerge'
 
-private def merge' (order a b : List A) [AttrMerge' order a b c] := c
+private def merge' [o : AttrOrder A] (a b : List A) [AttrMerge' o.order.val a b c] := c
 
-def mul'' [AttrOrder A order] {is js ks : List A} [m : AttrMerge' order.val is js ks] (as : is →ₛ v) (bs : js →ₛ v) : ks →ₛ v :=
+def mul'' [o : AttrOrder A] {is js ks : List A} [m : AttrMerge' o.order.val is js ks] (as : is →ₛ v) (bs : js →ₛ v) : ks →ₛ v :=
 (as.expand m.lmerge).mul (bs.expand m.rmerge)
 
 /-!
@@ -567,8 +569,8 @@ instance A.attrLT1 : AttrLT attr2 attr3 := ⟨⟩
 #check srev.mul' s₁ -- `: [attr1, attr2, attr1] →ₛ attr3`
 end v1
 
-@[reducible] def A.order : Shape A := ⟨[attr1, attr2, attr3], by decide⟩
-instance A.instOrder : AttrOrder A A.order := ⟨⟩
+abbrev A.order : Shape A := ⟨[attr1, attr2, attr3], by decide⟩
+@[reducible] instance A.instOrder : AttrOrder A := ⟨A.order⟩
 
 section v2
 def attr1Sublist : [attr1].SublistT A.order.val := .cons₂ _ (.cons _ (.cons _ .slnil))
@@ -585,7 +587,7 @@ def attr2Sublist : [attr2].SublistT A.order.val := .cons _ (.cons₂ _ (.cons _ 
 end v2
 
 section v3
-#eval merge' [attr1, attr2, attr3] [attr1] [attr2]
+#eval merge' [attr1] [attr2]
 #check s₂.mul'' s₁ -- `: [attr1, attr2] →ₛ attr3`
 
 -- This is good:
