@@ -10,11 +10,24 @@ import Etch.C
 import Etch.Basic
 --import Init.WFTactics
 
+/- TODO: move this to Etch.Basic. -/
 namespace List
 /-- Same as [List.Mem], except this lives in [Type] -/
 inductive Here {α : Type u} (a : α) : List α → Type u
 | head (as : List α) : Here a (a::as)
 | tail (b : α) {as : List α} : Here a as → Here a (b::as)
+
+def Here.index : Here a as → Fin as.length
+| .head _ => ⟨0, Nat.zero_lt_succ _⟩
+| .tail _ h => h.index.succ
+
+def Here.mem : Here a as → a ∈ as
+| .head _ => .head _
+| .tail _ h => .tail _ h.mem
+
+theorem Here.indexGet : ∀ h : Here a as, as.get h.index = a
+| .head _ => rfl
+| .tail _ h => h.indexGet
 
 @[reducible]
 def eraseHere : (xs : List α) → Here x xs → List α
@@ -399,43 +412,7 @@ termination_by mul is v x y => (is, Sigma.mk is (Sigma.mk v x), Sigma.mk is (Sig
 /-!
 ## Merge
 
-### Version 1: Using a pairwise relation
-The user defines the [AttrLT] relation for each successive pair of attributes.
-The user must ensure that [AttrLT] remains irreflexive and antisymmetric.
--/
-
-/-- Define a strict partial order for attributes in `A`. -/
-class AttrLT (i j : A) where
-instance AttrLT.trans [AttrLT i j] [AttrLT j k] : AttrLT i k := ⟨⟩
-
-abbrev AttrGT (i j : A) := AttrLT j i
-
-/-- Solve for how to merge two sets of indices together using [AttrLT]. -/
-class AttrMerge {A : Type} (a b : List A) (out : outParam (List A)) where
-  lmerge : List.SublistT a out
-  rmerge : List.SublistT b out
-
-instance AttrMerge.lnil : AttrMerge [] b b := ⟨List.nil_sublistT _, .refl _⟩
-instance AttrMerge.rnil : AttrMerge (a :: as) [] (a :: as) := ⟨.refl _, List.nil_sublistT _⟩
-instance AttrMerge.succ₂ [m : AttrMerge as bs out] : AttrMerge (a :: as) (a :: bs) (a :: out) where
-  lmerge := m.lmerge.cons₂ _
-  rmerge := m.rmerge.cons₂ _
-instance AttrMerge.lsucc [AttrLT a b] [m : AttrMerge as (b :: bs) out] :
-    AttrMerge (a :: as) (b :: bs) (a :: out) where
-  lmerge := m.lmerge.cons₂ _
-  rmerge := m.rmerge.cons _
-instance AttrMerge.rsucc [AttrGT a b] [m : AttrMerge (a :: as) bs out] :
-    AttrMerge (a :: as) (b :: bs) (b :: out) where
-  lmerge := m.lmerge.cons _
-  rmerge := m.rmerge.cons₂ _
-
-private def merge (a b : List A) [AttrMerge a b c] := c
-
-def mul' {is js ks : List A} [m : AttrMerge is js ks] (as : is →ₛ v) (bs : js →ₛ v) : ks →ₛ v :=
-(as.expand m.lmerge).mul (bs.expand m.rmerge)
-
-/-!
-### Version 2: Normal attribute ordering, no elaboration
+### Version 1: Normal attribute ordering, no elaboration
 The user defines an explicit "normal" ordering of attributes using [AttrOrder].
 The downside is that infinite attribute sets are not allowed.
 
@@ -448,7 +425,37 @@ class AttrOrder (A : Type) where
   order : Shape A
 attribute [reducible] AttrOrder.order
 
-def mergeAttr' {A : Type} : ∀ {order a b : List A},
+class AttrOrderTotal (A : Type) [o : AttrOrder A] where
+  toHere : ∀ (i : A), List.Here i o.order.val
+
+namespace AttrOrderTotal
+variable [AttrOrder A] [AttrOrderTotal A]
+open AttrOrder (order)
+
+abbrev length (A) [AttrOrder A] := (@order A).val.length
+abbrev index (a : A) : Fin (length A) := toHere a |>.index
+def indexInj : Function.Injective (index : A → _) := fun a b h =>
+  (toHere a).indexGet ▸ (toHere b).indexGet ▸ (congrArg (@order A).val.get h)
+def indexSurj : Function.Surjective (index : A → _) := fun b => by
+  by_contra h
+  rw [not_exists] at h
+  let a := (@order A).val.get b
+  have heq := (toHere a).indexGet
+  have := List.nodup_iff_injective_get.1 (@order A).nodup heq
+  exact absurd this (h a)
+def indexBij : Function.Bijective (index : A → _) := ⟨indexInj, indexSurj⟩
+
+instance : LinearOrder A := .lift' index indexInj
+
+/- Short circuits -/
+instance : LE A := inferInstance
+instance : DecidableLE A := inferInstance
+instance : LT A := inferInstance
+instance : DecidableLT A := inferInstance
+
+end AttrOrderTotal
+
+private def mergeAttr' {A : Type} : ∀ {order a b : List A},
   (ha : List.SublistT a order) → (hb : List.SublistT b order) →
   (out : List A) × (List.SublistT a out × List.SublistT b out × List.SublistT out order)
 -- Base case
@@ -486,117 +493,52 @@ def weirdMul [o : AttrOrder A] {is js : List A}
   ⟨ks.val, (as.expand ha).mul (bs.expand hb), ho⟩
 
 /-!
-### Version 3: Using [AttrOrder] with type class search
-Still uses [AttrOrder], but the merging algorithm is encoded in the instances of the [AttrMerge'] type class.
+### Version 2: Using [AttrOrder] with type class search
+Still uses [AttrOrder], but the merging algorithm is encoded in the instances of the [AttrMerge] type class.
 This allows [mul''] to return a stream of the correct type with no fuss.
 -/
 
 /-- Solve for how to merge two sets of indices together using a predefined linear order. -/
-class AttrMerge' {A : Type} (order a b : List A) (out : outParam (List A)) where
+class AttrMerge {A : Type} (order a b : List A) (out : outParam (List A)) where
   lmerge : List.SublistT a out
   rmerge : List.SublistT b out
   outIsShape : List.SublistT out order
 
-namespace AttrMerge'
+namespace AttrMerge
 
 variable {A : Type}
 
-instance base : AttrMerge' ([] : List A) [] [] [] := ⟨List.nil_sublistT _, List.nil_sublistT _, List.nil_sublistT _⟩
-instance skip [m : AttrMerge' order a b out] : AttrMerge' (i :: order) a b out :=
+instance base : AttrMerge ([] : List A) [] [] [] := ⟨List.nil_sublistT _, List.nil_sublistT _, List.nil_sublistT _⟩
+instance skip [m : AttrMerge order a b out] : AttrMerge (i :: order) a b out :=
   { m with outIsShape := m.outIsShape.cons i }
-instance lsucc [m : AttrMerge' order a b out] : AttrMerge' (i :: order) (i :: a) b (i :: out) where
+instance lsucc [m : AttrMerge order a b out] : AttrMerge (i :: order) (i :: a) b (i :: out) where
   lmerge := m.lmerge.cons₂ i
   rmerge := m.rmerge.cons i
   outIsShape := m.outIsShape.cons₂ i
-instance rsucc [m : AttrMerge' order a b out] : AttrMerge' (i :: order) a (i :: b) (i :: out) where
+instance rsucc [m : AttrMerge order a b out] : AttrMerge (i :: order) a (i :: b) (i :: out) where
   lmerge := m.lmerge.cons i
   rmerge := m.rmerge.cons₂ i
   outIsShape := m.outIsShape.cons₂ i
-instance succ₂ [m : AttrMerge' order a b out] : AttrMerge' (i :: order) (i :: a) (i :: b) (i :: out) where
+instance succ₂ [m : AttrMerge order a b out] : AttrMerge (i :: order) (i :: a) (i :: b) (i :: out) where
   lmerge := m.lmerge.cons₂ i
   rmerge := m.rmerge.cons₂ i
   outIsShape := m.outIsShape.cons₂ i
 
-end AttrMerge'
+end AttrMerge
 
-private def merge' [o : AttrOrder A] (a b : List A) [AttrMerge' o.order.val a b c] := c
+def merge [o : AttrOrder A] (a b : List A) [AttrMerge o.order.val a b c] := c
 
-def mul'' [o : AttrOrder A] {is js ks : List A} [m : AttrMerge' o.order.val is js ks] (as : is →ₛ v) (bs : js →ₛ v) : ks →ₛ v :=
+def mul' [o : AttrOrder A] {is js ks : List A} [m : AttrMerge o.order.val is js ks] (as : is →ₛ v) (bs : js →ₛ v) : ks →ₛ v :=
 (as.expand m.lmerge).mul (bs.expand m.rmerge)
 
 /-!
 ### Other potential solutions
-Instead of defining [AttrOrder], we could potentially define a [LinearOrder] for
-`A` and make `mul` take a proof that `is` and `js` are [List.Ordered].
-However, this would obviate the possibility of using type classes to
-elaborate the result type.
+We could use typeclasses to search for a proof that one attribute is `<`
+compared to another. However, this turns out to be really slow in practice.
 -/
 
 end Stream
 end Etch
-
-namespace Etch.Stream.Test
-
-inductive A
-| attr1 | attr2 | attr3
-deriving Repr, DecidableEq
-def A.toTag : A → String
-| attr1 => "attr1"
-| attr2 => "attr2"
-| attr3 => "attr3"
-instance A.represented : Represented A := ⟨A.toTag⟩
-open A (attr1 attr2 attr3)
-
-#print attr1
-
-variable (i j k : A)
-#check (contract' i $ default [i, j])
-#check let a  : [j] →ₛ i := (contract' i (default [i, j])); a
-
-variable
-(s₁ : [attr1] →ₛ attr3)
-(s₂ : [attr2] →ₛ attr3)
-(srev : [attr2, attr1] →ₛ attr3)
-
-section v1
-instance A.attrLT0 : AttrLT attr1 attr2 := ⟨⟩
-instance A.attrLT1 : AttrLT attr2 attr3 := ⟨⟩
-
-#eval merge [attr1] [attr2]
-#check s₂.mul' s₁ -- `: [attr1, attr2] →ₛ attr3`
-
--- This is not great:
-#check srev.mul' s₁ -- `: [attr1, attr2, attr1] →ₛ attr3`
-end v1
-
-abbrev A.order : Shape A := ⟨[attr1, attr2, attr3], by decide⟩
-@[reducible] instance A.instOrder : AttrOrder A := ⟨A.order⟩
-
-section v2
-def attr1Sublist : [attr1].SublistT A.order.val := .cons₂ _ (.cons _ (.cons _ .slnil))
-def attr2Sublist : [attr2].SublistT A.order.val := .cons _ (.cons₂ _ (.cons _ .slnil))
-
-#eval show Option _ from do
-  let r := mergeAttr (← List.SublistT.test [attr1] A.order.val)
-                     (← List.SublistT.test [attr2] A.order.val)
-  return r.fst.val
-
-#eval (mergeAttr attr1Sublist attr2Sublist).fst.val
-
-#check s₂.weirdMul attr2Sublist attr1Sublist s₁ -- `: (ks : List A) × (ks →ₛ attr3) × ks.SublistT A.order.val`
-end v2
-
-section v3
-#eval merge' [attr1] [attr2]
-#check s₂.mul'' s₁ -- `: [attr1, attr2] →ₛ attr3`
-
--- This is good:
--- #check srev.mul'' s₁
--- failed to synthesize instance
---   `AttrMerge' A.order.val [attr2, attr1] [attr1] ?m.287939`
-end v3
-
-end Etch.Stream.Test
 
 /- todo
   define contraction, expansion, fast addition for new stream type
