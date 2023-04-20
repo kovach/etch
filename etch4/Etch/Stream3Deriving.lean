@@ -1,6 +1,6 @@
 import Etch.Stream3
 
-namespace Etch.Stream.Deriving.AttrOrder
+namespace Etch.Deriving.AttrOrder
 
 open Lean Elab Command Term Meta
 
@@ -13,7 +13,7 @@ structure OptionsT where
 
 private def mkOptions (declName : Name) (stx : TSyntax ``Parser.Term.structInst) : TermElabM OptionsT := do
   -- First do a type check just to be sure
-  let expectedType ← elabTerm (← `($(mkIdent ``Options) $(mkIdent declName))) none
+  let expectedType ← elabType (← `($(mkIdent ``Options) $(mkIdent declName)))
   let expr ← StructInst.elabStructInst stx.raw (some expectedType)
   let typ ← inferType expr
   trace[Elab.Deriving.attr_order_total] m!"elabStructInst returns {expr}; with type {typ}; expected {expectedType}"
@@ -33,7 +33,7 @@ private def mkOptions (declName : Name) (stx : TSyntax ``Parser.Term.structInst)
       | `(Parser.Term.structInstField| localDecl := true) =>
         localDecl := true
       | `(Parser.Term.structInstField| localDecl := false) =>
-        localDecl := true
+        localDecl := false
       | `(Parser.Term.structInstField| localDecl := $v) =>
         throwErrorAt v "incorrect argument format; must be true or false"
       | _ => throwErrorAt field "unknown field"
@@ -45,12 +45,24 @@ private def mkOptions (declName : Name) (stx : TSyntax ``Parser.Term.structInst)
 def mkOrder (declName : Name) (options : OptionsT) : CommandElabM Bool := do
   let id := mkIdent declName
   let prepareName (n : String) : MacroM Name :=
-    if options.localDecl then mkUnusedBaseName <| (declName |>.updatePrefix .anonymous |>.str n)
-    else pure <| `_root_ ++ declName.str n
+    if options.localDecl then
+      -- Logic similar to `Lean.Elab.Command.mkInstanceName`
+      let rec getSuffix (m : Name) := match m with
+      | .anonymous => ""
+      | .str m "" => getSuffix m
+      | .str _ s => s
+      | .num m _ => getSuffix m
+      let n := if "inst".isPrefixOf n then
+                 n ++ (getSuffix declName.eraseMacroScopes).capitalize
+               else
+                 n
+      mkUnusedBaseName <| Name.mkSimple n
+    else
+      pure <| `_root_ ++ declName.str n
   let ordID          := mkIdent <| (← liftMacroM <| prepareName "order")
-  let instOrdID      := mkIdent <| (← liftMacroM <| prepareName "instOrder")
+  let instOrdID      := mkIdent <| (← liftMacroM <| prepareName "instAttrOrder")
   let ordHereID      := mkIdent <| (← liftMacroM <| prepareName "orderHere")
-  let instOrdTotalID := mkIdent <| (← liftMacroM <| prepareName "instOrderTotal")
+  let instOrdTotalID := mkIdent <| (← liftMacroM <| prepareName "instAttrOrderTotal")
 
   let ord ← `(command|
     @[reducible] def $ordID : $(mkIdent ``Shape) $id :=
@@ -90,4 +102,4 @@ initialize
   registerDerivingHandlerWithArgs ``AttrOrderTotal mkOrderTotalInstanceHandler
   registerTraceClass `Elab.Deriving.attr_order_total
 
-end Etch.Stream.Deriving.AttrOrder
+end Etch.Deriving.AttrOrder
