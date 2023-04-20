@@ -14,7 +14,7 @@ instance A.represented : Represented A := ⟨A.toTag⟩
 open A (attr1 attr2 attr3)
 
 set_option trace.Elab.Deriving.attr_order_total true in
-deriving instance AttrOrderTotal with { localDecl := true, order := [.attr1, .attr2, .attr3] } for A
+deriving instance AttrOrderTotal with { order := [.attr1, .attr2, .attr3] } for A
 
 inductive A'
 | attr' : Fin 10 → A'
@@ -36,12 +36,18 @@ variable
 (srev : [attr2, attr1] →ₛ attr3)
 
 section v1
-def attr1Sublist : [attr1].SublistT A.order.val := .cons₂ _ (.cons _ (.cons _ .slnil))
-def attr2Sublist : [attr2].SublistT A.order.val := .cons _ (.cons₂ _ (.cons _ .slnil))
+def attr1Sublist : [attr1].SublistT A.order.val := .check' (by decide)
+def attr2Sublist : [attr2].SublistT A.order.val := .check' (by decide)
 
 #eval (mergeAttr attr1Sublist attr2Sublist).fst.val
 
-#check s₂.weirdMul attr2Sublist attr1Sublist s₁ -- `: (ks : List A) × (ks →ₛ attr3) × ks.SublistT A.order.val`
+#check (s₂.mulMerge attr2Sublist attr1Sublist s₁) -- `: (mergeAttr attr2Sublist attr1Sublist).fst.val →ₛ attr3`
+#check (s₂.mulMerge attr2Sublist attr1Sublist s₁ : [attr1, attr2] →ₛ attr3)
+
+#check (s₂.mulMerge (.check' (by decide)) (.check' (by decide)) s₁) -- works
+-- Doesn't work ☹
+-- #check (s₂.mulMerge (.check' (by decide)) (.check' (by decide)) s₁ : [attr1, attr2] →ₛ attr3)
+
 end v1
 
 section v2
