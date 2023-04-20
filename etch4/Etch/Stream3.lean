@@ -2,7 +2,7 @@ import Init.Data.List.Basic
 
 import Mathlib.Data.Nat.Basic
 import Mathlib.Data.Option.Basic
-import Mathlib.Data.Finset.Card
+import Mathlib.Data.Fintype.Card
 import Mathlib.Tactic.LibrarySearch
 import Mathlib.Tactic.Linarith
 
@@ -12,7 +12,7 @@ import Etch.Basic
 
 /- TODO: move this to Etch.Basic. -/
 namespace List
-/-- Same as [List.Mem], except this lives in [Type] -/
+/-- Same as `List.Mem`, except this lives in `Type u` -/
 inductive Here {α : Type u} (a : α) : List α → Type u
 | head (as : List α) : Here a (a::as)
 | tail (b : α) {as : List α} : Here a as → Here a (b::as)
@@ -24,6 +24,12 @@ def Here.index : Here a as → Fin as.length
 def Here.mem : Here a as → a ∈ as
 | .head _ => .head _
 | .tail _ h => .tail _ h.mem
+
+theorem Here.fromMem : a ∈ as → Nonempty (Here a as)
+| .head a => .intro (.head a)
+| .tail b h => (Here.fromMem h).elim fun x => .intro (.tail b x)
+
+theorem Here.memIff : Nonempty (Here a as) ↔ a ∈ as := ⟨(Nonempty.elim · Here.mem), Here.fromMem⟩
 
 theorem Here.indexGet : ∀ h : Here a as, as.get h.index = a
 | .head _ => rfl
@@ -38,6 +44,7 @@ def eraseHere : (xs : List α) → Here x xs → List α
 
 example : 1 ∈ [2,1,3] := by decide
 
+/-- A type-class that can automatically solve for `List.Here`. -/
 class Find (x : α) (xs : List α) where here : Here x xs
 instance Find.tail [Find x xs] : Find x (y :: xs) where here := .tail _ Find.here
 instance Find.head : Find x (x :: xs) where here := .head _
@@ -45,7 +52,7 @@ instance Find.head : Find x (x :: xs) where here := .head _
 def remove (x : α) (xs : List α) [Find x xs] : List α := xs.eraseHere (x := x) Find.here
 #eval remove 1 [3,3,3,1,2,3,3,1,3,4,5,55,5,6,2]
 
-/-- Same as [List.Sublist], except this lives in [Type]. -/
+/-- Same as `List.Sublist`, except this lives in `Type`. -/
 inductive SublistT {α : Type u} : List α → List α → Type u
 /-- the base case: `[]` is a sublist of `[]` -/
 | slnil : SublistT [] []
@@ -53,12 +60,19 @@ inductive SublistT {α : Type u} : List α → List α → Type u
 | cons a : SublistT l₁ l₂ → SublistT l₁ (a :: l₂)
 /-- If `l₁` is a subsequence of `l₂`, then `a :: l₁` is a subsequence of `a :: l₂`. -/
 | cons₂ a : SublistT l₁ l₂ → SublistT (a :: l₁) (a :: l₂)
-deriving Repr
 
 theorem SublistT.toSublist : SublistT a b → Sublist a b
 | .slnil => .slnil
-| .cons a h => .cons a h.toSublist
+| .cons  a h => .cons  a h.toSublist
 | .cons₂ a h => .cons₂ a h.toSublist
+
+theorem SublistT.fromSublist : Sublist a b → Nonempty (SublistT a b)
+| .slnil => .intro .slnil
+| .cons  a h => (SublistT.fromSublist h).elim fun x => .intro (.cons  a x)
+| .cons₂ a h => (SublistT.fromSublist h).elim fun x => .intro (.cons₂ a x)
+
+theorem SublistT.sublistIff : Nonempty (SublistT a as) ↔ Sublist a as :=
+  ⟨(Nonempty.elim · SublistT.toSublist), SublistT.fromSublist⟩
 
 instance SublistT.instCoeSublist : Coe (SublistT a b) (Sublist a b) := ⟨SublistT.toSublist⟩
 
@@ -72,7 +86,7 @@ def SublistT.refl : ∀ l : List α, SublistT l l
 
 /--
 Check whether `l₁` is a sublist of `l₂`.
-The algorithm is equivalent to [List.decidableSublist], but no proof is provided
+The algorithm is equivalent to `List.decidableSublist`, but no proof is provided
 if `l₁` is not a sublist of `l₂`.
 -/
 def SublistT.test [DecidableEq α] : ∀ l₁ l₂ : List α, Option (SublistT l₁ l₂)
@@ -409,45 +423,61 @@ termination_by mul is v x y => (is, Sigma.mk is (Sigma.mk v x), Sigma.mk is (Sig
 --  try decreasing_tactic <;>
 --  (simp [sizeOf]; sorry)
 
+end Stream
+
 /-!
 ## Merge
 
-### Version 1: Normal attribute ordering, no elaboration
-The user defines an explicit "normal" ordering of attributes using [AttrOrder].
+### Version 1: Canonical attribute ordering, no elaboration
+The user defines an explicit canonical ordering of attributes using `AttrOrder`.
 The downside is that infinite attribute sets are not allowed.
 
 In the future, we can potentially add a macro like `mul! a b` to
 automatically elaborate the type of the result.
 -/
 
-/-- Define a linear order for attributes in `A`. -/
+/-- Define a canonical attribute ordering for `A`. -/
 class AttrOrder (A : Type) where
   order : Shape A
 attribute [reducible] AttrOrder.order
 
+/--
+The order defined in `AttrOrder` covers every value of `A`.
+
+This type-class is not necessary for anything to work currently, but
+it automatically derives `Fintype`, `Finite`, and `LinearOrder` type-classes for `A`,
+-/
 class AttrOrderTotal (A : Type) [o : AttrOrder A] where
   toHere : ∀ (i : A), List.Here i o.order.val
 
 namespace AttrOrderTotal
-variable [AttrOrder A] [AttrOrderTotal A]
+variable {A : Type} [AttrOrder A] [AttrOrderTotal A]
 open AttrOrder (order)
 
-abbrev length (A) [AttrOrder A] := (@order A).val.length
-abbrev index (a : A) : Fin (length A) := toHere a |>.index
-def indexInj : Function.Injective (index : A → _) := fun a b h =>
-  (toHere a).indexGet ▸ (toHere b).indexGet ▸ (congrArg (@order A).val.get h)
-def indexSurj : Function.Surjective (index : A → _) := fun b => by
-  by_contra h
-  rw [not_exists] at h
-  let a := (@order A).val.get b
-  have heq := (toHere a).indexGet
-  have := List.nodup_iff_injective_get.1 (@order A).nodup heq
-  exact absurd this (h a)
-def indexBij : Function.Bijective (index : A → _) := ⟨indexInj, indexSurj⟩
+abbrev card (A) [AttrOrder A] := (@order A).val.length
+abbrev index (a : A) : Fin (card A) := toHere a |>.index
 
-instance : LinearOrder A := .lift' index indexInj
+instance instFintype : Fintype A where
+  elems := { val := (@order A).val, nodup := (@order A).nodup }
+  complete := fun x => (toHere x).indexGet ▸ List.get_mem _ _ _
 
-/- Short circuits -/
+lemma fintypeCard : Fintype.card A = card A :=
+  show Multiset.card instFintype.elems.val = card A from rfl
+
+private lemma index.leftInverse : Function.LeftInverse (@order A).val.get index :=
+  fun a => (toHere a).indexGet
+
+def equivFin : A ≃ Fin (card A) where
+  toFun := index
+  invFun := order.val.get
+  left_inv := index.leftInverse
+  right_inv := index.leftInverse.rightInverse_of_card_le (by simp [fintypeCard])
+
+instance : Finite A := ⟨equivFin⟩
+
+instance : LinearOrder A := LinearOrder.lift' index index.leftInverse.injective
+
+/-! Short circuits. -/
 instance : LE A := inferInstance
 instance : DecidableLE A := inferInstance
 instance : LT A := inferInstance
@@ -455,37 +485,37 @@ instance : DecidableLT A := inferInstance
 
 end AttrOrderTotal
 
-private def mergeAttr' {A : Type} : ∀ {order a b : List A},
+private def mergeAttrAux {A : Type} : ∀ {order a b : List A},
   (ha : List.SublistT a order) → (hb : List.SublistT b order) →
   (out : List A) × (List.SublistT a out × List.SublistT b out × List.SublistT out order)
 -- Base case
 | _, _, _, .slnil, .slnil => .mk [] (.slnil, .slnil, .slnil)
 -- Attribute does not appear
 | _, _, _, .cons a ha, .cons _ hb =>
-  let ⟨out', ha', hb', ho'⟩ := mergeAttr' ha hb
+  let ⟨out', ha', hb', ho'⟩ := mergeAttrAux ha hb
   ⟨out', ha', hb', .cons a ho'⟩
 -- Attribute appears in left
 | _, _, _, .cons₂ a ha, .cons _ hb =>
-  let ⟨out', ha', hb', ho'⟩ := mergeAttr' ha hb
+  let ⟨out', ha', hb', ho'⟩ := mergeAttrAux ha hb
   ⟨a :: out', ha'.cons₂ a, hb'.cons a, ho'.cons₂ a⟩
 -- Attribute appears in right
 | _, _, _, .cons a ha, .cons₂ _ hb =>
-  let ⟨out', ha', hb', ho'⟩ := mergeAttr' ha hb
+  let ⟨out', ha', hb', ho'⟩ := mergeAttrAux ha hb
   ⟨a :: out', ha'.cons a, hb'.cons₂ a, ho'.cons₂ a⟩
 -- Attribute appears in both
 | _, _, _, .cons₂ a ha, .cons₂ _ hb =>
-  let ⟨out', ha', hb', ho'⟩ := mergeAttr' ha hb
+  let ⟨out', ha', hb', ho'⟩ := mergeAttrAux ha hb
   ⟨a :: out', ha'.cons₂ a, hb'.cons₂ a, ho'.cons₂ a⟩
 
 def mergeAttr {A : Type} [o : AttrOrder A] {a b : List A}
   (ha : List.SublistT a o.order.val) (hb : List.SublistT b o.order.val) :
   (out : Shape A) × (List.SublistT a out.val × List.SublistT b out.val × List.SublistT out.val o.order.val) :=
-let ⟨out', ha', hb', ho'⟩ := mergeAttr' ha hb
+let ⟨out', ha', hb', ho'⟩ := mergeAttrAux ha hb
 let out : Shape A := ⟨out', .sublist ho' o.order.nodup⟩
 ⟨out, ha', hb', ho'⟩
 
-/-- Notice that the best we can do here is to output a [Sigma] containing the output shape.  -/
-def weirdMul [o : AttrOrder A] {is js : List A}
+/-- Notice that the best we can do here is to output a `Sigma` containing the output shape.  -/
+def Stream.weirdMul [o : AttrOrder A] {is js : List A}
   (ha : List.SublistT is o.order.val) (hb : List.SublistT js o.order.val)
   (as : is →ₛ v) (bs : js →ₛ v) :
   (ks : List A) × ((ks →ₛ v) × List.SublistT ks o.order.val) :=
@@ -493,9 +523,9 @@ def weirdMul [o : AttrOrder A] {is js : List A}
   ⟨ks.val, (as.expand ha).mul (bs.expand hb), ho⟩
 
 /-!
-### Version 2: Using [AttrOrder] with type class search
-Still uses [AttrOrder], but the merging algorithm is encoded in the instances of the [AttrMerge] type class.
-This allows [mul''] to return a stream of the correct type with no fuss.
+### Version 2: Using `AttrOrder` with type class search
+Still uses `AttrOrder`, but the merging algorithm is encoded in the instances of the `AttrMerge` type class.
+This allows `mul'` to return a stream of the correct type with no fuss.
 -/
 
 /-- Solve for how to merge two sets of indices together using a predefined linear order. -/
@@ -524,11 +554,13 @@ instance succ₂ [m : AttrMerge order a b out] : AttrMerge (i :: order) (i :: a)
   rmerge := m.rmerge.cons₂ i
   outIsShape := m.outIsShape.cons₂ i
 
-end AttrMerge
-
 def merge [o : AttrOrder A] (a b : List A) [AttrMerge o.order.val a b c] := c
 
-def mul' [o : AttrOrder A] {is js ks : List A} [m : AttrMerge o.order.val is js ks] (as : is →ₛ v) (bs : js →ₛ v) : ks →ₛ v :=
+end AttrMerge
+
+export AttrMerge (merge)
+
+def Stream.mul' [o : AttrOrder A] {is js ks : List A} [m : AttrMerge o.order.val is js ks] (as : is →ₛ v) (bs : js →ₛ v) : ks →ₛ v :=
 (as.expand m.lmerge).mul (bs.expand m.rmerge)
 
 /-!
@@ -537,7 +569,6 @@ We could use typeclasses to search for a proof that one attribute is `<`
 compared to another. However, this turns out to be really slow in practice.
 -/
 
-end Stream
 end Etch
 
 /- todo
