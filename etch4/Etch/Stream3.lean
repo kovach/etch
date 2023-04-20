@@ -11,6 +11,13 @@ import Etch.Basic
 --import Init.WFTactics
 
 /- TODO: move this to Etch.Basic. -/
+namespace Option
+-- TODO: is this already in mathlib?
+theorem isSome_map : isSome (Option.map f a) = isSome a :=
+  by cases a <;> simp
+
+end Option
+
 namespace List
 /-- Same as `List.Mem`, except this lives in `Type u` -/
 inductive Here {α : Type u} (a : α) : List α → Type u
@@ -71,7 +78,7 @@ theorem SublistT.fromSublist : Sublist a b → Nonempty (SublistT a b)
 | .cons  a h => (SublistT.fromSublist h).elim fun x => .intro (.cons  a x)
 | .cons₂ a h => (SublistT.fromSublist h).elim fun x => .intro (.cons₂ a x)
 
-theorem SublistT.sublistIff : Nonempty (SublistT a as) ↔ Sublist a as :=
+theorem SublistT.sublistIff : Nonempty (SublistT a b) ↔ Sublist a b :=
   ⟨(Nonempty.elim · SublistT.toSublist), SublistT.fromSublist⟩
 
 instance SublistT.instCoeSublist : Coe (SublistT a b) (Sublist a b) := ⟨SublistT.toSublist⟩
@@ -84,19 +91,53 @@ def SublistT.refl : ∀ l : List α, SublistT l l
 | [] => .slnil
 | a :: l => (SublistT.refl l).cons₂ a
 
+-- TODO: is this already in mathlib?
+theorem Sublist.cons_id : a :: as <+ bs → as <+ bs
+| .cons _ h => .cons _ h.cons_id
+| .cons₂ _ h => .cons _ h
+
 /--
 Check whether `l₁` is a sublist of `l₂`.
-The algorithm is equivalent to `List.decidableSublist`, but no proof is provided
-if `l₁` is not a sublist of `l₂`.
+The algorithm is equivalent to `List.decidableSublist`.
 -/
-def SublistT.test [DecidableEq α] : ∀ l₁ l₂ : List α, Option (SublistT l₁ l₂)
+def SublistT.check [DecidableEq α] : ∀ l₁ l₂ : List α, Option (SublistT l₁ l₂)
 | [], _ => some <| nil_sublistT _
 | _ :: _, [] => none
 | a :: l₁, b :: l₂ =>
   if h : a = b then
-    SublistT.test l₁ l₂ |>.map (h ▸ .cons₂ a ·)
+    SublistT.check l₁ l₂ |>.map (h ▸ .cons₂ a ·)
   else
-    SublistT.test (a :: l₁) l₂ |>.map (.cons b ·)
+    SublistT.check (a :: l₁) l₂ |>.map (.cons b ·)
+
+lemma SublistT.checkComplete [DecidableEq α] {a b : List α} (h : Sublist a b) : (SublistT.check a b).isSome := by
+  induction a generalizing b with
+  | nil => simp [check]
+  | cons a as ih₁ => induction b with
+    | nil => contradiction
+    | cons b bs ih₂ =>
+      unfold check
+      split_ifs
+      . suffices Option.isSome (check _ _) by rwa [Option.isSome_map]
+        apply ih₁
+        cases h
+        . exact Sublist.cons_id ‹_›
+        . assumption
+      . suffices Option.isSome (check _ _) by rwa [Option.isSome_map]
+        apply ih₂
+        cases h
+        . assumption
+        . contradiction
+
+theorem SublistT.checkIff [DecidableEq α] {a b : List α} : Sublist a b ↔ (SublistT.check a b).isSome :=
+⟨SublistT.checkComplete, fun h => by
+  rw [Option.isSome_iff_exists] at h
+  exact h.choose.toSublist⟩
+
+instance [DecidableEq α] {a b : List α} : Decidable ((SublistT.check a b).isSome = true) :=
+  decidable_of_decidable_of_iff SublistT.checkIff
+
+@[inline] def SublistT.check' [DecidableEq α] {a b : List α} (h : Sublist a b) : SublistT a b :=
+(SublistT.check a b).get (SublistT.checkComplete h)
 
 end List
 
@@ -428,12 +469,16 @@ end Stream
 /-!
 ## Merge
 
-### Version 1: Canonical attribute ordering, no elaboration
-The user defines an explicit canonical ordering of attributes using `AttrOrder`.
-The downside is that infinite attribute sets are not allowed.
+To allow two streams with different shapes to be multiplied together,
+we insert a call to `Stream.expand` prior to the multiplication.
+However, we need to first compute the resulting shape, required for
+`Stream.expand` to work.
 
-In the future, we can potentially add a macro like `mul! a b` to
-automatically elaborate the type of the result.
+For us to be able to compute this, the user first defines a canonical
+attribute ordering on `A` through `AttrOrder`. (Optionally, a `AttrOrderTotal`
+instance can be defined also, though it's not currently required.)
+The resulting shape can be calculated either by a function `mergeAttr` or using
+a type-class `AttrMerge`.
 -/
 
 /-- Define a canonical attribute ordering for `A`. -/
@@ -445,7 +490,7 @@ attribute [reducible] AttrOrder.order
 The order defined in `AttrOrder` covers every value of `A`.
 
 This type-class is not necessary for anything to work currently, but
-it automatically derives `Fintype`, `Finite`, and `LinearOrder` type-classes for `A`,
+it automatically derives `Fintype`, `Finite`, and `LinearOrder` type-classes for `A`.
 -/
 class AttrOrderTotal (A : Type) [o : AttrOrder A] where
   toHere : ∀ (i : A), List.Here i o.order.val
@@ -485,47 +530,54 @@ instance : DecidableLT A := inferInstance
 
 end AttrOrderTotal
 
-private def mergeAttrAux {A : Type} : ∀ {order a b : List A},
-  (ha : List.SublistT a order) → (hb : List.SublistT b order) →
-  (out : List A) × (List.SublistT a out × List.SublistT b out × List.SublistT out order)
--- Base case
-| _, _, _, .slnil, .slnil => .mk [] (.slnil, .slnil, .slnil)
--- Attribute does not appear
-| _, _, _, .cons a ha, .cons _ hb =>
-  let ⟨out', ha', hb', ho'⟩ := mergeAttrAux ha hb
-  ⟨out', ha', hb', .cons a ho'⟩
--- Attribute appears in left
-| _, _, _, .cons₂ a ha, .cons _ hb =>
-  let ⟨out', ha', hb', ho'⟩ := mergeAttrAux ha hb
-  ⟨a :: out', ha'.cons₂ a, hb'.cons a, ho'.cons₂ a⟩
--- Attribute appears in right
-| _, _, _, .cons a ha, .cons₂ _ hb =>
-  let ⟨out', ha', hb', ho'⟩ := mergeAttrAux ha hb
-  ⟨a :: out', ha'.cons a, hb'.cons₂ a, ho'.cons₂ a⟩
--- Attribute appears in both
-| _, _, _, .cons₂ a ha, .cons₂ _ hb =>
-  let ⟨out', ha', hb', ho'⟩ := mergeAttrAux ha hb
-  ⟨a :: out', ha'.cons₂ a, hb'.cons₂ a, ho'.cons₂ a⟩
+/-!
+### Shape inference as a function
+-/
 
 def mergeAttr {A : Type} [o : AttrOrder A] {a b : List A}
-  (ha : List.SublistT a o.order.val) (hb : List.SublistT b o.order.val) :
-  (out : Shape A) × (List.SublistT a out.val × List.SublistT b out.val × List.SublistT out.val o.order.val) :=
-let ⟨out', ha', hb', ho'⟩ := mergeAttrAux ha hb
-let out : Shape A := ⟨out', .sublist ho' o.order.nodup⟩
-⟨out, ha', hb', ho'⟩
+    (ha : List.SublistT a o.order.val) (hb : List.SublistT b o.order.val) :
+    (out : Shape A) × (List.SublistT a out.val × List.SublistT b out.val × List.SublistT out.val o.order.val) :=
+  let ⟨out', ha', hb', ho'⟩ := go ha hb
+  let out : Shape A := ⟨out', .sublist ho' o.order.nodup⟩
+  ⟨out, ha', hb', ho'⟩
+where
+  go : ∀ {order a b : List A},
+    (ha : List.SublistT a order) → (hb : List.SublistT b order) →
+    (out : List A) × (List.SublistT a out × List.SublistT b out × List.SublistT out order)
+  -- Base case
+  | _, _, _, .slnil, .slnil => .mk [] (.slnil, .slnil, .slnil)
+  -- Attribute does not appear
+  | _, _, _, .cons a ha, .cons _ hb =>
+    let ⟨out', ha', hb', ho'⟩ := go ha hb
+    ⟨out', ha', hb', .cons a ho'⟩
+  -- Attribute appears in left
+  | _, _, _, .cons₂ a ha, .cons _ hb =>
+    let ⟨out', ha', hb', ho'⟩ := go ha hb
+    ⟨a :: out', ha'.cons₂ a, hb'.cons a, ho'.cons₂ a⟩
+  -- Attribute appears in right
+  | _, _, _, .cons a ha, .cons₂ _ hb =>
+    let ⟨out', ha', hb', ho'⟩ := go ha hb
+    ⟨a :: out', ha'.cons a, hb'.cons₂ a, ho'.cons₂ a⟩
+  -- Attribute appears in both
+  | _, _, _, .cons₂ a ha, .cons₂ _ hb =>
+    let ⟨out', ha', hb', ho'⟩ := go ha hb
+    ⟨a :: out', ha'.cons₂ a, hb'.cons₂ a, ho'.cons₂ a⟩
 
-/-- Notice that the best we can do here is to output a `Sigma` containing the output shape.  -/
-def Stream.weirdMul [o : AttrOrder A] {is js : List A}
+/--
+The output type is definitionally equal to the "correct" shape, but the shape
+itself is not computed automatically.
+-/
+def Stream.mulMerge [o : AttrOrder A] {is js : List A}
   (ha : List.SublistT is o.order.val) (hb : List.SublistT js o.order.val)
   (as : is →ₛ v) (bs : js →ₛ v) :
-  (ks : List A) × ((ks →ₛ v) × List.SublistT ks o.order.val) :=
-  let ⟨ks, ha, hb, ho⟩ := mergeAttr ha hb
-  ⟨ks.val, (as.expand ha).mul (bs.expand hb), ho⟩
+  (mergeAttr ha hb).1.val →ₛ v :=
+let ⟨_, ha, hb, _⟩ := mergeAttr ha hb
+(as.expand ha).mul (bs.expand hb)
 
 /-!
-### Version 2: Using `AttrOrder` with type class search
-Still uses `AttrOrder`, but the merging algorithm is encoded in the instances of the `AttrMerge` type class.
-This allows `mul'` to return a stream of the correct type with no fuss.
+### Shape inference using type-class search
+The merging algorithm is encoded in the instances of the `AttrMerge` type class.
+This allows `Stream.mul'` to return a stream of the correct type with no fuss.
 -/
 
 /-- Solve for how to merge two sets of indices together using a predefined linear order. -/
@@ -560,7 +612,8 @@ end AttrMerge
 
 export AttrMerge (merge)
 
-def Stream.mul' [o : AttrOrder A] {is js ks : List A} [m : AttrMerge o.order.val is js ks] (as : is →ₛ v) (bs : js →ₛ v) : ks →ₛ v :=
+def Stream.mul' [o : AttrOrder A] {is js ks : List A} [m : AttrMerge o.order.val is js ks]
+  (as : is →ₛ v) (bs : js →ₛ v) : ks →ₛ v :=
 (as.expand m.lmerge).mul (bs.expand m.rmerge)
 
 /-!

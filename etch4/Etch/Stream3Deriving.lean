@@ -16,6 +16,8 @@ private def mkOptions (declName : Name) (stx : TSyntax ``Parser.Term.structInst)
   let expectedType ← elabType (← `($(mkIdent ``Options) $(mkIdent declName)))
   let expr ← StructInst.elabStructInst stx.raw (some expectedType)
   let typ ← inferType expr
+  if expr.hasSorry || typ.hasSorry then
+    throwErrorAt stx "expression contains sorry"
   trace[Elab.Deriving.attr_order_total] m!"elabStructInst returns {expr}; with type {typ}; expected {expectedType}"
 
   -- Extract elements from syntax.
