@@ -75,10 +75,10 @@ def mkOrder (declName : Name) (options : OptionsT) : CommandElabM Bool := do
 
   let mut ordHereCases := #[]
   for arg in options.order do
-    let alt ← `(Parser.Term.matchAltExpr| | $arg => $(mkIdent ``List.Find.here))
+    let alt ← `(Parser.Term.matchAltExpr| | $arg => $(mkIdent ``List.Find.mem))
     ordHereCases := ordHereCases.push alt
   let ordHere ← `(command|
-    def $ordHereID : ∀ (i : $id), $(mkIdent ``List.Here) i ($(mkIdent ``Shape.val) ($(mkIdent ``AttrOrder.order) (self := $instOrdID)))
+    def $ordHereID : ∀ (i : $id), $(mkIdent ``List.MemT) i ($(mkIdent ``Shape.val) ($(mkIdent ``AttrOrder.order) (self := $instOrdID)))
     $ordHereCases:matchAlt*)
 
   let instOrdTotal ← `(command|

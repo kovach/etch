@@ -13,37 +13,35 @@ import Etch.Basic
 /- TODO: move this to Etch.Basic. -/
 namespace Option
 -- TODO: is this already in mathlib?
-theorem isSome_map : isSome (Option.map f a) = isSome a :=
-  by cases a <;> simp
-
+theorem isSome_map : isSome (Option.map f a) = isSome a := by cases a <;> simp
 end Option
 
 namespace List
 /-- Same as `List.Mem`, except this lives in `Type u` -/
-inductive Here {α : Type u} (a : α) : List α → Type u
-| head (as : List α) : Here a (a::as)
-| tail (b : α) {as : List α} : Here a as → Here a (b::as)
+inductive MemT {α : Type u} (a : α) : List α → Type u
+| head (as : List α) : MemT a (a::as)
+| tail (b : α) {as : List α} : MemT a as → MemT a (b::as)
 
-def Here.index : Here a as → Fin as.length
+def MemT.index : MemT a as → Fin as.length
 | .head _ => ⟨0, Nat.zero_lt_succ _⟩
 | .tail _ h => h.index.succ
 
-def Here.mem : Here a as → a ∈ as
+def MemT.mem : MemT a as → a ∈ as
 | .head _ => .head _
 | .tail _ h => .tail _ h.mem
 
-theorem Here.fromMem : a ∈ as → Nonempty (Here a as)
+theorem MemT.fromMem : a ∈ as → Nonempty (MemT a as)
 | .head a => .intro (.head a)
-| .tail b h => (Here.fromMem h).elim fun x => .intro (.tail b x)
+| .tail b h => (MemT.fromMem h).elim fun x => .intro (.tail b x)
 
-theorem Here.memIff : Nonempty (Here a as) ↔ a ∈ as := ⟨(Nonempty.elim · Here.mem), Here.fromMem⟩
+theorem MemT.memIff : Nonempty (MemT a as) ↔ a ∈ as := ⟨(Nonempty.elim · MemT.mem), MemT.fromMem⟩
 
-theorem Here.indexGet : ∀ h : Here a as, as.get h.index = a
+theorem MemT.indexGet : ∀ h : MemT a as, as.get h.index = a
 | .head _ => rfl
 | .tail _ h => h.indexGet
 
 @[reducible]
-def eraseHere : (xs : List α) → Here x xs → List α
+def eraseHere : (xs : List α) → MemT x xs → List α
 | _ :: xs, .head _ => xs
 | _, .tail b tail => b :: eraseHere _ tail
 
@@ -51,12 +49,12 @@ def eraseHere : (xs : List α) → Here x xs → List α
 
 example : 1 ∈ [2,1,3] := by decide
 
-/-- A type-class that can automatically solve for `List.Here`. -/
-class Find (x : α) (xs : List α) where here : Here x xs
-instance Find.tail [Find x xs] : Find x (y :: xs) where here := .tail _ Find.here
-instance Find.head : Find x (x :: xs) where here := .head _
+/-- A type-class that can automatically solve for `List.MemT`. -/
+class Find (x : α) (xs : List α) where mem : MemT x xs
+instance Find.tail [Find x xs] : Find x (y :: xs) where mem := .tail _ Find.mem
+instance Find.head : Find x (x :: xs) where mem := .head _
 
-def remove (x : α) (xs : List α) [Find x xs] : List α := xs.eraseHere (x := x) Find.here
+def remove (x : α) (xs : List α) [Find x xs] : List α := xs.eraseHere (x := x) Find.mem
 #eval remove 1 [3,3,3,1,2,3,3,1,3,4,5,55,5,6,2]
 
 /-- Same as `List.Sublist`, except this lives in `Type`. -/
@@ -144,11 +142,6 @@ end List
 namespace Etch
 
 variable (A : Type) [Inhabited A]
-
-structure Shape where
-  val : List A
-  nodup : List.Nodup val
-deriving Repr
 
 inductive EType : Type
 | bool -- internal boolean type
@@ -407,7 +400,7 @@ end
 #check Finset.mem_erase
 variable [BEq A]
 
-def contract : ∀ {is} (here : is.Here i), Stream is v → Stream (is.eraseHere here) v
+def contract : ∀ {is} (mem : is.MemT i), Stream is v → Stream (is.eraseHere mem) v
 | _, h, .contraction e => .contraction (e.contract (.tail _ h))
 | _, .head _, .fun .. => panic! "cannot contract functional stream"
 | _, .tail _ h', .fun f => .fun fun x ↦ (f x).contract h'
@@ -415,8 +408,8 @@ def contract : ∀ {is} (here : is.Here i), Stream is v → Stream (is.eraseHere
 | _, .head _, s@(level ..) => .contraction s
 | _, .tail _ h, level l v => level l (v.contract h)
 
-def contract' (i : A) [h : List.Find i is] : Stream is v → Stream (is.eraseHere h.here) v
-| s => s.contract List.Find.here
+def contract' (i : A) [h : List.Find i is] : Stream is v → Stream (is.eraseHere h.mem) v
+| s => s.contract List.Find.mem
 
 def expand {is js} : (h : List.SublistT is js) → Stream is u → Stream js u
 | .slnil,     a          => a
@@ -481,6 +474,11 @@ The resulting shape can be calculated either by a function `mergeAttr` or using
 a type-class `AttrMerge`.
 -/
 
+structure Shape (A : Type) where
+  val : List A
+  nodup : List.Nodup val
+deriving Repr
+
 /-- Define a canonical attribute ordering for `A`. -/
 class AttrOrder (A : Type) where
   order : Shape A
@@ -493,24 +491,24 @@ This type-class is not necessary for anything to work currently, but
 it automatically derives `Fintype`, `Finite`, and `LinearOrder` type-classes for `A`.
 -/
 class AttrOrderTotal (A : Type) [o : AttrOrder A] where
-  toHere : ∀ (i : A), List.Here i o.order.val
+  toMem : ∀ (i : A), List.MemT i o.order.val
 
 namespace AttrOrderTotal
 variable {A : Type} [AttrOrder A] [AttrOrderTotal A]
 open AttrOrder (order)
 
 abbrev card (A) [AttrOrder A] := (@order A).val.length
-abbrev index (a : A) : Fin (card A) := toHere a |>.index
+abbrev index (a : A) : Fin (card A) := toMem a |>.index
 
 instance instFintype : Fintype A where
   elems := { val := (@order A).val, nodup := (@order A).nodup }
-  complete := fun x => (toHere x).indexGet ▸ List.get_mem _ _ _
+  complete := fun x => (toMem x).indexGet ▸ List.get_mem _ _ _
 
 lemma fintypeCard : Fintype.card A = card A :=
   show Multiset.card instFintype.elems.val = card A from rfl
 
 private lemma index.leftInverse : Function.LeftInverse (@order A).val.get index :=
-  fun a => (toHere a).indexGet
+  fun a => (toMem a).indexGet
 
 def equivFin : A ≃ Fin (card A) where
   toFun := index

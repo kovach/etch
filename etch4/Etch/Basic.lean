@@ -2,6 +2,13 @@
 --set_option pp.all true
 import Mathlib.Algebra.Ring.Basic
 
+-- not working yet
+def Fin.nil {β : Fin 0 → Type _} : (i : Fin 0) → β i := (nomatch .)
+syntax "!![" withoutPosition(sepBy(term, ", ")) "]" : term
+open Lean in
+macro_rules
+  | `(!![ $elems,* ]) => (elems.getElems.foldrM (mkIdent `Fin.nil) (f := fun x xs ↦ `(Fin.cons $x $xs)) : MacroM Term)
+
 instance : Add Bool := ⟨ or ⟩
 instance : Mul Bool := ⟨ and ⟩
 
