@@ -2,7 +2,7 @@ import Init.Data.List.Basic
 
 import Mathlib.Data.Nat.Basic
 import Mathlib.Data.Option.Basic
-import Mathlib.Data.Finset.Card
+import Mathlib.Data.Fintype.Card
 import Mathlib.Tactic.LibrarySearch
 import Mathlib.Tactic.Linarith
 
@@ -10,11 +10,37 @@ import Etch.C
 import Etch.Basic
 --import Init.WFTactics
 
+/- TODO: move this to Etch.Basic. -/
+namespace Option
+-- TODO: is this already in mathlib?
+theorem isSome_map : isSome (Option.map f a) = isSome a :=
+  by cases a <;> simp
+
+end Option
+
 namespace List
--- Same as List.Mem, except this lives in Type
-inductive Here (a : α) : List α → Type
+/-- Same as `List.Mem`, except this lives in `Type u` -/
+inductive Here {α : Type u} (a : α) : List α → Type u
 | head (as : List α) : Here a (a::as)
 | tail (b : α) {as : List α} : Here a as → Here a (b::as)
+
+def Here.index : Here a as → Fin as.length
+| .head _ => ⟨0, Nat.zero_lt_succ _⟩
+| .tail _ h => h.index.succ
+
+def Here.mem : Here a as → a ∈ as
+| .head _ => .head _
+| .tail _ h => .tail _ h.mem
+
+theorem Here.fromMem : a ∈ as → Nonempty (Here a as)
+| .head a => .intro (.head a)
+| .tail b h => (Here.fromMem h).elim fun x => .intro (.tail b x)
+
+theorem Here.memIff : Nonempty (Here a as) ↔ a ∈ as := ⟨(Nonempty.elim · Here.mem), Here.fromMem⟩
+
+theorem Here.indexGet : ∀ h : Here a as, as.get h.index = a
+| .head _ => rfl
+| .tail _ h => h.indexGet
 
 @[reducible]
 def eraseHere : (xs : List α) → Here x xs → List α
@@ -25,12 +51,93 @@ def eraseHere : (xs : List α) → Here x xs → List α
 
 example : 1 ∈ [2,1,3] := by decide
 
+/-- A type-class that can automatically solve for `List.Here`. -/
 class Find (x : α) (xs : List α) where here : Here x xs
 instance Find.tail [Find x xs] : Find x (y :: xs) where here := .tail _ Find.here
 instance Find.head : Find x (x :: xs) where here := .head _
 
 def remove (x : α) (xs : List α) [Find x xs] : List α := xs.eraseHere (x := x) Find.here
 #eval remove 1 [3,3,3,1,2,3,3,1,3,4,5,55,5,6,2]
+
+/-- Same as `List.Sublist`, except this lives in `Type`. -/
+inductive SublistT {α : Type u} : List α → List α → Type u
+/-- the base case: `[]` is a sublist of `[]` -/
+| slnil : SublistT [] []
+/-- If `l₁` is a subsequence of `l₂`, then it is also a subsequence of `a :: l₂`. -/
+| cons a : SublistT l₁ l₂ → SublistT l₁ (a :: l₂)
+/-- If `l₁` is a subsequence of `l₂`, then `a :: l₁` is a subsequence of `a :: l₂`. -/
+| cons₂ a : SublistT l₁ l₂ → SublistT (a :: l₁) (a :: l₂)
+
+theorem SublistT.toSublist : SublistT a b → Sublist a b
+| .slnil => .slnil
+| .cons  a h => .cons  a h.toSublist
+| .cons₂ a h => .cons₂ a h.toSublist
+
+theorem SublistT.fromSublist : Sublist a b → Nonempty (SublistT a b)
+| .slnil => .intro .slnil
+| .cons  a h => (SublistT.fromSublist h).elim fun x => .intro (.cons  a x)
+| .cons₂ a h => (SublistT.fromSublist h).elim fun x => .intro (.cons₂ a x)
+
+theorem SublistT.sublistIff : Nonempty (SublistT a b) ↔ Sublist a b :=
+  ⟨(Nonempty.elim · SublistT.toSublist), SublistT.fromSublist⟩
+
+instance SublistT.instCoeSublist : Coe (SublistT a b) (Sublist a b) := ⟨SublistT.toSublist⟩
+
+def nil_sublistT : ∀ l : List α, SublistT [] l
+| [] => .slnil
+| a :: l => (nil_sublistT l).cons a
+
+def SublistT.refl : ∀ l : List α, SublistT l l
+| [] => .slnil
+| a :: l => (SublistT.refl l).cons₂ a
+
+-- TODO: is this already in mathlib?
+theorem Sublist.cons_id : a :: as <+ bs → as <+ bs
+| .cons _ h => .cons _ h.cons_id
+| .cons₂ _ h => .cons _ h
+
+/--
+Check whether `l₁` is a sublist of `l₂`.
+The algorithm is equivalent to `List.decidableSublist`.
+-/
+def SublistT.check [DecidableEq α] : ∀ l₁ l₂ : List α, Option (SublistT l₁ l₂)
+| [], _ => some <| nil_sublistT _
+| _ :: _, [] => none
+| a :: l₁, b :: l₂ =>
+  if h : a = b then
+    SublistT.check l₁ l₂ |>.map (h ▸ .cons₂ a ·)
+  else
+    SublistT.check (a :: l₁) l₂ |>.map (.cons b ·)
+
+lemma SublistT.checkComplete [DecidableEq α] {a b : List α} (h : Sublist a b) : (SublistT.check a b).isSome := by
+  induction a generalizing b with
+  | nil => simp [check]
+  | cons a as ih₁ => induction b with
+    | nil => contradiction
+    | cons b bs ih₂ =>
+      unfold check
+      split_ifs
+      . suffices Option.isSome (check _ _) by rwa [Option.isSome_map]
+        apply ih₁
+        cases h
+        . exact Sublist.cons_id ‹_›
+        . assumption
+      . suffices Option.isSome (check _ _) by rwa [Option.isSome_map]
+        apply ih₂
+        cases h
+        . assumption
+        . contradiction
+
+theorem SublistT.checkIff [DecidableEq α] {a b : List α} : Sublist a b ↔ (SublistT.check a b).isSome :=
+⟨SublistT.checkComplete, fun h => by
+  rw [Option.isSome_iff_exists] at h
+  exact h.choose.toSublist⟩
+
+instance [DecidableEq α] {a b : List α} : Decidable ((SublistT.check a b).isSome = true) :=
+  decidable_of_decidable_of_iff SublistT.checkIff
+
+@[inline] def SublistT.check' [DecidableEq α] {a b : List α} (h : Sublist a b) : SublistT a b :=
+(SublistT.check a b).get (SublistT.checkComplete h)
 
 end List
 
@@ -41,6 +148,7 @@ variable (A : Type) [Inhabited A]
 structure Shape where
   val : List A
   nodup : List.Nodup val
+deriving Repr
 
 inductive EType : Type
 | bool -- internal boolean type
@@ -160,7 +268,7 @@ def LVal.incr : LVal A .int → P A := fun l ↦ .store l (l.expr + (1 : E A .in
 infixr:min "$!" => E.call
 
 def E.and : E A .bool → E A .bool → E A .bool := fun a b ↦ E.call Op.and ![a, b]
-def E.or : E A .bool → E A .bool → E A .bool := fun a b ↦ E.call Op.and ![a, b]
+def E.or : E A .bool → E A .bool → E A .bool := fun a b ↦ E.call Op.or ![a, b]
 
 variable {A}
 
@@ -236,14 +344,14 @@ inductive Stream {A : Type} : List A → A → Type
 
 infixr:26 " →ₛ " => Stream
 
-def Stream.default (is) : Stream is v :=
+namespace Stream
+
+def default (is) : Stream is v :=
 match is with
 | [] => .scalar 0
-| (_ :: is) => .fun fun _ ↦ Stream.default is
+| (_ :: is) => .fun fun _ ↦ default is
 
 instance : Inhabited (Stream is v) where default := Stream.default is
-
-namespace Stream
 
 -- "LVS" = L-value stream
 
@@ -307,16 +415,17 @@ def contract : ∀ {is} (here : is.Here i), Stream is v → Stream (is.eraseHere
 | _, .head _, s@(level ..) => .contraction s
 | _, .tail _ h, level l v => level l (v.contract h)
 
-def expand : ∀ {is} (here : is.Here i), Stream is v → Stream (is.eraseHere here) v
-| _, h, .contraction e => .contraction (e.contract (.tail _ h))
-| _, .head _, .fun .. => panic! "cannot contract functional stream"
-| _, .tail _ h', .fun f => .fun fun x ↦ (f x).contract h'
-| _, h, seq a b => .seq (a.contract h) (b.contract h)
-| _, .head _, s@(level ..) => .contraction s
-| _, .tail _ h, level l v => level l (v.contract h)
-
 def contract' (i : A) [h : List.Find i is] : Stream is v → Stream (is.eraseHere h.here) v
 | s => s.contract List.Find.here
+
+def expand {is js} : (h : List.SublistT is js) → Stream is u → Stream js u
+| .slnil,     a          => a
+| .cons  i h, a          => .fun fun _ => a.expand h
+| .cons₂ i h, .level l a => .level l (a.expand h)
+| .cons₂ i h, .seq a₁ a₂ => .seq (a₁.expand (h.cons₂ i)) (a₂.expand (h.cons₂ i))
+| .cons₂ i h, .fun f     => .fun fun x => (f x).expand h
+| .cons₂ _ _, .contraction _ => panic! "Cannot expand a contraction"
+termination_by expand is js h a => (is, Sigma.mk is a, Sigma.mk is (Sigma.mk js h))
 
 
 def compile : ∀ {is : List A}, LVS is v → is →ₛ v → P A
@@ -334,7 +443,7 @@ def compile : ∀ {is : List A}, LVS is v → is →ₛ v → P A
 -- | _, l, .memo p s => p ;; compile l s
 --| i, .level _ push l', @Stream.level _ _ _ _ r r' => let ready : Var A .bool := "ready"; let index : Var A i := "index"
 
-partial def mul {is : List A} {v : A} : is →ₛ v → is →ₛ v → is →ₛ v
+def mul {is : List A} {v : A} : is →ₛ v → is →ₛ v → is →ₛ v
 | l, seq a b => seq (l.mul a) (l.mul b)
 | seq a b, l => seq (a.mul l) (b.mul l)
 
@@ -350,96 +459,175 @@ partial def mul {is : List A} {v : A} : is →ₛ v → is →ₛ v → is →�
 | .scalar e₁, .scalar e₂ => .scalar (.mul $! ![e₁, e₂])
 -- | .memo p₁ s₁, .memo p₂ s₂ =>  .memo (p₁ ;; p₂) (s₁.mul s₂)
 
---termination_by _ x y => sizeOf (x, y) -- try just (x, y)
+termination_by mul is v x y => (is, Sigma.mk is (Sigma.mk v x), Sigma.mk is (Sigma.mk v y))
 --decreasing_by
 --  try decreasing_tactic <;>
 --  (simp [sizeOf]; sorry)
 
-variable [LinearOrder A]
-
--- TODO try insertHere instead?
-def insert : A → List A → List A
-| j, []  => [j]
-| j, i :: is => if j = i then i :: is else if j < i then j :: i :: is else i :: is.insert j
-
-#check ne_of_lt
-@[simp] theorem insert_lt (h : j < i) : insert j (i :: is) = j :: i :: is := by
-  dsimp [insert];
-  split; rename_i h'
-  cases ne_of_lt h h'; rfl
-
-@[simp] theorem insert_gt (h : i < j) : insert j (i :: is) = i :: insert j is := by
-  dsimp [insert];
-  split <;> rename_i h'
-  . cases ne_of_lt h h'.symm;
-  . split; rename_i h''
-    cases not_lt_of_gt h h''
-    sorry
-    sorry
-
-
-@[simp] theorem insert_lt (h : j < i) : insert j (i :: is) = j :: i :: is := by
-  dsimp [insert]; split; contradiction; rfl; contradiction
-
--- need nested match in order for simp lemmas to work below
-def merge : List A → List A → List A
-| [], x => x
-| x :: xs, ys =>
-  match ys with
-    | [] => x :: xs
-    | y :: ys => if x = y then x :: merge xs ys else
-      if x < y then x :: merge xs (y :: ys) else y :: merge (x :: xs) ys
-termination_by _ x y => (x, y)
-
-#print merge._unary
-#eval merge [1,3] [0,2]
-
-section merge
-@[simp] theorem nil_merge (x : List A) : merge [] x = x := by rw [merge]
-@[simp] theorem merge_nil (x : List A) : merge x [] = x := by cases x <;> rw [merge] -- can't just `rw [merge]`
-end merge
-
-def expand_lt (j : A) (h : j < i) : ∀ {is}, Stream (i :: is) v → Stream (insert j (i :: is)) v
-|_, s => by rw [insert_lt h]; exact .fun fun _ ↦ s
-def expand_eq (j : A) (h : j = i) : Stream (i :: is) v → Stream (insert j (i :: is)) v
-| s => by dsimp [insert]; simpa [h] using s
-def expand_gt (j : A) (h : i < j) : ∀ {is}, Stream (i :: is) v → Stream (insert j (i :: is)) v
-| _, .contraction e => .contraction (e.expand (.tail _ h))
-| _,  .fun .. => panic! "cannot contract functional stream"
-| _, .fun f => .fun fun x ↦ (f x).contract h'
-| _, seq a b => .seq (a.contract h) (b.contract h)
-| _, s@(level ..) => .contraction s
-| _, level l v => level l (v.contract h)
-
-example : ¬ j < i → i ≤ j := by simp?
-
-def expand (j : A) : ∀ {is}, is →ₛ v → insert j is →ₛ v
-| [], s => .fun fun _ ↦ s
-| i :: _, s => lt_by_cases j i (fun h ↦ expand_lt j h s) (fun h ↦ expand_eq j h s) fun h ↦
-  match s with
-  | .fun f => .fun fun i ↦ (f i).expand j
-  expand_gt j h s
-
-def expand : [] →ₛv →  is →ₛv := sorry
-
---def mul' [LinearOrder A] : (is : List A) → (js : List A) → is →ₛ v → js →ₛ v → ((merge is js →ₛ v) × ((merge is js →ₛ v)))
---| [], x, s, t => by rw [nil_merge]; exact (s.expand, t)
---| x, [], s, t => by rw [merge_nil]; exact (s, t.expand)
---| x :: xs, y :: ys, s, t => if x = y
---  then sorry else if true
---  then x :: merge xs (y :: ys) else y :: merge (x :: xs) ys
-
-variable (i j k : A)
-#check (contract' i $ default [i, j])
-#check let a  : [j] →ₛ i := (contract' i (default [i, j])); a
-
 end Stream
+
+/-!
+## Merge
+
+To allow two streams with different shapes to be multiplied together,
+we insert a call to `Stream.expand` prior to the multiplication.
+However, we need to first compute the resulting shape, required for
+`Stream.expand` to work.
+
+For us to be able to compute this, the user first defines a canonical
+attribute ordering on `A` through `AttrOrder`. (Optionally, a `AttrOrderTotal`
+instance can be defined also, though it's not currently required.)
+The resulting shape can be calculated either by a function `mergeAttr` or using
+a type-class `AttrMerge`.
+-/
+
+/-- Define a canonical attribute ordering for `A`. -/
+class AttrOrder (A : Type) where
+  order : Shape A
+attribute [reducible] AttrOrder.order
+
+/--
+The order defined in `AttrOrder` covers every value of `A`.
+
+This type-class is not necessary for anything to work currently, but
+it automatically derives `Fintype`, `Finite`, and `LinearOrder` type-classes for `A`.
+-/
+class AttrOrderTotal (A : Type) [o : AttrOrder A] where
+  toHere : ∀ (i : A), List.Here i o.order.val
+
+namespace AttrOrderTotal
+variable {A : Type} [AttrOrder A] [AttrOrderTotal A]
+open AttrOrder (order)
+
+abbrev card (A) [AttrOrder A] := (@order A).val.length
+abbrev index (a : A) : Fin (card A) := toHere a |>.index
+
+instance instFintype : Fintype A where
+  elems := { val := (@order A).val, nodup := (@order A).nodup }
+  complete := fun x => (toHere x).indexGet ▸ List.get_mem _ _ _
+
+lemma fintypeCard : Fintype.card A = card A :=
+  show Multiset.card instFintype.elems.val = card A from rfl
+
+private lemma index.leftInverse : Function.LeftInverse (@order A).val.get index :=
+  fun a => (toHere a).indexGet
+
+def equivFin : A ≃ Fin (card A) where
+  toFun := index
+  invFun := order.val.get
+  left_inv := index.leftInverse
+  right_inv := index.leftInverse.rightInverse_of_card_le (by simp [fintypeCard])
+
+instance : Finite A := ⟨equivFin⟩
+
+instance : LinearOrder A := LinearOrder.lift' index index.leftInverse.injective
+
+/-! Short circuits. -/
+instance : LE A := inferInstance
+instance : DecidableLE A := inferInstance
+instance : LT A := inferInstance
+instance : DecidableLT A := inferInstance
+
+end AttrOrderTotal
+
+/-!
+### Shape inference as a function
+-/
+
+def mergeAttr {A : Type} [o : AttrOrder A] {a b : List A}
+    (ha : List.SublistT a o.order.val) (hb : List.SublistT b o.order.val) :
+    (out : Shape A) × (List.SublistT a out.val × List.SublistT b out.val × List.SublistT out.val o.order.val) :=
+  let ⟨out', ha', hb', ho'⟩ := go ha hb
+  let out : Shape A := ⟨out', .sublist ho' o.order.nodup⟩
+  ⟨out, ha', hb', ho'⟩
+where
+  go : ∀ {order a b : List A},
+    (ha : List.SublistT a order) → (hb : List.SublistT b order) →
+    (out : List A) × (List.SublistT a out × List.SublistT b out × List.SublistT out order)
+  -- Base case
+  | _, _, _, .slnil, .slnil => .mk [] (.slnil, .slnil, .slnil)
+  -- Attribute does not appear
+  | _, _, _, .cons a ha, .cons _ hb =>
+    let ⟨out', ha', hb', ho'⟩ := go ha hb
+    ⟨out', ha', hb', .cons a ho'⟩
+  -- Attribute appears in left
+  | _, _, _, .cons₂ a ha, .cons _ hb =>
+    let ⟨out', ha', hb', ho'⟩ := go ha hb
+    ⟨a :: out', ha'.cons₂ a, hb'.cons a, ho'.cons₂ a⟩
+  -- Attribute appears in right
+  | _, _, _, .cons a ha, .cons₂ _ hb =>
+    let ⟨out', ha', hb', ho'⟩ := go ha hb
+    ⟨a :: out', ha'.cons a, hb'.cons₂ a, ho'.cons₂ a⟩
+  -- Attribute appears in both
+  | _, _, _, .cons₂ a ha, .cons₂ _ hb =>
+    let ⟨out', ha', hb', ho'⟩ := go ha hb
+    ⟨a :: out', ha'.cons₂ a, hb'.cons₂ a, ho'.cons₂ a⟩
+
+/--
+The output type is definitionally equal to the "correct" shape, but the shape
+itself is not computed automatically.
+-/
+def Stream.mulMerge [o : AttrOrder A] {is js : List A}
+  (ha : List.SublistT is o.order.val) (hb : List.SublistT js o.order.val)
+  (as : is →ₛ v) (bs : js →ₛ v) :
+  (mergeAttr ha hb).1.val →ₛ v :=
+let ⟨_, ha, hb, _⟩ := mergeAttr ha hb
+(as.expand ha).mul (bs.expand hb)
+
+/-!
+### Shape inference using type-class search
+The merging algorithm is encoded in the instances of the `AttrMerge` type class.
+This allows `Stream.mul'` to return a stream of the correct type with no fuss.
+-/
+
+/-- Solve for how to merge two sets of indices together using a predefined linear order. -/
+class AttrMerge {A : Type} (order a b : List A) (out : outParam (List A)) where
+  lmerge : List.SublistT a out
+  rmerge : List.SublistT b out
+  outIsShape : List.SublistT out order
+
+namespace AttrMerge
+
+variable {A : Type}
+
+instance base : AttrMerge ([] : List A) [] [] [] := ⟨List.nil_sublistT _, List.nil_sublistT _, List.nil_sublistT _⟩
+instance skip [m : AttrMerge order a b out] : AttrMerge (i :: order) a b out :=
+  { m with outIsShape := m.outIsShape.cons i }
+instance lsucc [m : AttrMerge order a b out] : AttrMerge (i :: order) (i :: a) b (i :: out) where
+  lmerge := m.lmerge.cons₂ i
+  rmerge := m.rmerge.cons i
+  outIsShape := m.outIsShape.cons₂ i
+instance rsucc [m : AttrMerge order a b out] : AttrMerge (i :: order) a (i :: b) (i :: out) where
+  lmerge := m.lmerge.cons i
+  rmerge := m.rmerge.cons₂ i
+  outIsShape := m.outIsShape.cons₂ i
+instance succ₂ [m : AttrMerge order a b out] : AttrMerge (i :: order) (i :: a) (i :: b) (i :: out) where
+  lmerge := m.lmerge.cons₂ i
+  rmerge := m.rmerge.cons₂ i
+  outIsShape := m.outIsShape.cons₂ i
+
+def merge [o : AttrOrder A] (a b : List A) [AttrMerge o.order.val a b c] := c
+
+end AttrMerge
+
+export AttrMerge (merge)
+
+def Stream.mul' [o : AttrOrder A] {is js ks : List A} [m : AttrMerge o.order.val is js ks]
+  (as : is →ₛ v) (bs : js →ₛ v) : ks →ₛ v :=
+(as.expand m.lmerge).mul (bs.expand m.rmerge)
+
+/-!
+### Other potential solutions
+We could use typeclasses to search for a proof that one attribute is `<`
+compared to another. However, this turns out to be really slow in practice.
+-/
+
 end Etch
 
 /- todo
   define contraction, expansion, fast addition for new stream type
     [X] mapped contraction
-    [ ] mapped expansion, mul
+    [x] mapped expansion, mul
     [ ] (lval, rval) pairs. memo? finish compile.
   test output
 
