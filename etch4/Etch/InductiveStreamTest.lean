@@ -1,5 +1,5 @@
-import Etch.Stream3
-import Etch.Stream3Deriving
+import Etch.InductiveStreamCompile
+import Etch.InductiveStreamDeriving
 
 namespace Etch.Stream.Test
 

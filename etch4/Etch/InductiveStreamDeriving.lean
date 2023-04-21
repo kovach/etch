@@ -1,4 +1,4 @@
-import Etch.Stream3
+import Etch.InductiveStreamCompile
 
 namespace Etch.Deriving.AttrOrder
 
