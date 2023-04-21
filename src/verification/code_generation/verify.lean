@@ -9,9 +9,9 @@ import tactic.derive_fintype
 import tactic.fin_cases
 import finsupp_lemmas
 import frames
-import verification.vars
+import verification.code_generation.vars
 import verification.misc
-import verification.stream
+import verification.semantics.stream
 import data.pfun
 
 section
@@ -23,7 +23,7 @@ open Vars (ind₀ vals len output)
 
 section compiler
 
-parameters [add_comm_monoid R] [has_one R] [has_mul R]
+parameters [add_comm_monoid_with_one R] [has_mul R]
 
 @[reducible]
 def ExprVal : Types → Type
@@ -126,7 +126,7 @@ def eval : ∀ {b} (o : Op b), (Π (n : fin o.arity), ExprVal (o.signature n)) �
 | _ nat_eq := λ args, args 0 = args 1
 | _ lt := λ args, (show ℕ, from args 0) < args 1
 | _ le := λ args, (show ℕ, from args 0) ≤ args 1
-| _ cast_r := λ args, show ℕ, from args 0
+| _ cast_r := λ args, (coe : ℕ → R) (show ℕ, from args 0)
 
 end Op
 
@@ -137,7 +137,6 @@ inductive Expr : Types → Type
 | access {b} : Ident b → Expr nn → Expr b
 | call {b} : ∀ o : Op b, (Π (n : fin o.arity), Expr (o.signature n)) → Expr b
 | ternary {b} : Expr bb → Expr b → Expr b → Expr b
-
 
 abbreviation EContext := HeapContext ExprVal
 abbreviation Frame := finset (Σ b, Ident b)
@@ -174,13 +173,17 @@ infix ` ⟪≥⟫ `:50   := has_comp.ge
 infix ` ⟪>⟫ `:50   := has_comp.gt
 infix ` ⟪=⟫ `:50   := has_comp.eq
 
-@[simps { attrs := [] }] instance Expr.has_comp : has_comp (Expr nn) (Expr bb) :=
-{ eq := λ a b, Expr.call Op.nat_eq $ fin.cons a $ fin.cons b default,
-  lt := λ a b, Expr.call Op.lt $ fin.cons a $ fin.cons b default,
-  le := λ a b, Expr.call Op.le $ fin.cons a $ fin.cons b default,
-  ge := λ a b, Expr.call Op.le $ fin.cons b $ fin.cons a default,
-  gt := λ a b, Expr.call Op.lt $ fin.cons b $ fin.cons a default }
 
+@[simps { attrs := [] }] instance Expr.has_comp : has_comp (Expr nn) (Expr bb) :=
+{ eq := λ a b, Expr.call Op.nat_eq (by exact fin.cons a (fin.cons b fin.elim0)),
+  lt := λ a b, Expr.call Op.lt (by exact fin.cons a (fin.cons b fin.elim0)),
+  le := λ a b, Expr.call Op.le (by exact fin.cons a (fin.cons b fin.elim0)),
+  ge := λ a b, Expr.call Op.le (by exact fin.cons b (fin.cons a fin.elim0)),
+  gt := λ a b, Expr.call Op.lt (by exact fin.cons b (fin.cons a fin.elim0)) }
+
+
+
+#exit
 section Expr
 
 def expr_repr [has_to_string R] : ∀ {b : Types}, (Expr b) → string

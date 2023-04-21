@@ -8,6 +8,12 @@ import data.option.basic
 import data.pfun
 import data.prod.lex
 
+/-! 
+This is a collection of miscellaneous lemmas. Not all of these are used;
+many of them where used in previous versions of the formalization/are used 
+in the WIP verification of the code-generating compiler.
+-/
+
 lemma bool.coe_iff_eq_tt (b : bool) : b ↔ b = tt := iff.rfl
 @[simp] lemma option.bind_const_none {α β} (x : option α) :
   x.bind (λ _, none) = (none : option β) :=
@@ -86,8 +92,13 @@ by { erw [← list.map_uncurry_zip_eq_zip_with, list.map_snd_zip], exact hl, }
     (finset.univ.val : multiset (fin n)).map (λ i, l.nth_le i (by rw hn; exact i.prop)) = l :=
 by { subst hn, simp [finset.univ, fintype.elems], erw list.map_nth_le, }
 
-@[simp] lemma le_ff_iff {b : bool} : b ≤ ff ↔ b = ff :=
-by cases b; simp
+@[simp] lemma le_ff_iff : ∀ {b : bool}, b ≤ ff ↔ b = ff := dec_trivial
+
+@[simp] lemma lt_tt_iff : ∀ {b : bool}, b < tt ↔ b = ff := dec_trivial
+
+@[simp] lemma ff_lt_iff : ∀ {b : bool}, ff < b ↔ b = tt := dec_trivial
+
+lemma bool.min_eq_and {a b : bool} : min a b = a && b := rfl
 
 lemma ne_min_of_ne_and_ne {ι : Type*} [linear_order ι] {a x y : ι} (hx : a ≠ x) (hy : a ≠ y) :
   a ≠ min x y := by cases min_choice x y with h; rw h; assumption
@@ -107,54 +118,99 @@ variables {ι : Type} [partial_order ι]
   x.is_some ↔ x < ⊤ :=
 by { rw [← not_iff_not, eq_ff_eq_not_eq_tt, option.not_is_some, option.is_none_iff_eq_none, lt_top_iff_ne_top, ne, not_not], refl, }
 
-lemma prod.lex.le_iff' {α β : Type} [has_lt α] [has_le β] {x y : α ×ₗ β} :
-  x ≤ y ↔ x.1 < y.1 ∨ (x.1 = y.1 ∧ x.2 ≤ y.2) := prod.lex_def _ _
-
-lemma prod.lex.le_iff'' {α β : Type} [partial_order α] [preorder β] {x y : α ×ₗ β} :
-  x ≤ y ↔ x.1 ≤ y.1 ∧ (x.1 = y.1 → x.2 ≤ y.2) :=
-by { rw [prod.lex.le_iff', le_iff_lt_or_eq], have := @ne_of_lt _ _ x.1 y.1, tauto!, }
-
-lemma prod.lex.lt_iff' {α β : Type} [has_lt α] [has_lt β] {x y : α ×ₗ β} :
-  x < y ↔ x.1 < y.1 ∨ (x.1 = y.1 ∧ x.2 < y.2) := prod.lex_def _ _
-
-lemma prod.lex.fst_le_of_le {α β : Type} [preorder α] [preorder β] {x y : α ×ₗ β} (h : x ≤ y) : x.1 ≤ y.1 :=
-by { rw prod.lex.le_iff' at h, cases h, { exact h.le, }, { exact h.1.le, }, }
-
-lemma prod.lex.fst_lt_of_lt_of_le {α β : Type} [preorder α] [partial_order β] {x y : α ×ₗ β}
-  (h : x < y) (h' : y.2 ≤ x.2) : x.1 < y.1 :=
-by { rw prod.lex.lt_iff' at h, cases h, { exact h, }, cases h.2.not_le h', }
-
 @[simp, norm_cast] lemma prod.with_top.coe_inj {α : Type} (x y : α) : (x : with_top α) = y ↔ x = y :=
 option.some_inj
 
 end with_top
 
-/- NOTE: This stuff is already in mathlib (`data.finsupp.pointwise`) -/
+namespace prod
+variables {α β : Type*} (r₁ : α → α → Prop) (r₂ : β → β → Prop)
 
--- variables {ι α : Type}
+def rprod_eq (s₁ s₂ : α × β) : Prop :=
+(r₁ s₁.1 s₂.1 ∧ (r₂ s₁.2 s₂.2 ∨ s₁.2 = s₂.2)) ∨
+  (r₂ s₁.2 s₂.2 ∧ (r₁ s₁.1 s₂.1 ∨ s₁.1 = s₂.1))
 
--- noncomputable instance finsupp.has_mul [mul_zero_class α] : has_mul (ι →₀ α) :=
--- ⟨λ a b, finsupp.zip_with (*) (zero_mul _) a b⟩
+variables {r₁ r₂}
 
--- lemma finsupp.mul_apply [mul_zero_class α] (g₁ g₂ : ι →₀ α) (a : ι) : (g₁ * g₂) a = g₁ a * g₂ a := rfl
+theorem rprod_eq_sub_lex (s₁ s₂ : α × β) (h : rprod_eq r₁ r₂ s₁ s₂) :
+  prod.lex r₁ r₂ s₁ s₂ :=
+begin
+  cases s₁ with a b, cases s₂ with c d,
+  rcases h with (⟨h₁, _⟩|⟨h₁, (h₂|h₂)⟩),
+  { exact prod.lex.left _ _ h₁, },
+  { exact prod.lex.left _ _ h₂, },
+  { dsimp only at h₁ h₂, rw h₂, exact prod.lex.right _ h₁, }
+end
 
--- -- #check pi.distrib -- todo, tactic like this?
--- noncomputable instance finsupp.non_unital_semiring [non_unital_semiring α] : non_unital_semiring (ι →₀ α) :=
--- {
---   zero := 0,
---   add_assoc := λ a b c, fun_like.ext _ _ (by simp [finsupp.add_apply, add_assoc]),
---   zero_add  := λ a,     fun_like.ext _ _ (by simp [finsupp.add_apply]),
---   add_zero  := λ a,     fun_like.ext _ _ (by simp [finsupp.add_apply]),
---   add_comm  := λ a b,   fun_like.ext _ _ (by simp [finsupp.add_apply, add_comm] ),
---   zero_mul  := λ a,     fun_like.ext _ _ (by simp [finsupp.mul_apply]),
---   mul_zero  := λ a,     fun_like.ext _ _ (by simp [finsupp.mul_apply]),
+theorem rprod_eq_wf (h₁ : well_founded r₁) (h₂ : well_founded r₂) :
+  well_founded (rprod_eq r₁ r₂) :=
+subrelation.wf rprod_eq_sub_lex (lex_wf h₁ h₂)
 
---   left_distrib  := λ a b c, by simp [fun_like.ext_iff, finsupp.mul_apply, finsupp.add_apply, left_distrib],
---   right_distrib := λ a b c, by simp [fun_like.ext_iff, finsupp.mul_apply, finsupp.add_apply, right_distrib],
+namespace lex
 
---   mul_assoc     := λ a b c, by simp [fun_like.ext_iff, finsupp.mul_apply, mul_assoc],
+local notation a ` <ₗ `:50 b := @has_lt.lt (α ×ₗ β) _ a b
+local notation a ` ≤ₗ `:50 b := @has_le.le (α ×ₗ β) _ a b
 
---   ..finsupp.has_mul, ..finsupp.has_add, }
+lemma le_iff' [has_lt α] [has_le β] {x y : α ×ₗ β} :
+  x ≤ y ↔ x.1 < y.1 ∨ (x.1 = y.1 ∧ x.2 ≤ y.2) := prod.lex_def _ _
+
+lemma le_iff'' [partial_order α] [preorder β] {x y : α ×ₗ β} :
+  x ≤ y ↔ x.1 ≤ y.1 ∧ (x.1 = y.1 → x.2 ≤ y.2) :=
+by { rw [prod.lex.le_iff', le_iff_lt_or_eq], have := @ne_of_lt _ _ x.1 y.1, tauto!, }
+
+lemma lt_iff' [has_lt α] [has_lt β] {x y : α ×ₗ β} :
+  x < y ↔ x.1 < y.1 ∨ (x.1 = y.1 ∧ x.2 < y.2) := prod.lex_def _ _
+
+lemma lt_iff'' [partial_order α] [preorder β] {x y : α ×ₗ β} :
+  x < y ↔ x.1 ≤ y.1 ∧ (x.1 = y.1 → x.2 < y.2) :=
+by { rw [lt_iff', le_iff_lt_or_eq], have : x.1 < y.1 → ¬(x.1 = y.1) := ne_of_lt, tauto, }
+
+lemma fst_le_of_le [preorder α] [preorder β] {x y : α ×ₗ β} (h : x ≤ y) : x.1 ≤ y.1 :=
+by { rw prod.lex.le_iff' at h, cases h, { exact h.le, }, { exact h.1.le, }, }
+
+lemma fst_lt_of_lt_of_le [preorder α] [partial_order β] {x y : α ×ₗ β}
+  (h : x < y) (h' : y.2 ≤ x.2) : x.1 < y.1 :=
+by { rw prod.lex.lt_iff' at h, cases h, { exact h, }, cases h.2.not_le h', }
+
+lemma fst_mono [preorder α] [preorder β] :
+  @monotone (α ×ₗ β) α _ _ prod.fst := λ x y, fst_le_of_le
+
+lemma min_fst [linear_order α] [linear_order β] (x y : α ×ₗ β) :
+  (min x y).1 = min x.1 y.1 := monotone.map_min fst_mono
+
+@[simp] lemma mk_fst_mono_iff [preorder α] [preorder β]
+  {x : α} {y₁ y₂ : β} : ((x, y₁) ≤ₗ (x, y₂)) ↔ y₁ ≤ y₂ := by simp [le_iff']
+
+@[simp] lemma mk_fst_mono_lt_iff [preorder α] [preorder β]
+  {x : α} {y₁ y₂ : β} : ((x, y₁) <ₗ (x, y₂)) ↔ y₁ < y₂ := by simp [lt_iff']
+
+@[simp] lemma mk_snd_mono_le_iff [partial_order α] [preorder β]
+  {x₁ x₂ : α} {y : β} : ((x₁, y) ≤ₗ (x₂, y)) ↔ x₁ ≤ x₂ := by simp [le_iff'']
+
+@[simp] lemma mk_snd_mono_lt_iff [preorder α] [preorder β]
+  {x₁ x₂ : α} {y : β} : ((x₁, y) <ₗ (x₂, y)) ↔ x₁ < x₂ := by simp [lt_iff']
+
+@[simp] lemma mk_ff_lt_mk_tt_iff [partial_order α] {x₁ x₂ : α} :
+  (@has_lt.lt (α ×ₗ bool) _ (x₁, ff) (x₂, tt)) ↔ x₁ ≤ x₂ := by simp [lt_iff', le_iff_lt_or_eq]
+
+@[simp] lemma mk_tt_le_mk_ff_iff_lt [partial_order α] (x y : α) :
+  (@has_le.le (α ×ₗ bool) _ (x, tt) (y, ff)) ↔ x < y := by simp [le_iff']
+
+lemma mk_min [linear_order α] [linear_order β] (x : α) (y₁ y₂ : β) :
+  @min (α ×ₗ β) _ (x, y₁) (x, y₂) = (x, min y₁ y₂) :=
+(@monotone.map_min _ (α ×ₗ β) _ _ (λ y, (x, y)) y₁ y₂ $ λ y₁ y₂, by simp).symm
+
+
+end lex
+
+end prod
+
+@[simp] lemma max_le_min_iff {α : Type*} [linear_order α] {x y : α} :
+  max x y ≤ min x y ↔ x = y := by simpa using le_antisymm_iff.symm
+
+@[simp] lemma max_eq_min_iff {α : Type*} [linear_order α] {x y : α} :
+   min x y = max x y ↔ x = y :=
+⟨λ h, max_le_min_iff.mp h.symm.le, λ h, by simp [h]⟩ 
 
 @[simp] lemma finsupp.mul_single {ι β : Type*} [mul_zero_class β] (i : ι) (x y : β) :
   (finsupp.single i x) * (finsupp.single i y) = finsupp.single i (x * y) :=
@@ -172,6 +228,18 @@ lemma finsupp.mul_single_eq_zero {ι β : Type*} [mul_zero_class β] (i₁ i₂ 
   (finsupp.single i₁ x) * (finsupp.single i₂ y) = 0 :=
 by { classical, rw [finsupp.mul_eq_zero_of_disjoint_support], simp [finset.disjoint_iff_ne, finsupp.mem_support_single], intros, exact hi, }
 
-set_option pp.implicit true
+lemma finsupp.mul_filter {ι β : Type*} [mul_zero_class β] (P Q : ι → Prop) (f g : ι →₀ β) :
+  (f.filter P) * (g.filter Q) = (f * g).filter (λ i, P i ∧ Q i) :=
+by { ext i, by_cases h₁ : P i; by_cases h₂ : Q i; simp [h₁, h₂], }
 
+lemma finsupp.mul_filter' {ι β : Type*} [mul_zero_class β] (P : ι → Prop) (f g : ι →₀ β) :
+  (f * g).filter P = (f.filter P) * (g.filter P) := by simp [finsupp.mul_filter]
+
+lemma finsupp.filter_ext_iff {ι β : Type*} [add_zero_class β] (P : ι → Prop) (f g : ι →₀ β) :
+  (f.filter P = g.filter P) ↔ (∀ a, P a → f a = g a) :=
+by { classical, simp [fun_like.ext_iff, finsupp.filter_apply, apply_ite2 (=), ← imp_iff_not_or], }
+
+lemma mul_eq_zero_of {α : Type*} [mul_zero_class α] {x y : α} : x = 0 ∨ y = 0 → x * y = 0
+| (or.inl h) := by { rw h, exact zero_mul y, }
+| (or.inr h) := by { rw h, exact mul_zero x, }
 
