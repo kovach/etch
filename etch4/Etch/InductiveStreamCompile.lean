@@ -126,6 +126,8 @@ lemma SublistT.checkComplete [DecidableEq α] {a b : List α} (h : Sublist a b) 
         . assumption
         . contradiction
 
+#print SublistT.checkComplete
+
 theorem SublistT.checkIff [DecidableEq α] {a b : List α} : Sublist a b ↔ (SublistT.check a b).isSome :=
 ⟨SublistT.checkComplete, fun h => by
   rw [Option.isSome_iff_exists] at h
@@ -148,6 +150,9 @@ inductive EType : Type
 | int  -- internal int type
 | attr : A → EType -- user-selected attribute types
 | k    : A → EType -- universal semiring type
+
+class HasSucc (α : Type u) : Type u where
+  succ : α → α
 
 @[reducible] abbrev Var (A) (_ : EType A) := String
 def Var.toString : Var A i → String := id
@@ -235,26 +240,28 @@ infixr:10 " ;; " => P.seq
 def P.if1 {A} : E A .bool → P A → P A := fun c t ↦ P.branch c t P.skip
 
 
-structure Level {A} (i : A) : Type where
-  skip  : E A i → E A .bool → P A
-  ready : E A .bool
-  index : E A i
-  valid : E A .bool
-
 infixr:40 " << " => λ a b => E.call Op.lt ![a, b]
 infixr:40 " >> " => λ a b => E.call Op.lt ![b, a]
-infixr:40 " <ᵣ " => λ a b => E.call Op.ofBool ![E.call Op.lt ![a, b]]
-infixr:40 " >ᵣ " => λ a b => E.call Op.ofBool ![E.call Op.lt ![b, a]]
+infixr:40 " <ᵣ " => λ a b => E.call Op.to EType.bool _ ![E.call Op.lt ![a, b]]
+infixr:40 " >ᵣ " => λ a b => E.call Op.to EType.bool _ ![E.call Op.lt ![b, a]]
 infixr:40 " == " => λ a b => E.call Op.eq ![a, b]
-infixr:40 " != " => λ a b => E.call Op.neg ![(E.call Op.eq ![a, b])]
+infixr:40 " != " => λ a b => E.call Op.neg ![E.call Op.eq ![a, b]]
 infixr:40 " <= " => λ a b => E.call Op.le ![a, b]
 infixr:40 " >= " => λ a b => E.call Op.le ![b, a]
 
 instance : Zero (E A (.k i)) := ⟨ E.call Op.zero ![] ⟩
+instance : Zero (E A .bool) := ⟨ E.call Op.false ![] ⟩
 instance : One (E A (.k i)) := ⟨ E.call Op.one ![] ⟩
 instance : One (E A .int) := ⟨ E.call Op.int_one ![] ⟩
+instance : One (E A .bool) := ⟨ E.call Op.true ![] ⟩
+instance : Add (E A (.k i)) := ⟨ λ a b => E.call .add ![a, b] ⟩
 instance : Add (E A .int) := ⟨ λ a b => E.call .int_add ![a, b] ⟩
 instance : Sub (E A .int) := ⟨ λ a b => E.call .int_sub ![a, b] ⟩
+instance : Neg (E A .bool) := ⟨ fun a => E.call Op.neg ![a] ⟩
+
+instance [Add α] [One α] : HasSucc α := ⟨ fun a => a + 1 ⟩
+instance : HasSucc (E A .int) := inferInstance
+instance : HasSucc (E A (.k i)) := inferInstance
 
 def LVal.incr : LVal A .int → P A := fun l ↦ .store l (l.expr + (1 : E A .int))
 
@@ -264,6 +271,8 @@ def E.and : E A .bool → E A .bool → E A .bool := fun a b ↦ E.call Op.and !
 def E.or : E A .bool → E A .bool → E A .bool := fun a b ↦ E.call Op.or ![a, b]
 
 variable {A}
+
+def E.coe : E A i → E A i' := fun a ↦ E.call (Op.to _ _) ![a]
 
 def Var.subst (v : Var A t) (val : Var A t) : ∀ {s : EType A}, Var A s → Var A s
 | _, v' => if v = v' then val else v'
@@ -308,6 +317,12 @@ def P.compile : P A → M Stmt
 --| load addr v        => pure $ Stmt.store (Expr.var v.toString) (Expr.index (addr.compile) [0])
 | .let v e b         => do let v' ← freshen v; Stmt.seq (Stmt.store (.var v') e.compile) <$> b.compile
 
+structure Level {A} (i : A) : Type where
+  skip  : E A i → E A .bool → P A
+  ready : E A .bool
+  index : E A i
+  valid : E A .bool
+
 variable {i : A}
 def Level.mul (a : Level i) (b : Level i) : Level i where
   ready := .and $! ![.and $! ![a.ready, b.ready], .eq $! ![a.index, b.index]]
@@ -315,14 +330,43 @@ def Level.mul (a : Level i) (b : Level i) : Level i where
   valid := .and $! ![a.valid, b.valid]
   skip  i r := a.skip i r;; b.skip i r
 
+/-- Increase `ctr` until it reaches `limit`. -/
+def Level.interval [HasSucc (E A i)] (ctr : Var A i) (limit : E A i) (inclusive := false) : Level i where
+  skip idx r :=
+    .branch r
+      (.if1 (ctr.expr <= idx) <|
+        .store (.local ctr) (HasSucc.succ ctr.expr))
+      (.if1 (ctr.expr << idx) <|
+        .store (.local ctr) (HasSucc.succ ctr.expr))
+  ready := 1
+  valid := if inclusive then ctr.expr << limit
+                        else ctr.expr <= limit
+  index := ctr
+
+/--
+Emits index `x` once. `visited` should be initialized to `0`.
+Same as `Level.interval _ x (inclusive := true)`, but doesn't require `i` to
+have a successor function.
+-/
+def Level.singleton (visited : Var A .bool) (x : E A i) : Level i where
+  skip idx r :=
+    .branch r
+      (.if1 (x <= idx) <|
+        .store (.local visited) 1)
+      (.if1 (x << idx) <|
+        .store (.local visited) 1)
+  ready := 1
+  valid := -visited.expr
+  index := x
+
 def Level.range (ctr size : Var A .int) (inds : Var A (.attr i)) : Level i :=
   let ind := .access inds (.var ctr)
   { skip := fun i r ↦
     .branch r
-      (.store (.local ctr) (.int_add $! ![.var ctr, .to _ _ $! ![ind <= i]]))
-      (.store (.local ctr) (.int_add $! ![.var ctr, .to _ _ $! ![ind << i]]))
-    ready := .true $! ![]
-    valid := .lt $! ![ctr.expr, size.expr]
+      (.store (.local ctr) (.int_add $! ![.var ctr, .coe (ind <= i)]))
+      (.store (.local ctr) (.int_add $! ![.var ctr, .coe (ind << i)]))
+    ready := 1
+    valid := ctr.expr << size.expr
     index := ind
   }
   --value := .var .int ctr
@@ -332,7 +376,7 @@ inductive Stream {A : Type} : List A → A → Type
 | scalar {i : A} (e : E A (.k i)) : Stream [] i
 | level {i v : A} {is : List A} (l : Level i) (val : (Stream is v)) : Stream (i :: is) v
 | seq {is : List A} (a b : Stream is v) : Stream is v
-| fun {i : A} (f : E A i → Stream is v) : Stream (i :: is) v -- todo, make first order (fix partial)
+| fun {i : A} (f : E A i → Stream is v) : Stream (i :: is) v
 | contraction {is : List A} : Stream (_ :: is) v → Stream is v
 
 infixr:26 " →ₛ " => Stream
