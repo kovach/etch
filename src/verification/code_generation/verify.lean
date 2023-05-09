@@ -7,9 +7,9 @@ import data.finsupp.basic
 import control.bifunctor
 import tactic.derive_fintype
 import tactic.fin_cases
-import finsupp_lemmas
 import verification.code_generation.frames
 import verification.code_generation.vars
+import verification.finsupp_lemmas
 import verification.misc
 import verification.semantics.stream
 import data.pfun
