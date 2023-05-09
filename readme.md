@@ -18,24 +18,14 @@ soon.
 ```
 .
 └── src
-    ├── verification
-    │   ├── code_generation           # WIP code generation proofs
-    │   │   ├── vars.lean
-    │   │   └── verify.lean
-    │   ├── semantics                 # correctness proofs
-    │   │   ├── README.md
-    │   │   ├── ...
-    │   ├── stream_split.lean         # (should be moved to semantics/)
-    │   └── test.lean
-    ├── graveyard.md                  # ideas that didn't work out
-    ├── compile.lean                  # old compiler (deprecated in favor of etch4/)
-    ├── compile_fast.lean
-    ├── compile2.lean
-    ├── front_end.lean
-    ├── tactic.lean
-    ├── declare.lean                  # old formalization (deprecated in favor of src/verification/)
-    └── old_formalization
-        └── ...
+    └── verification
+        ├── code_generation           # WIP code generation proofs
+        │   └── ...
+        ├── semantics                 # correctness proofs
+        │   ├── README.md
+        │   └── ...
+        ├── stream_split.lean         # (should be moved to semantics/)
+        └── test.lean
 ```
 
 ### Compiler and benchmarks
