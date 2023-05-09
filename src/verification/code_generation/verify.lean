@@ -8,7 +8,7 @@ import control.bifunctor
 import tactic.derive_fintype
 import tactic.fin_cases
 import finsupp_lemmas
-import frames
+import verification.code_generation.frames
 import verification.code_generation.vars
 import verification.misc
 import verification.semantics.stream
