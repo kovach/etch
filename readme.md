@@ -24,7 +24,6 @@ soon.
         ├── semantics                 # correctness proofs
         │   ├── README.md
         │   └── ...
-        ├── stream_split.lean         # (should be moved to semantics/)
         └── test.lean
 ```
 
