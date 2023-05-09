@@ -64,7 +64,7 @@ all: $(ALL_BENCH) $(DUCKDB) $(SQLITE3) bench-duckdb bench-sqlite
 bench-tpch-q5: bench-tpch-q5.cpp gen_tpch_q5.c
 bench-tpch-q9: bench-tpch-q9.cpp gen_tpch_q9.c
 bench-wcoj: bench-wcoj.cpp gen_wcoj.c
-bench-taco: bench-taco.cpp gen_taco.c decls.c taco_kernels.c
+bench-taco: bench-taco.cpp gen_taco.c taco_kernels.c
 bench-filtered-spmv: bench-filtered-spmv.cpp gen_filtered_spmv.c
 bench-matmul: bench-matmul.cpp gen_matmul.c
 
@@ -291,3 +291,8 @@ $(foreach SIZE,x0.01 x0.025 x0.05 x0.1 x0.25 x0.5 x1 x2 x4,\
 .PHONY: clean
 clean:
 	rm -rf *.o tmp-*.duckdb tmp-sqlite3 sqlite3 out sqlite3.c sqlite3.h duckdb/duckdb
+
+.PHONY: list-benchmarks
+list-benchmarks:
+	@LC_ALL=C $(MAKE) -pRrq -f $(firstword $(MAKEFILE_LIST)) : 2>/dev/null | awk -v RS= -F: '/(^|\n)# Files(\n|$$)/,/(^|\n)# Finished Make data base/ {if ($$1 !~ "^[#.]") {print $$1}}' | sort -V | egrep -v -e '^[^[:alnum:]]' -e '^$@$$' | grep '^run-'
+# From https://stackoverflow.com/a/26339924/1937836

@@ -4,7 +4,8 @@
 # Steps:
 #
 #  1. Install Docker (make sure the "Buildx" plugin is installed as well)
-#     https://docs.docker.com/build/install-buildx/
+#     https://docs.docker.com/build/architecture/#buildx
+#     https://docs.docker.com/engine/reference/commandline/buildx/
 #
 #  2. Build Docker image. From the etch4/ directory, run:
 #     docker build -t etch-bench -f graphs/Dockerfile .
