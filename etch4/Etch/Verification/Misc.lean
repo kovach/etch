@@ -9,9 +9,9 @@ import Mathlib.Data.PFun
 import Mathlib.Data.Prod.Lex
 import Mathlib.Init.IteSimp
 
-/-! 
+/-!
 This is a collection of miscellaneous lemmas. Not all of these are used;
-many of them where used in previous versions of the formalization/are used 
+many of them where used in previous versions of the formalization/are used
 in the WIP verification of the code-generating compiler.
 -/
 
@@ -26,8 +26,8 @@ theorem Option.bind_const_none {α β} (x : Option α) : (x.bind fun _ => none) 
 #align option.bind_const_none Option.bind_const_none
 
 @[simp]
-theorem Option.isNone_false_iff_isSome {α} (x : Option α) : x.isNone = false ↔ x.isSome = true := by
-  cases x <;> simp
+theorem Option.isNone_false_iff_isSome {α} (x : Option α) : x.isNone = false ↔ x.isSome = true :=
+  by cases x <;> simp
 #align option.is_none_ff_iff_is_some Option.isNone_false_iff_isSome
 
 @[simp]
@@ -62,8 +62,7 @@ theorem Fin.tuple_sequence₁ [LawfulMonad m] {α : Fin 1 → Type u} (x : ∀ i
 @[simp]
 theorem Fin.tuple_sequence₂ [LawfulMonad m] {α : Fin 2 → Type u} (x : ∀ i, m (α i)) :
     Fin.tupleSequence x =
-      x 0 >>= fun r₀ => x 1 >>= fun r₁ => pure (Fin.cons r₀ <| Fin.cons r₁ <| default) :=
-  by
+      x 0 >>= fun r₀ => x 1 >>= fun r₁ => pure (Fin.cons r₀ <| Fin.cons r₁ <| default) := by
   simp [Fin.tupleSequence, functor_norm]
   rfl
 #align fin.tuple_sequence₂ Fin.tuple_sequence₂
@@ -92,8 +91,7 @@ def Option.guardProp {α} (p : Prop) [Decidable p] (x : α) : Option α :=
 
 @[simp]
 theorem Option.guardProp_isSome {α} {p : Prop} [Decidable p] {x : α} :
-    (Option.guardProp p x).isSome ↔ p :=
-  by
+    (Option.guardProp p x).isSome ↔ p := by
   dsimp only [Option.guardProp]
   split_ifs <;> simpa
 #align option.guard_prop_is_some Option.guardProp_isSome
@@ -108,8 +106,7 @@ theorem Option.coe_part_eq_some {α} (x : Option α) (y : α) :
 #align option.coe_part_eq_some Option.coe_part_eq_some
 
 @[simp]
-theorem List.get?_isSome_iff {α} {x : List α} {n : ℕ} : (x.get? n).isSome ↔ n < x.length :=
-  by
+theorem List.get?_isSome_iff {α} {x : List α} {n : ℕ} : (x.get? n).isSome ↔ n < x.length := by
   rw [← not_iff_not]
   simp [Option.isNone_iff_eq_none]
 #align list.nth_is_some_iff List.get?_isSome_iff
@@ -120,15 +117,13 @@ theorem Option.map_is_some' {α β} (x : Option α) (f : α → β) : (x.map f).
 #align option.map_is_some' Option.map_is_some'
 
 theorem List.zipWith_fst {α β} {l₁ : List α} {l₂ : List β} (hl : l₁.length ≤ l₂.length) :
-    List.zipWith (fun a b => a) l₁ l₂ = l₁ :=
-  by
+    List.zipWith (fun a b => a) l₁ l₂ = l₁ := by
   erw [← List.map_uncurry_zip_eq_zipWith, List.map_fst_zip]
   exact hl
 #align list.zip_with_fst List.zipWith_fst
 
 theorem List.zipWith_snd {α β} {l₁ : List α} {l₂ : List β} (hl : l₂.length ≤ l₁.length) :
-    List.zipWith (fun a b => b) l₁ l₂ = l₂ :=
-  by
+    List.zipWith (fun a b => b) l₁ l₂ = l₂ := by
   erw [← List.map_uncurry_zip_eq_zipWith, List.map_snd_zip]
   exact hl
 #align list.zip_with_snd List.zipWith_snd
@@ -151,8 +146,7 @@ theorem lt_true_iff : ∀ {b : Bool}, b < true ↔ b = false := by decide
 theorem false_lt_iff : ∀ {b : Bool}, false < b ↔ b = true := by decide
 #align ff_lt_iff false_lt_iff
 
-theorem Bool.min_eq_and {a b : Bool} : min a b = (a && b) :=
-  rfl
+theorem Bool.min_eq_and {a b : Bool} : min a b = (a && b) := rfl
 #align bool.min_eq_and Bool.min_eq_and
 
 theorem ne_min_of_ne_and_ne {ι : Type _} [LinearOrder ι] {a x y : ι} (hx : a ≠ x) (hy : a ≠ y) :
@@ -177,8 +171,7 @@ section WithTop
 variable {ι : Type} [PartialOrder ι]
 
 @[simp]
-theorem WithTop.isSome_iff_lt_top {x : WithTop ι} : x.isSome ↔ x < ⊤ :=
-  by
+theorem WithTop.isSome_iff_lt_top {x : WithTop ι} : x.isSome ↔ x < ⊤ := by
   rw [← not_iff_not, Bool.eq_false_eq_not_eq_true, Option.not_isSome, Option.isNone_iff_eq_none,
     lt_top_iff_ne_top, Ne, Classical.not_not]
   rfl
@@ -213,7 +206,7 @@ def RProdEqSubLex (s₁ s₂ : α × β) (h : RProdEq r₁ r₂ s₁ s₂) : Pro
 
 def rprodEq (ha : WellFoundedRelation α) (hb : WellFoundedRelation β) : WellFoundedRelation (α × β) where
   rel := RProdEq ha.rel hb.rel
-  wf := by  
+  wf := by
     apply Subrelation.wf (r := Prod.Lex ha.rel hb.rel) (h₂ := (lex ha hb).wf)
     intro a b h
     exact RProdEqSubLex a b h
@@ -232,8 +225,7 @@ theorem le_iff' [LT α] [LE β] {x y : α ×ₗ β} : x ≤ y ↔ x.1 < y.1 ∨ 
 #align prod.lex.le_iff' Prod.Lex.le_iff'
 
 theorem le_iff'' [PartialOrder α] [Preorder β] {x y : α ×ₗ β} :
-    x ≤ y ↔ x.1 ≤ y.1 ∧ (x.1 = y.1 → x.2 ≤ y.2) :=
-  by
+    x ≤ y ↔ x.1 ≤ y.1 ∧ (x.1 = y.1 → x.2 ≤ y.2) := by
   rw [Prod.Lex.le_iff', le_iff_lt_or_eq]
   have := @ne_of_lt _ _ x.1 y.1
   tauto
@@ -244,8 +236,7 @@ theorem lt_iff' [LT α] [LT β] {x y : α ×ₗ β} : x < y ↔ x.1 < y.1 ∨ x.
 #align prod.lex.lt_iff' Prod.Lex.lt_iff'
 
 theorem lt_iff'' [PartialOrder α] [Preorder β] {x y : α ×ₗ β} :
-    x < y ↔ x.1 ≤ y.1 ∧ (x.1 = y.1 → x.2 < y.2) :=
-  by
+    x < y ↔ x.1 ≤ y.1 ∧ (x.1 = y.1 → x.2 < y.2) := by
   rw [lt_iff', le_iff_lt_or_eq]
   have : x.1 < y.1 → ¬x.1 = y.1 := ne_of_lt
   tauto
@@ -326,8 +317,7 @@ theorem max_eq_min_iff {α : Type _} [LinearOrder α] {x y : α} : min x y = max
 
 @[simp]
 theorem Finsupp.mul_single {ι β : Type _} [MulZeroClass β] (i : ι) (x y : β) :
-    Finsupp.single i x * Finsupp.single i y = Finsupp.single i (x * y) :=
-  by
+    Finsupp.single i x * Finsupp.single i y = Finsupp.single i (x * y) := by
   ext a
   by_cases i = a <;> simp [h]
 #align finsupp.mul_single Finsupp.mul_single
