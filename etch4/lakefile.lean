@@ -9,9 +9,5 @@ lean_exe bench {
   root := `Etch.Benchmark
 }
 
---require aesop from git
---  "https://github.com/JLimperg/aesop"
 require mathlib from git
-  "https://github.com/leanprover-community/mathlib4/"@"ac9bdd4dbac2bf11cb15f3081a0d38f1ec4b7012"
---require mathlib from git
---  "https://github.com/leanprover-community/mathlib4/"
+  "https://github.com/leanprover-community/mathlib4/"@"5ed65e18440bf46dc8dda58b5463377f938d717c"
