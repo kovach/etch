@@ -25,19 +25,17 @@ namespace Etch.Verification
 
 variable {α : Type _}
 
-def Stream.denseVec {n : ℕ} (vals : Fin n → α) : Stream (Fin n) α
-    where
+def Stream.denseVec {n : ℕ} (vals : Fin n → α) : Stream (Fin n) α where
   σ := Fin (n + 1)
   valid i := ↑i < n
-  Ready i := ↑i < n
-  skip i hi j := max i (cond j.2 j.1.succ (Fin.castLE n.le_succ j.1))
+  ready i := ↑i < n
+  skip i _hi j := max i (cond j.2 j.1.succ (Fin.castLE n.le_succ j.1))
   index i hi := i.castLT hi
   value i hi := vals (i.castLT hi)
 #align Stream.denseVec Etch.Verification.Stream.denseVec
 
+attribute [reducible] Stream.denseVec in
 section
-
-attribute [local reducible] Stream.denseVec
 
 instance {n} (vals : Fin n → α) : IsBounded (Stream.denseVec vals) :=
   ⟨⟨(· > ·), Finite.Preorder.wellFounded_gt, fun i hi j =>
@@ -49,11 +47,11 @@ instance {n} (vals : Fin n → α) : IsBounded (Stream.denseVec vals) :=
         cases i
         simp
         rw [or_iff_not_imp_left, not_lt]
-        tauto
+        sorry
       · rw [Prod.Lex.lt_iff'']
         cases i
         cases j
-        simp [@lt_iff_not_le _ _ tt, imp_false, ← lt_iff_le_and_ne, Nat.lt_succ_iff,
+        simp [@lt_iff_not_le _ _ true, imp_false, ← lt_iff_le_and_ne, Nat.lt_succ_iff,
           Nat.succ_le_iff]
         exact le_or_lt _ _⟩⟩
 
@@ -68,13 +66,12 @@ theorem Fin.castLT_le_iff {m n : ℕ} (a b : Fin n) (h₁ : ↑a < m) (h₂ : �
 
 theorem Stream.denseVec.eq_n_of_invalid {n : ℕ} {vals : Fin n → α} {q : Fin (n + 1)}
     (hq : ¬(Stream.denseVec vals).valid q) : ↑q = n :=
-  eq_of_le_of_not_lt (Nat.lt_succ_iff.mp q.Prop) hq
+  eq_of_le_of_not_lt (Nat.lt_succ_iff.mp q.prop) hq
 #align Stream.denseVec.eq_n_of_invalid Etch.Verification.Stream.denseVec.eq_n_of_invalid
 
 theorem Stream.denseVec_eval {n : ℕ} (vals : Fin n → α) (q : Fin (n + 1)) :
-    ⇑((Stream.denseVec vals).eval q) = fun j => if Fin.castSucc j < q then 0 else vals j :=
-  by
-  refine' @WellFounded.induction _ _ (Stream.denseVec vals).wf _ q _
+    ⇑((Stream.denseVec vals).eval q) = fun j => if Fin.castSucc j < q then 0 else vals j := by
+  apply (Stream.denseVec vals).wf.induction q
   clear q; intro q ih
   by_cases hq : (Stream.denseVec vals).valid q; swap
   · replace hq : ↑q = n := Stream.denseVec.eq_n_of_invalid hq
@@ -128,23 +125,22 @@ theorem Stream.denseVec_eval {n : ℕ} (vals : Fin n → α) (q : Fin (n + 1)) :
       rw [if_neg]
       swap
       · exact h.le.not_lt
-      rw [finsupp.single_apply_eq_zero.mpr, zero_add]
+      rw [Finsupp.single_apply_eq_zero.mpr, zero_add]
       rintro rfl
       exfalso
-      simpa using h
+      simp at h
 #align Stream.denseVec_eval Etch.Verification.Stream.denseVec_eval
 
 @[simp]
 theorem Stream.denseVec_eval_start {n : ℕ} (vals : Fin n → α) :
-    ⇑((Stream.denseVec vals).eval 0) = vals :=
-  by
+    ⇑((Stream.denseVec vals).eval 0) = vals := by
   rw [Stream.denseVec_eval]
   ext j
   simp
+  sorry
 #align Stream.denseVec_eval_start Etch.Verification.Stream.denseVec_eval_start
 
-instance {n} (vals : Fin n → α) : IsLawful (Stream.denseVec vals)
-    where
+instance {n} (vals : Fin n → α) : IsLawful (Stream.denseVec vals) where
   mono :=
     Stream.isMonotonic_iff.mpr fun q hq i hq' => by
       dsimp
@@ -153,9 +149,10 @@ instance {n} (vals : Fin n → α) : IsLawful (Stream.denseVec vals)
   skip_spec q hq i j hj := by
     simp only [Stream.denseVec_eval]
     by_cases h₁ : Fin.castSucc j < q; · simp [h₁]
-    rw [if_neg, if_neg]; · assumption
+    rwa [if_neg, if_neg]
     rw [lt_max_iff, not_or]
-    refine' ⟨h₁, _⟩; rw [not_lt]
+    refine ⟨h₁, ?_⟩
+    rw [not_lt]
     rcases i with ⟨i, b | b⟩ <;> simp only [cond]
     · rw [Fin.castSucc, Fin.castAdd, OrderEmbedding.le_iff_le]
       simpa using hj
@@ -163,20 +160,21 @@ instance {n} (vals : Fin n → α) : IsLawful (Stream.denseVec vals)
       simpa [Prod.Lex.le_iff'] using hj
 
 theorem Stream.denseVec_index'_mono {n} (vals : Fin n → α) :
-    StrictMono (Stream.denseVec vals).index' := fun q₁ q₂ =>
-  by
+    StrictMono (Stream.denseVec vals).index' := fun q₁ q₂ => by
   simp only [Stream.index']; split_ifs with h₁ h₂ h₂
   · cases q₁
     cases q₂
-    simp;
+    simp
   · simp only [WithTop.coe_lt_top]
     exact fun _ => trivial
   · simp only [not_top_lt, not_lt, Fin.lt_iff_val_lt_val, Stream.denseVec.eq_n_of_invalid h₁,
       imp_false]
-    exact nat.lt_succ_iff.mp q₂.prop
-  ·
-    simp [Stream.denseVec.eq_n_of_invalid h₁, Stream.denseVec.eq_n_of_invalid h₂,
-      Fin.lt_iff_val_lt_val]
+    -- exact Nat.lt_succ_iff.mp q₂.prop
+    sorry
+  · -- This doesn't terminate
+    -- simp [Stream.denseVec.eq_n_of_invalid h₁, Stream.denseVec.eq_n_of_invalid h₂,
+    --  Fin.lt_iff_val_lt_val]
+    sorry
 #align Stream.denseVec_index'_mono Etch.Verification.Stream.denseVec_index'_mono
 
 instance {n} (vals : Fin n → α) : IsStrictLawful (Stream.denseVec vals) :=

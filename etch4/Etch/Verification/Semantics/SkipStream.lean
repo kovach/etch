@@ -521,9 +521,9 @@ theorem Stream.mono (s : Stream ι α) [IsLawful s] : s.IsMonotonic :=
   ‹IsLawful s›.mono
 #align Stream.mono Etch.Verification.Stream.mono
 
-theorem Stream.strict_mono (s : Stream ι α) [IsStrictLawful s] : s.IsStrictMono :=
+theorem Stream.strictMono (s : Stream ι α) [IsStrictLawful s] : s.IsStrictMono :=
   ‹IsStrictLawful s›.StrictMono
-#align Stream.strict_mono Etch.Verification.Stream.strict_mono
+#align Stream.strict_mono Etch.Verification.Stream.strictMono
 
 theorem Stream.skip_spec (s : Stream ι α) [IsLawful s] (q : s.σ) (hq : s.valid q)
     (i : StreamOrder ι) :
@@ -552,12 +552,12 @@ theorem Stream.skip'_spec (s : Stream ι α) [IsLawful s] (q : s.σ) (i : Stream
   rw [Stream.skip'_invalid hq]
 #align Stream.skip'_spec Etch.Verification.Stream.skip'_spec
 
-theorem Stream.skip'_lt_to_order {s : Stream ι α} [IsLawful s] {q : s.σ} {i : StreamOrder ι}
+theorem Stream.skip'_lt_toOrder {s : Stream ι α} [IsLawful s] {q : s.σ} {i : StreamOrder ι}
     (hi : coeLex i < s.toOrder' q) : s.eval (s.skip' q i) = s.eval q := by
   by_cases hq : s.valid q; swap; · rw [Stream.skip'_invalid hq]
   rw [← Stream.coeLex_toOrder hq, coeLex_lt_iff] at hi
   rw [Stream.skip'_val hq, Stream.skip_lt_toOrder hi]
-#align Stream.skip'_lt_to_order Etch.Verification.Stream.skip'_lt_to_order
+#align Stream.skip'_lt_to_order Etch.Verification.Stream.skip'_lt_toOrder
 
 theorem Stream.eval_skip_eq_of_false (s : Stream ι α) [IsLawful s] (q : s.σ) (hq : s.valid q) :
     s.eval (s.skip q hq (s.index q hq, false)) = s.eval q := by

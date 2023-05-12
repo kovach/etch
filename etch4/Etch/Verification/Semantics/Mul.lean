@@ -11,6 +11,8 @@ In this file, we define the product of indexed streams `Stream.mul`.
   - `is_strict_lawful (a.mul b)`: The product stream is strictly lawful assuming `a` and `b` are.
 -/
 
+set_option linter.uppercaseLean3 false
+
 namespace Etch.Verification
 
 open Streams
@@ -18,20 +20,20 @@ open Streams
 variable {ι : Type} [LinearOrder ι] {α : Type _}
 
 @[mk_iff]
-structure Stream.Mul.Ready {ι : Type} (a : Stream ι α) (b : Stream ι α) (s : a.σ × b.σ) : Prop where
+structure Stream.Mul.ready {ι : Type} (a : Stream ι α) (b : Stream ι α) (s : a.σ × b.σ) : Prop where
   v₁ : a.valid s.1
   v₂ : b.valid s.2
-  r₁ : a.Ready s.1
-  r₂ : b.Ready s.2
+  r₁ : a.ready s.1
+  r₂ : b.ready s.2
   index : a.index s.1 v₁ = b.index s.2 v₂
-#align Stream.mul.ready Etch.Verification.Stream.Mul.Ready
+#align Stream.mul.ready Etch.Verification.Stream.Mul.ready
 
 @[simps]
 def Stream.mul [Mul α] (a b : Stream ι α) : Stream ι α
     where
   σ := a.σ × b.σ
   valid p := a.valid p.1 ∧ b.valid p.2
-  Ready p := Stream.Mul.Ready a b p
+  ready p := Stream.Mul.ready a b p
   skip p hp i := (a.skip p.1 hp.1 i, b.skip p.2 hp.2 i)
   index p hv := max (a.index p.1 hv.1) (b.index p.2 hv.2)
   value p hr := a.value p.1 hr.r₁ * b.value p.2 hr.r₂
@@ -41,21 +43,19 @@ section IndexLemmas
 
 variable [Mul α]
 
-theorem Stream.Mul.Ready.index' {a : Stream ι α} {b : Stream ι α} {x y}
-    (h : (a.mul b).Ready (x, y)) : a.index' x = b.index' y := by
+theorem Stream.Mul.ready.index' {a : Stream ι α} {b : Stream ι α} {x y}
+    (h : (a.mul b).ready (x, y)) : a.index' x = b.index' y := by
   simp [Stream.index'_val h.v₁, Stream.index'_val h.v₂, h.index]
-#align Stream.mul.ready.index' Etch.Verification.Stream.Mul.Ready.index'
+#align Stream.mul.ready.index' Etch.Verification.Stream.Mul.ready.index'
 
-theorem Stream.Mul.Ready.order_eq {a : Stream ι α} {b : Stream ι α} {x y}
-    (h : (a.mul b).Ready (x, y)) : a.toOrder x h.v₁ = b.toOrder y h.v₂ :=
-  by
+theorem Stream.Mul.ready.order_eq {a : Stream ι α} {b : Stream ι α} {x y}
+    (h : (a.mul b).ready (x, y)) : a.toOrder x h.v₁ = b.toOrder y h.v₂ := by
   dsimp only [Stream.toOrder]
   simp [h.r₁, h.r₂, h.index]
-#align Stream.mul.ready.order_eq Etch.Verification.Stream.Mul.Ready.order_eq
+#align Stream.mul.ready.order_eq Etch.Verification.Stream.Mul.ready.order_eq
 
 theorem Stream.mul_index' (a b : Stream ι α) (xy : a.σ × b.σ) :
-    (a.mul b).index' xy = max (a.index' xy.1) (b.index' xy.2) :=
-  by
+    (a.mul b).index' xy = max (a.index' xy.1) (b.index' xy.2) := by
   cases' xy with x y
   rw [Stream.index']
   simp only [Stream.mul_index, WithTop.coe_max]
@@ -64,7 +64,7 @@ theorem Stream.mul_index' (a b : Stream ι α) (xy : a.σ × b.σ) :
   erw [not_and_or] at h; cases h <;> simp [h]
 #align Stream.mul_index' Etch.Verification.Stream.mul_index'
 
-theorem order_eq_of_mul_ready {a b : Stream ι α} {x y} (h : (a.mul b).Ready (x, y)) :
+theorem order_eq_of_mul_ready {a b : Stream ι α} {x y} (h : (a.mul b).ready (x, y)) :
     a.toOrder x h.v₁ = (a.mul b).toOrder (x, y) ⟨h.v₁, h.v₂⟩ ∧
       b.toOrder y h.v₂ = (a.mul b).toOrder (x, y) ⟨h.v₁, h.v₂⟩ :=
   by constructor <;> simp only [Stream.toOrder, h, h.r₁, h.r₂] <;> simp [h.index]
@@ -80,7 +80,7 @@ theorem min_toOrder_le (a b : Stream ι α) (q : a.σ × b.σ) (hv : (a.mul b).v
   · exact min_le_max
   intro h
   simp only [Stream.toOrder_fst, Stream.mul_index, max_eq_min_iff] at h
-  suffices a.ready q.1 → b.ready q.2 → (a.mul b).Ready q by
+  suffices a.ready q.1 → b.ready q.2 → (a.mul b).ready q by
     simpa [Stream.toOrder, h, Prod.Lex.mk_min, Bool.min_eq_and, Bool.le_iff_imp]
   intro hr₁ hr₂
   refine' ⟨hv.1, hv.2, hr₁, hr₂, _⟩
@@ -111,17 +111,13 @@ instance Stream.mul.isBounded (a b : Stream ι α) [IsBounded a] [IsBounded b] :
       exact lt_of_lt_of_le (lt_min ha₁ hb₁) (min_toOrder_le _ _ _ hq)⟩⟩
 #align Stream.mul.is_bounded Etch.Verification.Stream.mul.isBounded
 
-/- ./././Mathport/Syntax/Translate/Tactic/Builtin.lean:73:14: unsupported tactic `solve_refl #[] -/
 theorem Stream.mul_map {β : Type _} [Mul β] (f : α → β) (f_mul : ∀ x y, f (x * y) = f x * f y)
-    (q r : Stream ι α) : (q.mul r).map f = (q.map f).mul (r.map f) :=
-  by
-  ext <;>
-    trace
-      "./././Mathport/Syntax/Translate/Tactic/Builtin.lean:73:14: unsupported tactic `solve_refl #[]"
+    (q r : Stream ι α) : (q.mul r).map f = (q.map f).mul (r.map f) := by
+  ext <;> solve_refl
   · simp only [Stream.Mul.ready_iff]
     rfl
-  simp only [f_mul, apply_ite f]
-  rfl
+  · simp only [f_mul, apply_ite f]
+    rfl
 #align Stream.mul_map Etch.Verification.Stream.mul_map
 
 end IndexLemmas
@@ -131,10 +127,9 @@ section ValueLemmas
 variable [NonUnitalNonAssocSemiring α]
 
 theorem mul_eval₀_of_neq {a : Stream ι α} {b : Stream ι α} {x y} (H : (a.mul b).valid (x, y))
-    (h : a.toOrder x H.1 ≠ b.toOrder y H.2) : (a.mul b).eval₀ (x, y) H = 0 :=
-  by
+    (h : a.toOrder x H.1 ≠ b.toOrder y H.2) : (a.mul b).eval₀ (x, y) H = 0 := by
   contrapose! h
-  apply Stream.Mul.Ready.order_eq
+  apply Stream.Mul.ready.order_eq
   simp [Stream.eval₀] at h
   exact h.fst
 #align mul_eval₀_of_neq Etch.Verification.mul_eval₀_of_neq
@@ -152,40 +147,36 @@ theorem mul_eval₀ (a b : Stream ι α) (x : a.σ) (y : b.σ) (H) :
 theorem mul_eval₀_spec (a b : Stream ι α) [IsBounded a] [IsBounded b] (ha : a.IsStrictMono)
     (hb : b.IsStrictMono) (q : (a.mul b).σ) (hv : (a.mul b).valid q) :
     (a.mul b).eval₀ q hv =
-      (a.eval q.1 * b.eval q.2).filterₓ fun i => (i, false) <ₗ (a.mul b).toOrder q hv :=
+      (a.eval q.1 * b.eval q.2).filter fun i => (i, false) <ₗ (a.mul b).toOrder q hv :=
   by
   classical
-    by_cases H : (a.mul b).Ready q
+    by_cases H : (a.mul b).ready q
     · cases' q with qa qb
       calc
-        (a.mul b).eval₀ (qa, qb) hv = a.eval₀ qa hv.1 * b.eval₀ qb hv.2 :=
-          by
+        (a.mul b).eval₀ (qa, qb) hv = a.eval₀ qa hv.1 * b.eval₀ qb hv.2 := by
           dsimp
           rw [mul_eval₀]
-        _ =
-            ((a.eval qa).filterₓ fun i => (i, ff) <ₗ a.to_order qa hv.1) *
-              (b.eval qb).filterₓ fun i => (i, ff) <ₗ b.to_order qb hv.2 :=
+        _ = ((a.eval qa).filter fun i => (i, false) <ₗ a.toOrder qa hv.1) *
+              ((b.eval qb).filter fun i => (i, false) <ₗ b.toOrder qb hv.2) :=
           by rw [ha.eval₀_eq_eval_filter, hb.eval₀_eq_eval_filter]
-        _ =
-            (a.eval qa * b.eval qb).filterₓ fun i =>
-              (i, ff) <ₗ min (a.to_order qa hv.1) (b.to_order qb hv.2) :=
+        _ = (a.eval qa * b.eval qb).filter fun i =>
+              (i, false) <ₗ min (a.toOrder qa hv.1) (b.toOrder qb hv.2) :=
           by simp only [Finsupp.mul_filter, lt_min_iff]
-        _ = (a.eval qa * b.eval qb).filterₓ fun i => (i, ff) <ₗ (a.mul b).toOrder (qa, qb) hv :=
+        _ = (a.eval qa * b.eval qb).filter fun i => (i, false) <ₗ (a.mul b).toOrder (qa, qb) hv :=
           by
-          congr
-          ext i
-          simp [(order_eq_of_mul_ready H).1, (order_eq_of_mul_ready H).2]
-          rfl
+            congr
+            ext i
+            simp [(order_eq_of_mul_ready H).1, (order_eq_of_mul_ready H).2]
         
     · symm
       simp only [Stream.eval₀, H, dif_neg, not_false_iff, Finsupp.filter_eq_zero_iff,
         Stream.toOrder, decide_False', Prod.Lex.mk_snd_mono_lt_iff, Finsupp.mul_apply,
         Stream.mul_index, lt_max_iff]
       intro i hi
-      refine'
+      refine
           mul_eq_zero_of
-            (hi.imp (fun h => ha.1.eq_zero_of_lt_index i _) fun h =>
-              hb.1.eq_zero_of_lt_index i _) <;>
+            (hi.imp (fun h => ha.1.eq_zero_of_lt_index i ?_) fun h =>
+              hb.1.eq_zero_of_lt_index i ?_) <;>
         simpa [hv.1, hv.2] using h
 #align mul_eval₀_spec Etch.Verification.mul_eval₀_spec
 
@@ -210,7 +201,7 @@ theorem mul_strict_mono {a b : Stream ι α} (ha : a.IsStrictMono) (hb : b.IsStr
 theorem next_eval_mul_eq (a b : Stream ι α) [IsStrictLawful a] [IsStrictLawful b] (q : (a.mul b).σ)
     (hv : (a.mul b).valid q) :
     a.eval ((a.mul b).next q).1 * b.eval ((a.mul b).next q).2 =
-      (a.eval q.1 * b.eval q.2).filterₓ fun i => (a.mul b).toOrder q hv ≤ (i, false) :=
+      (a.eval q.1 * b.eval q.2).filter fun i => (a.mul b).toOrder q hv ≤ (i, false) :=
   by
   ext j
   simp only [Finsupp.mul_apply, Finsupp.filter_apply, Stream.next_val hv]
@@ -225,16 +216,15 @@ theorem next_eval_mul_eq (a b : Stream ι α) [IsStrictLawful a] [IsStrictLawful
 #align next_eval_mul_eq Etch.Verification.next_eval_mul_eq
 
 theorem mul_spec (a b : Stream ι α) [IsStrictLawful a] [IsStrictLawful b] (q : (a.mul b).σ) :
-    (a.mul b).eval q = a.eval q.1 * b.eval q.2 :=
-  by
-  refine' @WellFounded.induction _ (a.mul b).WfRel (a.mul b).wf _ q _
+    (a.mul b).eval q = a.eval q.1 * b.eval q.2 := by
+  apply (a.mul b).wf.induction q
   clear q; intro q ih
   by_cases hv : (a.mul b).valid q; swap
-  · cases' not_and_distrib.mp hv with hv' hv' <;> simp [hv, hv']
-  rw [Stream.eval_valid _ _ hv, ih _ ((a.mul b).next_wf q hv), next_eval_mul_eq _ _ _ hv,
-    mul_eval₀_spec _ _ a.strict_mono b.strict_mono _ hv]
-  convert Finsupp.filter_pos_add_filter_neg _ _
-  simp
+  · rcases not_and_or.mp hv with hv' | hv' <;> simp [hv, hv']
+  · rw [Stream.eval_valid _ _ hv, ih _ ((a.mul b).next_wf q hv), next_eval_mul_eq _ _ _ hv,
+      mul_eval₀_spec _ _ a.strictMono b.strictMono _ hv]
+    convert Finsupp.filter_pos_add_filter_neg (M := ι →₀ α) _ _
+    simp
 #align mul_spec Etch.Verification.mul_spec
 
 theorem mul_skip_spec (a b : Stream ι α) [IsStrictLawful a] [IsStrictLawful b] (q : (a.mul b).σ)
@@ -246,11 +236,11 @@ theorem mul_skip_spec (a b : Stream ι α) [IsStrictLawful a] [IsStrictLawful b]
       rwa [IsLawful.skip_spec]
 #align mul_skip_spec Etch.Verification.mul_skip_spec
 
-instance (a b : Stream ι α) [IsStrictLawful a] [IsStrictLawful b] : IsStrictLawful (a.mul b)
+instance (a b : Stream ι α) [ha : IsStrictLawful a] [hb : IsStrictLawful b] : IsStrictLawful (a.mul b)
     where
   skip_spec := mul_skip_spec a b
-  mono := (mul_strict_mono a.StrictMono b.StrictMono).1
-  StrictMono := mul_strict_mono a.StrictMono b.StrictMono
+  mono := (mul_strict_mono a.strictMono b.strictMono).1
+  StrictMono := mul_strict_mono a.strictMono b.strictMono
 
 end ValueLemmas
 

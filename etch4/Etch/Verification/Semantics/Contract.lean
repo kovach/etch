@@ -14,16 +14,17 @@ values of the stream.
 
 -/
 
-namespace Etch.Verification
+set_option linter.uppercaseLean3 false
+
+namespace Etch.Verification.Stream
 
 variable {ι : Type} {α : Type _}
 
 @[simps]
-def Stream.contract (s : Stream ι α) : Stream Unit α
-    where
+def contract (s : Stream ι α) : Stream Unit α where
   σ := s.σ
   valid := s.valid
-  Ready := s.Ready
+  ready := s.ready
   skip q hq i := s.skip q hq (s.index q hq, i.2)
   index := default
   value := s.value
@@ -33,22 +34,21 @@ variable [LinearOrder ι]
 
 section IndexLemmas
 
-instance (s : Stream ι α) [IsBounded s] : IsBounded (Stream.contract s) :=
+instance (s : Stream ι α) [IsBounded s] : IsBounded s.contract :=
   ⟨⟨s.WfRel, s.wf, fun q hq => by
       rintro ⟨⟨⟩, b⟩
       simp only [Stream.contract_skip]
-      refine' (s.wf_valid q hq (s.index q hq, b)).imp_right (And.imp_left _)
-      simp [Stream.toOrder]; exact id⟩⟩
+      refine (s.wf_valid q hq (s.index q hq, b)).imp_right (And.imp_left ?_)
+      simp [Stream.toOrder]⟩⟩
 
 @[simp]
-theorem contract_next (s : Stream ι α) (q : s.σ) : (Stream.contract s).next q = s.next q :=
-  rfl
-#align contract_next Etch.Verification.contract_next
+theorem contract_next (s : Stream ι α) (q : s.σ) :
+    s.contract.next q = s.next q := rfl
+#align contract_next Etch.Verification.Stream.contract_next
 
 theorem contract_map {β : Type _} (f : α → β) (s : Stream ι α) :
-    (s.map f).contract = s.contract.map f :=
-  rfl
-#align contract_map Etch.Verification.contract_map
+    (s.map f).contract = s.contract.map f := rfl
+#align contract_map Etch.Verification.Stream.contract_map
 
 end IndexLemmas
 
@@ -56,39 +56,36 @@ section ValueLemmas
 
 variable [AddCommMonoid α]
 
-theorem contract_eval₀ (s : Stream ι α) (q : s.σ) (hq : s.valid q) :
-    (Stream.contract s).eval₀ q hq () = Finsupp.sumRange (s.eval₀ q hq) :=
-  by
+lemma contract_eval₀ (s : Stream ι α) (q : s.σ) (hq : s.valid q) :
+    s.contract.eval₀ q hq () = Finsupp.sumRange (s.eval₀ q hq) := by
   simp only [Stream.eval₀]
   dsimp
   split_ifs with hr <;> simp
-#align contract_eval₀ Etch.Verification.contract_eval₀
+#align contract_eval₀ Etch.Verification.Stream.contract_eval₀
 
 theorem contract_eval (s : Stream ι α) [IsBounded s] [AddCommMonoid α] (q : s.σ) :
-    (Stream.contract s).eval q () = Finsupp.sumRange (s.eval q) :=
-  by
-  refine' @WellFounded.induction _ (Stream.contract s).WfRel (Stream.contract s).wf _ q _
+    s.contract.eval q () = Finsupp.sumRange (s.eval q) := by
+  apply s.contract.wf.induction q
   clear q; intro q ih
-  by_cases hq : s.valid q; swap; · simp [hq]
-  simp only [s.eval_valid _ hq, (Stream.contract s).eval_valid _ hq, Finsupp.coe_add, Pi.add_apply,
-    map_add, ih _ ((Stream.contract s).next_wf q hq)]
-  rw [contract_next, contract_eval₀]
-#align contract_eval Etch.Verification.contract_eval
+  by_cases hq : s.valid q; swap
+  · simp [hq]
+  · simp only [s.eval_valid _ hq, s.contract.eval_valid _ hq, Finsupp.coe_add, Pi.add_apply,
+      map_add, ih _ (s.contract.next_wf q hq)]
+    rw [contract_next, contract_eval₀]
+#align contract_eval Etch.Verification.Stream.contract_eval
 
-theorem contract_mono (s : Stream ι α) : (Stream.contract s).IsMonotonic := fun q hq i =>
-  by
-  rw [Stream.index'_val hq, PUnit.eq_punit ((Stream.contract s).index q hq)]
+theorem contract_mono (s : Stream ι α) : s.contract.IsMonotonic := fun q hq i => by
+  rw [Stream.index'_val hq, PUnit.eq_punit (s.contract.index q hq)]
   exact bot_le
-#align contract_mono Etch.Verification.contract_mono
+#align contract_mono Etch.Verification.Stream.contract_mono
 
-instance (s : Stream ι α) [IsLawful s] : IsLawful (Stream.contract s)
-    where
-  mono := contract_mono s
+instance (s : Stream ι α) [IsLawful s] : IsLawful s.contract where
+  mono := s.contract_mono
   skip_spec q hq i j hj := by
     cases j
-    obtain rfl : i = ((), ff) := le_bot_iff.mp hj
-    simp only [Stream.contract_skip, contract_eval, Stream.eval_skip_eq_of_false]
+    obtain rfl : i = ((), false) := le_bot_iff.mp hj
+    simp only [contract_skip, contract_eval, eval_skip_eq_of_false]
 
 end ValueLemmas
 
-end Etch.Verification
+end Etch.Verification.Stream

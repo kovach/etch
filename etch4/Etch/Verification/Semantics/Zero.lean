@@ -15,13 +15,14 @@ because the stream itself does not produce anything, and has no valid states.
 
 -/
 
+set_option linter.uppercaseLean3 false
+
 namespace Etch.Verification
 
-def Stream.zero (ι : Type) (α : Type _) : Stream ι α
-    where
+def Stream.zero (ι : Type) (α : Type _) : Stream ι α where
   σ := Unit
   valid _ := False
-  Ready _ := False
+  ready _ := False
   skip _ := False.elim
   index _ := False.elim
   value _ := False.elim
@@ -30,15 +31,11 @@ def Stream.zero (ι : Type) (α : Type _) : Stream ι α
 variable {ι : Type} [LinearOrder ι] {α β : Type _}
 
 instance : IsBounded (Stream.zero ι α) :=
-  ⟨⟨EmptyRelation, empty_wf, fun q => False.drec _⟩⟩
+  ⟨⟨emptyRelation, emptyWf.wf, fun _ => False.rec⟩⟩
 
-/- ./././Mathport/Syntax/Translate/Tactic/Builtin.lean:73:14: unsupported tactic `solve_refl #[] -/
 @[simp]
-theorem Stream.zero_map (f : α → β) : (Stream.zero ι α).map f = Stream.zero ι β :=
-  by
-  ext <;>
-    trace
-      "./././Mathport/Syntax/Translate/Tactic/Builtin.lean:73:14: unsupported tactic `solve_refl #[]"
+theorem Stream.zero_map (f : α → β) : (Stream.zero ι α).map f = Stream.zero ι β := by
+  ext <;> solve_refl
   exfalso
   assumption
 #align Stream.zero_map Etch.Verification.Stream.zero_map
@@ -46,18 +43,16 @@ theorem Stream.zero_map (f : α → β) : (Stream.zero ι α).map f = Stream.zer
 variable [AddZeroClass α]
 
 @[simp]
-theorem Stream.zero_eval : (Stream.zero ι α).eval = 0 :=
-  by
+theorem Stream.zero_eval : (Stream.zero ι α).eval = 0 := by
   ext (q i)
   rw [Stream.eval_invalid]
   · simp
-  exact not_false
+  · exact not_false
 #align Stream.zero_eval Etch.Verification.Stream.zero_eval
 
-instance : IsStrictLawful (Stream.zero ι α)
-    where
-  mono q := False.drec _
-  skip_spec q := False.drec _
-  StrictMono := ⟨fun q => False.drec _, fun q => False.drec _⟩
+instance : IsStrictLawful (Stream.zero ι α) where
+  mono _ := False.rec
+  skip_spec _ := False.rec
+  StrictMono := ⟨fun _ => False.rec, fun _ => False.rec⟩
 
 end Etch.Verification
