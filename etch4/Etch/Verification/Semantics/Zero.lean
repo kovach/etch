@@ -51,8 +51,7 @@ theorem Stream.zero_eval : (Stream.zero ι α).eval = 0 := by
 #align Stream.zero_eval Etch.Verification.Stream.zero_eval
 
 instance : IsStrictLawful (Stream.zero ι α) where
-  mono _ := False.rec
   skip_spec _ := False.rec
-  StrictMono := ⟨fun _ => False.rec, fun _ => False.rec⟩
+  strictMono := ⟨fun _ => False.rec, fun _ => False.rec⟩
 
 end Etch.Verification

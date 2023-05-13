@@ -620,10 +620,13 @@ theorem Stream.map_value' [Zero α] [Zero β] (f : α → β) (hf : f 0 = 0) (s 
 variable [LinearOrder ι]
 
 @[simp]
-theorem map_IsBounded_iff (f : α → β) (s : Stream ι α) : IsBounded (s.map f) ↔ IsBounded s := by
+theorem Stream.map_IsBounded_iff (f : α → β) (s : Stream ι α) : IsBounded (s.map f) ↔ IsBounded s := by
   simp only [IsBounded_iff]
   rfl
-#align map_is_bounded_iff Etch.Verification.map_IsBounded_iff
+#align map_is_bounded_iff Etch.Verification.Stream.map_IsBounded_iff
+
+instance (f : α → β) (s : Stream ι α) [IsBounded s] : IsBounded (s.map f) :=
+  (Stream.map_IsBounded_iff f s).mpr ‹_› 
 
 end Functor
 

@@ -5,7 +5,6 @@ import Etch.Verification.Semantics.Mul
 import Etch.Verification.Semantics.Contract
 import Etch.Verification.Semantics.Replicate
 
-
 /-!
 # Nested stream evaluation
 
@@ -27,35 +26,43 @@ function depending on the shape of the nested stream.
       and `LawfulStream.eval_replicate`, corresponds to theorem 6.1 in the paper.
 -/
 
+set_option linter.uppercaseLean3 false
+
 namespace Etch.Verification
 
 noncomputable section
 
 open Classical
 
-@[ext]
 structure BoundedStream (ι : Type) [LinearOrder ι] (α : Type _) extends Stream ι α where
-  dropLast : σ
-  bdd : IsBounded to_Stream
+  init : σ
+  bdd : IsBounded toStream
 #align BoundedStream Etch.Verification.BoundedStream
+
+@[ext]
+protected theorem BoundedStream.ext {ι : Type} [LinearOrder ι] {α : Type _}
+    (x y : BoundedStream ι α) : x.toStream = y.toStream → HEq x.init y.init → x = y := fun hs hdl => by
+  cases x; cases y
+  congr
+  exact cast_heq (congr_arg _ hs.symm) _
 
 -- mathport name: «expr ⟶b »
 infixr:50 " ⟶b " => BoundedStream
 
 -- mathport name: «expr↟ »
-local notation "↟" s => s.toStream
+local notation "↟" s => BoundedStream.toStream s
 
 attribute [instance] BoundedStream.bdd
 
 variable {ι : Type} [LinearOrder ι] {α β γ : Type _}
 
-@[simps]
+@[simps toStream init]
 def BoundedStream.map (f : α → β) (s : BoundedStream ι α) : BoundedStream ι β :=
-  BoundedStream.mk (s.map f) s.dropLast (by simp <;> infer_instance)
+  ⟨(↟s).map f, s.init, by simp; infer_instance⟩
 #align BoundedStream.map Etch.Verification.BoundedStream.map
 
 @[simp]
-theorem BoundedStream.map_id (s : BoundedStream ι α) : s.map id = s := by ext : 1 <;> simp
+theorem BoundedStream.map_id (s : BoundedStream ι α) : s.map id = s := rfl
 #align BoundedStream.map_id Etch.Verification.BoundedStream.map_id
 
 theorem BoundedStream.map_map (g : α → β) (f : β → γ) (s : BoundedStream ι α) :
@@ -72,12 +79,12 @@ instance Eval.base {α : Type _} [AddZeroClass α] : Eval α α where eval := id
 #align Eval.base Etch.Verification.Eval.base
 
 instance Eval.ind (ι : Type) [LinearOrder ι] (α β : Type _) [AddZeroClass β] [Eval α β] :
-    Eval (ι ⟶b α) (ι →₀ β) where eval s := (s.map eval).eval s.dropLast
+    Eval (ι ⟶b α) (ι →₀ β) where eval s := (s.map eval).eval s.init
 #align Eval.ind Etch.Verification.Eval.ind
 
 structure StrictLawfulStream (ι : Type) [LinearOrder ι] (α : Type _) {β : Type _} [AddZeroClass β]
   [Eval α β] extends ι ⟶b α where
-  strictLawful : IsStrictLawful (to_Stream.map eval)
+  strictLawful : IsStrictLawful (toStream.map eval)
 #align StrictLawfulStream Etch.Verification.StrictLawfulStream
 
 -- mathport name: «expr ⟶ₛ »
@@ -87,7 +94,7 @@ attribute [instance] StrictLawfulStream.strictLawful
 
 @[simp]
 theorem StrictLawfulStream.toBoundedStream_toStream [AddZeroClass β] [Eval α β] (s : ι ⟶ₛ α) :
-    (↟s.toBoundedStream) = ↟s :=
+    (↟s.toBoundedStream) = s.toStream :=
   rfl
 #align StrictLawfulStream.to_BoundedStream_to_Stream Etch.Verification.StrictLawfulStream.toBoundedStream_toStream
 
@@ -98,40 +105,39 @@ class LawfulEval (α : Type _) (β : outParam (Type _)) [NonUnitalNonAssocSemiri
   eval_mul : ∀ x y, eval (x * y) = eval x * eval y
 #align LawfulEval Etch.Verification.LawfulEval
 
-instance LawfulEval.base {α : Type _} [NonUnitalNonAssocSemiring α] : LawfulEval α α
-    where
+instance LawfulEval.base {α : Type _} [NonUnitalNonAssocSemiring α] : LawfulEval α α where
   eval_zero := rfl
-  eval_add x y := rfl
-  eval_mul x y := rfl
+  eval_add _ _ := rfl
+  eval_mul _ _ := rfl
 #align LawfulEval.base Etch.Verification.LawfulEval.base
 
-@[simps]
+@[simps toStream init]
 def BoundedStream.add [Zero α] [Add α] (q r : ι ⟶b α) : ι ⟶b α :=
-  ⟨q.add (↟r), (q.dropLast, r.dropLast), inferInstance⟩
+  ⟨(↟q).add (↟r), (q.init, r.init), inferInstance⟩
 #align BoundedStream.add Etch.Verification.BoundedStream.add
 
-@[simps]
+@[simps toStream init]
 def BoundedStream.mul [Mul α] (q r : ι ⟶b α) : ι ⟶b α :=
-  ⟨q.mul (↟r), (q.dropLast, r.dropLast), inferInstance⟩
+  ⟨(↟q).mul (↟r), (q.init, r.init), inferInstance⟩
 #align BoundedStream.mul Etch.Verification.BoundedStream.mul
 
-@[simps]
+@[simps toStream init]
 def BoundedStream.zero : ι ⟶b α :=
   ⟨Stream.zero ι α, (), inferInstance⟩
 #align BoundedStream.zero Etch.Verification.BoundedStream.zero
 
-@[simps]
+@[simps toStream init]
 def BoundedStream.contract (s : ι ⟶b α) : Unit ⟶b α :=
-  ⟨(↟s).contract, s.dropLast, inferInstance⟩
+  ⟨(↟s).contract, s.init, inferInstance⟩
 #align BoundedStream.contract Etch.Verification.BoundedStream.contract
 
-@[simps]
+@[simps toStream init]
 def BoundedStream.replicate (n : ℕ) (v : α) : Fin n ⟶b α :=
-  ⟨Stream.replicate n v, (0 : Fin (n + 1)), inferInstance⟩
+  ⟨Stream.replicate n v, 0, inferInstance⟩
 #align BoundedStream.replicate Etch.Verification.BoundedStream.replicate
 
 def Stream.eval' [AddZeroClass α] (s : Stream ι α) (q : s.σ) : ι →₀ α :=
-  if h : IsBounded s then by skip <;> exact s.eval q else Classical.arbitrary _
+  if _ : IsBounded s then s.eval q else Classical.arbitrary _
 #align Stream.eval' Etch.Verification.Stream.eval'
 
 theorem Stream.eval'_eq [AddZeroClass α] (s : Stream ι α) [IsBounded s] (q : s.σ) :
@@ -140,24 +146,23 @@ theorem Stream.eval'_eq [AddZeroClass α] (s : Stream ι α) [IsBounded s] (q : 
 #align Stream.eval'_eq Etch.Verification.Stream.eval'_eq
 
 theorem BoundedStream.zero_eval [NonUnitalNonAssocSemiring β] [LawfulEval α β] :
-    eval (@BoundedStream.zero ι _ α) = (0 : ι →₀ β) :=
-  by
-  dsimp [eval]
+    Eval.eval (@BoundedStream.zero ι _ α) = (0 : ι →₀ β) := by
+  dsimp [Eval.eval]
   rw [← Stream.eval'_eq]
-  convert_to(Stream.zero ι β).eval' () = 0
+  convert_to (Stream.zero ι β).eval' () = 0
   · congr
-    simp
-  simp [Stream.eval'_eq]
+    simp [BoundedStream.map, BoundedStream.zero]
+  · simp [Stream.eval'_eq]
 #align BoundedStream.zero_eval Etch.Verification.BoundedStream.zero_eval
 
 theorem Stream.add_map_eval [NonUnitalNonAssocSemiring β] [LawfulEval α β] :
-    ∀ q r : Stream ι α, (q.add r).map eval = (q.map eval).add (r.map eval) :=
-  Stream.add_map eval LawfulEval.eval_add LawfulEval.eval_zero
+    ∀ q r : Stream ι α, (q.add r).map Eval.eval = (q.map Eval.eval).add (r.map Eval.eval) :=
+  Stream.add_map Eval.eval LawfulEval.eval_add LawfulEval.eval_zero
 #align Stream.add_map_eval Etch.Verification.Stream.add_map_eval
 
 theorem Stream.mul_map_eval [NonUnitalNonAssocSemiring β] [LawfulEval α β] :
-    ∀ q r : Stream ι α, (q.mul r).map eval = (q.map eval).mul (r.map eval) :=
-  Stream.mul_map eval LawfulEval.eval_mul
+    ∀ q r : Stream ι α, (q.mul r).map Eval.eval = (q.map Eval.eval).mul (r.map Eval.eval) :=
+  Stream.mul_map Eval.eval LawfulEval.eval_mul
 #align Stream.mul_map_eval Etch.Verification.Stream.mul_map_eval
 
 theorem BoundedStream.add_map_eval [NonUnitalNonAssocSemiring β] [LawfulEval α β] (q r : ι ⟶b α) :
@@ -177,38 +182,36 @@ theorem BoundedStream.mul_map_eval [NonUnitalNonAssocSemiring β] [LawfulEval α
 #align BoundedStream.mul_map_eval Etch.Verification.BoundedStream.mul_map_eval
 
 theorem BoundedStream.eval_add [NonUnitalNonAssocSemiring β] [LawfulEval α β] (q r : ι ⟶b α)
-    [IsLawful ((↟q).map eval)] [IsLawful ((↟r).map eval)] : eval (q.add r) = eval q + eval r :=
-  by
+    [IsLawful ((↟q).map Eval.eval)] [IsLawful ((↟r).map Eval.eval)] : Eval.eval (q.add r) = Eval.eval q + Eval.eval r := by
   dsimp only [eval]; conv_lhs => rw [← Stream.eval'_eq]
-  convert_to((q.map eval).add (r.map eval)).eval' (q.add r).dropLast = _
+  convert_to ((q.map Eval.eval).add (r.map Eval.eval)).eval' (q.add r).init = _
   · congr
     exact BoundedStream.add_map_eval q r
-  rw [Stream.eval'_eq]; dsimp; rw [add_spec]
+  · rw [Stream.eval'_eq]
+    dsimp
+    exact add_spec ..
 #align BoundedStream.eval_add Etch.Verification.BoundedStream.eval_add
 
 theorem BoundedStream.eval_contract [NonUnitalNonAssocSemiring β] [LawfulEval α β] (q : ι ⟶b α)
-    [IsLawful ((↟q).map eval)] : (eval q.contract : Unit →₀ β) () = Finsupp.sumRange (eval q) :=
-  by
-  dsimp [eval, ← contract_map]
-  exact contract_eval _ _
+    [IsLawful ((↟q).map eval)] : (eval q.contract : Unit →₀ β) () = Finsupp.sumRange (eval q) := by
+  dsimp [eval, ← Stream.contract_map]
+  exact Stream.contract_eval ..
 #align BoundedStream.eval_contract Etch.Verification.BoundedStream.eval_contract
 
 theorem BoundedStream.eval_mul [NonUnitalNonAssocSemiring β] [LawfulEval α β] (q r : ι ⟶b α)
     [IsStrictLawful ((↟q).map eval)] [IsStrictLawful ((↟r).map eval)] :
     eval (q.mul r) = eval q * eval r := by
   dsimp only [eval]; conv_lhs => rw [← Stream.eval'_eq]
-  convert_to((q.map eval).mul (r.map eval)).eval' (q.mul r).dropLast = _
+  convert_to((q.map eval).mul (r.map eval)).eval' (q.mul r).init = _
   · congr
     exact BoundedStream.mul_map_eval q r
   rw [Stream.eval'_eq]; dsimp; rw [mul_spec]
 #align BoundedStream.eval_mul Etch.Verification.BoundedStream.eval_mul
 
-@[simps]
+@[simps toBoundedStream]
 def LawfulStream.replicate [NonUnitalNonAssocSemiring β] [LawfulEval α β] (n : ℕ) (v : α) :
     Fin n ⟶ₛ α :=
-  ⟨BoundedStream.replicate n v, by
-    dsimp
-    infer_instance⟩
+  ⟨BoundedStream.replicate n v, by dsimp; infer_instance⟩
 #align LawfulStream.replicate Etch.Verification.LawfulStream.replicate
 
 instance LawfulEval.ind [NonUnitalNonAssocSemiring β] [LawfulEval α β] :
@@ -230,8 +233,8 @@ instance LawfulEval.ind [NonUnitalNonAssocSemiring β] [LawfulEval α β] :
       simp
       infer_instance⟩
   eval_zero := BoundedStream.zero_eval
-  eval_add x y := BoundedStream.eval_add _ _
-  eval_mul x y := BoundedStream.eval_mul _ _
+  eval_add _ _ := BoundedStream.eval_add ..
+  eval_mul _ _ := BoundedStream.eval_mul ..
 #align LawfulEval.ind Etch.Verification.LawfulEval.ind
 
 attribute [simp] LawfulEval.eval_add LawfulEval.eval_zero LawfulEval.eval_mul
@@ -244,10 +247,10 @@ theorem LawfulStream.eval_contract [NonUnitalNonAssocSemiring β] [LawfulEval α
 
 @[simp]
 theorem LawfulStream.eval_replicate [NonUnitalNonAssocSemiring β] [LawfulEval α β] (n : ℕ) (v : α)
-    (j : Fin n) : (eval (LawfulStream.replicate n v) : Fin n →₀ β) j = eval v :=
-  by
+    (j : Fin n) : (eval (LawfulStream.replicate n v) : Fin n →₀ β) j = eval v := by
   dsimp [eval]
-  simp
+  rw [Stream.replicate_eval]
 #align LawfulStream.eval_replicate Etch.Verification.LawfulStream.eval_replicate
 
+end
 end Etch.Verification

@@ -35,6 +35,8 @@ structure BoundedStream (ι : Type) [linear_order ι] (α : Type*) extends Strea
 (init : σ)
 (bdd : is_bounded to_Stream)
 
+#check BoundedStream.ext_iff
+
 infixr ` ⟶b `:50 := BoundedStream
 local notation `↟`s := s.to_Stream
 attribute [instance] BoundedStream.bdd
@@ -99,7 +101,7 @@ instance LawfulEval.base {α : Type*} [non_unital_non_assoc_semiring α] :
 @[simps] def BoundedStream.contract (s : ι ⟶b α) : unit ⟶b α :=
 ⟨(↟s).contract, s.init, infer_instance⟩
 
-@[simps] def BoundedStream.replicate (n : ℕ) (v : α) : (fin n) ⟶b α :=
+@[simps?] def BoundedStream.replicate (n : ℕ) (v : α) : (fin n) ⟶b α :=
 ⟨Stream.replicate n v, (0 : fin (n + 1)), infer_instance⟩
 
 def Stream.eval' [add_zero_class α] (s : Stream ι α) (q : s.σ) : ι →₀ α :=
@@ -151,9 +153,11 @@ begin
   rw Stream.eval'_eq, dsimp, rw mul_spec,
 end
 
-@[simps] def LawfulStream.replicate [non_unital_non_assoc_semiring β] [LawfulEval α β]
+@[simps?] def LawfulStream.replicate [non_unital_non_assoc_semiring β] [LawfulEval α β]
   (n : ℕ) (v : α) : (fin n) ⟶ₛ α :=
 ⟨BoundedStream.replicate n v, (by { dsimp, apply_instance, })⟩
+
+#check @LawfulStream.replicate_to_BoundedStream
 
 instance LawfulEval.ind [non_unital_non_assoc_semiring β]
   [LawfulEval α β] : LawfulEval (ι ⟶ₛ α) (ι →₀ β) :=
