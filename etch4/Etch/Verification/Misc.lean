@@ -150,7 +150,7 @@ theorem Bool.min_eq_and {a b : Bool} : min a b = (a && b) := rfl
 #align bool.min_eq_and Bool.min_eq_and
 
 theorem ne_min_of_ne_and_ne {ι : Type _} [LinearOrder ι] {a x y : ι} (hx : a ≠ x) (hy : a ≠ y) :
-    a ≠ min x y := by cases' min_choice x y with h h <;> rw [h] <;> assumption
+    a ≠ min x y := by rcases min_choice x y with h | h <;> rw [h] <;> assumption
 #align ne_min_of_ne_and_ne ne_min_of_ne_and_ne
 
 @[simp]
@@ -195,7 +195,7 @@ def RProdEq (s₁ s₂ : α × β) : Prop :=
 variable {r₁ r₂}
 
 def RProdEqSubLex (s₁ s₂ : α × β) (h : RProdEq r₁ r₂ s₁ s₂) : Prod.Lex r₁ r₂ s₁ s₂ := by
-  cases' s₁ with a b; cases' s₂ with c d
+  rcases s₁ with ⟨a, b⟩; rcases s₂ with ⟨c, d⟩
   rcases h with (⟨h₁, _⟩ | ⟨h₁, h₂ | h₂⟩)
   · exact Prod.Lex.left _ _ h₁
   · exact Prod.Lex.left _ _ h₂
@@ -325,7 +325,7 @@ theorem Finsupp.mul_single {ι β : Type _} [MulZeroClass β] (i : ι) (x y : β
 theorem Finsupp.mul_eq_zero_of_disjoint_support {ι β : Type _} [DecidableEq ι] [MulZeroClass β]
     (f g : ι →₀ β) (h : Disjoint f.support g.support) : f * g = 0 := by
   rw [← Finsupp.support_eq_empty, ← Finset.subset_empty]
-  refine' _root_.trans Finsupp.support_mul _
+  refine Finsupp.support_mul.trans ?_
   rwa [Finset.subset_empty, ← Finset.disjoint_iff_inter_eq_empty]
 #align finsupp.mul_eq_zero_of_disjoint_support Finsupp.mul_eq_zero_of_disjoint_support
 

@@ -409,7 +409,7 @@ theorem Stream.IsMonotonic.index_le_of_mem_support [AddZeroClass α] {s : Stream
     rcases Finset.mem_union.mp (Finsupp.support_add hi) with hi | hi
     · rw [Finset.mem_singleton.mp (s.eval₀_support _ H hi)]
       exact le_of_eq (Stream.index'_val _)
-    · exact _root_.trans (hs.index_le_index_next q) (ih (s.next q) (s.next_wf _ H) i hi)
+    · exact (hs.index_le_index_next q).trans (ih (s.next q) (s.next_wf _ H) i hi)
 #align Stream.is_monotonic.index_le_of_mem_support Etch.Verification.Stream.IsMonotonic.index_le_of_mem_support
 
 theorem Stream.IsMonotonic.eq_zero_of_lt_index [AddZeroClass α] {s : Stream ι α} [IsBounded s]
@@ -512,7 +512,8 @@ class IsLawful {ι : Type} {α : Type _} [LinearOrder ι] [AddZeroClass α] (s :
 /-- A stream is strictly lawful if in addition to being lawful, it is strictly monotonic -/
 class IsStrictLawful {ι : Type} {α : Type _} [LinearOrder ι] [AddZeroClass α]
   (s : Stream ι α) extends IsLawful s where
-  StrictMono : s.IsStrictMono
+  strictMono : s.IsStrictMono
+  mono := strictMono.1
 #align is_strict_lawful Etch.Verification.IsStrictLawful
 
 variable [AddZeroClass α]
@@ -522,7 +523,7 @@ theorem Stream.mono (s : Stream ι α) [IsLawful s] : s.IsMonotonic :=
 #align Stream.mono Etch.Verification.Stream.mono
 
 theorem Stream.strictMono (s : Stream ι α) [IsStrictLawful s] : s.IsStrictMono :=
-  ‹IsStrictLawful s›.StrictMono
+  ‹IsStrictLawful s›.strictMono
 #align Stream.strict_mono Etch.Verification.Stream.strictMono
 
 theorem Stream.skip_spec (s : Stream ι α) [IsLawful s] (q : s.σ) (hq : s.valid q)

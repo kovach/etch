@@ -322,7 +322,7 @@ instance (a b : Stream ι α) [IsLawful a] [IsLawful b] : IsLawful (a.add b) whe
 
 instance (a b : Stream ι α) [IsStrictLawful a] [IsStrictLawful b] :
     IsStrictLawful (a.add b) where
-  StrictMono := add_strict_mono a.strictMono b.strictMono
+  strictMono := add_strict_mono a.strictMono b.strictMono
 
 end ValueLemmas
 
