@@ -13,31 +13,32 @@ The terms *replicate* and *expand* should be considered to be synonymous**.
 
 namespace Etch.Verification
 
-variable {α β : Type _}
+variable {α β : Type _} (n : ℕ) (v : α)
 
-def Stream.replicate (n : ℕ) (v : α) : Stream (Fin n) α :=
-  Stream.denseVec fun _ => v deriving IsBounded
+set_option linter.uppercaseLean3 false
+
+def Stream.replicate : Stream (Fin n) α :=
+  Stream.denseVec fun _ => v
 #align Stream.replicate Etch.Verification.Stream.replicate
 
+attribute [reducible] Stream.replicate in
+section
+
 @[simp]
-theorem Stream.replicate_map (f : α → β) (n : ℕ) (v : α) :
-    (Stream.replicate n v).map f = Stream.replicate n (f v) :=
-  rfl
+theorem Stream.replicate_map (f : α → β) :
+    (Stream.replicate n v).map f = Stream.replicate n (f v) := rfl
 #align Stream.replicate_map Etch.Verification.Stream.replicate_map
 
-variable [AddZeroClass α]
+instance : IsBounded (Stream.replicate n v) := inferInstance
 
-instance (n : ℕ) (v : α) : IsStrictLawful (Stream.replicate n v) :=
-  by
-  dsimp only [Stream.replicate]
-  infer_instance
+variable [AddZeroClass α]
+instance : IsStrictLawful (Stream.replicate n v) := inferInstance
 
 @[simp]
-theorem Stream.replicate_eval (n : ℕ) (v : α) (j : Fin n) :
-    (Stream.replicate n v).eval (0 : Fin (n + 1)) j = v :=
-  by
-  dsimp only [Stream.replicate]
-  simp
+theorem Stream.replicate_eval (j : Fin n) :
+    (Stream.replicate n v).eval 0 j = v := by simp
 #align Stream.replicate_eval Etch.Verification.Stream.replicate_eval
+
+end
 
 end Etch.Verification
