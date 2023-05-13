@@ -34,17 +34,12 @@ noncomputable section
 
 open Classical
 
-structure BoundedStream (ι : Type) [LinearOrder ι] (α : Type _) extends Stream ι α where
-  init : σ
+@[ext]
+structure BoundedStream (ι : Type) [LinearOrder ι] (α : Type _) where
+  toStream : Stream ι α -- not `extends` to make `@[ext]` not recurse into Stream
+  init : toStream.σ
   bdd : IsBounded toStream
 #align BoundedStream Etch.Verification.BoundedStream
-
-@[ext]
-protected theorem BoundedStream.ext {ι : Type} [LinearOrder ι] {α : Type _}
-    (x y : BoundedStream ι α) : x.toStream = y.toStream → HEq x.init y.init → x = y := fun hs hdl => by
-  cases x; cases y
-  congr
-  exact cast_heq (congr_arg _ hs.symm) _
 
 -- mathport name: «expr ⟶b »
 infixr:50 " ⟶b " => BoundedStream
@@ -79,7 +74,7 @@ instance Eval.base {α : Type _} [AddZeroClass α] : Eval α α where eval := id
 #align Eval.base Etch.Verification.Eval.base
 
 instance Eval.ind (ι : Type) [LinearOrder ι] (α β : Type _) [AddZeroClass β] [Eval α β] :
-    Eval (ι ⟶b α) (ι →₀ β) where eval s := (s.map eval).eval s.init
+    Eval (ι ⟶b α) (ι →₀ β) where eval s := (↟(s.map eval)).eval s.init
 #align Eval.ind Etch.Verification.Eval.ind
 
 structure StrictLawfulStream (ι : Type) [LinearOrder ι] (α : Type _) {β : Type _} [AddZeroClass β]
@@ -91,12 +86,6 @@ structure StrictLawfulStream (ι : Type) [LinearOrder ι] (α : Type _) {β : Ty
 infixr:50 " ⟶ₛ " => StrictLawfulStream
 
 attribute [instance] StrictLawfulStream.strictLawful
-
-@[simp]
-theorem StrictLawfulStream.toBoundedStream_toStream [AddZeroClass β] [Eval α β] (s : ι ⟶ₛ α) :
-    (↟s.toBoundedStream) = s.toStream :=
-  rfl
-#align StrictLawfulStream.to_BoundedStream_to_Stream Etch.Verification.StrictLawfulStream.toBoundedStream_toStream
 
 class LawfulEval (α : Type _) (β : outParam (Type _)) [NonUnitalNonAssocSemiring β] extends
   Eval α β, Add α, Mul α, Zero α where
@@ -146,8 +135,8 @@ theorem Stream.eval'_eq [AddZeroClass α] (s : Stream ι α) [IsBounded s] (q : 
 #align Stream.eval'_eq Etch.Verification.Stream.eval'_eq
 
 theorem BoundedStream.zero_eval [NonUnitalNonAssocSemiring β] [LawfulEval α β] :
-    Eval.eval (@BoundedStream.zero ι _ α) = (0 : ι →₀ β) := by
-  dsimp [Eval.eval]
+    eval (@BoundedStream.zero ι _ α) = (0 : ι →₀ β) := by
+  dsimp [eval]
   rw [← Stream.eval'_eq]
   convert_to (Stream.zero ι β).eval' () = 0
   · congr
@@ -182,9 +171,9 @@ theorem BoundedStream.mul_map_eval [NonUnitalNonAssocSemiring β] [LawfulEval α
 #align BoundedStream.mul_map_eval Etch.Verification.BoundedStream.mul_map_eval
 
 theorem BoundedStream.eval_add [NonUnitalNonAssocSemiring β] [LawfulEval α β] (q r : ι ⟶b α)
-    [IsLawful ((↟q).map Eval.eval)] [IsLawful ((↟r).map Eval.eval)] : Eval.eval (q.add r) = Eval.eval q + Eval.eval r := by
+    [IsLawful ((↟q).map eval)] [IsLawful ((↟r).map eval)] : eval (q.add r) = eval q + eval r := by
   dsimp only [eval]; conv_lhs => rw [← Stream.eval'_eq]
-  convert_to ((q.map Eval.eval).add (r.map Eval.eval)).eval' (q.add r).init = _
+  convert_to (↟(q.map eval).add (r.map eval)).eval' (q.add r).init = _
   · congr
     exact BoundedStream.add_map_eval q r
   · rw [Stream.eval'_eq]
@@ -202,7 +191,7 @@ theorem BoundedStream.eval_mul [NonUnitalNonAssocSemiring β] [LawfulEval α β]
     [IsStrictLawful ((↟q).map eval)] [IsStrictLawful ((↟r).map eval)] :
     eval (q.mul r) = eval q * eval r := by
   dsimp only [eval]; conv_lhs => rw [← Stream.eval'_eq]
-  convert_to((q.map eval).mul (r.map eval)).eval' (q.mul r).init = _
+  convert_to (↟(q.map eval).mul (r.map eval)).eval' (q.mul r).init = _
   · congr
     exact BoundedStream.mul_map_eval q r
   rw [Stream.eval'_eq]; dsimp; rw [mul_spec]
