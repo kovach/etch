@@ -35,7 +35,7 @@ variable [LinearOrder ι]
 section IndexLemmas
 
 instance (s : Stream ι α) [IsBounded s] : IsBounded s.contract :=
-  ⟨⟨s.WfRel, s.wf, fun q hq => by
+  ⟨⟨s.wfRel, fun q hq => by
       rintro ⟨⟨⟩, b⟩
       simp only [Stream.contract_skip]
       refine (s.wf_valid q hq (s.index q hq, b)).imp_right (And.imp_left ?_)

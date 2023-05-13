@@ -243,32 +243,31 @@ open Streams
 @[mk_iff]
 class IsBounded {ι : Type} {α : Type _} [LinearOrder ι] (s : Stream ι α) : Prop where
   out :
-    ∃ wf_rel : s.σ → s.σ → Prop,
-      WellFounded wf_rel ∧
-        ∀ q hq i, wf_rel (s.skip q hq i) q ∨ (i <ₗ s.toOrder q hq) ∧ s.skip q hq i = q
+    ∃ wf_rel : WellFoundedRelation s.σ,
+      ∀ q hq i, wf_rel.rel (s.skip q hq i) q ∨ (i <ₗ s.toOrder q hq) ∧ s.skip q hq i = q
 #align is_bounded Etch.Verification.IsBounded
 
 variable [LinearOrder ι]
 
 /-- Extract the well-founded relation on a bounded stream -/
-def Stream.WfRel (s : Stream ι α) [IsBounded s] : s.σ → s.σ → Prop :=
+def Stream.wfRel (s : Stream ι α) [IsBounded s] : WellFoundedRelation s.σ :=
   ‹IsBounded s›.out.choose
+
+/-- Extract the well-founded relation on a bounded stream -/
+def Stream.WfRel (s : Stream ι α) [IsBounded s] : s.σ → s.σ → Prop :=
+  s.wfRel.rel
 #align Stream.wf_rel Etch.Verification.Stream.WfRel
 
 -- mathport name: «expr ≺ »
 scoped[Streams] notation:50 a " ≺ " b => Etch.Verification.Stream.WfRel _ a b
 
 theorem Stream.wf (s : Stream ι α) [IsBounded s] : WellFounded s.WfRel :=
-  ‹IsBounded s›.out.choose_spec.1
+  s.wfRel.wf
 #align Stream.wf Etch.Verification.Stream.wf
-
-/-- Extract the well-founded relation on a bounded stream -/
-def Stream.wfRel (s : Stream ι α) [IsBounded s] : WellFoundedRelation s.σ :=
-  ⟨s.WfRel, s.wf⟩
 
 theorem Stream.wf_valid (s : Stream ι α) [IsBounded s] :
     ∀ q hq i, (s.skip q hq i ≺ q) ∨ (i <ₗ s.toOrder q hq) ∧ s.skip q hq i = q :=
-  ‹IsBounded s›.out.choose_spec.2
+  ‹IsBounded s›.out.choose_spec
 #align Stream.wf_valid Etch.Verification.Stream.wf_valid
 
 theorem wf_valid_iff {s : Stream ι α} (wf_rel : s.σ → s.σ → Prop) (q hq i) :
@@ -279,14 +278,13 @@ theorem wf_valid_iff {s : Stream ι α} (wf_rel : s.σ → s.σ → Prop) (q hq 
 
 theorem IsBounded.mk' {s : Stream ι α}
     (h :
-      ∃ wf_rel : s.σ → s.σ → Prop,
-        WellFounded wf_rel ∧
-          ∀ q i, wf_rel (s.skip' q i) q ∨ coeLex i < s.toOrder' q ∧ s.skip' q i = q) :
+      ∃ wf_rel : WellFoundedRelation s.σ,
+        ∀ q i, wf_rel.rel (s.skip' q i) q ∨ coeLex i < s.toOrder' q ∧ s.skip' q i = q) :
     IsBounded s :=
   ⟨by
     simp only [wf_valid_iff]
-    rcases h with ⟨r, wfr, hr⟩
-    exact ⟨r, wfr, fun q _ i => hr q i⟩⟩
+    rcases h with ⟨wfr, hr⟩
+    exact ⟨wfr, fun q _ i => hr q i⟩⟩
 #align is_bounded.mk' Etch.Verification.IsBounded.mk'
 
 theorem Stream.wf_valid' (s : Stream ι α) [IsBounded s] (q i) :
@@ -625,7 +623,7 @@ theorem Stream.map_IsBounded_iff (f : α → β) (s : Stream ι α) : IsBounded 
   rfl
 #align map_is_bounded_iff Etch.Verification.Stream.map_IsBounded_iff
 
-instance (f : α → β) (s : Stream ι α) [IsBounded s] : IsBounded (s.map f) :=
+instance Stream.map_IsBounded (f : α → β) (s : Stream ι α) [IsBounded s] : IsBounded (s.map f) :=
   (Stream.map_IsBounded_iff f s).mpr ‹_› 
 
 end Functor

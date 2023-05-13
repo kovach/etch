@@ -40,7 +40,8 @@ attribute [reducible] Stream.denseVec in
 section
 
 instance {n} (vals : Fin n → α) : IsBounded (Stream.denseVec vals) :=
-  ⟨⟨(· > ·), Finite.Preorder.wellFounded_gt, fun i hi j => by
+  ⟨⟨⟨(· > ·), Finite.Preorder.wellFounded_gt⟩,
+    fun i hi j => by
       unfold Stream.toOrder
       rw [Prod.Lex.lt_iff'']
       rcases i with ⟨i, ip⟩

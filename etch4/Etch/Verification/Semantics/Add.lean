@@ -141,7 +141,8 @@ theorem add_toOrder_right {a b : Stream ι α} {q : (a.add b).σ} (hq hq')
 instance Stream.add.isBounded (a b : Stream ι α) [IsBounded a] [IsBounded b] :
     IsBounded (a.add b) :=
   IsBounded.mk'
-    ⟨Prod.RProdEq a.WfRel b.WfRel, (Prod.rprodEq a.wfRel b.wfRel).wf, fun q i => by
+    ⟨Prod.rprodEq a.wfRel b.wfRel,
+      fun q i => by
       rcases a.wf_valid' q.1 i with (h | ⟨ha₁, ha₂⟩)
       · left
         left

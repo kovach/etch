@@ -31,7 +31,7 @@ def Stream.zero (ι : Type) (α : Type _) : Stream ι α where
 variable {ι : Type} [LinearOrder ι] {α β : Type _}
 
 instance : IsBounded (Stream.zero ι α) :=
-  ⟨⟨emptyRelation, emptyWf.wf, fun _ => False.rec⟩⟩
+  ⟨⟨emptyWf, fun _ => False.rec⟩⟩
 
 @[simp]
 theorem Stream.zero_map (f : α → β) : (Stream.zero ι α).map f = Stream.zero ι β := by

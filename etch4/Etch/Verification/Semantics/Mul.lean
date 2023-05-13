@@ -107,7 +107,8 @@ theorem toOrder_le_max (a b : Stream ι α) (q : a.σ × b.σ) (hv : (a.mul b).v
 
 instance Stream.mul.isBounded (a b : Stream ι α) [IsBounded a] [IsBounded b] :
     IsBounded (a.mul b) :=
-  ⟨⟨Prod.RProdEq a.WfRel b.WfRel, (Prod.rprodEq a.wfRel b.wfRel).wf, fun q hq i => by
+  ⟨⟨Prod.rprodEq a.wfRel b.wfRel,
+    fun q hq i => by
       rcases a.wf_valid q.1 hq.1 i with (h | ⟨ha₁, ha₂⟩)
       · left; left; exact ⟨h, b.no_backward ..⟩
       · rcases b.wf_valid q.2 hq.2 i with (h | ⟨hb₁, hb₂⟩)
