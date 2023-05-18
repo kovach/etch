@@ -19,7 +19,7 @@ example (a b c d : ι₁ ⟶ₛ ι₂ ⟶ₛ ι₃ ⟶ₛ R) :
     eval (a * (b + c) * d) = eval a * (eval b + eval c) * eval d := by simp
 
 -- mathport name: «expr∑ᵢ »
-local notation "∑ᵢ " s => Stream.contract s
+local notation "∑ᵢ " s => BoundedStream.contract (StrictLawfulStream.toBoundedStream s)
 
 open BigOperators
 

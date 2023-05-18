@@ -155,19 +155,17 @@ theorem Stream.mul_map_eval [NonUnitalNonAssocSemiring β] [LawfulEval α β] :
 #align Stream.mul_map_eval Etch.Verification.Stream.mul_map_eval
 
 theorem BoundedStream.add_map_eval [NonUnitalNonAssocSemiring β] [LawfulEval α β] (q r : ι ⟶b α) :
-    (q.add r).map eval = (q.map eval).add (r.map eval) :=
-  by
+    (q.add r).map eval = (q.map eval).add (r.map eval) := by
   ext : 1
   · exact Stream.add_map_eval (↟q) (↟r)
-  rfl
+  · rfl
 #align BoundedStream.add_map_eval Etch.Verification.BoundedStream.add_map_eval
 
 theorem BoundedStream.mul_map_eval [NonUnitalNonAssocSemiring β] [LawfulEval α β] (q r : ι ⟶b α) :
-    (q.mul r).map eval = (q.map eval).mul (r.map eval) :=
-  by
+    (q.mul r).map eval = (q.map eval).mul (r.map eval) := by
   ext : 1
   · exact Stream.mul_map_eval _ _
-  rfl
+  · rfl
 #align BoundedStream.mul_map_eval Etch.Verification.BoundedStream.mul_map_eval
 
 theorem BoundedStream.eval_add [NonUnitalNonAssocSemiring β] [LawfulEval α β] (q r : ι ⟶b α)
@@ -194,7 +192,7 @@ theorem BoundedStream.eval_mul [NonUnitalNonAssocSemiring β] [LawfulEval α β]
   convert_to (↟(q.map eval).mul (r.map eval)).eval' (q.mul r).init = _
   · congr
     exact BoundedStream.mul_map_eval q r
-  rw [Stream.eval'_eq]; dsimp; rw [mul_spec]
+  · rw [Stream.eval'_eq]; dsimp; rw [mul_spec]
 #align BoundedStream.eval_mul Etch.Verification.BoundedStream.eval_mul
 
 @[simps toBoundedStream]
@@ -204,8 +202,7 @@ def LawfulStream.replicate [NonUnitalNonAssocSemiring β] [LawfulEval α β] (n 
 #align LawfulStream.replicate Etch.Verification.LawfulStream.replicate
 
 instance LawfulEval.ind [NonUnitalNonAssocSemiring β] [LawfulEval α β] :
-    LawfulEval (ι ⟶ₛ α) (ι →₀ β)
-    where
+    LawfulEval (ι ⟶ₛ α) (ι →₀ β) where
   eval s := eval s.toBoundedStream
   add x y :=
     ⟨x.add y.toBoundedStream, by
