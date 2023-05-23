@@ -33,7 +33,7 @@ def Stream.add [Zero α] [Add α] (a b : Stream ι α) : Stream ι α
   ready s :=
     a.toOrder' s.1 ≤ b.toOrder' s.2 ∧ a.ready s.1 ∨ b.toOrder' s.2 ≤ a.toOrder' s.1 ∧ b.ready s.2
   skip p _hp i := (a.skip' p.1 i, b.skip' p.2 i)
-  index s h := Option.get _ (show (min (a.index' s.1) (b.index' s.2)).isSome by simpa)
+  index s h := Option.get (min (α := WithTop ι) (a.index' s.1) (b.index' s.2)) (by simpa)
   value s _h :=
     (if a.toOrder' s.1 ≤ b.toOrder' s.2 then a.value' s.1 else 0) +
       if b.toOrder' s.2 ≤ a.toOrder' s.1 then b.value' s.2 else 0
@@ -54,10 +54,10 @@ variable [Zero α] [Add α]
 @[simp]
 theorem add_index_eq_min {a b : Stream ι α} (q : (a.add b).σ) :
     (a.add b).index' q = min (a.index' q.1) (b.index' q.2) := by
-  sorry
-  -- by_cases H : (a.add b).valid q
-  -- · simp [H]
-  -- · simp [H, Decidable.not_and.mp H]
+  by_cases H : (a.add b).valid q
+  · rw [Stream.index'_val H, Stream.add_index]
+    exact Option.coe_get _
+  · simp [H, not_or.mp H]
 #align add_index_eq_min Etch.Verification.add_index_eq_min
 
 theorem valid_of_toOrder_lt {a b : Stream ι α} {qa : a.σ} {qb : b.σ}
@@ -237,7 +237,7 @@ theorem Stream.add.eval₀_eq_left {a b : Stream ι α} {q : (a.add b).σ} (hq :
     (a.add b).eval₀ q hq = a.eval₀ q.1 (valid_of_toOrder_lt H) :=
   by
   have := add_toOrder_left hq (valid_of_toOrder_lt H) H.le
-  have hr : (a.add b).ready q ↔ a.ready q.1 := by sorry -- simpa using congr_arg Prod.snd this
+  have hr : (a.add b).ready q ↔ a.ready q.1 := by simpa [-add_ready] using congr_arg Prod.snd this
   simp only [Stream.eval₀, ← Stream.value'_val, dite_eq_ite]
   rw [hr]
   split_ifs with hr'
@@ -252,7 +252,7 @@ theorem Stream.add.eval₀_eq_right {a b : Stream ι α} {q : (a.add b).σ} (hq 
     (H : b.toOrder' q.2 < a.toOrder' q.1) :
     (a.add b).eval₀ q hq = b.eval₀ q.2 (valid_of_toOrder_lt H) := by
   have := add_toOrder_right hq (valid_of_toOrder_lt H) H.le
-  have hr : (a.add b).ready q ↔ b.ready q.2 := by sorry -- simpa using congr_arg Prod.snd this
+  have hr : (a.add b).ready q ↔ b.ready q.2 := by simpa [-add_ready] using congr_arg Prod.snd this
   simp only [Stream.eval₀, ← Stream.value'_val, dite_eq_ite]
   rw [hr]
   split_ifs with hr'
@@ -262,6 +262,12 @@ theorem Stream.add.eval₀_eq_right {a b : Stream ι α} {q : (a.add b).σ} (hq 
   · simpa using congr_arg Prod.fst this
   simp [@Stream.value'_val _ _ _ (a.add b) _ (Or.inr ⟨H.le, hr'⟩), H.le, H.not_le]
 #align Stream.add.eval₀_eq_right Etch.Verification.Stream.add.eval₀_eq_right
+
+lemma Stream.add_vlaue' {a b : Stream ι α} {q : (a.add b).σ}
+  (H : a.toOrder' q.1 = b.toOrder' q.2) (hr₁ : a.ready q.1) (hr₂ : b.ready q.2) :
+    (a.add b).value' q = a.value' q.1 + b.value' q.2 := by
+  simp [value', H, hr₁, hr₂]
+  
 
 theorem Stream.add.eval₀_eq_both {a b : Stream ι α} {q : (a.add b).σ} (hq : (a.add b).valid q)
     (H : a.toOrder' q.1 = b.toOrder' q.2) (hv₁ hv₂) (hr : a.ready q.1 ↔ b.ready q.2)
@@ -273,12 +279,12 @@ theorem Stream.add.eval₀_eq_both {a b : Stream ι α} {q : (a.add b).σ} (hq :
   split_ifs with hr'
   swap
   · simp
-  · rw [hi, ← Finsupp.single_add, Stream.add_index, @Stream.value'_val _ _ _ (a.add b)]
-    · simp [Stream.index'_val hv₁, Stream.index'_val hv₂, hi, -Finsupp.single_add, H]
-      sorry
-    · right
-      refine' ⟨_, hr'⟩
-      rw [H]
+  · rw [hi, ← Finsupp.single_add]
+    congr 1
+    · simp only [add_index, Stream.index'_val hv₁, hi, Stream.index'_val hv₂, min_self]
+      exact Option.get_some _ _
+    · rw [Stream.add_vlaue' H (hr.mpr hr') hr']
+      
 #align Stream.add.eval₀_eq_both Etch.Verification.Stream.add.eval₀_eq_both
 
 theorem add_spec (a b : Stream ι α) [IsLawful a] [IsLawful b] (q : (a.add b).σ) :
