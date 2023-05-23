@@ -5,10 +5,6 @@ package etch
 lean_lib Etch
 
 @[default_target]
-lean_exe sep {
-  root := `Main
-}
-
 lean_exe bench {
   root := `Etch.Benchmark
 }

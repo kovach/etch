@@ -1,5 +1,5 @@
 import tactic.linarith
-import finsupp_lemmas
+import verification.finsupp_lemmas
 import verification.misc
 
 /-!
