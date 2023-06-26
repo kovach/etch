@@ -1,3 +1,4 @@
+import Mathlib.Logic.Encodable.Basic
 import Etch.Verification.CodeGen.Prog
 
 namespace Etch.Verification
@@ -5,6 +6,7 @@ namespace Etch.Verification
 /-- A one-dimensional stream using the new Expr/Prog type; otherwise same as `Stream.lean` -/
 structure S (ι : Type _) (α : Type _) where
   (σ : Type) -- TODO: add [Encodable σ] instance so this can actually be compiled
+  (σ_enc : Encodable σ)
   (Γ : σ → Type)
   (valid : Expr (.ofσ Γ) Bool)
   (ready : Expr (.ofσ Γ) Bool)
