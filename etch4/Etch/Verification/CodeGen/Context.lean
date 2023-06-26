@@ -71,6 +71,10 @@ def GlobalVars : Type := (t : CType) → ℕ → t
 structure Context (Γ : CtxType) extends LocalContext Γ where
   (globals : GlobalVars)
 
+@[simps] def Context.mkσ {σ : Type} {Γ : σ → Type} (glb : GlobalVars) (vars : (x : σ) → Γ x) :
+    Context (.ofσ Γ) :=
+  { vars := vars, args := finZeroElim, globals := glb }
+
 @[simps!] def Context.consArg {Γ : CtxType} {α : Type} (a : α) (ctx : Context Γ) :
     Context (α ::ₜ Γ) :=
   ⟨a ::ₐ ctx.toLocalContext, ctx.globals⟩

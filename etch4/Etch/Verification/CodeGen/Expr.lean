@@ -7,6 +7,7 @@ namespace Etch.Verification
 inductive Expr (Γ : CtxType) : Type → Type 1
 | var : (x : Γ.σ) → Expr Γ (Γ.Γ₁ x)
 | args : (i : Fin Γ.n) → Expr Γ (Γ.Γ₂ i)
+| glb : (t : CType) → ℕ → Expr Γ t
 | op : (o : Op τ) → (arg : ∀ (i : Fin o.arity), Expr Γ (o.argTypes i)) → Expr Γ τ
 
 variable {Γ : CtxType} {τ : Type}
@@ -14,6 +15,7 @@ variable {Γ : CtxType} {τ : Type}
 def Expr.eval {Γ : CtxType} : {τ : Type} → Expr Γ τ → Context Γ → τ
 | _, (var x), ctx => ctx.vars x
 | _, (args i), ctx => ctx.args i
+| _, (glb t i), ctx => ctx.globals t i
 | _, (op o arg), ctx => o.spec (fun i => (arg i).eval ctx)
 
 instance [Tagged τ] [Add τ] : Add (Expr Γ τ) :=
