@@ -14,8 +14,8 @@ structure tr₀ (s : Stream ι α) (t : S ι α) (ϕ : s.σ → Context (.ofσ t
   (hind : (h : s.valid q) → s.index q h = t.index.eval (ϕ q))
   (hvalue : s.valid q → (h : s.ready q) → s.value q h = t.value.eval (ϕ q))
 
-def tr (𝒢 : Set GlobalVars) (s : ∀ g ∈ 𝒢, Stream ι α) (t : S ι α)
-  (ϕ :  ∀ g, (hg : g ∈ 𝒢) → (s g hg).σ → (x : t.σ) → t.Γ x) : Prop :=
-  ∀ g (hg : g ∈ 𝒢) (q : (s g hg).σ), tr₀ (s g hg) t (fun q' => .mkσ g (ϕ g hg q')) q 
+def tr (𝒢 : Set GlobalVars) (s : ∀ g ∈ 𝒢, Stream ι α) (t : S ι α) : Prop :=
+  ∀ g (hg : g ∈ 𝒢), ∃ (ϕ : (s g hg).σ → (x : t.σ) → t.Γ x),
+    ∀ (q : (s g hg).σ), tr₀ (s g hg) t (fun q' => .mkσ g (ϕ q')) q 
 
 end Etch.Verification

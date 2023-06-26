@@ -47,7 +47,7 @@ universe u
   - `value`: The value emitted at a ready state `x : σ`
 
 Note that this contains the data of an indexed stream; when the streams are monotone
-and `skip` does what it is supposed to do, we consider it a `lawful_stream`.
+and `skip` does what it is supposed to do, we consider it a `LawfulStream`.
 -/
 structure Stream (ι : Type) (α : Type u) : Type max 1 u where
   σ : Type
@@ -85,7 +85,7 @@ section StreamDefs
 variable {ι : Type} {α : Type _}
 
 /-- The current emmited value; if ready, this is `index ↦ value`, otherwise it is 0.
-  This is denoted `index(r) ↦ −→ ready(r) · ⟦value(r)⟧` in the paper. -/
+  This is denoted `index(r) ↦ ready(r) · ⟦value(r)⟧` in the paper. -/
 def Stream.eval₀ [Zero α] (s : Stream ι α) (σ₀ : s.σ) (h₁ : s.valid σ₀) : ι →₀ α :=
   if h₂ : s.ready σ₀ then Finsupp.single (s.index _ h₁) (s.value _ h₂) else 0
 #align Stream.eval₀ Etch.Verification.Stream.eval₀
