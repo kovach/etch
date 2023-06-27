@@ -52,6 +52,7 @@ structure Context (Γ : CtxType) where
 
 instance : Inhabited (Context default) := ⟨Empty.rec, finZeroElim, default⟩
 
+/-- Given an assignment of local variables, make a (zero-temporary) context by adding global variables -/
 @[simps] def Context.mkσ {σ : Type} {Γ : σ → Type} (glb : GlobalVars) (vars : (x : σ) → Γ x) :
     Context (.ofσ Γ) :=
   ⟨vars, finZeroElim, glb⟩

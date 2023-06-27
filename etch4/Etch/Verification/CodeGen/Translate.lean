@@ -4,8 +4,8 @@ namespace Etch.Verification
 
 variable {ι α : Type _}
 
-/-- Proposition indicating that `s` matches `t` at a particular state `q`
-  Note: `ϕ` only matters on the values `q` and `s.skip q (i, b)` over `i` and `b`. -/
+/-- Proposition indicating that `s` matches `t` at a particular state `q`, for a particular
+  "translation function" `ϕ` which interprets stream states `s.σ` as syntactic stream contexts.  -/
 structure tr₀ (s : Stream ι α) (t : S ι α) (ϕ : s.σ → Context (.ofσ t.Γ)) (q : s.σ) : Prop where
   (hvalid : s.valid q ↔ t.valid.eval (ϕ q))
   (hready : s.valid q → (s.ready q ↔ t.ready.eval (ϕ q)))

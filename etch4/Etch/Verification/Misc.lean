@@ -8,6 +8,7 @@ import Mathlib.Data.Option.Basic
 import Mathlib.Data.PFun
 import Mathlib.Data.Prod.Lex
 import Mathlib.Init.IteSimp
+import Mathlib.Order.WellFoundedSet
 
 /-!
 This is a collection of miscellaneous lemmas. Not all of these are used;
@@ -362,3 +363,17 @@ theorem mul_eq_zero_of {α : Type _} [MulZeroClass α] {x y : α} : x = 0 ∨ y 
     exact MulZeroClass.mul_zero x
 #align mul_eq_zero_of mul_eq_zero_of
 
+/-- Small strengthening of `Set.wellFoundedOn_iff`; adds all elements in sᶜ as minimal elements -/
+theorem Set.WellFoundedOn.adjoin_compl_as_bot {α : Type _} {r : α → α → Prop} {s : Set α} (h : Set.WellFoundedOn s r) :
+    WellFounded (fun a b => b ∈ s ∧ (a ∈ s → r a b)) := by
+  set r' := fun a b => b ∈ s ∧ (a ∈ s → r a b)
+  have : ∀ b, b ∉ s → Acc r' b := fun b hs => Acc.intro _ (fun y hy => absurd hy.1 hs)
+  refine WellFounded.intro (fun a => ?_)
+  by_cases hs : a ∈ s; swap
+  · exact this _ hs
+  refine Set.WellFoundedOn.induction h hs ?_; clear a hs; intro a _ ih
+  refine Acc.intro _ ?_
+  rintro y ⟨_, hy₂⟩
+  by_cases hy₃ : y ∈ s
+  · exact ih _ hy₃ (hy₂ hy₃)
+  · exact this _ hy₃
