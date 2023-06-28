@@ -1,31 +1,14 @@
 # Etch
 
-This repository implements indexed streams, a way to represent fused
-"contraction programs" like those found in sparse tensor algebra and relational
+This repository implements indexed streams, a representation for fused
+*contraction programs* like those found in sparse tensor algebra and relational
 algebra.
 
-Correctness proofs are written in [Lean 3][lean3], while the compiler is
-written in the [Lean 4][lean4] language. We hope to port the proofs to Lean 4
-soon.
+Correctness proofs and compiler are written in the [Lean 4][lean4] language.
 
-[lean3]: https://github.com/leanprover-community/lean
 [lean4]: https://github.com/leanprover/lean4
 
 ## Directory structure
-
-### Correctness proofs
-
-```
-.
-└── src
-    └── verification
-        ├── code_generation           # WIP code generation proofs
-        │   └── ...
-        ├── semantics                 # correctness proofs
-        │   ├── README.md
-        │   └── ...
-        └── test.lean
-```
 
 ### Compiler and benchmarks
 
@@ -44,6 +27,8 @@ etch4
 │   ├── Benchmark.lean            # benchmark queries
 │   ├── Benchmark
 │   │   └── ...
+│   ├── Verification              # stream model formalization
+│   │   └── README.md
 │   ├── KRelation.lean            # work in progress
 │   ├── Omni.lean
 │   └── InductiveStream…
@@ -60,16 +45,7 @@ etch4
 └── taco_kernels.c
 ```
 
-## Build proofs
-
-First install [Lean 3](https://leanprover-community.github.io/get_started.html).
-In the root directory, run
-```
-leanproject get-mathlib-cache
-leanproject build
-```
-
-## Build compiler
+## Build compiler and proofs
 
 First install [Lean 4](https://leanprover.github.io/lean4/doc/quickstart.html).
 In the `etch4` directory, run
@@ -155,16 +131,34 @@ steps instead.
 
 ## Publications
 
-This repo implements indexed streams as defined in this paper:
+This repository implements indexed streams as defined in the paper:
 
 > Scott Kovach, Praneeth Kolichala, Tiancheng Gu, and Fredrik Kjolstad. 2023.
 > Indexed Streams: A Formal Intermediate Representation for Fused Contraction
 > Programs. To appear in <em><cite>Proc. ACM Program. Lang.</cite></em> 7,
 > PLDI, Article 154 (June 2023), 25 pages. https://doi.org/10.1145/3591268
 
-A preprint is available at https://cutfree.net/PLDI_2023_indexed_streams.pdf.
+## Old Correctness proofs
 
-There's also an earlier preprint:
+These were written originally but recently automatically ported to Lean4.
 
-> Scott Kovach and Fredrik Kjolstad. 2022. Correct Compilation of Semiring
-> Contractions. arXiv:[2207.13291](https://arxiv.org/abs/2207.13291) [cs.PL]
+```
+.
+└── src
+    └── verification
+        ├── code_generation           # WIP code generation proofs
+        │   └── ...
+        ├── semantics                 # correctness proofs
+        │   ├── README.md
+        │   └── ...
+        └── test.lean
+```
+
+### Build old proofs
+
+First install [Lean 3](https://leanprover-community.github.io/get_started.html).
+In the root directory, run
+```
+leanproject get-mathlib-cache
+leanproject build
+```
