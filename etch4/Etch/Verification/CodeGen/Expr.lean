@@ -1,4 +1,5 @@
 import Etch.Op
+import Etch.Verification.CodeGen.MoreOps
 import Etch.Verification.CodeGen.Context
 import Etch.Verification.Semantics.SkipStream
 
