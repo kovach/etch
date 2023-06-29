@@ -25,6 +25,9 @@ instance [Tagged τ] [Add τ] : Add (Expr Γ τ) :=
 instance [Tagged τ] [Mul τ] : Mul (Expr Γ τ) :=
   ⟨fun e₁ e₂ => Expr.op Op.mul ![e₁, e₂]⟩
 
+instance {m : ℕ} : OfNat (Expr Γ ℕ) m :=
+  ⟨.op (.natLit m) finZeroElim⟩
+
 @[simp] lemma Expr.add_eval [Tagged τ] [Add τ] (e₁ e₂ : Expr Γ τ) (ctx : Context Γ) :
   (e₁ + e₂).eval ctx = (e₁.eval ctx) + (e₂.eval ctx) := rfl
 
