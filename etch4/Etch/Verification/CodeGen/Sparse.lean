@@ -5,12 +5,14 @@ namespace Etch.Verification
 section
 open Expr
 
+/-- A sparse vector, where `inds` indicates the variable id for the index array variable,
+  `vals` indicates the variable id for the value array variable, and `n` is variable for their common length -/
 def SSparse (inds : ℕ) (vals : ℕ) (n : ℕ) : S ℕ ℤ where
-  σ := Unit
+  σ := Unit -- The state consists of only one variable, which we can write using var ()
   σ_enc := inferInstance
   Γ := fun _ => ℕ
   -- TODO: make a DSL to make it easier to write this code?
-  valid := lt (τ := ℕ) (var (by exact ())) (glb CType.nn n)
+  valid := lt (τ := ℕ) (var (by exact ())) (glb CType.nn n) -- var () < n
   ready := op (.boolLit true) finZeroElim
   skip₀ := sorry
   skip₁ := sorry
@@ -19,9 +21,9 @@ def SSparse (inds : ℕ) (vals : ℕ) (n : ℕ) : S ℕ ℤ where
   init := .store (.var (by exact ())) (0 : Expr _ ℕ)
 
 def SSparse.validInputs (inds : ℕ) (vals : ℕ) (n : ℕ) : Set GlobalVars :=
-{ g | List.Sorted (α := ℕ) (· ≤ ·) (g (.lst .nn) inds)
-      ∧ (g (.lst .nn) inds).length = g .nn n
-      ∧ (g (.lst .rr) vals).length = g .nn n }
+{ g | List.Sorted (α := ℕ) (· ≤ ·) (g (.lst .nn) inds) -- inds should be sorted
+      ∧ (g (.lst .nn) inds).length = g .nn n -- inds.length = n
+      ∧ (g (.lst .rr) vals).length = g .nn n /- vals.length - n -/ }
 
 theorem SSparse.tr (inds : ℕ) (vals : ℕ) (n : ℕ) :
     tr (SSparse.validInputs inds vals n) 
@@ -32,8 +34,8 @@ theorem SSparse.tr (inds : ℕ) (vals : ℕ) (n : ℕ) :
   dsimp only
   intro q
   constructor
-  · simp [SSparse, Expr.lt_eval]; rfl
-  · sorry
+  · simp [SSparse]; rfl
+  · dsimp; intro h; simp [h, SSparse]; rfl
   · sorry
   · sorry
   · dsimp; sorry
