@@ -13,4 +13,4 @@ lean_exe bench {
 lean_lib Etch.Verification.Main
 
 require mathlib from git
-  "https://github.com/leanprover-community/mathlib4/"@"5ed65e18440bf46dc8dda58b5463377f938d717c"
+  "https://github.com/leanprover-community/mathlib4/"@"d04897a61efc29f2393f448154f212472c91b47d"

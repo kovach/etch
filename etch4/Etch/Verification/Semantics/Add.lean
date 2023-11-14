@@ -6,7 +6,7 @@ import Etch.Verification.Semantics.SkipStream
 In this file, we define the sum of indexed streams `Stream.add`.
 
 ## Main results
-  - `add_spec`: States that `(a.add b).eval q = (a.eval q) + (b.eval q)` i.e. 
+  - `add_spec`: States that `(a.add b).eval q = (a.eval q) + (b.eval q)` i.e.
       add does what it says it does, assuming `a` and `b` are lawful (note that we
       do not need to assume strict lawfulness).
   - `is_lawful (a.add b)`: The sum stream is lawful assuming `a` and `b` are.
@@ -15,18 +15,20 @@ In this file, we define the sum of indexed streams `Stream.add`.
 
 set_option linter.uppercaseLean3 false
 
-open Classical
-
 namespace Etch.Verification
 
-noncomputable section
-
-open Streams
+section add_def
 
 variable {ι : Type} [LinearOrder ι] {α : Type _}
+[Zero α] [Add α]
+(a b : Stream ι α)
+[DecidablePred a.valid]
+[DecidablePred a.ready]
+[DecidablePred b.valid]
+[DecidablePred b.ready]
 
 @[simps]
-def Stream.add [Zero α] [Add α] (a b : Stream ι α) : Stream ι α
+def Stream.add : Stream ι α
     where
   σ := a.σ × b.σ
   valid s := a.valid s.1 ∨ b.valid s.2
@@ -38,6 +40,16 @@ def Stream.add [Zero α] [Add α] (a b : Stream ι α) : Stream ι α
     (if a.toOrder' s.1 ≤ b.toOrder' s.2 then a.value' s.1 else 0) +
       if b.toOrder' s.2 ≤ a.toOrder' s.1 then b.value' s.2 else 0
 #align Stream.add Etch.Verification.Stream.add
+
+end add_def
+
+open Classical
+
+noncomputable section
+
+open Streams
+
+variable {ι : Type} [LinearOrder ι] {α : Type _}
 
 /- These two are necessary for `ext` to work on Lean 4… -/
 @[ext]
@@ -101,6 +113,7 @@ theorem of_toOrder_eq {a b : Stream ι α} (q : (a.add b).σ) (h : a.toOrder' q.
       simp only [← Stream.index'_lt_top_iff] at H⊢
       simpa [this, -Stream.index'_lt_top_iff] using H
     refine ⟨H, hv₁, hv₂, ?_, this⟩
+    have := congr_arg Prod.snd h
     simpa [hv₁, hv₂] using congr_arg Prod.snd h
   · left
     exact ⟨H, not_or.mp H⟩
@@ -139,6 +152,7 @@ instance Stream.add.isBounded (a b : Stream ι α) [IsBounded a] [IsBounded b] :
     IsBounded (a.add b) :=
   IsBounded.mk'
     ⟨Prod.rprodEq a.wfRel b.wfRel,
+      -- here
       fun q i => by
       rcases a.wf_valid' q.1 i with (h | ⟨ha₁, ha₂⟩)
       · left
@@ -218,6 +232,7 @@ theorem Stream.add_map {β : Type _} [Zero β] [Add β] (f : α → β)
     (f_add : ∀ x y, f (x + y) = f x + f y) (f_zero : f 0 = 0) (q r : Stream ι α) :
     (q.add r).map f = (q.map f).add (r.map f) := by
   ext <;> solve_refl
+  dsimp [add]
   simp only [f_add, apply_ite f, f_zero, Stream.map_value' f f_zero]
 #align Stream.add_map Etch.Verification.Stream.add_map
 
@@ -261,7 +276,7 @@ lemma Stream.add_vlaue' {a b : Stream ι α} {q : (a.add b).σ}
   (H : a.toOrder' q.1 = b.toOrder' q.2) (hr₁ : a.ready q.1) (hr₂ : b.ready q.2) :
     (a.add b).value' q = a.value' q.1 + b.value' q.2 := by
   simp [value', H, hr₁, hr₂]
-  
+
 
 theorem Stream.add.eval₀_eq_both {a b : Stream ι α} {q : (a.add b).σ} (hq : (a.add b).valid q)
     (H : a.toOrder' q.1 = b.toOrder' q.2) (hv₁ hv₂) (hr : a.ready q.1 ↔ b.ready q.2)
@@ -278,7 +293,7 @@ theorem Stream.add.eval₀_eq_both {a b : Stream ι α} {q : (a.add b).σ} (hq :
     · simp only [add_index, Stream.index'_val hv₁, hi, Stream.index'_val hv₂, min_self]
       exact Option.get_some _ _
     · rw [Stream.add_vlaue' H (hr.mpr hr') hr']
-      
+
 #align Stream.add.eval₀_eq_both Etch.Verification.Stream.add.eval₀_eq_both
 
 theorem add_spec (a b : Stream ι α) [IsLawful a] [IsLawful b] (q : (a.add b).σ) :

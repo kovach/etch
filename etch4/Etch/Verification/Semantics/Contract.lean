@@ -17,6 +17,7 @@ values of the stream.
 set_option linter.uppercaseLean3 false
 
 namespace Etch.Verification.Stream
+open Classical
 
 variable {ι : Type} {α : Type _}
 
