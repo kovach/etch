@@ -2,7 +2,8 @@ import Lake
 open Lake DSL
 
 package etch
-lean_lib Etch
+
+lean_lib Etch where defaultFacets := #[LeanLib.sharedFacet]
 
 @[default_target]
 lean_exe bench {
@@ -10,7 +11,16 @@ lean_exe bench {
 }
 
 @[default_target]
+lean_exe myrun {
+  root := `Etch.ComputableStreams
+}
+
+@[default_target]
 lean_lib Etch.Verification.Main
 
+@[default_target]
+lean_lib Etch.Compile.Ext
+  where defaultFacets := #[LeanLib.sharedFacet]
+
 require mathlib from git
-  "https://github.com/leanprover-community/mathlib4/"@"d04897a61efc29f2393f448154f212472c91b47d"
+  "https://github.com/leanprover-community/mathlib4/"@"a2ca43e594f2f3d1ccbb2cf178fd5800abc61321"
