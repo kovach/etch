@@ -35,7 +35,7 @@ variable
 {α : Type u}
 (s t : SStream ι α)
 
-@[inline, specialize]
+@[macro_inline, specialize]
 def map (f : α → β) (s : SStream ι α) : SStream ι β :=
   { s with value := fun q hq => f (s.value q hq) }
 
@@ -58,7 +58,7 @@ variable (l : Array (ι × α))
 
 /- todo fix of/to mismatch -/
 
-@[inline]
+@[macro_inline]
 def ofArray (l : Array (ℕ × α)) : SStream ℕ α where
   σ := ℕ
   q := 0
@@ -74,21 +74,37 @@ def ofArray (l : Array (ℕ × α)) : SStream ℕ α where
   dec_valid := inferInstance
   dec_ready := inferInstance
 
-
-def ofFloatArray (is : Array ι) (vs : FloatArray) (eq : is.size = vs.size) : SStream ι Float where
+@[macro_inline]
+def ofArrayPair (is : Array ℕ) (vs : Array α) (heq : is.size = vs.size) : SStream ℕ α where
   σ := ℕ
   q := 0
   valid q := q < is.size
   ready q := q < is.size
   index k h := (is[k]'h)
-  value k h := (vs[k]'(eq ▸ h))
+  value k h := (vs[k]'(heq ▸ h))
   skip q hq := fun ⟨j, r⟩ =>
-    let i := is[q]'hq
+    let i := (is[q]'hq)
     if r then if i ≤ j then q+1 else q
          else if i < j then q+1 else q
   weaken := id
   dec_valid := inferInstance
   dec_ready := inferInstance
+
+
+--def ofFloatArray (is : Array ι) (vs : FloatArray) (eq : is.size = vs.size) : SStream ι Float where
+--  σ := ℕ
+--  q := 0
+--  valid q := q < is.size
+--  ready q := q < is.size
+--  index k h := (is[k]'h)
+--  value k h := (vs[k]'(eq ▸ h))
+--  skip q hq := fun ⟨j, r⟩ =>
+--    let i := is[q]'hq
+--    if r then if i ≤ j then q+1 else q
+--         else if i < j then q+1 else q
+--  weaken := id
+--  dec_valid := inferInstance
+--  dec_ready := inferInstance
 
 #check IsBounded
 
@@ -110,7 +126,7 @@ partial def toArray_aux (acc : Array (ι × α)) (q : s.σ) : Array (ι × α) :
 
 --def Stream.next' (q : s.σ) (h : s.valid q) : s.σ := s.skip q h (s.index q h, s.ready q)
 
-@[inline] partial def toArray_aux' [hadd : Add α] (acc : α) (q : s.σ) : α :=
+@[inline] partial def toArray_aux' [hadd : Add α] (s : SStream ι α) (acc : α) (q : s.σ) : α :=
   -- we need valid/ready functions to be inlined here
   let rec @[specialize] go add (valid : s.σ → Bool) (ready : s.σ → Bool) (value : (x : s.σ) → ready x → α) (next : (x : s.σ) → valid x → s.σ) (acc : α) q :=
     if hv : valid q then
@@ -128,6 +144,11 @@ class ToStream (α : Type u) (β : outParam $ Type v) where
 
 instance [ToStream β β'] : ToStream  (Array (ℕ × β)) (SStream ℕ β') where
   stream := map ToStream.stream ∘ ofArray
+
+def Vec α n := { x : Array α // x.size = n }
+
+instance [ToStream β β'] : ToStream  (Vec ℕ n × Vec β n) (SStream ℕ β') where
+  stream := map ToStream.stream ∘ (fun (a, b) => ofArrayPair a.1 b.1 (a.property.trans b.property.symm))
 
 class OfStream (α : Type u) (β : outParam $ Type v) where
   eval : α → β
@@ -163,13 +184,22 @@ instance : DecidablePred (Stream.mul.Ready a b)
 
 variable [Mul α]
 
+@[macro_inline]
 def mul (a b : SStream ι α) : SStream ι α := {
   a.toStream.mul b.toStream with
   q := (a.q, b.q)
   weaken := fun h => ⟨h.v₁, h.v₂⟩
+  -- todo: change this back to inferInstance?
+  dec_valid := fun p =>
+   match a.dec_valid p.1 with
+   | isFalse fa => isFalse fun p => fa p.1
+   | isTrue ta => match b.dec_valid p.2 with
+     | isFalse fb => isFalse fun p => fb p.2
+     | isTrue tb => isTrue ⟨ta, tb⟩
+   -- by dsimp only [Stream.mul, Stream.ready]; exact inferInstance
   dec_ready := by dsimp only [Stream.mul, Stream.ready]; exact inferInstance
-  dec_valid := by dsimp only [Stream.mul, Stream.ready]; exact inferInstance
 }
+
 instance : Mul (SStream ι α) := ⟨mul⟩
 
 instance [HMul α β γ] : HMul (ι → α) (SStream ι β) (SStream ι γ) where
@@ -180,7 +210,7 @@ instance [HMul α β γ] : HMul (SStream ι α) (ι → β) (SStream ι γ) wher
 
 def exp (a : SStream ι' α) : ι → SStream ι' α := fun _ => a
 
-@[inline]
+@[macro_inline]
 def contract (a : SStream ι α) : SStream Unit α := {
   a.toStream.contract with
   q := a.q
@@ -254,82 +284,11 @@ def add : SStream ι α := {
 instance : Add (SStream ι α) := ⟨add⟩
 end add
 
-section tests
-open OfStream ToStream
-
-def l1 := stream #[(1, 3), (3, 2), (5, 2)]
-def l2 := stream #[(1, 4), (2, 1), (5, 2)]
-def m1 :=
-  let m1' : Array (ℕ × Array (ℕ × ℕ)) :=
-    Array.range 3 |>.map (.+1) |>.map $ fun n =>
-      (n, Array.range n |>.map fun m => (m, m+10))
-  stream m1'
-
-def mat n :=
-  let m1' : Array (ℕ × Array (ℕ × ℕ)) :=
-    Array.range n |>.map (.+1) |>.map $ fun n =>
-      (n, Array.range n |>.map fun m => (m, m+10))
-  stream m1'
-
-def m2 :=
-  let m1' : Array (ℕ × Array (ℕ × ℕ)) :=
-    Array.range 200 |>.map (.+1) |>.map $ fun n =>
-      (n, Array.range n |>.map fun m => (m, m+10))
-  stream m1'
-
-#check exp m1
 infixr:10 " →ₛ " => SStream
-abbrev NNN := ℕ →ₛ ℕ →ₛ ℕ
 abbrev NN (α) := ℕ →ₛ ℕ →ₛ α
 abbrev UU (α) := Unit →ₛ Unit →ₛ α
-abbrev NNUN := ℕ →ₛ ℕ →ₛ Unit →ₛ ℕ
-abbrev UUN := Unit →ₛ Unit →ₛ ℕ
--- i k, j k
-def mmul (a b : NNN) : NNUN :=
-  map (map contract) $ map (exp (ι := ℕ)) a * exp (ι := ℕ) b
-
-#eval eval $ mmul m1 m1
-#eval eval m1
-
-#eval eval $ contract l1
-#eval eval $ contract (l1 * l2)
-#eval eval $ l1 + l2 - l2
-#eval eval $ l1 * l2 - l2
-
-#eval eval $ m1
-#eval eval $ m1 * m1
-#eval eval $ m1 + m1
-#eval eval $ SStream.map contract $ m1 + m1
+@[macro_inline]
 def contract2 : NN α → UU α := contract ∘ SStream.map contract
-#eval eval $ contract2 $ m1 + m1
--- todo: don't emit zero values
-#eval eval $ m1 - m1
-
-def b1 := stream #[(1, true), (2, true), (5, true)]
-def b2 := stream #[(1, true), (5, true)]
-
-instance : Zero Bool := ⟨false⟩
-instance : Add Bool := ⟨or⟩
-instance : Mul Bool := ⟨and⟩
-instance : Sub Bool := ⟨fun a b =>
-  match a, b with
-  | _, true => false
-  | true, _ => true
-  | false, false => false
-  ⟩
-
---#eval eval $ b1 * b2
---#eval eval $ b1 - b2
---#eval eval $ contract $ b1
-
-section triangle_join
-def k  := 100
-def r1 := Array.range k
-def r2 := Array.range (k-1) |>.map Nat.succ
-def R  := stream $ #[(1, r1.toSet)] ++ r2.map (fun a => (a, #[1].toSet))
-end triangle_join
-
-end tests
 
 end Etch.Verification.SStream
 
@@ -348,12 +307,13 @@ def time (s : String) (m : Unit → IO α) : IO α := do
 
 #check FloatArray
 
-def num := 1000000
-def arr3 := Array.range num
 def data num := Array.range num
-def l3 := stream $ Array.range num |>.map fun n => (n,n)
 @[inline]
-def vecStream num := stream $ Array.range num |>.map fun n => (n,n)
+def vecStream (num : Nat) := stream $ Array.range num |>.map fun n => (n,n)
+@[inline]
+def vecStream' (num : Nat) :=
+  let v : Vec ℕ num := ⟨Array.range num, by sorry⟩
+  stream $ (v, v)
 
 #eval (Array.range 5 |>.map fun n => (n,n))
 --#eval
@@ -368,22 +328,6 @@ def doTest [OfStream α ℕ] label (s : α) := do
   let v ← time label (fun _ => pure $ eval s)
   IO.println s!"result: {v}"
 
-def tl3 (num : Nat) (_ : Unit) : IO Unit := do
-  IO.println "reference:"
-  let mut m := 0
-  for i in [0:num] do
-    m := m + arr3[i]!
-  IO.println s!"result: {m}"
-  return ()
-
-def ta1 (arr : Array ℕ) (_ : Unit) : IO Unit := do
-  IO.println "reference:"
-  let mut m := 0
-  for i in arr do
-    m := m + i
-  IO.println s!"result: {m}"
-  return ()
-
 @[inline] unsafe def myArrayLoop {β : Type v} [Add β] (as : Array β) (b : β) : β :=
   let sz := USize.ofNat as.size
   let rec @[specialize] loop (i : USize) (b : β) : β :=
@@ -396,64 +340,114 @@ def ta1 (arr : Array ℕ) (_ : Unit) : IO Unit := do
 
 section compiler_trace
 def str1 := vecStream 10
-#check str1 * str1
 --set_option trace.compiler.inline true
 --set_option trace.compiler.specialize true
 set_option trace.compiler.stage2 true
-def thetest := eval (contract (vecStream 10)) -- !!!
---def multest := eval (contract (str1 * str1)) -- !!!
+def thetest := eval (contract (vecStream 10)) --
+def thetest' := eval (contract (vecStream' 10)) -- !!!
+def multest := eval (contract (str1 * str1)) --
 unsafe example := myArrayLoop #[] 0
-
 end compiler_trace
 
-set_option trace.compiler.stage2 true in
+def test1 (num : Nat) : IO Unit := do
+  IO.println "-----------"
+  let arr_ := Array.range num
+  --let arr := arr_ |>.map fun n => (n,n)
+  time "lean forIn" fun _ =>
+    for _ in [0:10] do
+      let mut m := 0
+      for i in arr_ do
+        m := m + i
+      IO.println s!"result: {m}"
+
+--unsafe def test2 (num : Nat) : IO Unit := do
+--  IO.println "-----------"
+--  let arr := Array.range num
+--  time "myForIn" fun _ =>
+--    for _ in [0:10] do
+--      let x := myArrayLoop arr 0
+--      IO.println s!"{x}"
+
+def test3 (num : Nat) : IO Unit := do
+  IO.println "-----------"
+  let s := contract $ vecStream num
+  time "stream" fun _ =>
+    for _ in [0:10] do
+      let x := eval s
+      IO.println s!"{x}"
+
+def test3' (num : Nat) : IO Unit := do
+  IO.println "-----------"
+  let s := contract $ vecStream' num
+  time "stream (ofPair)" fun _ =>
+    for _ in [0:10] do
+      let x := eval s
+      IO.println s!"{x}"
+
+def mulTest (num : Nat) : IO Unit := do
+  IO.println "-----------"
+  let v := vecStream' num
+  let s := contract $ v * v
+  time "stream mul" fun _ =>
+    for _ in [0:1] do
+      let x := eval s
+      IO.println s!"{x}"
+  pure ()
+
+@[macro_inline]
+def mat (num : Nat) :=
+  let m1 : Array (ℕ × Array (ℕ × ℕ)) :=
+    Array.range (2*num).sqrt |>.map (.+1) |>.map $ fun n =>
+      (n, Array.range n |>.map fun m => (m, m+10))
+  stream m1
+
+def matTest1 (num : Nat) : IO Unit := do
+  IO.println "-----------"
+  let s := contract2 $ mat num
+  time "matrix sum" fun _ =>
+    for _ in [0:10] do
+      let x := eval s
+      IO.println s!"{x}"
+
+def matTest2 (num : Nat) : IO Unit := do
+  IO.println "-----------"
+  let m := mat num
+  let s := contract2 $ m * m
+  time "matrix prod sum" fun _ =>
+    for _ in [0:1] do
+      let x := eval s
+      IO.println s!"{x}"
+
 unsafe def main (args : List String) : IO Unit := do
   let num := (args[0]!).toNat?.getD 100
   IO.println s!"test of size {num}"
-  let t0 (_ : Unit) := do
-    let x := eval $ contract l3
-    IO.println s!"result: {x}"
   /-
   let t1 (_ : Unit) := do
     let x := eval $ contract (l3 * l3)
-    IO.println s!"result: {x}"
-  let t2 (_ : Unit) : IO Unit := do
-    let m := mat 200
-    let x := eval $ contract2 $ mmul m m
     IO.println s!"result: {x}"
   let t3 := do
     let x := eval $ m2
     IO.println s!"result: {x.size}"
   let arr' := arr.map fun n => (n, n)
   -/
-  let arr := Array.range num
   IO.println "starting"
   --doTest "contraction s" $ contract (stream arr' : ℕ →ₛ ℕ)
   --doTest "contraction **2" (contract $ l3 * l3)
   --time "loop" $ tl3 num
 
-  time "lean forIn" fun _ =>
-    for _ in [0:10] do
-      ta1 arr ()
-
-  time "myForIn" fun _ =>
-    for _ in [0:10] do
-      let x := myArrayLoop arr 0
-      IO.println s!"{x}"
-
-  let s := contract $ vecStream num
-  IO.println "-----------"
-  time "stream" fun _ =>
-    for _ in [0:10] do
-      let x := eval s
-      IO.println s!"{x}"
+  test1 num
+  --test2 num
+  --test3 num
+  test3' num
+  mulTest num
+  matTest1 num
+  matTest2 num
 
   --doTest' "loop myForIn" $ (fun _ => myArrayLoop arr 0)
   --time "contraction" t0
   --time "contraction ** 2" t1
   pure ()
 
-#check ForIn
 -- contribution? no bounds checking
 -- sub relation to left join?
 
