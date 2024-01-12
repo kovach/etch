@@ -300,5 +300,5 @@ list-benchmarks:
 
 .PHONY: lean-streams
 lean-streams:
-	lake build myrun && perf record -g -o ok ./build/bin/myrun 5000000
+	lake build myrun && perf record -g -o ok .lake/build/bin/myrun 5000000
 # then, somethign like: : $> perf script -i ok | stackcollapse-perf.pl | flamegraph.pl > out1.svg

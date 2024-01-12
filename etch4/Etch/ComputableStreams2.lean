@@ -26,7 +26,7 @@ Performance is sensitive to the particular classes used. Notes:
     it seems that the inliner/specializer is not quite doing the right thing
 -/
 
-import Mathlib.Tactic
+import Mathlib.Data.Prod.Lex
 
 namespace Etch.Verification
 
