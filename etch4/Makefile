@@ -296,3 +296,9 @@ clean:
 list-benchmarks:
 	@LC_ALL=C $(MAKE) -pRrq -f $(firstword $(MAKEFILE_LIST)) : 2>/dev/null | awk -v RS= -F: '/(^|\n)# Files(\n|$$)/,/(^|\n)# Finished Make data base/ {if ($$1 !~ "^[#.]") {print $$1}}' | sort -V | egrep -v -e '^[^[:alnum:]]' -e '^$@$$' | grep '^run-'
 # From https://stackoverflow.com/a/26339924/1937836
+
+
+.PHONY: lean-streams
+lean-streams:
+	lake build myrun && perf record -g -o ok ./build/bin/myrun 5000000
+# then, somethign like: : $> perf script -i ok | stackcollapse-perf.pl | flamegraph.pl > out1.svg
