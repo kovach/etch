@@ -49,8 +49,26 @@ variable (s : Stream ι α)
 @[reducible]
 def StreamOrder (ι : Type) : Type := ι ×ₗ Bool
 
-@[simps, macro_inline]
+@[macro_inline]
 def toOrder (q : s.σ) (h : s.valid q) : StreamOrder ι := (s.index q h, s.ready q)
+
+-- hack: redefine these instances to ensure they are inlined
+--  see: instDecidableLeToLEToPreorderToPartialOrder
+section
+variable (α : Type) [LinearOrder α]
+
+@[inline]
+instance (a b : α) : Decidable (a < b) :=
+  LinearOrder.decidableLT a b
+
+@[inline]
+instance (a b : α) : Decidable (a ≤ b) :=
+  LinearOrder.decidableLE a b
+
+@[inline]
+instance (a b : α) : Decidable (a = b) :=
+  LinearOrder.decidableEq a b
+end
 
 @[simps, macro_inline]
 def contract (s : Stream ι α) : Stream Unit α where
@@ -238,9 +256,8 @@ instance [Scalar α] : ToStream α α := ⟨id⟩
 --instance [OfStream β β'] : OfStream (SStream ι β) (Array (ι × β')) where
 --  eval := toArray ∘ map OfStream.eval
 
--- can't generalize ℕ to ι without losing inlining ???
 @[macro_inline]
-def mul [HMul α β γ] (a : SStream ℕ α) (b : SStream ℕ β) : SStream ℕ γ := {
+def mul [HMul α β γ] (a : SStream ι α) (b : SStream ι β) : SStream ι γ := {
   a.toStream.mul b.toStream with
   q := ⟨a.q, b.q⟩
   weaken := fun h => by simp [Stream.mul] at *; split_ifs at h; assumption
