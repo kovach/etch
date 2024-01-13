@@ -31,6 +31,8 @@ The choice of inline vs macro_inline is not intentional anywhere except for `Str
   stream for rbmap
 
   vecMulSum3
+
+  prove (Array.range n).size = n
 -/
 
 import Mathlib.Data.Prod.Lex
@@ -195,10 +197,15 @@ instance [ToStream β β'] : ToStream  (Array (ℕ × β)) (SStream ℕ β') whe
   stream := map ToStream.stream ∘ ofArray
 
 def Vec α n := { x : Array α // x.size = n }
+
+structure Level (ι α : Type) (n : ℕ) where
+  is : Vec ι n
+  vs : Vec α n
+
 def FloatVec n := { x : FloatArray // x.size = n }
 
-instance [ToStream β β'] : ToStream  (Vec ι n × Vec β n) (SStream ι β') where
-  stream := map ToStream.stream ∘ (fun (a, b) => ofArrayPair a.1 b.1 (a.property.trans b.property.symm))
+instance [ToStream β β'] : ToStream  (Level ι β n) (SStream ι β') where
+  stream := map ToStream.stream ∘ (fun ⟨is, vs⟩ => ofArrayPair is.val vs.val (by simp [is.2, vs.2]))
 
 --def Search (α : Type) := α
 --instance [ToStream β β'] : ToStream (Search (Vec ℕ n × Vec β n)) (SStream ℕ β') where
@@ -306,7 +313,7 @@ def time (s : String) (m : Unit → IO α) : IO α := do
 @[inline] def vecStream (num : Nat) := stream $ Array.range num |>.map fun n => (n,n)
 @[inline] def vecStream' (num : Nat) :=
   let v : Vec ℕ num := ⟨Array.range num, by sorry⟩
-  stream $ (v, v)
+  stream $ Level.mk v v
 
 @[inline] def floatVecStream (num : Nat) :=
   let is : Vec ℕ num := ⟨Array.range num, by sorry⟩
@@ -393,6 +400,18 @@ def vecMulSum (num : Nat) : IO Unit := do
   let v' := vecStream' num |>.map fun _ => 1
   let s := contract $ v * v'
   time "vec mul sum" fun _ =>
+    for _ in [0:10] do
+      let x : ℕ := eval s
+      IO.println s!"{x}"
+  pure ()
+
+-- todo: this has allocation and other perf issues
+def vecMulSum3 (num : Nat) : IO Unit := do
+  IO.println "-----------"
+  let v := vecStream' num
+  let v' := vecStream' num |>.map fun _ => 1
+  let s := contract $ v * v' * v'
+  time "vec mul 3 sum" fun _ =>
     for _ in [0:10] do
       let x : ℕ := eval s
       IO.println s!"{x}"
