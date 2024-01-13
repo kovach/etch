@@ -1,7 +1,6 @@
 /-
-This file implements a prototype of indexed stream fusion, an optimization to speed up (Lean) programs
-  that manipulate associative arrays, aka dictionaries or finite maps.
-Currently there are limitations due to issues with my understanding of the inliner; see other comments.
+This file implements a prototype of indexed stream fusion,
+  an optimization to speed up programs that manipulate (nested) associative arrays.
 
 Authors: Scott Kovach
 -/
@@ -16,17 +15,28 @@ Authors: Scott Kovach
 
 See Stream.mul for the key motivation for the stream interface
 
-A key function is toArray_aux
+A key function is Stream.fold (previously called toArray_aux)
   This generates the top-level loop
   We want this to include no calls to lean_apply_[n] and minimal allocations
-    (so far there are still some tuples allocated)
+    (so far there may still some tuples allocated for multiplication states)
 
-Performance is sensitive to the particular classes used. Notes:
-  So far, we only get reasonable inlining behavior when we specialize to ℕ valued indices at some point
-    it seems that the inliner/specializer is not quite doing the right thing
+Performance is sensitive to the particular classes used.
+We need to be careful to redefine any instances to add @[inline]
+
+The choice of inline vs macro_inline is not intentional anywhere except for `Stream.next`, where macro_inline seems to be necessary
+-/
+
+/- todo:
+  do manual loop with rbmap
+  stream for rbmap
+
+  vecMulSum3
 -/
 
 import Mathlib.Data.Prod.Lex
+import Std.Data.RBMap
+
+open Std (RBMap)
 
 namespace Etch.Verification
 
@@ -46,28 +56,13 @@ variable [Mul α]
 
 variable (s : Stream ι α)
 
-@[reducible]
-def StreamOrder (ι : Type) : Type := ι ×ₗ Bool
-
-@[macro_inline]
-def toOrder (q : s.σ) (h : s.valid q) : StreamOrder ι := (s.index q h, s.ready q)
-
 -- hack: redefine these instances to ensure they are inlined
 --  see: instDecidableLeToLEToPreorderToPartialOrder
 section
-variable (α : Type) [LinearOrder α]
-
-@[inline]
-instance (a b : α) : Decidable (a < b) :=
-  LinearOrder.decidableLT a b
-
-@[inline]
-instance (a b : α) : Decidable (a ≤ b) :=
-  LinearOrder.decidableLE a b
-
-@[inline]
-instance (a b : α) : Decidable (a = b) :=
-  LinearOrder.decidableEq a b
+variable [LinearOrder α]
+@[inline] instance (a b : α) : Decidable (a < b) := LinearOrder.decidableLT a b
+@[inline] instance (a b : α) : Decidable (a ≤ b) := LinearOrder.decidableLE a b
+@[inline] instance (a b : α) : Decidable (a = b) := LinearOrder.decidableEq a b
 end
 
 @[simps, macro_inline]
@@ -165,7 +160,7 @@ def ofArray (l : Array (ℕ × α)) : SStream ℕ α where
   weaken := id
 
 @[macro_inline]
-def ofArrayPair (is : Array ℕ) (vs : Array α) (eq : is.size = vs.size) : SStream ℕ α where
+def ofArrayPair (is : Array ι) (vs : Array α) (eq : is.size = vs.size) : SStream ι α where
   σ := ℕ
   q := 0
   valid q := q < is.size
@@ -202,15 +197,19 @@ instance [ToStream β β'] : ToStream  (Array (ℕ × β)) (SStream ℕ β') whe
 def Vec α n := { x : Array α // x.size = n }
 def FloatVec n := { x : FloatArray // x.size = n }
 
-instance [ToStream β β'] : ToStream  (Vec ℕ n × Vec β n) (SStream ℕ β') where
+instance [ToStream β β'] : ToStream  (Vec ι n × Vec β n) (SStream ι β') where
   stream := map ToStream.stream ∘ (fun (a, b) => ofArrayPair a.1 b.1 (a.property.trans b.property.symm))
+
+--def Search (α : Type) := α
+--instance [ToStream β β'] : ToStream (Search (Vec ℕ n × Vec β n)) (SStream ℕ β') where
+--  stream := map ToStream.stream ∘ (fun (a, b) => searchStreamOfArrayPair a.1 b.1 (a.property.trans b.property.symm))
 
 instance : ToStream  (Vec ℕ n × FloatVec n) (SStream ℕ Float) where
   stream := fun (a, b) => ofFloatArray a.1 b.1 (a.property.trans b.property.symm)
 
 /- Converting a Stream into Data -/
 -- this definition follows the same inline/specialize pattern as Array.forInUnsafe
-@[inline] partial def _root_.Etch.Verification.Stream.streamFold (add : β → ι → α → β) (s : Stream ι α) (acc : β) (q : s.σ) : β :=
+@[inline] partial def _root_.Etch.Verification.Stream.fold (add : β → ι → α → β) (s : Stream ι α) (acc : β) (q : s.σ) : β :=
   let rec @[specialize] go add (valid : s.σ → Bool) (ready : s.σ → Bool)
     (index : (x : s.σ) → valid x → ι) (value : (x : s.σ) → ready x → α)
     (next : (x : s.σ) → valid x → Bool → s.σ) (acc : β) q :=
@@ -222,14 +221,14 @@ instance : ToStream  (Vec ℕ n × FloatVec n) (SStream ℕ Float) where
   go add s.valid s.ready s.index (fun x h => s.value x (by simpa using h)) s.next acc q
 
 @[inline] def toArrayPair (s : SStream ι α) : Array ι × Array α :=
-  s.streamFold (fun (is, vs) i v => (is.push i, vs.push v)) (#[], #[]) s.q
+  s.fold (fun (is, vs) i v => (is.push i, vs.push v)) (#[], #[]) s.q
 
 -- outParam not ultimately desirable, but simplifies testing for now
 class OfStream (α : Type u) (β : outParam $ Type v) where
   eval : α → β
 
 instance [OfStream β β'] [Add β'] [Zero β'] : OfStream (SStream Unit β) β' where
-  eval := (fun s => s.streamFold (fun a _ b => a + b) 0 s.q) ∘ map OfStream.eval
+  eval := (fun s => s.fold (fun a _ b => a + b) 0 s.q) ∘ map OfStream.eval
 
 instance [OfStream β β'] : OfStream (SStream ι β) (Array ι × Array β') where
   eval := toArrayPair ∘ map OfStream.eval
@@ -329,7 +328,19 @@ def mat' (num : Nat) :=
       (n, Array.range n |>.map fun m => (m, m+10))
   stream m1
 
+-- these tests need to be separate defs for profile legibility
 namespace test
+def baseline (num : Nat) : IO Unit := do
+  IO.println "-----------"
+  let arr_ := Array.range num
+  --let arr := arr_ |>.map fun n => (n,n)
+  time "baseline (forIn) vec sum" fun _ =>
+    for _ in [0:10] do
+      let mut m := 0
+      for i in arr_ do
+        m := m + i
+      IO.println s!"result: {m}"
+
 def vecSum_slow (num : Nat) : IO Unit := do
   IO.println "-----------"
   let s := contract $ vecStream num
@@ -471,17 +482,6 @@ section appendix
     else
       b
   loop 0 b
-
-def test1 (num : Nat) : IO Unit := do
-  IO.println "-----------"
-  let arr_ := Array.range num
-  --let arr := arr_ |>.map fun n => (n,n)
-  time "lean forIn" fun _ =>
-    for _ in [0:10] do
-      let mut m := 0
-      for i in arr_ do
-        m := m + i
-      IO.println s!"result: {m}"
 
 def test1Floats (num : Nat) : IO Unit := do
   IO.println "-----------"
