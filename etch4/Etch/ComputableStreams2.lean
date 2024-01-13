@@ -285,6 +285,9 @@ instance [HMul α β γ] : HMul (ι →ₛ α) (ι → β) (ι →ₛ γ) where
 @[macro_inline]
 def expand (a : α) : ι → α := fun _ => a
 
+@[inline]
+def _root_.Std.RBMap.toFn [Zero α] (map : RBMap ι α Ord.compare) : ι → α := fun i => map.find? i |>.getD 0
+
 @[macro_inline]
 def contract (a : SStream ι α) : SStream Unit α := {
   a.toStream.contract with
@@ -298,7 +301,7 @@ abbrev UU (α) := Unit →ₛ Unit →ₛ α
 @[macro_inline]
 def contract2 : NN α → UU α := contract ∘ SStream.map contract
 
-end Etch.Verification.SStream
+end SStream
 
 open Etch.Verification.SStream
 open OfStream ToStream
@@ -346,7 +349,27 @@ def baseline (num : Nat) : IO Unit := do
       let mut m := 0
       for i in arr_ do
         m := m + i
-      IO.println s!"result: {m}"
+      IO.println s!"{m}"
+
+def baselineRB (num : Nat) : IO Unit := do
+  IO.println "-----------"
+  let arr_ := Array.range num
+  let map := RBMap.ofList (arr_.toList.map fun i => (i, 1)) Ord.compare
+  --let arr := arr_ |>.map fun n => (n,n)
+  let test map := do
+    time "forIn vec * rbmap sum" fun _ => -- about 10x slower than vecMulSum
+      for _ in [0:10] do
+        let mut m := 0
+        for i in arr_ do
+          m := m + i * (map.toFn i)
+        IO.println s!"{m}"
+    time "forIn rbmap * vec sum" fun _ => -- about 5x slower than vecMulSum
+      for _ in [0:10] do
+        let mut m := 0
+        for (i,v) in map do
+          m := m + arr_.get! i * v
+        IO.println s!"{m}"
+  test map
 
 def vecSum_slow (num : Nat) : IO Unit := do
   IO.println "-----------"
@@ -475,20 +498,23 @@ def matMultiply (num : Nat) : IO Unit := do
 
 end test
 
+-- !!
 unsafe def main (args : List String) : IO Unit := do
   let num := (args[0]!).toNat?.getD 100
   IO.println s!"test of size {num}"
   IO.println "starting"
 
-  --test.vecSum_slow num
-  test.vecSum num
-  --test.vecMul_slow num
+  --test.baseline num
+  --test.vecSum num
+  test.baselineRB num
   test.vecMulSum num      -- ideally about 2x vecSum
-  test.vecMul num         -- ideally about 1x vecMulSum (currently 3x slower, but that's almost all Array.push. try pre-allocating?)
-  test.matSum num         -- ideally about 1x vecSum
-  test.matProdSum num     -- ... 2x matSum
-  test.matMultiplySum num
-  test.matMultiply num
+  --test.vecMulSum3 num      -- ideally about 2x vecSum
+  --test.vecMulSumSearch num
+  --test.vecMul num         -- ideally about 1x vecMulSum (currently 3x slower, but that's almost all Array.push. try pre-allocating?)
+  --test.matSum num         -- ideally about 1x vecSum
+  --test.matProdSum num     -- ... 2x matSum
+  --test.matMultiplySum num
+  --test.matMultiply num
 
 section appendix
 -- simple inline/specialize example
@@ -511,7 +537,7 @@ def test1Floats (num : Nat) : IO Unit := do
       let mut m := 0
       for i in arr_ do
         m := m + i
-      IO.println s!"result: {m}"
+      IO.println s!"{m}"
 
 unsafe def test2 (num : Nat) : IO Unit := do
   IO.println "-----------"
