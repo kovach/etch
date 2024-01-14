@@ -37,7 +37,7 @@ The choice of inline vs macro_inline is not intentional anywhere except for `Str
 
 import Mathlib.Data.Prod.Lex
 import Std.Data.RBMap
-import Etch.Traversals
+import Etch.StreamFusion.Traversals
 
 open Std (RBMap)
 
