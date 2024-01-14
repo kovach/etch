@@ -24,4 +24,4 @@ lean_lib Etch.Compile.Ext
   where defaultFacets := #[LeanLib.sharedFacet]
 
 require mathlib from git
-  "https://github.com/leanprover-community/mathlib4/"@"a2ca43e594f2f3d1ccbb2cf178fd5800abc61321"
+  "https://github.com/leanprover-community/mathlib4/"@"702f3fe16c773ae1e34fbf179342d0877f8cb4f1"

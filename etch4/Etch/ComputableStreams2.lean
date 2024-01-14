@@ -498,22 +498,28 @@ def matMultiply (num : Nat) : IO Unit := do
 
 end test
 
+end Etch.Verification
+
+open Etch.Verification
+open Etch.Verification.SStream
+open OfStream ToStream
+
 -- !!
-unsafe def main (args : List String) : IO Unit := do
-  let num := (args[0]!).toNat?.getD 100
+unsafe def _root_.main (args : List String) : IO Unit := do
+  let num := (args[0]!).toNat?.getD 1000
   IO.println s!"test of size {num}"
   IO.println "starting"
 
-  --test.baseline num
-  --test.vecSum num
-  test.baselineRB num
+  test.baseline num
+  test.vecSum num
+  --test.baselineRB num
   test.vecMulSum num      -- ideally about 2x vecSum
-  --test.vecMulSum3 num      -- ideally about 2x vecSum
+  test.vecMulSum3 num      -- ideally about 2x vecSum
   --test.vecMulSumSearch num
   --test.vecMul num         -- ideally about 1x vecMulSum (currently 3x slower, but that's almost all Array.push. try pre-allocating?)
-  --test.matSum num         -- ideally about 1x vecSum
+  test.matSum num         -- ideally about 1x vecSum
   --test.matProdSum num     -- ... 2x matSum
-  --test.matMultiplySum num
+  test.matMultiplySum num
   --test.matMultiply num
 
 section appendix
