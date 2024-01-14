@@ -37,6 +37,7 @@ The choice of inline vs macro_inline is not intentional anywhere except for `Str
 
 import Mathlib.Data.Prod.Lex
 import Std.Data.RBMap
+import Etch.Traversals
 
 open Std (RBMap)
 
@@ -355,8 +356,8 @@ def baselineRB (num : Nat) : IO Unit := do
   IO.println "-----------"
   let arr_ := Array.range num
   let map := RBMap.ofList (arr_.toList.map fun i => (i, 1)) Ord.compare
-  --let arr := arr_ |>.map fun n => (n,n)
-  let test map := do
+  let map' : Tree' ℕ ℕ := map.1.map fun (i,v) => (i, Side.no, v)
+  let test (map : RBMap ℕ ℕ Ord.compare) := do
     time "forIn vec * rbmap sum" fun _ => -- about 10x slower than vecMulSum
       for _ in [0:10] do
         let mut m := 0
@@ -369,6 +370,23 @@ def baselineRB (num : Nat) : IO Unit := do
         for (i,v) in map do
           m := m + arr_.get! i * v
         IO.println s!"{m}"
+    time "RBMap.map" fun _ => do -- baseline
+      let mut map := map.1
+      for _ in [0:10] do
+        map := map.map fun x => (x.1, x.2 * 2)
+        IO.println s!"{map.look}"
+    -- about 1.8x slower than baseline. no stack. allocation
+    time "tmap" fun _ => do
+      let mut map := map.1
+      for _ in [0:10] do
+        map := tmap (t := map) fun b => b*2
+        IO.println s!"{map.look}"
+    -- about 1.5x slower than baseline. no stack. no allocation
+    time "tmap fbip" fun _ => do
+      let mut map : Tree' ℕ ℕ := map'
+      for _ in [0:10] do
+        map := tmap' (t := map) fun b => b*2
+        IO.println s!"{let (i, _, x) := map.look; (i,x)}"
   test map
 
 def vecSum_slow (num : Nat) : IO Unit := do
@@ -504,23 +522,38 @@ open Etch.Verification
 open Etch.Verification.SStream
 open OfStream ToStream
 
--- !!
-unsafe def _root_.main (args : List String) : IO Unit := do
+unsafe def testRB (args : List String) : IO Unit := do
+  let num := (args[0]!).toNat?.getD 1000
+  IO.println s!"test of size {num}"
+  IO.println "starting"
+
+  test.baselineRB num
+
+unsafe def testAll (args : List String) : IO Unit := do
   let num := (args[0]!).toNat?.getD 1000
   IO.println s!"test of size {num}"
   IO.println "starting"
 
   test.baseline num
   test.vecSum num
-  --test.baselineRB num
   test.vecMulSum num      -- ideally about 2x vecSum
   test.vecMulSum3 num      -- ideally about 2x vecSum
-  --test.vecMulSumSearch num
-  --test.vecMul num         -- ideally about 1x vecMulSum (currently 3x slower, but that's almost all Array.push. try pre-allocating?)
+  test.vecMul num         -- ideally about 1x vecMulSum (currently 3x slower, but that's almost all Array.push. try pre-allocating?)
   test.matSum num         -- ideally about 1x vecSum
-  --test.matProdSum num     -- ... 2x matSum
+  test.matProdSum num     -- ... 2x matSum
   test.matMultiplySum num
-  --test.matMultiply num
+  test.matMultiply num
+
+unsafe def testSome (args : List String) : IO Unit := do
+  let num := (args[0]!).toNat?.getD 1000
+  IO.println s!"test of size {num}"
+  IO.println "starting"
+
+  test.baseline num
+  test.vecSum num
+  test.vecMulSum num
+
+unsafe def _root_.main := testSome
 
 section appendix
 -- simple inline/specialize example
@@ -561,11 +594,9 @@ def str1 := vecStream 10
 --set_option trace.compiler.specialize true
 --set_option trace.compiler.stage2 true
 --def thetest' : ℕ := eval (contract (vecStream' 10)) --
-@[noinline]
-def dup (x : α) := (x, x)
-example (x : ℕ) := let (a, _) := dup x; a
---def multest_ := let str1 := vecStream' 10; eval (contract (str1 * str1)) -- !!
---def foo (n : ℕ) := let s := contract2 (mat n); eval s --!!!
+@[noinline] def dup (x : α) := (x, x) example (x : ℕ) := let (a, _) := dup x; a
+--def multest_ := let str1 := vecStream' 10; eval (contract (str1 * str1))
+--def foo (n : ℕ) := let s := contract2 (mat n); eval s
 unsafe example := myArrayLoop #[] 0
 end compiler_trace
 
