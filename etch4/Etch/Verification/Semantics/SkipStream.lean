@@ -33,7 +33,6 @@ open Classical
 
 noncomputable section
 
-section
 namespace Etch.Verification
 universe u
 
@@ -247,8 +246,7 @@ scoped[Streams] notation:50 a " ≤ₗ " b => @LE.le (Etch.Verification.StreamOr
 
 open Streams
 
-variable (s)
-variable [LinearOrder ι]
+variable (s) [LinearOrder ι]
 
 /-- The stream is bounded if there is a well-founded relation `≺` on states such that
     a) whenever we are asked to skip past an index `i` past the current index (i.e. `i ≥ s.to_order q`),
@@ -337,10 +335,8 @@ theorem Stream.no_backward [IsBounded s] (q hq i) :
 #align Stream.no_backward Etch.Verification.Stream.no_backward
 
 /-- Evaluates `∑_{q →* r} eval₀ r`, which is well-defined for bounded streams. -/
-noncomputable def Stream.eval [AddZeroClass α]
-(s : Stream ι α) [IsBounded s]
---(s : Stream ι α) [DecidablePred s.ready] [DecidablePred s.valid] [IsBounded s]
-: s.σ → ι →₀ α
+noncomputable def Stream.eval [AddZeroClass α] (s : Stream ι α) [IsBounded s]
+    : s.σ → ι →₀ α
   | q =>
     if h : s.valid q then
       have : s.WfRel (s.next q) q := s.next_wf _ h
@@ -598,7 +594,6 @@ theorem Stream.skip'_lt_toOrder {s : Stream ι α} [IsLawful s] {q : s.σ} {i : 
 def Stream.eval_skip_eq_of_false' (s : Stream ι α) [IsLawful s] (q : s.σ) (hq : s.valid q) :=
     s.eval (s.skip q hq (s.index q hq, false)) = s.eval q
 
--- todo: what is happening here?
 theorem Stream.eval_skip_eq_of_false (s : Stream ι α) [IsLawful s] (q : s.σ) (hq : s.valid q) :
     s.eval (s.skip q hq (s.index q hq, false)) = s.eval q := by
   by_cases hr : s.ready q
@@ -634,8 +629,6 @@ theorem Stream.map_id (s : Stream ι α) : s.map id = s :=
 theorem Stream.map_map (g : α → β) (f : β → γ) (s : Stream ι α) : (s.map g).map f = s.map (f ∘ g) :=
   by ext <;> solve_refl
 #align Stream.map_map Etch.Verification.Stream.map_map
-
-open Classical
 
 @[simp]
 theorem Stream.toOrder_map (s : Stream ι α) (f : α → β) : (s.map f).toOrder = s.toOrder :=
