@@ -17,11 +17,7 @@ lean_exe myrun {
 }
 
 @[default_target]
-lean_lib Etch.Verification.Main
-
-@[default_target]
-lean_lib Etch.Compile.Ext
-  where defaultFacets := #[LeanLib.sharedFacet]
+lean_lib Etch.Verification.Semantics.Example
 
 require mathlib from git
   "https://github.com/leanprover-community/mathlib4/"@"702f3fe16c773ae1e34fbf179342d0877f8cb4f1"

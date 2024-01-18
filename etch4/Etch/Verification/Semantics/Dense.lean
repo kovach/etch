@@ -1,13 +1,14 @@
+import Mathlib.Data.Fintype.Card
 import Etch.Verification.Semantics.SkipStream
 
-/-! 
+/-!
 # Dense Vectors as Indexed Streams (sanity check)
 
 In this file, we show that `denseVec` (modelling dense vectors as a stream)
 satisfies the stream conditions (it is strictly lawful); therefore our conditions are not vacuous.
 A similar thing can be done for sparse vectors.
 
-This is mostly a lot of tedious casework. TODO: can we automate this to an SMT solver? 
+This is mostly a lot of tedious casework. TODO: can we automate this to an SMT solver?
 
 ## Definitions:
 We define `Stream.denseVec vals`, which takes a vector `vals` and constructs
@@ -40,7 +41,7 @@ attribute [reducible] Stream.denseVec in
 section
 
 instance {n} (vals : Fin n → α) : IsBounded (Stream.denseVec vals) :=
-  ⟨⟨⟨(· > ·), Finite.Preorder.wellFounded_gt⟩,
+  ⟨⟨⟨(· > ·), Finite.to_wellFoundedGT.wf⟩,
     fun i hi j => by
       unfold Stream.toOrder
       rw [Prod.Lex.lt_iff'']
@@ -128,9 +129,12 @@ theorem Stream.denseVec_eval_start {n : ℕ} (vals : Fin n → α) :
   exact if_neg (Fin.not_lt_zero _)
 #align Stream.denseVec_eval_start Etch.Verification.Stream.denseVec_eval_start
 
+variable (v : Fin n → α) in
+#synth DecidablePred (Stream.denseVec v).ready
+
 instance {n} (vals : Fin n → α) : IsLawful (Stream.denseVec vals) where
   mono :=
-    Stream.isMonotonic_iff.mpr fun q hq i hq' => by
+    (Stream.isMonotonic_iff (s := Stream.denseVec vals)).mpr fun q hq i hq' => by
       dsimp
       rw [Fin.castLT_le_iff]
       exact le_max_left _ _
@@ -142,7 +146,7 @@ instance {n} (vals : Fin n → α) : IsLawful (Stream.denseVec vals) where
     refine ⟨h₁, ?_⟩
     rw [not_lt]
     rcases i with ⟨i, b | b⟩ <;> simp only [cond]
-    · rw [Fin.castSucc, Fin.castAdd, OrderEmbedding.le_iff_le]
+    · rw [Fin.castSucc, Fin.castAdd]
       simpa using hj
     · rw [← Fin.castSucc_lt_iff_succ_le]
       simpa [Prod.Lex.le_iff'] using hj

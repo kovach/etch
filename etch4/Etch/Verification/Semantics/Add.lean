@@ -15,17 +15,17 @@ In this file, we define the sum of indexed streams `Stream.add`.
 
 set_option linter.uppercaseLean3 false
 
+open Classical
+
 namespace Etch.Verification
+
+noncomputable section
 
 section add_def
 
 variable {ι : Type} [LinearOrder ι] {α : Type _}
 [Zero α] [Add α]
 (a b : Stream ι α)
-[DecidablePred a.valid]
-[DecidablePred a.ready]
-[DecidablePred b.valid]
-[DecidablePred b.ready]
 
 @[simps]
 def Stream.add : Stream ι α
@@ -114,7 +114,7 @@ theorem of_toOrder_eq {a b : Stream ι α} (q : (a.add b).σ) (h : a.toOrder' q.
       simpa [this, -Stream.index'_lt_top_iff] using H
     refine ⟨H, hv₁, hv₂, ?_, this⟩
     have := congr_arg Prod.snd h
-    simpa [hv₁, hv₂] using congr_arg Prod.snd h
+    simpa [Stream.toOrder', hv₁, hv₂] using congr_arg Prod.snd h
   · left
     exact ⟨H, not_or.mp H⟩
 #align of_to_order_eq Etch.Verification.of_toOrder_eq
@@ -131,7 +131,7 @@ theorem add_toOrder_eq_min {a b : Stream ι α} (q : (a.add b).σ) :
     · simp [Stream.toOrder', H, hv₁, hv₂]
     ext : 1
     · simp [h, hi]
-    simp [Stream.toOrder'_val_snd H, h, Stream.toOrder'_val_snd hv₂, hr]
+    . simp [Stream.toOrder'_val_snd H, h, Stream.toOrder'_val_snd hv₂, hr]
   · rw [min_eq_right h.le]
     ext : 1
     · simpa using Prod.Lex.fst_le_of_le h.le
@@ -192,7 +192,7 @@ theorem add_strict_mono {a b : Stream ι α} (ha : a.IsStrictMono) (hb : b.IsStr
             rwa [← coeLex_le_iff, Stream.coeLex_toOrder]
           have : a.index' q.1 < b.index' q.2 := by
             refine' Prod.Lex.fst_lt_of_lt_of_le h _
-            simp [hqa, hr]
+            simp [Stream.toOrder', hqa, hr]
           simp only [add_index_eq_min, min_eq_left this.le, Stream.add_skip, add_index_eq_min,
             lt_min_iff, Stream.skip'_val hqa]
           constructor
@@ -218,7 +218,7 @@ theorem add_strict_mono {a b : Stream ι α} (ha : a.IsStrictMono) (hb : b.IsStr
             rwa [← coeLex_le_iff, Stream.coeLex_toOrder]
           have : b.index' q.2 < a.index' q.1 := by
             refine' Prod.Lex.fst_lt_of_lt_of_le h _
-            simp [hqb, hr]
+            simp [Stream.toOrder', hqb, hr]
           simp only [add_index_eq_min, min_eq_right this.le, Stream.add_skip, add_index_eq_min,
             lt_min_iff, Stream.skip'_val hqb]
           constructor
@@ -232,7 +232,6 @@ theorem Stream.add_map {β : Type _} [Zero β] [Add β] (f : α → β)
     (f_add : ∀ x y, f (x + y) = f x + f y) (f_zero : f 0 = 0) (q r : Stream ι α) :
     (q.add r).map f = (q.map f).add (r.map f) := by
   ext <;> solve_refl
-  dsimp [add]
   simp only [f_add, apply_ite f, f_zero, Stream.map_value' f f_zero]
 #align Stream.add_map Etch.Verification.Stream.add_map
 
@@ -343,4 +342,7 @@ instance (a b : Stream ι α) [IsStrictLawful a] [IsStrictLawful b] :
 end ValueLemmas
 
 end
+
+end
+
 end Etch.Verification

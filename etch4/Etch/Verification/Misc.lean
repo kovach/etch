@@ -146,9 +146,6 @@ theorem lt_true_iff : ∀ {b : Bool}, b < true ↔ b = false := by decide
 theorem false_lt_iff : ∀ {b : Bool}, false < b ↔ b = true := by decide
 #align ff_lt_iff false_lt_iff
 
-theorem Bool.min_eq_and {a b : Bool} : min a b = (a && b) := rfl
-#align bool.min_eq_and Bool.min_eq_and
-
 theorem ne_min_of_ne_and_ne {ι : Type _} [LinearOrder ι] {a x y : ι} (hx : a ≠ x) (hy : a ≠ y) :
     a ≠ min x y := by rcases min_choice x y with h | h <;> rw [h] <;> assumption
 #align ne_min_of_ne_and_ne ne_min_of_ne_and_ne
@@ -319,7 +316,7 @@ theorem max_eq_min_iff {α : Type _} [LinearOrder α] {x y : α} : min x y = max
 theorem Finsupp.mul_single {ι β : Type _} [MulZeroClass β] (i : ι) (x y : β) :
     Finsupp.single i x * Finsupp.single i y = Finsupp.single i (x * y) := by
   ext a
-  by_cases i = a <;> simp [h]
+  by_cases i = a <;> simp [*]
 #align finsupp.mul_single Finsupp.mul_single
 
 theorem Finsupp.mul_eq_zero_of_disjoint_support {ι β : Type _} [DecidableEq ι] [MulZeroClass β]
@@ -361,4 +358,3 @@ theorem mul_eq_zero_of {α : Type _} [MulZeroClass α] {x y : α} : x = 0 ∨ y 
     rw [h]
     exact MulZeroClass.mul_zero x
 #align mul_eq_zero_of mul_eq_zero_of
-

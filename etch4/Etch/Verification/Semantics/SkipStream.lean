@@ -29,9 +29,10 @@ Execution of Contraction Operations*
 
 set_option linter.uppercaseLean3 false
 
---open Classical
+open Classical
 
---noncomputable
+noncomputable section
+
 section
 namespace Etch.Verification
 universe u
@@ -85,18 +86,9 @@ section StreamDefs
   the stream has terminated (is invalid). -/
 variable {ι : Type} {α : Type _}
 
-class DecidableStream (s : Stream ι α) where
-  valid : DecidablePred s.valid
-  ready : DecidablePred s.ready
-
-instance {s : Stream ι α} [h : DecidableStream s] : ∀ q, Decidable (s.valid q) := h.valid
-instance {s : Stream ι α} [h : DecidableStream s] : ∀ q, Decidable (s.ready q) := h.ready
-
 variable (a b : Stream ι α)
 
 variable (s : Stream ι α)
-[DecidablePred s.valid]
-[DecidablePred s.ready]
 
 /-- The current emmited value; if ready, this is `index ↦ value`, otherwise it is 0.
   This is denoted `index(r) ↦ −→ ready(r) · ⟦value(r)⟧` in the paper. -/
@@ -142,8 +134,6 @@ def Stream.next (q : s.σ) : s.σ :=
 def Stream.skip' (q : s.σ) (i : ι ×ₗ Bool) : s.σ :=
   if h : s.valid q then s.skip q h i else q
 #align Stream.skip' Etch.Verification.Stream.skip'
-
-open Classical
 
 /--
 Order injection from `stream_order ι` to `(with_top ι) ×ₗ bool` by coercing the first argument -/
@@ -238,7 +228,9 @@ theorem Stream.toOrder'_val_snd {q : s.σ} (hq : s.valid q) :
 theorem Stream.index'_lt_top_iff [Preorder ι] {q : s.σ} :
     s.index' q < ⊤ ↔ s.valid q := by
   rw [Stream.index']
-  split_ifs <;> simpa [WithTop.coe_lt_top]
+  split_ifs
+  simpa [WithTop.coe_lt_top]
+  simp [*]
 #align Stream.index'_lt_top_iff Etch.Verification.Stream.index'_lt_top_iff
 
 @[simp]
@@ -247,7 +239,6 @@ theorem Stream.get_index' [PartialOrder ι] {x : s.σ} (h : (s.index' x).isSome)
   generalize_proofs hq
   simp_rw [Stream.index', hq, Option.get]
 #align Stream.get_index' Etch.Verification.Stream.get_index'
-
 
 
 -- We use this notation so that we can explicitly ask Lean to use lexicographic comparison (rather than pointwise comparison)
@@ -264,6 +255,7 @@ variable [LinearOrder ι]
         we strictly make progress (`s.skip q hq i ≺ q`)
     b) We always either make progress or remain at the same state
   These properties ensure that evaluation terminates. -/
+
 
 @[mk_iff]
 class IsBounded : Prop where
@@ -354,7 +346,7 @@ noncomputable def Stream.eval [AddZeroClass α]
       have : s.WfRel (s.next q) q := s.next_wf _ h
       s.eval₀ q h + s.eval (s.next q)
     else 0
-termination_by' ⟨_, s.wf⟩
+termination_by _ x => s.wf.wrap x
 #align Stream.eval Etch.Verification.Stream.eval
 
 variable [IsBounded s]
@@ -373,7 +365,7 @@ theorem Stream.eval_valid [AddZeroClass α]
 #align Stream.eval_valid Etch.Verification.Stream.eval_valid
 
 theorem Stream.eval₀_support [Zero α]
-(s : Stream ι α) [DecidablePred s.ready] [DecidablePred s.valid] [IsBounded s]
+(s : Stream ι α) [IsBounded s]
 (x : s.σ) (h : s.valid x) :
     (s.eval₀ x h).support ⊆ {s.index x h} := by
   rw [Stream.eval₀]
@@ -383,7 +375,7 @@ theorem Stream.eval₀_support [Zero α]
 #align Stream.eval₀_support Etch.Verification.Stream.eval₀_support
 
 theorem Stream.eval₀_support' [Zero α]
-(s : Stream ι α) [DecidablePred s.ready] [DecidablePred s.valid] [IsBounded s]
+(s : Stream ι α) [IsBounded s]
 {x : s.σ} (h₁ : s.valid x) {i : ι}
     (h₂ : s.eval₀ x h₁ i ≠ 0) : s.toOrder x h₁ = (i, true) := by
   obtain rfl := Finset.eq_of_mem_singleton (s.eval₀_support x h₁ (Finsupp.mem_support_iff.mpr h₂))
@@ -393,25 +385,23 @@ theorem Stream.eval₀_support' [Zero α]
   · simp at h₂
 #align Stream.eval₀_support' Etch.Verification.Stream.eval₀_support'
 
-open Classical
-
 section Mono
 
 /-- A stream is monotonic if the index does not decrease after `skip` is called. -/
 def Stream.IsMonotonic
-(s : Stream ι α) [DecidablePred s.ready] [DecidablePred s.valid]
+(s : Stream ι α)
 : Prop :=
   ∀ q hq i, s.index' q ≤ s.index' (s.skip q hq i)
 #align Stream.is_monotonic Etch.Verification.Stream.IsMonotonic
 
 /-- A stream is strictly monotonic if it is monotonic and strictly advances its
   index when (non-trivially) skipped from a ready state. -/
-def Stream.IsStrictMono (s : Stream ι α) [DecidablePred s.ready] [DecidablePred s.valid] : Prop :=
+def Stream.IsStrictMono (s : Stream ι α) : Prop :=
   s.IsMonotonic ∧ ∀ q hq i, s.toOrder q hq ≤ i → s.ready q → s.index' q ≠ s.index' (s.skip q hq i)
 #align Stream.is_strict_mono Etch.Verification.Stream.IsStrictMono
 
 theorem Stream.IsMonotonic.skip'
-{s : Stream ι α} [DecidablePred s.ready] [DecidablePred s.valid]
+{s : Stream ι α}
 (hs : s.IsMonotonic) (q i) :
     s.index' q ≤ s.index' (s.skip' q i) := by
   by_cases hq : s.valid q
@@ -608,12 +598,13 @@ theorem Stream.skip'_lt_toOrder {s : Stream ι α} [IsLawful s] {q : s.σ} {i : 
 def Stream.eval_skip_eq_of_false' (s : Stream ι α) [IsLawful s] (q : s.σ) (hq : s.valid q) :=
     s.eval (s.skip q hq (s.index q hq, false)) = s.eval q
 
+-- todo: what is happening here?
 theorem Stream.eval_skip_eq_of_false (s : Stream ι α) [IsLawful s] (q : s.σ) (hq : s.valid q) :
     s.eval (s.skip q hq (s.index q hq, false)) = s.eval q := by
   by_cases hr : s.ready q
   · apply Stream.skip_lt_toOrder
     simp [Stream.toOrder, hr]
-  simp [s.eval_valid q hq, Stream.eval₀, hr, Stream.next_val hq, Stream.toOrder]
+  . simp [s.eval_valid q hq, Stream.eval₀, hr, Stream.next_val hq, Stream.toOrder]
 
 end StreamDefs
 
@@ -670,7 +661,7 @@ variable [LinearOrder ι]
 
 @[simp]
 theorem Stream.map_IsBounded_iff (f : α → β) (s : Stream ι α) : IsBounded (s.map f) ↔ IsBounded s := by
-  simp only [IsBounded_iff]
+  simp only [isBounded_iff]
   rfl
 #align map_is_bounded_iff Etch.Verification.Stream.map_IsBounded_iff
 
@@ -680,3 +671,5 @@ instance Stream.map_IsBounded (f : α → β) (s : Stream ι α) [IsBounded s] :
 end Functor
 
 end Etch.Verification
+
+end
