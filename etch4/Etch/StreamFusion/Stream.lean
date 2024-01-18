@@ -27,10 +27,10 @@ The choice of inline vs macro_inline is not intentional anywhere except for `Str
 -/
 
 /- todo:
-  do manual loop with rbmap
   stream for rbmap
 
-  vecMulSum3
+  vecMulSum3 speed up
+    problem is tuple allocation?
 
   prove (Array.range n).size = n
 -/
@@ -54,8 +54,7 @@ structure Stream (ι : Type) (α : Type u) : Type max 1 u where
 namespace Stream
 variable {ι : Type} {α : Type _}
 variable [Mul α]
-[LinearOrder ι] -- this is ok
---[h : LE ι] [DecidableRel h.le] [DecidableEq ι]
+[LinearOrder ι]
 
 variable (s : Stream ι α)
 
@@ -80,11 +79,9 @@ def contract (s : Stream ι α) : Stream Unit α where
 end Stream
 
 section Mul
-@[unbox] inductive Prod (α β : Type) | mk : α → β → Prod α β
 
-variable [Mul α]
---[LinearOrder ι] -- the generated code is about 2x slower
-[h : LE ι] [DecidableRel h.le] [DecidableEq ι]
+variable [Mul α] [LinearOrder ι]
+--[h : LE ι] [DecidableRel h.le] [DecidableEq ι] -- todo: is the generated code different here?
 
 /- This combinator is a primary motivation for Stream -/
 @[macro_inline]
@@ -552,6 +549,7 @@ unsafe def testSome (args : List String) : IO Unit := do
   test.baseline num
   test.vecSum num
   test.vecMulSum num
+  test.vecMulSum3 num
 
 unsafe def _root_.main := testSome
 

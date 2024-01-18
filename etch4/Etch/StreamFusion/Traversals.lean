@@ -15,6 +15,7 @@ inductive Visitor (tree α : Type)
 | l (c : RBColor) (left : tree)  (value : α) (k : Visitor tree α)
 
 inductive Direction | up | down
+  deriving Inhabited
 
 section
 variable (f : α → α) [Ord ι]
@@ -40,7 +41,7 @@ abbrev Tree ι [Ord ι] α := RBNode (ι × α)
 
 -- Now we hack it a bit so that there is no allocation
 inductive Side | r | l | no deriving Inhabited
-abbrev Tree' ι [Ord ι] α := RBNode (ι × Side × α)
+abbrev Tree' ι [Ord ι] (α : Type u) := RBNode (ι × Side × α)
 instance : Inhabited (Tree' ι α) := ⟨.nil⟩
 
 @[inline] partial def tmap' (t : Tree' ι α) : Tree' ι α :=
@@ -57,4 +58,5 @@ instance : Inhabited (Tree' ι α) := ⟨.nil⟩
     | .node c l (i, .l, x) k => go (.node c l (i, .no, x) t) k .up
     | .node .. => panic! "no"
   go t .nil .down
+
 end
