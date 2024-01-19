@@ -5,35 +5,27 @@ This file implements a prototype of indexed stream fusion,
 Authors: Scott Kovach
 -/
 
-/- Vs SkipStream, we redefine valid/ready to return Bool; this is easier to work with for now -/
+/- Ideally we would use the same Stream definition from SkipStream, which doesn't critically use Classical.
+   For now, we redefine valid/ready to return Bool -/
 --import Etch.Verification.Semantics.SkipStream
 --import Etch.Verification.Semantics.Mul
 --import Etch.Verification.Semantics.Add
 --import Etch.Verification.Semantics.Contract
 
 /- General notes:
+  Stream.fold generates the top-level loop.
+    For performance, we want this to include no calls to lean_apply_[n] and minimal allocations
+      (so far there are still some tuples allocated for multiplication states)
 
-See Stream.mul for the key motivation for the stream interface
+  Stream.mul is the key combinator. it multiplies the non-zero values of two streams
 
-A key function is Stream.fold (previously called toArray_aux)
-  This generates the top-level loop
-  We want this to include no calls to lean_apply_[n] and minimal allocations
-    (so far there may still some tuples allocated for multiplication states)
+  Performance is sensitive to the particular classes used.
+  We need to be careful to redefine any instances to add @[inline]
 
-Performance is sensitive to the particular classes used.
-We need to be careful to redefine any instances to add @[inline]
-
-The choice of inline vs macro_inline is not intentional anywhere except for `Stream.next`, where macro_inline seems to be necessary
+  The choice of inline vs macro_inline is not intentional anywhere except for `Stream.next`, where macro_inline seems to be necessary
 -/
 
-/- todo:
-  stream for rbmap
-
-  vecMulSum3 speed up
-    problem is tuple allocation?
-
-  prove (Array.range n).size = n
--/
+/- TODOs: see paper draft -/
 
 import Mathlib.Data.Prod.Lex
 import Std.Data.RBMap
@@ -52,10 +44,7 @@ structure Stream (ι : Type) (α : Type u) : Type max 1 u where
   value : ∀ x : σ, ready x → α
 
 namespace Stream
-variable {ι : Type} {α : Type _}
-variable [Mul α]
-[LinearOrder ι]
-
+variable {ι : Type} {α : Type _} [Mul α] [LinearOrder ι]
 variable (s : Stream ι α)
 
 -- hack: redefine these instances to ensure they are inlined
@@ -89,13 +78,10 @@ def Stream.mul [HMul α β γ] (a : Stream ι α) (b : Stream ι β) : Stream ι
   σ := a.σ × b.σ
   valid p := a.valid p.1 && b.valid p.2
   ready p :=
-  /- for experimentation: -/
-  --true
-  --a.index p.1 sorry = b.index p.2 sorry
-  if hv : a.valid p.1 && b.valid p.2
-    then a.ready p.1 && b.ready p.2 &&
-         a.index p.1 (by simp at hv; exact hv.1) = b.index p.2 (by simp at hv; exact hv.2)
-    else false
+    if hv : a.valid p.1 && b.valid p.2
+      then a.ready p.1 && b.ready p.2 &&
+           a.index p.1 (by simp at hv; exact hv.1) = b.index p.2 (by simp at hv; exact hv.2)
+      else false
   index p hv :=
     let ai := (a.index p.1 (by simp at hv; exact hv.1))
     let bi := (b.index p.2 (by simp at hv; exact hv.2))
@@ -103,10 +89,9 @@ def Stream.mul [HMul α β γ] (a : Stream ι α) (b : Stream ι β) : Stream ι
     --if ai = bi then ai else bi -- substantially faster than ≤; maybe still some performance to find
   value p hr := by
     dsimp at hr
-    split_ifs at hr with h
+    split_ifs at hr
     simp at hr
     exact a.value p.1 hr.1.1 * b.value p.2 hr.1.2
-  --value p _ := a.value p.1 sorry * b.value p.2 sorry
   skip p hp i :=
     let p1 := a.skip p.1 (by simp at hp; exact hp.1) i
     let p2 := b.skip p.2 (by simp at hp; exact hp.2) i
@@ -119,15 +104,17 @@ structure SStream (ι : Type) (α : Type u) extends Stream ι α where
   q : σ
   weaken : ∀ {q : σ}, ready q → valid q
 
--- for some reason, this definition *definitely* needs to be macro_inline for performance
--- everything else is probably safe at @[inline]
+infixr:25 " →ₛ " => SStream
+
+-- For some reason, this definition *definitely* needs to be macro_inline for performance.
+-- Everything else I have checked is safe at @[inline].
 @[macro_inline]
-def Stream.next (s : Stream ι α) (q : s.σ) (h : (s.valid q) = true) (ready : Bool) : s.σ := s.skip q h (s.index q h, ready)
+def Stream.next (s : Stream ι α) (q : s.σ) (h : s.valid q = true) (ready : Bool) : s.σ :=
+  s.skip q h (s.index q h, ready)
 
 namespace SStream
 
-variable
-{ι : Type} [LinearOrder ι] {α : Type u}
+variable {ι : Type} [LinearOrder ι] {α : Type u}
 
 @[macro_inline, specialize]
 def map (f : α → β) (s : SStream ι α) : SStream ι β :=
@@ -205,10 +192,6 @@ def FloatVec n := { x : FloatArray // x.size = n }
 instance [ToStream β β'] : ToStream  (Level ι β n) (SStream ι β') where
   stream := map ToStream.stream ∘ (fun ⟨is, vs⟩ => ofArrayPair is.val vs.val (by simp [is.2, vs.2]))
 
---def Search (α : Type) := α
---instance [ToStream β β'] : ToStream (Search (Vec ℕ n × Vec β n)) (SStream ℕ β') where
---  stream := map ToStream.stream ∘ (fun (a, b) => searchStreamOfArrayPair a.1 b.1 (a.property.trans b.property.symm))
-
 instance : ToStream  (Vec ℕ n × FloatVec n) (SStream ℕ Float) where
   stream := fun (a, b) => ofFloatArray a.1 b.1 (a.property.trans b.property.symm)
 
@@ -216,14 +199,14 @@ instance : ToStream  (Vec ℕ n × FloatVec n) (SStream ℕ Float) where
 -- this definition follows the same inline/specialize pattern as Array.forInUnsafe
 @[inline] partial def _root_.Etch.Verification.Stream.fold (add : β → ι → α → β) (s : Stream ι α) (acc : β) (q : s.σ) : β :=
   let rec @[specialize] go add (valid : s.σ → Bool) (ready : s.σ → Bool)
-    (index : (x : s.σ) → valid x → ι) (value : (x : s.σ) → ready x → α)
-    (next : (x : s.σ) → valid x → Bool → s.σ) (acc : β) q :=
+      (index : (x : s.σ) → valid x → ι) (value : (x : s.σ) → ready x → α)
+      (next : (x : s.σ) → valid x → Bool → s.σ) (acc : β) q :=
     if hv : valid q then
       if hr : ready q
            then go add valid ready index value next (add acc (index q hv) $ value q hr) (next q hv true)
            else go add valid ready index value next acc (next q hv false)
     else acc
-  go add s.valid s.ready s.index (fun x h => s.value x (by simpa using h)) s.next acc q
+  go add s.valid s.ready s.index s.value s.next acc q
 
 @[inline] def toArrayPair (s : SStream ι α) : Array ι × Array α :=
   s.fold (fun (is, vs) i v => (is.push i, vs.push v)) (#[], #[]) s.q
@@ -267,8 +250,6 @@ def mul [HMul α β γ] (a : SStream ι α) (b : SStream ι β) : SStream ι γ 
   weaken := fun h => by simp [Stream.mul] at *; split_ifs at h; assumption
 }
 
-infixr:25 " →ₛ " => SStream
-
 @[macro_inline]
 instance [HMul α β γ] : HMul (ℕ →ₛ α) (ℕ →ₛ β) (ℕ →ₛ γ) := ⟨mul⟩
 
@@ -280,8 +261,7 @@ instance [HMul α β γ] : HMul (ι → α) (ι →ₛ β) (ι →ₛ γ) where
 instance [HMul α β γ] : HMul (ι →ₛ α) (ι → β) (ι →ₛ γ) where
   hMul x f := { x with value := fun s h => x.value s h * f (x.index s $ x.weaken h) }
 
-@[macro_inline]
-def expand (a : α) : ι → α := fun _ => a
+@[macro_inline] def expand (a : α) : ι → α := fun _ => a
 
 @[inline]
 def _root_.Std.RBMap.toFn [Zero α] (map : RBMap ι α Ord.compare) : ι → α := fun i => map.find? i |>.getD 0
