@@ -6,7 +6,7 @@ import Etch.Verification.Semantics.SkipStream
 
 In this file, we define the zero stream, which immediately terminates
 producing no output. This stream is important for defining
-a nested version of `add`, since `add` requires the value type to 
+a nested version of `add`, since `add` requires the value type to
 have a `0`.
 
 ## Main results

@@ -121,7 +121,7 @@ instance Stream.mul.isBounded (a b : Stream ι α) [IsBounded a] [IsBounded b] :
 theorem Stream.mul_map {β : Type _} [Mul β] (f : α → β) (f_mul : ∀ x y, f (x * y) = f x * f y)
     (q r : Stream ι α) : (q.mul r).map f = (q.map f).mul (r.map f) := by
   ext <;> solve_refl
-  · simp only [Stream.mul.Ready_iff]; rfl
+  · simp only [Stream.mul.ready_iff]; rfl
   · simp only [f_mul, apply_ite f]
 #align Stream.mul_map Etch.Verification.Stream.mul_map
 
@@ -135,16 +135,17 @@ theorem mul_eval₀_of_neq {a : Stream ι α} {b : Stream ι α} {x y} (H : (a.m
     (h : a.toOrder x H.1 ≠ b.toOrder y H.2) : (a.mul b).eval₀ (x, y) H = 0 := by
   contrapose! h
   apply Stream.mul.ready.order_eq
-  simp [Stream.eval₀] at h
+  simp only [Stream.eval₀, Stream.mul_ready, Stream.mul_index, ge_iff_le, Stream.mul_value, ne_eq, dite_eq_right_iff,
+    Finsupp.single_eq_zero, not_forall] at h
   exact h.fst
-#align mul_eval₀_of_neq Etch.Verification.mul_eval₀_of_neq
 
 theorem mul_eval₀ (a b : Stream ι α) (x : a.σ) (y : b.σ) (H) :
     (a.mul b).eval₀ (x, y) H = a.eval₀ x H.1 * b.eval₀ y H.2 := by
   rw [Stream.eval₀]; split_ifs with hr
   · obtain ⟨v₁, v₂, r₁, r₂, hi⟩ := hr; dsimp only at v₁ v₂ r₁ r₂ hi
-    simp [Stream.eval₀, *]
-  · simp [Stream.mul.Ready_iff, H.1, H.2] at hr
+    simp only [Stream.mul_index, max_self, Stream.mul_value, Stream.eval₀._eq_1, dite_true, Finsupp.mul_single, *]
+  ·
+    simp [Stream.mul.ready_iff, H.1, H.2] at hr
     simp [Stream.eval₀]
     split_ifs with h₁ h₂ <;> try simp
     rw [Finsupp.mul_single_eq_zero _ _ (hr h₁ h₂ H.1 H.2)]

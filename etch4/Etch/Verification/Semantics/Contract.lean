@@ -17,6 +17,7 @@ values of the stream.
 set_option linter.uppercaseLean3 false
 
 namespace Etch.Verification.Stream
+open Classical
 
 variable {ι : Type} {α : Type _}
 
@@ -79,7 +80,7 @@ theorem contract_mono (s : Stream ι α) : s.contract.IsMonotonic := fun q hq i 
   exact bot_le
 #align contract_mono Etch.Verification.Stream.contract_mono
 
-instance (s : Stream ι α) [IsLawful s] : IsLawful s.contract where
+noncomputable instance (s : Stream ι α) [IsLawful s] : IsLawful s.contract where
   mono := s.contract_mono
   skip_spec q hq i j hj := by
     cases j
