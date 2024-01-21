@@ -36,7 +36,19 @@ import Etch.StreamFusion.Traversals
 
 open Std (RBMap HashMap)
 
+/- hack: redefine these instances to ensure they are inlined (see instDecidableLeToLEToPreorderToPartialOrder)
+-/
+section
+variable [LinearOrder α]
+@[inline] instance (a b : α) : Decidable (a < b) := LinearOrder.decidableLT a b
+@[inline] instance (a b : α) : Decidable (a ≤ b) := LinearOrder.decidableLE a b
+@[inline] instance (a b : α) : Decidable (a = b) := LinearOrder.decidableEq a b
+end
+
 namespace Std
+
+@[inline]
+def RBMap.toFn [Ord ι] [Zero α] (map : RBMap ι α Ord.compare) : ι → α := fun i => map.find? i |>.getD 0
 
 @[inline]
 def HashMap.modifyD [BEq α] [Hashable α] [Zero β] (self : HashMap α β) (a : α) (f : β → β) : HashMap α β :=
@@ -48,11 +60,9 @@ def HashMap.modifyD' [BEq α] [Hashable α] [Zero β] (self : HashMap α β) (a 
 
 @[inline]
 def RBMap.modifyD [Zero β] (self : RBMap α β h) (a : α) (f : β → β) : RBMap α β h :=
-  self.alter a (fun | none => some 0 | some a => some (f a))
+  self.insert a (f $ self.findD a 0)
+  --self.alter a (fun | none => some 0 | some a => some (f a))
 end Std
-
-namespace Etch.Verification
-
 
 namespace Exposition
 -- In analogy with streams representing sequences, we define the type of streams
@@ -70,6 +80,8 @@ structure StreamAlt (ι : Type) (α : Type u) where
   seek : (x : σ) → ι → Bool → StreamStep ι α
   q : σ
 end Exposition
+
+namespace Etch.Verification
 
 structure Stream (ι : Type) (α : Type u) where
   σ : Type
@@ -90,34 +102,13 @@ namespace Stream
 variable {ι : Type} {α : Type _} [Mul α] [LinearOrder ι]
 variable (s : Stream ι α)
 
--- hack: redefine these instances to ensure they are inlined
---  see: instDecidableLeToLEToPreorderToPartialOrder
-section
-variable [LinearOrder α]
-@[inline] instance (a b : α) : Decidable (a < b) := LinearOrder.decidableLT a b
-@[inline] instance (a b : α) : Decidable (a ≤ b) := LinearOrder.decidableLE a b
-@[inline] instance (a b : α) : Decidable (a = b) := LinearOrder.decidableEq a b
-end
-
-@[simps, macro_inline]
-def contract (s : Stream ι α) : Stream Unit α where
-  σ := s.σ
-  valid := s.valid
-  ready := s.ready
-  index := default
-  value := s.value
-  seek q hq i := s.seek q hq (s.index q hq, i.2)
-
-end Stream
-
 section Mul
-
-variable [Mul α] [LinearOrder ι]
+variable [Mul α]
 --[h : LE ι] [DecidableRel h.le] [DecidableEq ι] -- todo: is the generated code different here?
 
 /- This combinator is a primary motivation for Stream -/
 @[macro_inline]
-def Stream.mul [HMul α β γ] (a : Stream ι α) (b : Stream ι β) : Stream ι γ where
+def mul [HMul α β γ] (a : Stream ι α) (b : Stream ι β) : Stream ι γ where
   σ := a.σ × b.σ
   valid p := a.valid p.1 && b.valid p.2
   ready p :=
@@ -143,19 +134,29 @@ def Stream.mul [HMul α β γ] (a : Stream ι α) (b : Stream ι β) : Stream ι
 
 end Mul
 
+@[simps, macro_inline]
+def contract (s : Stream ι α) : Stream Unit α where
+  σ := s.σ
+  valid := s.valid
+  ready := s.ready
+  index := default
+  value := s.value
+  seek q hq := fun ((), r) => s.seek q hq (s.index q hq, r)
+
 -- For some reason, this definition *definitely* needs to be macro_inline for performance.
 -- Everything else I have checked is safe at @[inline].
 @[macro_inline]
-def Stream.next (s : Stream ι α) (q : s.σ) (h : s.valid q = true) (ready : Bool) : s.σ :=
+def next (s : Stream ι α) (q : s.σ) (h : s.valid q = true) (ready : Bool) : s.σ :=
   s.seek q h (s.index q h, ready)
+
+end Stream
 
 namespace SStream
 
 variable {ι : Type} [LinearOrder ι] {α : Type u}
 
 @[inline]
-def map (f : α → β) (s : SStream ι α) : SStream ι β :=
-  { s with value := fun q => f ∘ s.value q }
+def map (f : α → β) (s : SStream ι α) : SStream ι β := { s with value := fun q => f ∘ s.value q }
 
 variable [Inhabited ι]
 
@@ -212,6 +213,7 @@ def ofFloatArray (is : Array ι) (vs : FloatArray) (eq : is.size = vs.size) : SS
          else if i < j then q+1 else q
   weaken := id
 
+-- Used as a base case for ToStream/OfStream
 class Scalar (α : Type u)
 instance : Scalar ℕ := ⟨⟩
 instance : Scalar Float := ⟨⟩
@@ -245,9 +247,9 @@ instance [ToStream β β'] : ToStream  (Level ι β n) (SStream ι β') where
 instance : ToStream  (Vec ι n × FloatVec n) (SStream ι Float) where
   stream := fun (a, b) => ofFloatArray a.1 b.1 (a.property.trans b.property.symm)
 
-
-/- Converting a Stream into Data -/
--- this definition follows the same inline/specialize pattern as Array.forInUnsafe
+/- (Important def) Converting a Stream into data
+   This definition follows the same inline/specialize pattern as Array.forInUnsafe
+-/
 @[inline] partial def _root_.Etch.Verification.Stream.fold (f : β → ι → α → β) (s : Stream ι α) (q : s.σ) (acc : β) : β :=
   let rec @[specialize] go f (valid : s.σ → Bool) (ready : s.σ → Bool)
       (index : (x : s.σ) → valid x → ι) (value : (x : s.σ) → ready x → α)
@@ -310,9 +312,6 @@ instance [HMul α β γ] : HMul (ι →ₛ α) (ι → β) (ι →ₛ γ) where
   hMul x f := { x with value := fun s h => x.value s h * f (x.index s $ x.weaken h) }
 
 @[macro_inline] def expand (a : α) : ι → α := fun _ => a
-
-@[inline]
-def _root_.Std.RBMap.toFn [Zero α] (map : RBMap ι α Ord.compare) : ι → α := fun i => map.find? i |>.getD 0
 
 @[macro_inline]
 def contract (a : SStream ι α) : SStream Unit α := {
@@ -461,8 +460,7 @@ abbrev Map a [Ord a] b := RBMap a b Ord.compare
 def vecMul_rb (num : Nat) : IO Unit := do
   IO.println "-----------"
   let v := vecStream num
-  let v' := vecStream num |>.map fun _ => 1
-  let s := v * v'
+  let s := v * (v.map fun _ => 1)
   time "vec mul rb" fun _ =>
     for _ in [0:10] do
       let x : RBMap ℕ ℕ Ord.compare := eval s
@@ -615,7 +613,7 @@ unsafe def testSome (args : List String) : IO Unit := do
   test.baseline num
   test.vecSum num
   test.vecMulSum num
-  test.vecMul_hash num
+  test.vecMul_rb num
   test.matMultiply1 num
   test.matMultiply3 num
 
