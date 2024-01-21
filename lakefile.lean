@@ -11,8 +11,20 @@ lean_exe bench {
 }
 
 @[default_target]
-lean_exe myrun {
+lean_exe fusion {
   root := `Etch.StreamFusion.Stream
+  moreLeancArgs := #["-fno-omit-frame-pointer", "-g"]
+}
+
+@[default_target]
+lean_exe reuse {
+  root := `Etch.StreamFusion.ReuseTest
+  moreLeancArgs := #["-fno-omit-frame-pointer", "-g"]
+}
+
+@[default_target]
+lean_exe seq {
+  root := `Etch.StreamFusion.Sequence
   moreLeancArgs := #["-fno-omit-frame-pointer", "-g"]
 }
 

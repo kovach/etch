@@ -16,32 +16,75 @@ Authors: Scott Kovach
   Stream.fold generates the top-level loop.
     For performance, we want this to include no calls to lean_apply_[n] and minimal allocations
       (so far there are still some tuples allocated for multiplication states)
+    Some care is needed to ensure everything is inlined.
 
-  Stream.mul is the key combinator. it multiplies the non-zero values of two streams
-
-  Performance is sensitive to the particular classes used.
-  We need to be careful to redefine any instances to add @[inline]
+  Stream.mul is the key combinator. it multiplies the non-zero values of two streams.
 
   The choice of inline vs macro_inline is not intentional anywhere except for `Stream.next`, where macro_inline seems to be necessary
 -/
 
-/- TODOs: see paper draft -/
+/- TODOs: see paper draft
+  easy:
+    make a stream of type String →ₛ ℕ
+-/
 
 import Mathlib.Data.Prod.Lex
+import Init.Data.Array.Basic
 import Std.Data.RBMap
+import Std.Data.HashMap
 import Etch.StreamFusion.Traversals
 
-open Std (RBMap)
+open Std (RBMap HashMap)
+
+namespace Std
+
+@[inline]
+def HashMap.modifyD [BEq α] [Hashable α] [Zero β] (self : HashMap α β) (a : α) (f : β → β) : HashMap α β :=
+  self.insert a (f $ self.findD a 0)
+
+@[inline]
+def HashMap.modifyD' [BEq α] [Hashable α] [Zero β] (self : HashMap α β) (a : α) (f : β → β) : HashMap α β :=
+  if self.contains a then self.modify a (fun _ => f) else self.insert a (f 0)
+
+@[inline]
+def RBMap.modifyD [Zero β] (self : RBMap α β h) (a : α) (f : β → β) : RBMap α β h :=
+  self.alter a (fun | none => some 0 | some a => some (f a))
+end Std
 
 namespace Etch.Verification
 
-structure Stream (ι : Type) (α : Type u) : Type max 1 u where
+
+namespace Exposition
+-- In analogy with streams representing sequences, we define the type of streams
+-- representing sequences of (ι × α) pairs, ordered by ι,
+-- which admit efficient `seek` up to or past a given index.
+
+-- This pair of definitions is not used, but they are one logical step between "Stream Fusion" and Stream below
+inductive StreamStep (ι : Type) (α : Type u) where
+| done
+| ready : σ → ι → α → StreamStep ι α
+| skip  : σ → ι → StreamStep ι α
+
+structure StreamAlt (ι : Type) (α : Type u) where
+  σ : Type
+  seek : (x : σ) → ι → Bool → StreamStep ι α
+  q : σ
+end Exposition
+
+structure Stream (ι : Type) (α : Type u) where
   σ : Type
   valid : σ → Bool
   ready : σ → Bool
-  skip : ∀ x, valid x → ι ×ₗ Bool → σ
-  index : ∀ x : σ, valid x → ι
-  value : ∀ x : σ, ready x → α
+  seek  : (x : σ) → valid x → ι ×ₗ Bool → σ
+  index : (x : σ) → valid x → ι
+  value : (x : σ) → ready x → α
+
+-- stream plus a state
+structure SStream (ι : Type) (α : Type u) extends Stream ι α where
+  q : σ
+  weaken : ∀ {q : σ}, ready q → valid q
+
+infixr:25 " →ₛ " => SStream
 
 namespace Stream
 variable {ι : Type} {α : Type _} [Mul α] [LinearOrder ι]
@@ -63,7 +106,7 @@ def contract (s : Stream ι α) : Stream Unit α where
   ready := s.ready
   index := default
   value := s.value
-  skip q hq i := s.skip q hq (s.index q hq, i.2)
+  seek q hq i := s.seek q hq (s.index q hq, i.2)
 
 end Stream
 
@@ -86,39 +129,33 @@ def Stream.mul [HMul α β γ] (a : Stream ι α) (b : Stream ι β) : Stream ι
     let ai := (a.index p.1 (by simp at hv; exact hv.1))
     let bi := (b.index p.2 (by simp at hv; exact hv.2))
     if ai ≤ bi then bi else ai
-    --if ai = bi then ai else bi -- substantially faster than ≤; maybe still some performance to find
-  value p hr := by
+    -- todo: check max performance
+    -- if ai = bi then ai else bi -- substantially faster than ≤; maybe still some performance to find
+  value p hr := by -- todo; refactor this proof to be safe?
     dsimp at hr
     split_ifs at hr
     simp at hr
     exact a.value p.1 hr.1.1 * b.value p.2 hr.1.2
-  skip p hp i :=
-    let p1 := a.skip p.1 (by simp at hp; exact hp.1) i
-    let p2 := b.skip p.2 (by simp at hp; exact hp.2) i
+  seek p hp i :=
+    let p1 := a.seek p.1 (by simp at hp; exact hp.1) i
+    let p2 := b.seek p.2 (by simp at hp; exact hp.2) i
     ⟨p1, p2⟩
 
 end Mul
-
--- stream plus a state
-structure SStream (ι : Type) (α : Type u) extends Stream ι α where
-  q : σ
-  weaken : ∀ {q : σ}, ready q → valid q
-
-infixr:25 " →ₛ " => SStream
 
 -- For some reason, this definition *definitely* needs to be macro_inline for performance.
 -- Everything else I have checked is safe at @[inline].
 @[macro_inline]
 def Stream.next (s : Stream ι α) (q : s.σ) (h : s.valid q = true) (ready : Bool) : s.σ :=
-  s.skip q h (s.index q h, ready)
+  s.seek q h (s.index q h, ready)
 
 namespace SStream
 
 variable {ι : Type} [LinearOrder ι] {α : Type u}
 
-@[macro_inline, specialize]
+@[inline]
 def map (f : α → β) (s : SStream ι α) : SStream ι β :=
-  { s with value := fun q hq => f (s.value q hq) }
+  { s with value := fun q => f ∘ s.value q }
 
 variable [Inhabited ι]
 
@@ -126,7 +163,7 @@ variable [Inhabited ι]
 def SStream.zero : SStream ι α where
   q := (); valid _ := False; ready _ := False;
   index _ := default; value _ := (nomatch .);
-  skip _ _ _ := ();
+  seek _ _ _ := ();
   weaken := id
 
 instance : Zero (SStream ι α) := ⟨SStream.zero⟩
@@ -140,7 +177,7 @@ def ofArray (l : Array (ℕ × α)) : SStream ℕ α where
   ready q := q < l.size
   index k h := (l[k]'(by simpa using h)).1
   value k h := (l[k]'(by simpa using h)).2
-  skip q hq := fun ⟨j, r⟩ =>
+  seek q hq := fun ⟨j, r⟩ =>
     let i := (l[q]'(by simpa using hq)).fst
     if r then if i ≤ j then q+1 else q
          else if i < j then q+1 else q
@@ -154,7 +191,7 @@ def ofArrayPair (is : Array ι) (vs : Array α) (eq : is.size = vs.size) : SStre
   ready q := q < is.size
   index k h := (is[k]'(by simpa using h))
   value k h := (vs[k]'(eq ▸ (by simpa using h)))
-  skip q hq := fun ⟨j, r⟩ =>
+  seek q hq := fun ⟨j, r⟩ =>
     let i := (is[q]'(by simpa using hq))
     if r then if i ≤ j then q+1 else q
          else if i < j then q+1 else q
@@ -169,79 +206,90 @@ def ofFloatArray (is : Array ι) (vs : FloatArray) (eq : is.size = vs.size) : SS
   ready q := q < is.size
   index k h := (is[k]'(by simpa using h))
   value k h := (vs[k]'(eq ▸ (by simpa using h)))
-  skip q hq := fun ⟨j, r⟩ =>
+  seek q hq := fun ⟨j, r⟩ =>
     let i := is[q]'(by simpa using hq)
     if r then if i ≤ j then q+1 else q
          else if i < j then q+1 else q
   weaken := id
-
-class ToStream (α : Type u) (β : outParam $ Type v) where
-  stream : α → β
-
-instance [ToStream β β'] : ToStream  (Array (ℕ × β)) (SStream ℕ β') where
-  stream := map ToStream.stream ∘ ofArray
-
-def Vec α n := { x : Array α // x.size = n }
-
-structure Level (ι α : Type) (n : ℕ) where
-  is : Vec ι n
-  vs : Vec α n
-
-def FloatVec n := { x : FloatArray // x.size = n }
-
-instance [ToStream β β'] : ToStream  (Level ι β n) (SStream ι β') where
-  stream := map ToStream.stream ∘ (fun ⟨is, vs⟩ => ofArrayPair is.val vs.val (by simp [is.2, vs.2]))
-
-instance : ToStream  (Vec ℕ n × FloatVec n) (SStream ℕ Float) where
-  stream := fun (a, b) => ofFloatArray a.1 b.1 (a.property.trans b.property.symm)
-
-/- Converting a Stream into Data -/
--- this definition follows the same inline/specialize pattern as Array.forInUnsafe
-@[inline] partial def _root_.Etch.Verification.Stream.fold (add : β → ι → α → β) (s : Stream ι α) (acc : β) (q : s.σ) : β :=
-  let rec @[specialize] go add (valid : s.σ → Bool) (ready : s.σ → Bool)
-      (index : (x : s.σ) → valid x → ι) (value : (x : s.σ) → ready x → α)
-      (next : (x : s.σ) → valid x → Bool → s.σ) (acc : β) q :=
-    if hv : valid q then
-      if hr : ready q
-           then go add valid ready index value next (add acc (index q hv) $ value q hr) (next q hv true)
-           else go add valid ready index value next acc (next q hv false)
-    else acc
-  go add s.valid s.ready s.index s.value s.next acc q
-
-@[inline] def toArrayPair (s : SStream ι α) : Array ι × Array α :=
-  s.fold (fun (is, vs) i v => (is.push i, vs.push v)) (#[], #[]) s.q
-
--- outParam not ultimately desirable, but simplifies testing for now
-class OfStream (α : Type u) (β : outParam $ Type v) where
-  eval : α → β
-
-instance [OfStream β β'] [Add β'] [Zero β'] : OfStream (SStream Unit β) β' where
-  eval := (fun s => s.fold (fun a _ b => a + b) 0 s.q) ∘ map OfStream.eval
-
-instance [OfStream β β'] : OfStream (SStream ι β) (Array ι × Array β') where
-  eval := toArrayPair ∘ map OfStream.eval
 
 class Scalar (α : Type u)
 instance : Scalar ℕ := ⟨⟩
 instance : Scalar Float := ⟨⟩
 instance : Scalar Bool := ⟨⟩
 
-instance [Scalar α] : OfStream α α := ⟨id⟩
+class ToStream (α : Type u) (β : outParam $ Type v) where
+  stream : α → β
+
 instance [Scalar α] : ToStream α α := ⟨id⟩
 
-/- various shortcuts/alternatives, probably no longer needed -/
--- maybe faster
---instance : OfStream (SStream ι Nat) (Array (ι × Nat)) where
---  eval := toArray
---instance : OfStream (SStream ι Nat) (Array ι × Array Nat) where
---  eval s := (toArrayPair_aux s (#[], #[]) s.q)
--- todo: without this shortcut, memory usage explodes
---instance [Zero α] [Add α] [Scalar α] : OfStream (SStream Unit α) α where
---  eval := fun s => s.toArray_aux' (fun a _ b => a + b) 0 s.q
---@[inline] partial def toArray_aux (s : SStream ι α) (acc : Array (ι × α)) (q : s.σ) := toArray_aux' (fun arr i v => arr.push (i,v)) s acc q
---@[inline] def toArray := s.toArray_aux #[] s.q
---instance [OfStream β β'] : OfStream (SStream ι β) (Array (ι × β')) where
---  eval := toArray ∘ map OfStream.eval
+instance [ToStream β β'] : ToStream  (Array (ℕ × β)) (SStream ℕ β') where
+  stream := map ToStream.stream ∘ ofArray
+
+def Vec α n := { x : Array α // x.size = n }
+def Vec.map (v : Vec α n) (f : α → β) : Vec β n := ⟨v.1.map f, by have := Array.size_map f v.1; simp [*, v.2]⟩
+def Vec.push (l : Vec α n) (v : α) : Vec α (n+1) :=
+  ⟨l.1.push v, by have := Array.size_push l.1 v; simp only [this, l.2]⟩
+
+structure Level (ι : Type) (α : Type u) (n : ℕ) where
+  is : Vec ι n
+  vs : Vec α n
+
+def Level.push (l : Level ι α n) (i : ι) (v : α) : Level ι α (n+1) :=
+  ⟨l.is.push i, l.vs.push v⟩
+
+def FloatVec n := { x : FloatArray // x.size = n }
+
+instance [ToStream β β'] : ToStream  (Level ι β n) (SStream ι β') where
+  stream := map ToStream.stream ∘ (fun ⟨is, vs⟩ => ofArrayPair is.val vs.val (by simp [is.2, vs.2]))
+
+instance : ToStream  (Vec ι n × FloatVec n) (SStream ι Float) where
+  stream := fun (a, b) => ofFloatArray a.1 b.1 (a.property.trans b.property.symm)
+
+
+/- Converting a Stream into Data -/
+-- this definition follows the same inline/specialize pattern as Array.forInUnsafe
+@[inline] partial def _root_.Etch.Verification.Stream.fold (f : β → ι → α → β) (s : Stream ι α) (q : s.σ) (acc : β) : β :=
+  let rec @[specialize] go f (valid : s.σ → Bool) (ready : s.σ → Bool)
+      (index : (x : s.σ) → valid x → ι) (value : (x : s.σ) → ready x → α)
+      (next : (x : s.σ) → valid x → Bool → s.σ) (acc : β) q :=
+    if hv : valid q then
+      if hr : ready q
+           then go f valid ready index value next (f acc (index q hv) $ value q hr) (next q hv true)
+           else go f valid ready index value next acc (next q hv false)
+    else acc
+  go f s.valid s.ready s.index s.value s.next acc q
+
+@[inline] def fold (f : β → ι → α → β) (s : SStream ι α) (acc : β) : β := s.toStream.fold f s.q acc
+
+@[inline] def toArrayPair (s : SStream ι α) : Array ι × Array α → Array ι × Array α :=
+  s.fold (fun (a,b) i v => ⟨a.push i, b.push v⟩)
+
+-- not used yet
+--@[inline] def toLevel (s : SStream ι α) : (n : ℕ) × (Level ι α n) :=
+--  s.fold (fun ⟨_, l⟩ i v => ⟨_, l.push i v⟩) s.q ⟨0, ⟨⟨#[], rfl⟩, ⟨#[], rfl⟩⟩⟩
+--@[inline] def toArrayPair (s : SStream ι α) : Array ι × Array α :=
+--  let ⟨_, l⟩ : (n : _) × Level ι α n := s.fold (fun ⟨_, l⟩ i v => ⟨_, l.push i v⟩) ⟨0, ⟨⟨#[], rfl⟩, ⟨#[], rfl⟩⟩⟩ s.q
+--  (l.1.1, l.2.1)
+
+class OfStream (α : Type u) (β : Type v) where
+  eval : α → β → β
+
+instance [Scalar α] [Add α] : OfStream α α := ⟨(.+.)⟩
+
+instance [OfStream β β'] : OfStream (SStream Unit β) β' where
+  eval := fold (fun a _ b => OfStream.eval b a)
+
+-- Doesn't support update of previous indices; assumes fully formed value is
+--   inserted at each step (so pass 0 to recursive eval)
+instance [OfStream β β'] [Zero β']: OfStream (SStream ι β) (Array ι × Array β') where
+  eval := toArrayPair ∘ map (OfStream.eval . 0)
+
+-- BEq issue without @HashMap
+instance [BEq ι] [Hashable ι] [OfStream α β] [Zero β] : OfStream (ι →ₛ α) (@HashMap ι β inferInstance inferInstance) where
+  eval := fold (fun m k v => m.modifyD k (OfStream.eval v))
+
+instance [OfStream α β] [Zero β] : OfStream (ι →ₛ α) (RBMap ι β Ord.compare) where
+  eval := fold (fun m k v => m.modifyD k (OfStream.eval v))
 
 @[macro_inline]
 def mul [HMul α β γ] (a : SStream ι α) (b : SStream ι β) : SStream ι γ := {
@@ -282,7 +330,9 @@ def contract2 : NN α → UU α := contract ∘ SStream.map contract
 end SStream
 
 open Etch.Verification.SStream
-open OfStream ToStream
+open ToStream
+
+@[inline] def eval [Zero β] [OfStream α β] : α → β := (OfStream.eval . 0)
 
 def time (s : String) (m : Unit → IO α) : IO α := do
   let t0 ← IO.monoMsNow
@@ -291,13 +341,15 @@ def time (s : String) (m : Unit → IO α) : IO α := do
   IO.println s!"[{s}] time: {t1-t0}"
   pure v
 
-@[inline] def vecStream (num : Nat) := stream $ Array.range num |>.map fun n => (n,n)
-@[inline] def vecStream' (num : Nat) :=
-  let v : Vec ℕ num := ⟨Array.range num, by sorry⟩
+-- deprecated
+@[inline] def vecStream' (num : Nat) := stream $ Array.range num |>.map fun n => (n,n)
+
+@[inline] def vecStream (num : Nat) :=
+  let v : Vec ℕ num := ⟨Array.range num, Array.size_range⟩
   stream $ Level.mk v v
 
 @[inline] def floatVecStream (num : Nat) :=
-  let is : Vec ℕ num := ⟨Array.range num, by sorry⟩
+  let is : Vec ℕ num := ⟨Array.range num, Array.size_range⟩
   let vs : FloatVec num := ⟨Array.range num |>.toList.map (fun x => x.toFloat) |>.toFloatArray, by sorry⟩
   stream $ (is, vs)
 
@@ -376,7 +428,7 @@ def vecSum_slow (num : Nat) : IO Unit := do
 
 def vecSum (num : Nat) : IO Unit := do
   IO.println "-----------"
-  let s := contract $ vecStream' num
+  let s := contract $ vecStream num
   time "vec sum" fun _ =>
     for _ in [0:10] do
       let x : ℕ := eval s
@@ -390,21 +442,13 @@ def testFloat (num : Nat) : IO Unit := do
       let x : Float := eval s
       IO.println s!"{x}"
 
---def vecMul_slow (num : Nat) : IO Unit := do
---  IO.println "-----------"
---  let v := vecStream' num
---  let v' := vecStream' num |>.map fun _ => 1
---  let s := v * v'
---  time "vec mul (slower)" fun _ =>
---    for _ in [0:10] do
---      let x : Array (ℕ × ℕ) := eval s
---      IO.println s!"{x.size}"
---  pure ()
+instance : EmptyCollection (Array α × Array β) := ⟨#[], #[]⟩
+instance [EmptyCollection α] : Zero α := ⟨{}⟩
 
 def vecMul (num : Nat) : IO Unit := do
   IO.println "-----------"
-  let v := vecStream' num
-  let v' := vecStream' num |>.map fun _ => 1
+  let v := vecStream num
+  let v' := vecStream num |>.map fun _ => 1
   let s := v * v'
   time "vec mul" fun _ =>
     for _ in [0:10] do
@@ -412,10 +456,34 @@ def vecMul (num : Nat) : IO Unit := do
       IO.println s!"{x.1.size}"
   pure ()
 
+abbrev Map a [Ord a] b := RBMap a b Ord.compare
+
+def vecMul_rb (num : Nat) : IO Unit := do
+  IO.println "-----------"
+  let v := vecStream num
+  let v' := vecStream num |>.map fun _ => 1
+  let s := v * v'
+  time "vec mul rb" fun _ =>
+    for _ in [0:10] do
+      let x : RBMap ℕ ℕ Ord.compare := eval s
+      IO.println s!"{x.1.size}"
+  pure ()
+
+def vecMul_hash (num : Nat) : IO Unit := do
+  IO.println "-----------"
+  let v := vecStream num
+  let v' := vecStream num |>.map fun _ => 1
+  let s := v * v'
+  time "vec mul hash" fun _ =>
+    for _ in [0:10] do
+      let x : HashMap ℕ ℕ := eval s
+      IO.println s!"{x.1.size}"
+  pure ()
+
 def vecMulSum (num : Nat) : IO Unit := do
   IO.println "-----------"
-  let v := vecStream' num
-  let v' := vecStream' num |>.map fun _ => 1
+  let v := vecStream num
+  let v' := vecStream num |>.map fun _ => 1
   let s := contract $ v * v'
   time "vec mul sum" fun _ =>
     for _ in [0:10] do
@@ -426,10 +494,11 @@ def vecMulSum (num : Nat) : IO Unit := do
 -- todo: this has allocation and other perf issues
 def vecMulSum3 (num : Nat) : IO Unit := do
   IO.println "-----------"
-  let v := vecStream' num
-  let v' := vecStream' num |>.map fun _ => 1
-  let s := contract $ v * v' * v'
-  time "vec mul 3 sum" fun _ =>
+  let v := vecStream num
+  let v₁ := vecStream num |>.map fun _ => 1
+  let v₂ := vecStream num |>.map fun _ => 1
+  let s := contract $ v * v₁ * v₂
+  time "vec mul 3 sum slow?" fun _ =>
     for _ in [0:10] do
       let x : ℕ := eval s
       IO.println s!"{x}"
@@ -456,8 +525,6 @@ def _root_.Nat.cubeRoot (n : Nat) : Nat :=
   if n ≤ 1 then n else
   iter n (n / 2)
 where
-  /-- Auxiliary for `sqrt`. If `guess` is greater than the integer square root of `n`,
-  returns the integer square root of `n`. -/
   iter (n guess : Nat) : Nat :=
     let next := (2*guess + n / (guess * guess)) / 3
     if _h : next < guess then
@@ -469,8 +536,9 @@ termination_by iter guess => guess
 @[macro_inline]
 def aMatMul (n : Nat) : ℕ →ₛ ℕ →ₛ Unit →ₛ ℕ :=
   let m := mat' (4*n).cubeRoot;
+  let m' := mat' (4*n).cubeRoot;
   let m1 : ℕ →ₛ ℕ →  ℕ →ₛ ℕ := map expand m
-  let m2 : ℕ →ₛ ℕ →ₛ ℕ → ℕ := map (map expand) m
+  let m2 : ℕ →ₛ ℕ →ₛ ℕ → ℕ := map (map expand) m'
   let s  : ℕ →ₛ ℕ →ₛ ℕ →ₛ ℕ := m1 * m2
   map (map contract) $ s
 
@@ -482,21 +550,37 @@ def matMultiplySum (num : Nat) : IO Unit := do
       let x : ℕ := eval s
       IO.println s!"{x}"
 
-def matMultiply (num : Nat) : IO Unit := do
+def matMultiply1 (num : Nat) : IO Unit := do
   IO.println "-----------"
   let s := aMatMul num
-  time "matrix multiply (inner-product)" fun _ =>
+  time "matrix multiply (inner-product) arrays" fun _ =>
     for _ in [0:10] do
-      let x := eval s
-      --let x : (Array ℕ × (Array ℕ × Array ℕ)) := eval s
+      let x : Array ℕ × Array (Array ℕ × Array ℕ) := eval s
       IO.println s!"{x.1.size}"
+
+-- todo: this isn't being inlined correctly
+def matMultiply2 (num : Nat) : IO Unit := do
+  IO.println "-----------"
+  let s := aMatMul num
+  time "matrix multiply (inner-product) array hashmap" fun _ =>
+    for _ in [0:10] do
+      let y : Array ℕ × Array (HashMap ℕ ℕ) := eval s
+      IO.println s!"{y.2.size}"
+
+def matMultiply3 (num : Nat) : IO Unit := do
+  IO.println "-----------"
+  let s := aMatMul num
+  time "matrix multiply (inner-product) array rbmap" fun _ =>
+    for _ in [0:10] do
+      let y : Array ℕ × Array (RBMap ℕ ℕ Ord.compare) := eval s
+      IO.println s!"{y.2.size}"
 
 end test
 
 end Etch.Verification
 
 open Etch.Verification
-open Etch.Verification.SStream
+open SStream
 open OfStream ToStream
 
 unsafe def testRB (args : List String) : IO Unit := do
@@ -519,7 +603,9 @@ unsafe def testAll (args : List String) : IO Unit := do
   test.matSum num         -- ideally about 1x vecSum
   test.matProdSum num     -- ... 2x matSum
   test.matMultiplySum num
-  test.matMultiply num
+  test.matMultiply1 num
+  test.matMultiply2 num
+  test.matMultiply3 num
 
 unsafe def testSome (args : List String) : IO Unit := do
   let num := (args[0]!).toNat?.getD 1000
@@ -529,7 +615,9 @@ unsafe def testSome (args : List String) : IO Unit := do
   test.baseline num
   test.vecSum num
   test.vecMulSum num
-  test.vecMulSum3 num
+  test.vecMul_hash num
+  test.matMultiply1 num
+  test.matMultiply3 num
 
 unsafe def _root_.main := testSome
 
