@@ -1,32 +1,25 @@
-import Mathlib.Data.Prod.Lex
 import Std.Data.RBMap
 
 open Std (RBMap RBNode RBColor)
 
-def Std.RBNode.look [Inhabited α] (t : RBNode α) : α :=
-match t with
-| .nil => default
-| .node _ _ v _ => v
-
 -- for reference, RBNode: | node (c : RBColor) (l : RBNode α) (v : α) (r : RBNode α)
-inductive Visitor (tree α : Type)
+inductive Visitor (α : Type)
 | done
-| r (c : RBColor) (right : tree) (value : α) (k : Visitor tree α)
-| l (c : RBColor) (left : tree)  (value : α) (k : Visitor tree α)
+| r (c : RBColor) (right : RBNode α) (value : α) (k : Visitor α)
+| l (c : RBColor) (left : RBNode α)  (value : α) (k : Visitor α)
 
 inductive Direction | up | down
   deriving Inhabited
 
-section
 variable (f : α → α) [Ord ι]
 
 abbrev Tree ι [Ord ι] α := RBNode (ι × α)
 
 -- stackless traversal algorithm from section 2.6: https://www.microsoft.com/en-us/research/uploads/prod/2020/11/perceus-tr-v4.pdf
--- Lean doesn't re-use constructors of different type, even when they match size,
---   so this allocates, unlike the paper.
+-- Lean doesn't re-use constructors of different type (?) so this allocates
+-- todo: could reuse Std.RBNode.Path, also see zoom
 @[inline] partial def tmap (t : Tree ι α) : Tree ι α :=
-  let rec @[specialize] go (t : Tree ι α) (k : Visitor (Tree ι α) (ι × α)) (d : Direction) : Tree ι α :=
+  let rec @[specialize] go (t : Tree ι α) (k : Visitor (ι × α)) (d : Direction) : Tree ι α :=
   match d with
   | .down =>
     match t with
@@ -39,8 +32,9 @@ abbrev Tree ι [Ord ι] α := RBNode (ι × α)
     | .l c l x k => go (.node c l x t) k .up
   go t .done .down
 
--- Now we hack it a bit so that there is no allocation
-inductive Side | r | l | no deriving Inhabited
+-- hacked a bit so that there is no allocation
+inductive Side | r | l | no
+  deriving Inhabited
 abbrev Tree' ι [Ord ι] (α : Type u) := RBNode (ι × Side × α)
 instance : Inhabited (Tree' ι α) := ⟨.nil⟩
 
@@ -59,4 +53,7 @@ instance : Inhabited (Tree' ι α) := ⟨.nil⟩
     | .node .. => panic! "no"
   go t .nil .down
 
-end
+def Std.RBNode.look [Inhabited α] (t : RBNode α) : α :=
+  match t with
+  | .nil => default
+  | .node _ _ v _ => v
