@@ -23,6 +23,12 @@ lean_exe reuse {
 }
 
 @[default_target]
+lean_exe seq {
+  root := `Etch.StreamFusion.Sequence
+  moreLeancArgs := #["-fno-omit-frame-pointer", "-g"]
+}
+
+@[default_target]
 lean_lib Etch.Verification.Semantics.Example
 
 require mathlib from git
