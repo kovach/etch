@@ -33,6 +33,7 @@ import Init.Data.Array.Basic
 import Std.Data.RBMap
 import Std.Data.HashMap
 import Etch.StreamFusion.Traversals
+import Mathlib.Data.ByteArray
 
 open Std (RBMap HashMap)
 
@@ -149,7 +150,35 @@ def contract (s : Stream ι α) : Stream Unit α where
 def next (s : Stream ι α) (q : s.σ) (h : s.valid q = true) (ready : Bool) : s.σ :=
   s.seek q h (s.index q h, ready)
 
+/- (Important def) Converting a Stream into data
+   This definition follows the same inline/specialize pattern as Array.forInUnsafe
+-/
+@[inline] partial def fold (f : β → ι → α → β) (s : Stream ι α) (q : s.σ) (acc : β) : β :=
+  let rec @[specialize] go f (valid : s.σ → Bool) (ready : s.σ → Bool)
+      (index : (x : s.σ) → valid x → ι) (value : (x : s.σ) → ready x → α)
+      (next : (x : s.σ) → valid x → Bool → s.σ) (acc : β) q :=
+    if hv : valid q then
+      if hr : ready q
+           then go f valid ready index value next (f acc (index q hv) $ value q hr) (next q hv true)
+           else go f valid ready index value next acc (next q hv false)
+    else acc
+  go f s.valid s.ready s.index s.value s.next acc q
+
 end Stream
+
+def Vec α n := { x : Array α // x.size = n }
+def Vec.map (v : Vec α n) (f : α → β) : Vec β n := ⟨v.1.map f, by have := Array.size_map f v.1; simp [*, v.2]⟩
+def Vec.push (l : Vec α n) (v : α) : Vec α (n+1) :=
+  ⟨l.1.push v, by have := Array.size_push l.1 v; simp only [this, l.2]⟩
+
+structure Level (ι : Type) (α : Type u) (n : ℕ) where
+  is : Vec ι n
+  vs : Vec α n
+
+def Level.push (l : Level ι α n) (i : ι) (v : α) : Level ι α (n+1) :=
+  ⟨l.is.push i, l.vs.push v⟩
+
+def FloatVec n := { x : FloatArray // x.size = n }
 
 namespace SStream
 
@@ -161,7 +190,7 @@ def map (f : α → β) (s : SStream ι α) : SStream ι β := { s with value :=
 variable [Inhabited ι]
 
 /- Converting data into a SStream -/
-def SStream.zero : SStream ι α where
+def zero : SStream ι α where
   q := (); valid _ := False; ready _ := False;
   index _ := default; value _ := (nomatch .);
   seek _ _ _ := ();
@@ -227,39 +256,11 @@ instance [Scalar α] : ToStream α α := ⟨id⟩
 instance [ToStream β β'] : ToStream  (Array (ℕ × β)) (SStream ℕ β') where
   stream := map ToStream.stream ∘ ofArray
 
-def Vec α n := { x : Array α // x.size = n }
-def Vec.map (v : Vec α n) (f : α → β) : Vec β n := ⟨v.1.map f, by have := Array.size_map f v.1; simp [*, v.2]⟩
-def Vec.push (l : Vec α n) (v : α) : Vec α (n+1) :=
-  ⟨l.1.push v, by have := Array.size_push l.1 v; simp only [this, l.2]⟩
-
-structure Level (ι : Type) (α : Type u) (n : ℕ) where
-  is : Vec ι n
-  vs : Vec α n
-
-def Level.push (l : Level ι α n) (i : ι) (v : α) : Level ι α (n+1) :=
-  ⟨l.is.push i, l.vs.push v⟩
-
-def FloatVec n := { x : FloatArray // x.size = n }
-
 instance [ToStream β β'] : ToStream  (Level ι β n) (SStream ι β') where
-  stream := map ToStream.stream ∘ (fun ⟨is, vs⟩ => ofArrayPair is.val vs.val (by simp [is.2, vs.2]))
+  stream := map ToStream.stream ∘ (fun ⟨⟨is, _⟩, ⟨vs, _⟩⟩ => ofArrayPair is vs (by simp [*]))
 
 instance : ToStream  (Vec ι n × FloatVec n) (SStream ι Float) where
   stream := fun (a, b) => ofFloatArray a.1 b.1 (a.property.trans b.property.symm)
-
-/- (Important def) Converting a Stream into data
-   This definition follows the same inline/specialize pattern as Array.forInUnsafe
--/
-@[inline] partial def _root_.Etch.Verification.Stream.fold (f : β → ι → α → β) (s : Stream ι α) (q : s.σ) (acc : β) : β :=
-  let rec @[specialize] go f (valid : s.σ → Bool) (ready : s.σ → Bool)
-      (index : (x : s.σ) → valid x → ι) (value : (x : s.σ) → ready x → α)
-      (next : (x : s.σ) → valid x → Bool → s.σ) (acc : β) q :=
-    if hv : valid q then
-      if hr : ready q
-           then go f valid ready index value next (f acc (index q hv) $ value q hr) (next q hv true)
-           else go f valid ready index value next acc (next q hv false)
-    else acc
-  go f s.valid s.ready s.index s.value s.next acc q
 
 @[inline] def fold (f : β → ι → α → β) (s : SStream ι α) (acc : β) : β := s.toStream.fold f s.q acc
 
@@ -279,7 +280,7 @@ class OfStream (α : Type u) (β : Type v) where
 instance [Scalar α] [Add α] : OfStream α α := ⟨(.+.)⟩
 
 instance [OfStream β β'] : OfStream (SStream Unit β) β' where
-  eval := fold (fun a _ b => OfStream.eval b a)
+  eval := SStream.fold (fun a _ b => OfStream.eval b a)
 
 -- Doesn't support update of previous indices; assumes fully formed value is
 --   inserted at each step (so pass 0 to recursive eval)
@@ -288,10 +289,10 @@ instance [OfStream β β'] [Zero β']: OfStream (SStream ι β) (Array ι × Arr
 
 -- BEq issue without @HashMap
 instance [BEq ι] [Hashable ι] [OfStream α β] [Zero β] : OfStream (ι →ₛ α) (@HashMap ι β inferInstance inferInstance) where
-  eval := fold (fun m k v => m.modifyD k (OfStream.eval v))
+  eval := SStream.fold (fun m k v => m.modifyD k (OfStream.eval v))
 
 instance [OfStream α β] [Zero β] : OfStream (ι →ₛ α) (RBMap ι β Ord.compare) where
-  eval := fold (fun m k v => m.modifyD k (OfStream.eval v))
+  eval := SStream.fold (fun m k v => m.modifyD k (OfStream.eval v))
 
 @[macro_inline]
 def mul [HMul α β γ] (a : SStream ι α) (b : SStream ι β) : SStream ι γ := {
@@ -320,11 +321,8 @@ def contract (a : SStream ι α) : SStream Unit α := {
   weaken := a.weaken
 }
 
-abbrev NN (α) := ℕ →ₛ ℕ →ₛ α
-abbrev UU (α) := Unit →ₛ Unit →ₛ α
-
 @[macro_inline]
-def contract2 : NN α → UU α := contract ∘ SStream.map contract
+def contract2 : (ℕ →ₛ ℕ →ₛ α) → Unit →ₛ Unit →ₛ α := contract ∘ SStream.map contract
 
 end SStream
 
