@@ -65,37 +65,20 @@ def RBMap.modifyD [Zero β] (self : RBMap α β h) (a : α) (f : β → β) : RB
   --self.alter a (fun | none => some 0 | some a => some (f a))
 end Std
 
-namespace Exposition
--- In analogy with streams representing sequences, we define the type of streams
--- representing sequences of (ι × α) pairs, ordered by ι,
--- which admit efficient `seek` up to or past a given index.
-
--- This pair of definitions is not used, but they are one logical step between "Stream Fusion" and Stream below
-inductive StreamStep (ι : Type) (α : Type u) where
-| done
-| ready : σ → ι → α → StreamStep ι α
-| skip  : σ → ι → StreamStep ι α
-
-structure StreamAlt (ι : Type) (α : Type u) where
-  σ : Type
-  seek : (x : σ) → ι → Bool → StreamStep ι α
-  q : σ
-end Exposition
-
 namespace Etch.Verification
 
 structure Stream (ι : Type) (α : Type u) where
   σ : Type
   valid : σ → Bool
-  ready : σ → Bool
-  seek  : (x : σ) → valid x → ι ×ₗ Bool → σ
-  index : (x : σ) → valid x → ι
-  value : (x : σ) → ready x → α
+  ready : {x // valid x} → Bool
+  seek  : {x // valid x} → ι ×ₗ Bool → σ
+  index : {x // valid x} → ι
+  value : {x // ready x} → α
 
 -- stream plus a state
 structure SStream (ι : Type) (α : Type u) extends Stream ι α where
   q : σ
-  weaken : ∀ {q : σ}, ready q → valid q
+  --weaken : ∀ {q : σ}, ready q → valid q
 
 infixr:25 " →ₛ " => SStream
 
@@ -107,30 +90,46 @@ section Mul
 variable [Mul α]
 --[h : LE ι] [DecidableRel h.le] [DecidableEq ι] -- todo: is the generated code different here?
 
+
+@[inline]
+def mul.valid.fst {a : Stream ι α} {b : Stream ι β} (p : {q : a.σ × b.σ // a.valid q.1 && b.valid q.2}) : {x // a.valid x} :=
+  let ⟨q, hv⟩ := p; ⟨q.1, (Bool.and_eq_true _ _ ▸ hv).1⟩
+
+@[inline]
+def mul.valid.snd {a : Stream ι α} {b : Stream ι β} (p : {q : a.σ × b.σ // a.valid q.1 && b.valid q.2}) : {x // b.valid x} :=
+  let ⟨q, hv⟩ := p; ⟨q.2, (Bool.and_eq_true _ _ ▸ hv).2⟩
+
+@[inline]
+def mul.ready {a : Stream ι α} {b : Stream ι β} (q : {p : a.σ × b.σ // a.valid p.1 && b.valid p.2}) : Bool :=
+    let qa := mul.valid.fst q; let qb := mul.valid.snd q
+    a.ready qa && b.ready qb && a.index qa = b.index qb
+
+@[inline]
+def mul.ready.fst [HMul α β γ] {a : Stream ι α} {b : Stream ι β} (q : {x : {p : a.σ × b.σ // a.valid p.1 && b.valid p.2} // mul.ready x}) : {x // a.ready x} :=
+  let ⟨⟨q, v⟩, r⟩ := q;
+  ⟨⟨q.1, (Bool.and_eq_true _ _ ▸ v).1⟩,
+    by unfold mul.ready at r; simp_rw [Bool.and_eq_true] at r; exact r.1.1⟩
+
+@[inline]
+def mul.ready.snd [HMul α β γ] {a : Stream ι α} {b : Stream ι β} (q : {x : {p : a.σ × b.σ // a.valid p.1 && b.valid p.2} // mul.ready x}) : {x // b.ready x} :=
+  let ⟨⟨q, v⟩, r⟩ := q;
+  ⟨⟨q.2, (Bool.and_eq_true _ _ ▸ v).2⟩,
+    by unfold mul.ready at r; simp_rw [Bool.and_eq_true] at r; exact r.1.2⟩
+
+
 /- This combinator is a primary motivation for Stream -/
 @[macro_inline]
 def mul [HMul α β γ] (a : Stream ι α) (b : Stream ι β) : Stream ι γ where
   σ := a.σ × b.σ
-  valid p := a.valid p.1 && b.valid p.2
-  ready p :=
-    if hv : a.valid p.1 && b.valid p.2
-      then a.ready p.1 && b.ready p.2 &&
-           a.index p.1 (by simp at hv; exact hv.1) = b.index p.2 (by simp at hv; exact hv.2)
-      else false
-  index p hv :=
-    let ai := (a.index p.1 (by simp at hv; exact hv.1))
-    let bi := (b.index p.2 (by simp at hv; exact hv.2))
-    if ai ≤ bi then bi else ai
-    -- todo: check max performance
-    -- if ai = bi then ai else bi -- substantially faster than ≤; maybe still some performance to find
-  value p hr := by -- todo; refactor this proof to be safe?
-    dsimp at hr
-    split_ifs at hr
-    simp at hr
-    exact a.value p.1 hr.1.1 * b.value p.2 hr.1.2
-  seek p hp i :=
-    let p1 := a.seek p.1 (by simp at hp; exact hp.1) i
-    let p2 := b.seek p.2 (by simp at hp; exact hp.2) i
+  valid q := a.valid q.1 && b.valid q.2
+  ready q :=
+    let qa := mul.valid.fst q; let qb := mul.valid.snd q
+    a.ready qa && b.ready qb && a.index qa = b.index qb
+  index q := max (a.index (mul.valid.fst q)) (b.index (mul.valid.snd q))
+  value q := a.value (mul.ready.fst q) * b.value (mul.ready.snd q)
+  seek q i :=
+    let p1 := a.seek (mul.valid.fst q) i
+    let p2 := b.seek (mul.valid.snd q) i
     ⟨p1, p2⟩
 
 end Mul
@@ -142,27 +141,27 @@ def contract (s : Stream ι α) : Stream Unit α where
   ready := s.ready
   index := default
   value := s.value
-  seek q hq := fun ((), r) => s.seek q hq (s.index q hq, r)
+  seek q := fun ((), r) => s.seek q (s.index q, r)
 
 -- For some reason, this definition *definitely* needs to be macro_inline for performance.
 -- Everything else I have checked is safe at @[inline].
 @[macro_inline]
 def next (s : Stream ι α) (q : s.σ) (h : s.valid q = true) (ready : Bool) : s.σ :=
-  s.seek q h (s.index q h, ready)
+  let q := ⟨q, h⟩; s.seek q (s.index q, ready)
 
 /- (Important def) Converting a Stream into data
    This definition follows the same inline/specialize pattern as Array.forInUnsafe
 -/
 @[inline] partial def fold (f : β → ι → α → β) (s : Stream ι α) (q : s.σ) (acc : β) : β :=
-  let rec @[specialize] go f (valid : s.σ → Bool) (ready : s.σ → Bool)
-      (index : (x : s.σ) → valid x → ι) (value : (x : s.σ) → ready x → α)
+  let rec @[specialize] go f (valid : s.σ → Bool) (ready : (x : s.σ) → valid x → Bool)
+      (index : (x : s.σ) → valid x → ι) (value : (x : s.σ) → (h : valid x) → ready x h → α)
       (next : (x : s.σ) → valid x → Bool → s.σ) (acc : β) q :=
     if hv : valid q then
-      if hr : ready q
-           then go f valid ready index value next (f acc (index q hv) $ value q hr) (next q hv true)
+      if hr : ready q hv
+           then go f valid ready index value next (f acc (index q hv) (value q hv hr)) (next q hv true)
            else go f valid ready index value next acc (next q hv false)
     else acc
-  go f s.valid s.ready s.index s.value s.next acc q
+  go f s.valid (fun q h => s.ready ⟨q,h⟩) (fun q h => s.index ⟨q,h⟩) (fun q v r => s.value ⟨⟨q,v⟩,r⟩) s.next acc q
 
 end Stream
 
@@ -185,16 +184,16 @@ namespace SStream
 variable {ι : Type} [LinearOrder ι] {α : Type u}
 
 @[inline]
-def map (f : α → β) (s : SStream ι α) : SStream ι β := { s with value := fun q => f ∘ s.value q }
+def map (f : α → β) (s : SStream ι α) : SStream ι β := { s with value := f ∘ s.value}
 
 variable [Inhabited ι]
 
 /- Converting data into a SStream -/
 def zero : SStream ι α where
-  q := (); valid _ := False; ready _ := False;
-  index _ := default; value _ := (nomatch .);
-  seek _ _ _ := ();
-  weaken := id
+  σ := Unit; q := (); valid _ := false; ready _ := false;
+  index _ := default; value := fun ⟨_, h⟩ => nomatch h;
+  seek _ _ := ();
+  --weaken := id
 
 instance : Zero (SStream ι α) := ⟨SStream.zero⟩
 
@@ -204,43 +203,43 @@ def ofArray (l : Array (ℕ × α)) : SStream ℕ α where
   σ := ℕ
   q := 0
   valid q := q < l.size
-  ready q := q < l.size
-  index k h := (l[k]'(by simpa using h)).1
-  value k h := (l[k]'(by simpa using h)).2
-  seek q hq := fun ⟨j, r⟩ =>
-    let i := (l[q]'(by simpa using hq)).fst
+  ready q := True
+  index := fun q => (l[q.1]'(by simpa using q.2)).1
+  value := fun ⟨q, _⟩ => (l[q.1]'(by simpa using q.2)).2
+  seek q := fun ⟨j, r⟩ =>
+    let i := (l[q.1]'(by simpa using q.2)).fst
     if r then if i ≤ j then q+1 else q
          else if i < j then q+1 else q
-  weaken := id
+  --weaken := id
 
 @[macro_inline]
 def ofArrayPair (is : Array ι) (vs : Array α) (eq : is.size = vs.size) : SStream ι α where
   σ := ℕ
   q := 0
   valid q := q < is.size
-  ready q := q < is.size
-  index k h := (is[k]'(by simpa using h))
-  value k h := (vs[k]'(eq ▸ (by simpa using h)))
-  seek q hq := fun ⟨j, r⟩ =>
-    let i := (is[q]'(by simpa using hq))
+  ready q := true
+  index q := (is[q.1]'(by simpa using q.2))
+  value := fun ⟨q, _⟩ => (vs[q.1]'(eq ▸ (by simpa using q.2)))
+  seek q := fun ⟨j, r⟩ =>
+    let i := (is[q.1]'(by simpa using q.2))
     if r then if i ≤ j then q+1 else q
          else if i < j then q+1 else q
-  weaken := id
+  --weaken := id
 
 -- not tested yet
-@[macro_inline]
-def ofFloatArray (is : Array ι) (vs : FloatArray) (eq : is.size = vs.size) : SStream ι Float where
-  σ := ℕ
-  q := 0
-  valid q := q < is.size
-  ready q := q < is.size
-  index k h := (is[k]'(by simpa using h))
-  value k h := (vs[k]'(eq ▸ (by simpa using h)))
-  seek q hq := fun ⟨j, r⟩ =>
-    let i := is[q]'(by simpa using hq)
-    if r then if i ≤ j then q+1 else q
-         else if i < j then q+1 else q
-  weaken := id
+--@[macro_inline]
+--def ofFloatArray (is : Array ι) (vs : FloatArray) (eq : is.size = vs.size) : SStream ι Float where
+--  σ := ℕ
+--  q := 0
+--  valid q := q < is.size
+--  ready q := q < is.size
+--  index k h := (is[k]'(by simpa using h))
+--  value k h := (vs[k]'(eq ▸ (by simpa using h)))
+--  seek q hq := fun ⟨j, r⟩ =>
+--    let i := is[q]'(by simpa using hq)
+--    if r then if i ≤ j then q+1 else q
+--         else if i < j then q+1 else q
+--  --weaken := id
 
 -- Used as a base case for ToStream/OfStream
 class Scalar (α : Type u)
@@ -259,8 +258,8 @@ instance [ToStream β β'] : ToStream  (Array (ℕ × β)) (SStream ℕ β') whe
 instance [ToStream β β'] : ToStream  (Level ι β n) (SStream ι β') where
   stream := map ToStream.stream ∘ (fun ⟨⟨is, _⟩, ⟨vs, _⟩⟩ => ofArrayPair is vs (by simp [*]))
 
-instance : ToStream  (Vec ι n × FloatVec n) (SStream ι Float) where
-  stream := fun (a, b) => ofFloatArray a.1 b.1 (a.property.trans b.property.symm)
+--instance : ToStream  (Vec ι n × FloatVec n) (SStream ι Float) where
+--  stream := fun (a, b) => ofFloatArray a.1 b.1 (a.property.trans b.property.symm)
 
 @[inline] def fold (f : β → ι → α → β) (s : SStream ι α) (acc : β) : β := s.toStream.fold f s.q acc
 
@@ -298,7 +297,7 @@ instance [OfStream α β] [Zero β] : OfStream (ι →ₛ α) (RBMap ι β Ord.c
 def mul [HMul α β γ] (a : SStream ι α) (b : SStream ι β) : SStream ι γ := {
   a.toStream.mul b.toStream with
   q := ⟨a.q, b.q⟩
-  weaken := fun h => by simp [Stream.mul] at *; split_ifs at h; assumption
+  --weaken := fun h => by simp [Stream.mul] at *; split_ifs at h; assumption
 }
 
 @[macro_inline]
@@ -306,11 +305,11 @@ instance [HMul α β γ] : HMul (ℕ →ₛ α) (ℕ →ₛ β) (ℕ →ₛ γ) 
 
 @[macro_inline]
 instance [HMul α β γ] : HMul (ι → α) (ι →ₛ β) (ι →ₛ γ) where
-  hMul f x := { x with value := fun s h => f (x.index s $ x.weaken h) * x.value s h }
+  hMul f x := { x with value := fun q => f (x.index q) * x.value q}
 
 @[macro_inline]
 instance [HMul α β γ] : HMul (ι →ₛ α) (ι → β) (ι →ₛ γ) where
-  hMul x f := { x with value := fun s h => x.value s h * f (x.index s $ x.weaken h) }
+  hMul x f := { x with value := fun q => x.value q * f (x.index q) }
 
 @[macro_inline] def expand (a : α) : ι → α := fun _ => a
 
@@ -318,7 +317,7 @@ instance [HMul α β γ] : HMul (ι →ₛ α) (ι → β) (ι →ₛ γ) where
 def contract (a : SStream ι α) : SStream Unit α := {
   a.toStream.contract with
   q := a.q
-  weaken := a.weaken
+  --weaken := a.weaken
 }
 
 @[macro_inline]
@@ -345,10 +344,10 @@ def time (s : String) (m : Unit → IO α) : IO α := do
   let v : Vec ℕ num := ⟨Array.range num, Array.size_range⟩
   stream $ Level.mk v v
 
-@[inline] def floatVecStream (num : Nat) :=
-  let is : Vec ℕ num := ⟨Array.range num, Array.size_range⟩
-  let vs : FloatVec num := ⟨Array.range num |>.toList.map (fun x => x.toFloat) |>.toFloatArray, by sorry⟩
-  stream $ (is, vs)
+--@[inline] def floatVecStream (num : Nat) :=
+--  let is : Vec ℕ num := ⟨Array.range num, Array.size_range⟩
+--  let vs : FloatVec num := ⟨Array.range num |>.toList.map (fun x => x.toFloat) |>.toFloatArray, by sorry⟩
+--  stream $ (is, vs)
 
 -- adjusts size so that there are ~num non-zero entries
 @[macro_inline]
@@ -431,13 +430,13 @@ def vecSum (num : Nat) : IO Unit := do
       let x : ℕ := eval s
       IO.println s!"{x}"
 
-def testFloat (num : Nat) : IO Unit := do
-  IO.println "-----------"
-  let s := contract $ floatVecStream num
-  time "float stream" fun _ =>
-    for _ in [0:10] do
-      let x : Float := eval s
-      IO.println s!"{x}"
+--def testFloat (num : Nat) : IO Unit := do
+--  IO.println "-----------"
+--  let s := contract $ floatVecStream num
+--  time "float stream" fun _ =>
+--    for _ in [0:10] do
+--      let x : Float := eval s
+--      IO.println s!"{x}"
 
 instance : EmptyCollection (Array α × Array β) := ⟨#[], #[]⟩
 instance [EmptyCollection α] : Zero α := ⟨{}⟩
@@ -508,6 +507,7 @@ def matSum (num : Nat) : IO Unit := do
       let x : ℕ := eval s
       IO.println s!"{x}"
 
+-- todo: not inlining!
 def matProdSum (num : Nat) : IO Unit := do
   IO.println "-----------"
   let m := mat num
@@ -611,9 +611,14 @@ unsafe def testSome (args : List String) : IO Unit := do
   test.baseline num
   test.vecSum num
   test.vecMulSum num
-  test.vecMul_rb num
+  test.vecMulSum3 num
+  test.vecMul num
+
+  --test.matProdSum num
+
+  --test.vecMul_rb num
   test.matMultiply1 num
-  test.matMultiply3 num
+  --test.matMultiply3 num
 
 unsafe def _root_.main := testSome
 

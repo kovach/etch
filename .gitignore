@@ -31,3 +31,5 @@ duckdb_cli-*
 duckdb/
 tmp-*.duckdb
 data/
+
+*.svg
