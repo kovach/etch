@@ -6,40 +6,37 @@ variable {ι : Type} {α : Type _} [Mul α] [LinearOrder ι]
 variable (s : Stream ι α)
 --[h : LE ι] [DecidableRel h.le] [DecidableEq ι] -- todo: is the generated code different here?
 
+@[inline, reducible] -- reducible needed for aesop proof below
+def mul.valid (a : Stream ι α) (b : Stream ι β) (q : a.σ × b.σ) : Bool := a.valid q.1 && b.valid q.2
 
 @[inline]
-def mul.valid.fst {a : Stream ι α} {b : Stream ι β} (p : {q : a.σ × b.σ // a.valid q.1 && b.valid q.2}) : {x // a.valid x} :=
-  let ⟨q, hv⟩ := p; ⟨q.1, (Bool.and_eq_true _ _ ▸ hv).1⟩
+def mul.valid.fst {a : Stream ι α} {b : Stream ι β} (q : {p // mul.valid a b p}) : {x // a.valid x} :=
+  ⟨q.1.1, by aesop⟩
 
 @[inline]
-def mul.valid.snd {a : Stream ι α} {b : Stream ι β} (p : {q : a.σ × b.σ // a.valid q.1 && b.valid q.2}) : {x // b.valid x} :=
-  let ⟨q, hv⟩ := p; ⟨q.2, (Bool.and_eq_true _ _ ▸ hv).2⟩
+def mul.valid.snd {a : Stream ι α} {b : Stream ι β} (q : {p // mul.valid a b p}) : {x // b.valid x} :=
+  ⟨q.1.2, by aesop⟩
 
-@[inline]
-def mul.ready {a : Stream ι α} {b : Stream ι β} (q : {p : a.σ × b.σ // a.valid p.1 && b.valid p.2}) : Bool :=
-    let qa := mul.valid.fst q; let qb := mul.valid.snd q
-    a.ready qa && b.ready qb && a.index qa = b.index qb
+@[inline, reducible] -- reducible needed for aesop proof below
+def mul.ready {a : Stream ι α} {b : Stream ι β} (q : {p // mul.valid a b p}) : Bool :=
+    let q₁ := mul.valid.fst q; let q₂ := mul.valid.snd q
+    a.ready q₁ && b.ready q₂ && a.index q₁ = b.index q₂
 
 @[inline]
 def mul.ready.fst [HMul α β γ] {a : Stream ι α} {b : Stream ι β} (q : {x : {p : a.σ × b.σ // a.valid p.1 && b.valid p.2} // mul.ready x}) : {x // a.ready x} :=
-  let ⟨⟨q, v⟩, r⟩ := q;
-  ⟨⟨q.1, (Bool.and_eq_true _ _ ▸ v).1⟩,
-    by unfold mul.ready at r; simp_rw [Bool.and_eq_true] at r; exact r.1.1⟩
+  ⟨mul.valid.fst q.1, by aesop⟩
 
 @[inline]
 def mul.ready.snd [HMul α β γ] {a : Stream ι α} {b : Stream ι β} (q : {x : {p : a.σ × b.σ // a.valid p.1 && b.valid p.2} // mul.ready x}) : {x // b.ready x} :=
-  let ⟨⟨q, v⟩, r⟩ := q;
-  ⟨⟨q.2, (Bool.and_eq_true _ _ ▸ v).2⟩,
-    by unfold mul.ready at r; simp_rw [Bool.and_eq_true] at r; exact r.1.2⟩
-
+  ⟨mul.valid.snd q.1, by aesop ⟩
 
 /- This combinator is a primary motivation for Stream -/
 @[inline]
 def mul [HMul α β γ] (a : Stream ι α) (b : Stream ι β) : Stream ι γ where
   σ         := a.σ × b.σ
   valid q   := a.valid q.1 && b.valid q.2
-  ready q   := let qa := mul.valid.fst q; let qb := mul.valid.snd q
-               a.ready qa && b.ready qb && a.index qa = b.index qb
+  ready q   := let q₁ := mul.valid.fst q; let q₂ := mul.valid.snd q
+               a.ready q₁ && b.ready q₂ && a.index q₁ = b.index q₂
   index q   := max (a.index (mul.valid.fst q)) (b.index (mul.valid.snd q))
   value q   := a.value (mul.ready.fst q) * b.value (mul.ready.snd q)
   seek  q i := ⟨a.seek (mul.valid.fst q) i, b.seek (mul.valid.snd q) i⟩
@@ -54,7 +51,6 @@ variable {ι : Type} [LinearOrder ι] {α : Type u}
 def mul [HMul α β γ] (a : SStream ι α) (b : SStream ι β) : SStream ι γ := {
   a.toStream.mul b.toStream with
   q := ⟨a.q, b.q⟩
-  --weaken := fun h => by simp [Stream.mul] at *; split_ifs at h; assumption
 }
 
 @[macro_inline]
