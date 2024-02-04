@@ -12,7 +12,7 @@ lean_exe bench {
 
 @[default_target]
 lean_exe fusion {
-  root := `Etch.StreamFusion.Stream
+  root := `Etch.StreamFusion.Main
   moreLeancArgs := #["-fno-omit-frame-pointer", "-g"]
 }
 
