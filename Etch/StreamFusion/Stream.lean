@@ -76,7 +76,7 @@ namespace Stream
 variable {ι : Type} {α : Type _} [Mul α] [LinearOrder ι]
 variable (s : Stream ι α)
 
-@[simps, macro_inline]
+@[simps, inline]
 def contract (s : Stream ι α) : Stream Unit α where
   σ := s.σ
   valid := s.valid
@@ -91,19 +91,24 @@ def contract (s : Stream ι α) : Stream Unit α where
 def next (s : Stream ι α) (q : s.σ) (h : s.valid q = true) (ready : Bool) : s.σ :=
   let q := ⟨q, h⟩; s.seek q (s.index q, ready)
 
+-- todo: use Bounded class, remove partial
+
 /- (Important def) Converting a Stream into data
    This definition follows the same inline/specialize pattern as Array.forInUnsafe
 -/
 @[inline] partial def fold (f : β → ι → α → β) (s : Stream ι α) (q : s.σ) (acc : β) : β :=
-  let rec @[specialize] go f (valid : s.σ → Bool) (ready : (x : s.σ) → valid x → Bool)
+  let rec @[specialize] go f
+      (valid : s.σ → Bool) (ready : (x : s.σ) → valid x → Bool)
       (index : (x : s.σ) → valid x → ι) (value : (x : s.σ) → (h : valid x) → ready x h → α)
-      (next : (x : s.σ) → valid x → Bool → s.σ) (acc : β) q :=
+      (next : (x : s.σ) → valid x → Bool → s.σ)
+      (acc : β) (q : s.σ) :=
     if hv : valid q then
       if hr : ready q hv
            then go f valid ready index value next (f acc (index q hv) (value q hv hr)) (next q hv true)
            else go f valid ready index value next acc (next q hv false)
     else acc
-  go f s.valid (fun q h => s.ready ⟨q,h⟩) (fun q h => s.index ⟨q,h⟩) (fun q v r => s.value ⟨⟨q,v⟩,r⟩) s.next acc q
+  go f s.valid (fun q h => s.ready ⟨q,h⟩) (fun q h => s.index ⟨q,h⟩) (fun q v r => s.value ⟨⟨q,v⟩,r⟩) s.next
+     acc q
 
 end Stream
 
@@ -139,7 +144,7 @@ def zero : SStream ι α where
 instance : Zero (SStream ι α) := ⟨SStream.zero⟩
 
 -- deprecated
-@[macro_inline]
+@[inline]
 def ofArray (l : Array (ι × α)) : SStream ι α where
   σ := ℕ
   q := 0
@@ -152,7 +157,7 @@ def ofArray (l : Array (ι × α)) : SStream ι α where
     if r then if i ≤ j then q+1 else q
          else if i < j then q+1 else q
 
-@[macro_inline]
+@[inline]
 def ofArrayPair (is : Array ι) (vs : Array α) (eq : is.size = vs.size) : SStream ι α where
   σ := ℕ
   q := 0
@@ -190,10 +195,10 @@ class ToStream (α : Type u) (β : outParam $ Type v) where
 
 instance [Scalar α] : ToStream α α := ⟨id⟩
 
-instance [ToStream β β'] : ToStream  (Array (ℕ × β)) (SStream ℕ β') where
+instance {α β} [ToStream α β] : ToStream  (Array (ℕ × α)) (ℕ →ₛ β) where
   stream := map ToStream.stream ∘ ofArray
 
-instance [ToStream β β'] : ToStream  (Level ι β n) (SStream ι β') where
+instance {α β} [ToStream α β] : ToStream  (Level ι α n) (ι →ₛ β) where
   stream := map ToStream.stream ∘ (fun ⟨⟨is, _⟩, ⟨vs, _⟩⟩ => ofArrayPair is vs (by simp [*]))
 
 --instance : ToStream  (Vec ι n × FloatVec n) (SStream ι Float) where
@@ -216,30 +221,36 @@ class OfStream (α : Type u) (β : Type v) where
 
 instance [Scalar α] [Add α] : OfStream α α := ⟨(.+.)⟩
 
+/- Note!! recursive application of `eval` needs to occur outside of any enclosing functions to achieve full inlining
+   (see bad examples below)
+-/
+
 instance [OfStream β β'] : OfStream (SStream Unit β) β' where
-  eval := SStream.fold (fun a _ b => OfStream.eval b a)
+  eval := (SStream.fold (fun a _ b => b a)) ∘ map OfStream.eval
+  -- bad:  SStream.fold (fun a _ b => OfStream.eval b a)
 
 -- Doesn't support update of previous indices; assumes fully formed value is
 --   inserted at each step (so pass 0 to recursive eval)
-instance [OfStream β β'] [Zero β']: OfStream (SStream ι β) (Array ι × Array β') where
+instance [OfStream β β'] [Zero β']: OfStream (ι →ₛ β) (Array ι × Array β') where
   eval := toArrayPair ∘ map (OfStream.eval . 0)
 
--- BEq issue without @HashMap
+-- BEq issue without writing (@HashMap ...)
 instance [BEq ι] [Hashable ι] [OfStream α β] [Zero β] : OfStream (ι →ₛ α) (@HashMap ι β inferInstance inferInstance) where
-  eval := SStream.fold (fun m k v => m.modifyD k (OfStream.eval v))
+  eval := SStream.fold HashMap.modifyD ∘ map OfStream.eval
 
 instance [OfStream α β] [Zero β] : OfStream (ι →ₛ α) (RBMap ι β Ord.compare) where
-  eval := SStream.fold (fun m k v => m.modifyD k (OfStream.eval v))
+  eval := SStream.fold RBMap.modifyD ∘ map OfStream.eval
+  -- bad: SStream.fold (fun m k v => m.modifyD k (OfStream.eval v))
 
-@[macro_inline] def expand (a : α) : ι → α := fun _ => a
+@[inline] def expand (a : α) : ι → α := fun _ => a
 
-@[macro_inline]
+@[inline]
 def contract (a : SStream ι α) : SStream Unit α := {
   a.toStream.contract with
   q := a.q
 }
 
-@[macro_inline]
+@[inline]
 def contract2 : (ℕ →ₛ ℕ →ₛ α) → Unit →ₛ Unit →ₛ α := contract ∘ SStream.map contract
 
 end SStream
@@ -251,5 +262,8 @@ open ToStream
 
 instance : EmptyCollection (Array α × Array β) := ⟨#[], #[]⟩
 instance [EmptyCollection α] : Zero α := ⟨{}⟩
+
+abbrev Map a [Ord a] b := RBMap a b Ord.compare
+abbrev ArrayMap a b := Array a × Array b
 
 end Etch.Verification

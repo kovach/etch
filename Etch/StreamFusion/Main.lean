@@ -11,7 +11,7 @@ open SStream
 open OfStream ToStream
 
 -- deprecated
-@[inline] def vecStream' (num : Nat) := stream $ Array.range num |>.map fun n => (n,n)
+--@[inline] def vecStream' (num : Nat) := stream $ Array.range num |>.map fun n => (n,n)
 
 @[inline] def vecStream (num : Nat) :=
   let v : Vec ℕ num := ⟨Array.range num, Array.size_range⟩
@@ -21,21 +21,6 @@ open OfStream ToStream
 --  let is : Vec ℕ num := ⟨Array.range num, Array.size_range⟩
 --  let vs : FloatVec num := ⟨Array.range num |>.toList.map (fun x => x.toFloat) |>.toFloatArray, by sorry⟩
 --  stream $ (is, vs)
-
--- adjusts size so that there are ~num non-zero entries
-@[macro_inline]
-def mat (num : Nat) :=
-  let m1 : Array (ℕ × Array (ℕ × ℕ)) :=
-    Array.range (2*num).sqrt |>.map (.+1) |>.map $ fun n =>
-      (n, Array.range n |>.map fun m => (m, m+10))
-  stream m1
-
-@[macro_inline]
-def mat' (num : Nat) :=
-  let m1 : Array (ℕ × Array (ℕ × ℕ)) :=
-    Array.range num |>.map (.+1) |>.map $ fun n =>
-      (n, Array.range n |>.map fun m => (m, m+10))
-  stream m1
 
 def time (s : String) (m : Unit → IO α) : IO α := do
   let t0 ← IO.monoMsNow
@@ -65,6 +50,7 @@ def vecSum_slow (num : Nat) : IO Unit := do
       let x : ℕ := eval s
       IO.println s!"{x}"
 
+--set_option trace.compiler.stage2 true in
 def vecSum (num : Nat) : IO Unit := do
   IO.println "-----------"
   let s := contract $ vecStream num
@@ -92,8 +78,6 @@ def vecMul (num : Nat) : IO Unit := do
       IO.println s!"{x.1.size}"
   pure ()
 
-abbrev Map a [Ord a] b := RBMap a b Ord.compare
-
 def vecMul_rb (num : Nat) : IO Unit := do
   IO.println "-----------"
   let v := vecStream num
@@ -115,6 +99,7 @@ def vecMul_hash (num : Nat) : IO Unit := do
       IO.println s!"{x.1.size}"
   pure ()
 
+-- todo: this has allocation and other perf issues
 def vecMulSum (num : Nat) : IO Unit := do
   IO.println "-----------"
   let v := vecStream num
@@ -139,24 +124,6 @@ def vecMulSum3 (num : Nat) : IO Unit := do
       IO.println s!"{x}"
   pure ()
 
-def matSum (num : Nat) : IO Unit := do
-  IO.println "-----------"
-  let s := contract2 $ mat num
-  time "matrix sum" fun _ =>
-    for _ in [0:10] do
-      let x : ℕ := eval s
-      IO.println s!"{x}"
-
--- todo: not inlining!
-def matProdSum (num : Nat) : IO Unit := do
-  IO.println "-----------"
-  let m := mat num
-  let s := contract2 $ m * m
-  time "matrix prod sum" fun _ =>
-    for _ in [0:10] do
-      let x : ℕ := eval s
-      IO.println s!"{x}"
-
 def _root_.Nat.cubeRoot (n : Nat) : Nat :=
   if n ≤ 1 then n else
   iter n (n / 2)
@@ -168,48 +135,6 @@ where
     else
       guess
 termination_by iter guess => guess
-
-@[macro_inline]
-def aMatMul (n : Nat) : ℕ →ₛ ℕ →ₛ Unit →ₛ ℕ :=
-  let m := mat' (4*n).cubeRoot;
-  let m' := mat' (4*n).cubeRoot;
-  let m1 : ℕ →ₛ ℕ →  ℕ →ₛ ℕ := map expand m
-  let m2 : ℕ →ₛ ℕ →ₛ ℕ → ℕ := map (map expand) m'
-  let s  : ℕ →ₛ ℕ →ₛ ℕ →ₛ ℕ := m1 * m2
-  map (map contract) $ s
-
-def matMultiplySum (num : Nat) : IO Unit := do
-  IO.println "-----------"
-  let s := contract2 $ aMatMul num
-  time "matrix multiply (inner-product) sum" fun _ =>
-    for _ in [0:10] do
-      let x : ℕ := eval s
-      IO.println s!"{x}"
-
-def matMultiply1 (num : Nat) : IO Unit := do
-  IO.println "-----------"
-  let s := aMatMul num
-  time "matrix multiply (inner-product) arrays" fun _ =>
-    for _ in [0:10] do
-      let x : Array ℕ × Array (Array ℕ × Array ℕ) := eval s
-      IO.println s!"{x.1.size}"
-
--- todo: this isn't being inlined correctly
-def matMultiply2 (num : Nat) : IO Unit := do
-  IO.println "-----------"
-  let s := aMatMul num
-  time "matrix multiply (inner-product) array hashmap" fun _ =>
-    for _ in [0:10] do
-      let y : Array ℕ × Array (HashMap ℕ ℕ) := eval s
-      IO.println s!"{y.2.size}"
-
-def matMultiply3 (num : Nat) : IO Unit := do
-  IO.println "-----------"
-  let s := aMatMul num
-  time "matrix multiply (inner-product) array rbmap" fun _ =>
-    for _ in [0:10] do
-      let y : Array ℕ × Array (RBMap ℕ ℕ Ord.compare) := eval s
-      IO.println s!"{y.2.size}"
 
 def baselineRB (num : Nat) : IO Unit := do
   IO.println "-----------"
@@ -267,12 +192,6 @@ unsafe def testAll (args : List String) : IO Unit := do
   test.vecMulSum num      -- ideally about 2x vecSum
   test.vecMulSum3 num      -- ideally about 2x vecSum
   test.vecMul num         -- ideally about 1x vecMulSum (currently 3x slower, but that's almost all Array.push. try pre-allocating?)
-  test.matSum num         -- ideally about 1x vecSum
-  test.matProdSum num     -- ... 2x matSum
-  test.matMultiplySum num
-  test.matMultiply1 num
-  test.matMultiply2 num
-  test.matMultiply3 num
 
 unsafe def testSome (args : List String) : IO Unit := do
   let num := (args[0]!).toNat?.getD 1000
@@ -282,14 +201,6 @@ unsafe def testSome (args : List String) : IO Unit := do
   test.baseline num
   test.vecSum num
   test.vecMulSum num
-  test.vecMulSum3 num
-  test.vecMul num
-
-  --test.matProdSum num
-
-  --test.vecMul_rb num
-  test.matMultiply1 num
-  --test.matMultiply3 num
 
 unsafe def _root_.main := testSome
 

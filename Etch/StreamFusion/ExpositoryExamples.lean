@@ -1,3 +1,5 @@
+import Etch.StreamFusion.Sublist
+
 /-
   this file contains several expository stream definition
   with code samples for the paper
@@ -127,27 +129,24 @@ structure Stream' (ι : Type) (α : Type u) where
   value : (q : σ) → ready q → α
 
 structure Stream (ι α : Type) where
-  σ : Type
-  q : σ
-  valid : σ → Bool
-  ready : {x // valid x} → Bool
-  next  : {x // valid x} → σ
+  (σ : Type) (q : σ)
+  valid : σ → Bool               -- "done"
+  ready : {x // valid x} → Bool  -- "skip"
   index : {x // valid x} → ι
   value : {x // ready x} → α
+  next  : {x // valid x} → σ     -- "emit"
 
 
 end three
 
 namespace four
 structure Stream (ι α : Type) where
-  σ : Type
-  q : σ
+  (σ : Type) (q : σ)
   valid : σ → Bool
   ready : {x // valid x} → Bool
   index : {x // valid x} → ι
   value : {x // ready x} → α
-
-  seek  : {x // valid x} → ι → Bool → σ
+  seek  : {x // valid x} → ι → Bool → σ  -- replaces `next`:
 
 partial def eval [Add α] (s : Stream ι α) : (ι → Option α) :=
   if valid : s.valid s.q then
@@ -169,6 +168,23 @@ partial def eval [Add α] (s : Stream ι α) : (ι → Option α) :=
   else zero
 
 end four
+
+namespace five
+
+-- todo?
+structure StreamI (ι : Type) : Type 1 where
+  (σ : Type) (q : σ)
+  valid : σ → Bool
+  ready : {x // valid x} → Bool
+  index : {x // valid x} → ι
+  seek  : {x // valid x} → ι → Bool → σ  -- replaces `next`:
+
+inductive Stream : List Type → Type → Type 1
+| scalar : Stream [] v
+| level {ι} (level : StreamI ι) (rest : Stream is v) : Stream (ι :: is) v
+| fun {ι} (f : ι → Stream is v) : Stream (ι :: is) v
+
+end five
 
 #exit
 
