@@ -219,6 +219,9 @@ instance {α β} [ToStream α β] : ToStream  (Level ι α n) (ι →ₛ β) whe
 class OfStream (α : Type u) (β : Type v) where
   eval : α → β → β
 
+section eval
+open OfStream
+
 instance [Scalar α] [Add α] : OfStream α α := ⟨(.+.)⟩
 
 /- Note!! recursive application of `eval` needs to occur outside of any enclosing functions to achieve full inlining
@@ -226,21 +229,23 @@ instance [Scalar α] [Add α] : OfStream α α := ⟨(.+.)⟩
 -/
 
 instance [OfStream β β'] : OfStream (SStream Unit β) β' where
-  eval := (SStream.fold (fun a _ b => b a)) ∘ map OfStream.eval
-  -- bad:  SStream.fold (fun a _ b => OfStream.eval b a)
+  eval := fold (fun a _ b => b a) ∘ map eval
+  -- bad: fold (fun a _ b => OfStream.eval b a)
 
 -- Doesn't support update of previous indices; assumes fully formed value is
 --   inserted at each step (so pass 0 to recursive eval)
 instance [OfStream β β'] [Zero β']: OfStream (ι →ₛ β) (Array ι × Array β') where
-  eval := toArrayPair ∘ map (OfStream.eval . 0)
+  eval := toArrayPair ∘ map (eval . 0)
 
 -- BEq issue without writing (@HashMap ...)
 instance [BEq ι] [Hashable ι] [OfStream α β] [Zero β] : OfStream (ι →ₛ α) (@HashMap ι β inferInstance inferInstance) where
-  eval := SStream.fold HashMap.modifyD ∘ map OfStream.eval
+  eval := fold HashMap.modifyD ∘ map eval
 
 instance [OfStream α β] [Zero β] : OfStream (ι →ₛ α) (RBMap ι β Ord.compare) where
-  eval := SStream.fold RBMap.modifyD ∘ map OfStream.eval
-  -- bad: SStream.fold (fun m k v => m.modifyD k (OfStream.eval v))
+  eval := fold RBMap.modifyD ∘ map eval
+  -- bad: eval := fold fun m k => m.modifyD k ∘ eval
+
+end eval
 
 @[inline] def expand (a : α) : ι → α := fun _ => a
 
