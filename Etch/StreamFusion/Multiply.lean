@@ -1,10 +1,6 @@
 import Etch.StreamFusion.Stream
-import Std.Data.RBMap
-
-open Std (RBMap HashMap)
 
 namespace Etch.Verification.Stream
-
 
 section
 variable {ι : Type} {α : Type _} [Mul α] [LinearOrder ι]

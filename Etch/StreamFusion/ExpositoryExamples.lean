@@ -1,5 +1,3 @@
-import Etch.StreamFusion.Sublist
-
 /-
   this file contains several expository stream definition
   with code samples for the paper

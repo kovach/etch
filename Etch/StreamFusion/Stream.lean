@@ -56,6 +56,12 @@ def RBMap.modifyD [Zero β] (self : RBMap α β h) (a : α) (f : β → β) : RB
   --self.alter a (fun | none => some 0 | some a => some (f a))
 end Std
 
+abbrev Map a [Ord a] b := RBMap a b Ord.compare
+abbrev ArrayMap a b := Array a × Array b
+
+instance : EmptyCollection (ArrayMap α β) := ⟨#[], #[]⟩
+instance [EmptyCollection α] : Zero α := ⟨{}⟩
+
 namespace Etch.Verification
 
 structure Stream (ι : Type) (α : Type u) where
@@ -131,21 +137,21 @@ namespace SStream
 variable {ι : Type} [LinearOrder ι] {α : Type u}
 
 @[inline]
-def map (f : α → β) (s : SStream ι α) : SStream ι β := { s with value := f ∘ s.value}
+def map (f : α → β) (s : ι →ₛ α) : ι →ₛ β := { s with value := f ∘ s.value}
 
 variable [Inhabited ι]
 
 /- Converting data into a SStream -/
-def zero : SStream ι α where
+def zero : ι →ₛ α where
   σ := Unit; q := (); valid _ := false; ready _ := false;
   index _ := default; value := fun ⟨_, h⟩ => nomatch h;
   seek _ _ := ();
 
-instance : Zero (SStream ι α) := ⟨SStream.zero⟩
+instance : Zero (ι →ₛ α) := ⟨.zero⟩
 
 -- deprecated
 @[inline]
-def ofArray (l : Array (ι × α)) : SStream ι α where
+def ofArray (l : Array (ι × α)) : ι →ₛ α where
   σ := ℕ
   q := 0
   valid q := q < l.size
@@ -158,7 +164,7 @@ def ofArray (l : Array (ι × α)) : SStream ι α where
          else if i < j then q+1 else q
 
 @[inline]
-def ofArrayPair (is : Array ι) (vs : Array α) (eq : is.size = vs.size) : SStream ι α where
+def ofArrayPair (is : Array ι) (vs : Array α) (eq : is.size = vs.size) : ι →ₛ α where
   σ := ℕ
   q := 0
   valid q := q < is.size
@@ -201,12 +207,15 @@ instance {α β} [ToStream α β] : ToStream  (Array (ℕ × α)) (ℕ →ₛ β
 instance {α β} [ToStream α β] : ToStream  (Level ι α n) (ι →ₛ β) where
   stream := map ToStream.stream ∘ (fun ⟨⟨is, _⟩, ⟨vs, _⟩⟩ => ofArrayPair is vs (by simp [*]))
 
+instance {α β} [ToStream α β] : ToStream  (ArrayMap ι α) (ι →ₛ β) where
+  stream := map ToStream.stream ∘ (fun (is, vs) => ofArrayPair is vs sorry)
+
 --instance : ToStream  (Vec ι n × FloatVec n) (SStream ι Float) where
 --  stream := fun (a, b) => ofFloatArray a.1 b.1 (a.property.trans b.property.symm)
 
-@[inline] def fold (f : β → ι → α → β) (s : SStream ι α) (acc : β) : β := s.toStream.fold f s.q acc
+@[inline] def fold (f : β → ι → α → β) (s : ι →ₛ α) : β → β := s.toStream.fold f s.q
 
-@[inline] def toArrayPair (s : SStream ι α) : Array ι × Array α → Array ι × Array α :=
+@[inline] def toArrayMap (s : ι →ₛ α) : ArrayMap ι α → ArrayMap ι α :=
   s.fold (fun (a,b) i v => ⟨a.push i, b.push v⟩)
 
 -- not used yet
@@ -228,21 +237,21 @@ instance [Scalar α] [Add α] : OfStream α α := ⟨(.+.)⟩
    (see bad examples below)
 -/
 
-instance [OfStream β β'] : OfStream (SStream Unit β) β' where
+instance [OfStream α β] : OfStream (Unit →ₛ α) β where
   eval := fold (fun a _ b => b a) ∘ map eval
-  -- bad: fold (fun a _ b => OfStream.eval b a)
+  -- bad: fold (fun a _ b => eval b a)
 
 -- Doesn't support update of previous indices; assumes fully formed value is
 --   inserted at each step (so pass 0 to recursive eval)
-instance [OfStream β β'] [Zero β']: OfStream (ι →ₛ β) (Array ι × Array β') where
-  eval := toArrayPair ∘ map (eval . 0)
+instance [OfStream α β] [Zero β]: OfStream (ι →ₛ α) (ArrayMap ι β) where
+  eval := toArrayMap ∘ map (eval . 0)
 
 -- BEq issue without writing (@HashMap ...)
 instance [BEq ι] [Hashable ι] [OfStream α β] [Zero β] : OfStream (ι →ₛ α) (@HashMap ι β inferInstance inferInstance) where
-  eval := fold HashMap.modifyD ∘ map eval
+  eval := fold .modifyD ∘ map eval
 
 instance [OfStream α β] [Zero β] : OfStream (ι →ₛ α) (RBMap ι β Ord.compare) where
-  eval := fold RBMap.modifyD ∘ map eval
+  eval := fold .modifyD ∘ map eval
   -- bad: eval := fold fun m k => m.modifyD k ∘ eval
 
 end eval
@@ -250,25 +259,15 @@ end eval
 @[inline] def expand (a : α) : ι → α := fun _ => a
 
 @[inline]
-def contract (a : SStream ι α) : SStream Unit α := {
+def contract (a : ι →ₛ α) : Unit →ₛ α := {
   a.toStream.contract with
   q := a.q
 }
 
-@[inline]
-def contract2 : (ℕ →ₛ ℕ →ₛ α) → Unit →ₛ Unit →ₛ α := contract ∘ SStream.map contract
-
-end SStream
-
-open Etch.Verification.SStream
-open ToStream
+@[inline] def contract2 : (ℕ →ₛ ℕ →ₛ α) → Unit →ₛ Unit →ₛ α := contract ∘ map contract
 
 @[inline] def eval [Zero β] [OfStream α β] : α → β := (OfStream.eval . 0)
 
-instance : EmptyCollection (Array α × Array β) := ⟨#[], #[]⟩
-instance [EmptyCollection α] : Zero α := ⟨{}⟩
-
-abbrev Map a [Ord a] b := RBMap a b Ord.compare
-abbrev ArrayMap a b := Array a × Array b
+end SStream
 
 end Etch.Verification

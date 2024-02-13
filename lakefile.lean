@@ -23,6 +23,12 @@ lean_exe fusion_mat {
 }
 
 @[default_target]
+lean_exe tutorial {
+  root := `Etch.StreamFusion.Tutorial
+  moreLeancArgs := #["-fno-omit-frame-pointer", "-g"]
+}
+
+@[default_target]
 lean_exe reuse {
   root := `Etch.StreamFusion.ReuseTest
   moreLeancArgs := #["-fno-omit-frame-pointer", "-g"]

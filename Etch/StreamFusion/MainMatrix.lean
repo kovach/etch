@@ -4,31 +4,12 @@ import Std.Data.HashMap
 import Etch.StreamFusion.Stream
 import Etch.StreamFusion.Multiply
 import Etch.StreamFusion.Traversals
+import Etch.StreamFusion.TestUtil
 
 open Std (RBMap HashMap)
 open Etch.Verification
 open SStream
 open OfStream ToStream
-
-@[inline]
-def SStream.ofMat [Scalar α] (is : Array (ℕ × Array ℕ)) (vs : ℕ → ℕ → α) : ℕ →ₛ ℕ →ₛ α :=
-  let x := is.map fun (row, cs) => (row, cs.map fun col => (col, vs row col))
-  stream x
-
--- adjusts size so that there are ~num non-zero entries
--- macro_inline needed!
-@[macro_inline]
-def mat (num : Nat) :=
-  let is : Array (ℕ × Array ℕ) :=
-    Array.range (2*num).sqrt |>.map (.+1) |>.map $ fun n => (n, Array.range n)
-  SStream.ofMat is fun _ m => m+10
-
-def time (s : String) (m : Unit → IO α) : IO α := do
-  let t0 ← IO.monoMsNow
-  let v ← m ()
-  let t1 ← IO.monoMsNow
-  IO.println s!"[{s}] time: {t1-t0}"
-  pure v
 
 namespace test
 -- these tests need to be separate defs for profile legibility
@@ -52,7 +33,6 @@ def matSum (num : Nat) : IO Unit := do
       let x : ℕ := eval s
       IO.println s!"{x}"
 
--- todo: not inlining!
 def matProdSum (num : Nat) : IO Unit := do
   IO.println "-----------"
   let m := mat num
@@ -240,7 +220,7 @@ unsafe def testRB (args : List String) : IO Unit := do
 
 end test
 
-unsafe def testAll (args : List String) : IO Unit := do
+def testAll (args : List String) : IO Unit := do
   let num := (args[0]!).toNat?.getD 1000
   IO.println s!"test of size {num}"
   IO.println "starting"
@@ -253,7 +233,7 @@ unsafe def testAll (args : List String) : IO Unit := do
   test.matMultiply2 num
   test.matMultiply3 num
 
-unsafe def testSome (args : List String) : IO Unit := do
+def testSome (args : List String) : IO Unit := do
   let num := (args[0]!).toNat?.getD 1000
   IO.println s!"test of size {num}"
   IO.println "starting"
