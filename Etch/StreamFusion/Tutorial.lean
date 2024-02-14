@@ -22,16 +22,17 @@ abbrev k : ℕ := 2
     - indices are index names encoded as natural numbers for now
 -/
 
-@[inline] def vecSum [ToStream t (I →ₛ α)] (v : t) := Σ i, { [(i,I)] | v(i) }
+@[inline] def vecSum [ToStream t (I →ₛ α)] (v : t)      := Σ i, { [(i,I)] | v(i) }
 @[inline] def matSum [ToStream t (I →ₛ J →ₛ α)] (m : t) := Σ i, Σ j, { [(i,I), (j,J)] | m(i, j) }
 
 @[inline]
 def matMul_ijjk [ToStream t (I →ₛ J →ₛ α)] [ToStream t' (J →ₛ K →ₛ α)] (a : t) (b : t')
-    : I →ₛ Unit →ₛ K →ₛ α :=
+    : i~I →ₛ Unit →ₛ k~K →ₛ α :=
   let ijk := [(i,I),(j,J),(k,K)]
   let m1 := { ijk | a(i,j) }
   let m2 := { ijk | b(j,k) }
-  Σ j, m1 * m2
+  let m  := m1 * m2
+  Σ j, m
 
 /- Exercise: write out the types for a and b and fill in the body;
    It should compute a(i,k) * b(j,k) and mirror the definition of matMul_ijjk
@@ -42,10 +43,18 @@ def matMul_ikjk (a : sorry) (b : sorry) : I →ₛ J →ₛ Unit →ₛ α := so
 def matMul1 (num : Nat) : IO Unit := do
   let m := mat' num
   let x := matMul_ijjk m m
-  time "matrix 1" fun _ =>
+  time "matrix 1'" fun _ =>
     for _ in [0:10] do
-      let x : ArrayMap ℕ (ArrayMap ℕ ℕ) := eval x
+      let x : HMap ℕ (HMap ℕ ℕ) := eval x
       IO.println s!"{x.1.size}"
+
+def matMul1' (num : Nat) : IO Unit := do
+  let m := mat' num
+  let x := Σ i, Σ k, matMul_ijjk m m
+  time "matrix 1'" fun _ =>
+    for _ in [0:10] do
+      let x : ℕ := eval x
+      IO.println s!"{x}"
 
 /- Exercise: add a test that invokes matMul_ikjk, otherwise identical to matMul1 -/
 def matMul2 (num : Nat) : IO Unit := sorry
@@ -57,6 +66,7 @@ def _root_.main (args : List String) : IO Unit := do
   IO.println s!"test of size {num}"
   IO.println "starting"
   matMul1 num
+  matMul1' num
   --matMul2 num -- uncomment after exercise is done
 
 end Etch.Verification.SStream

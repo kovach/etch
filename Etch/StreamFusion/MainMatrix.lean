@@ -43,6 +43,16 @@ def matProdSum (num : Nat) : IO Unit := do
       let x : ℕ := eval s
       IO.println s!"{x}"
 
+def strMatProdSum (num : Nat) : IO Unit := do
+  IO.println "-----------"
+  let m := str_mat num
+  let m' := str_mat num
+  let s := contract2 $ m * m'
+  time "string matrix prod sum" fun _ =>
+    for _ in [0:10] do
+      let x : ℕ := eval s
+      IO.println s!"{x}"
+
 def matId (num : Nat) : IO Unit := do
   IO.println "-----------"
   let is : Array (ℕ × Array ℕ) := Array.range (2*num).sqrt |>.map (.+1) |>.map $ fun n => (n, Array.range n)
@@ -246,5 +256,6 @@ def testSome (args : List String) : IO Unit := do
   --test.matId_hash_s1 num
   --test.matId_hash_s2 num
   test.matProdSum num     -- ... 2x matSum
+  test.strMatProdSum  num
 
 unsafe def _root_.main := testSome

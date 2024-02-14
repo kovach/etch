@@ -58,6 +58,7 @@ end Std
 
 abbrev Map a [Ord a] b := RBMap a b Ord.compare
 abbrev ArrayMap a b := Array a × Array b
+abbrev HMap a [BEq a] [Hashable a] b := HashMap a b
 
 instance : EmptyCollection (ArrayMap α β) := ⟨#[], #[]⟩
 instance [EmptyCollection α] : Zero α := ⟨{}⟩
@@ -79,8 +80,7 @@ structure SStream (ι : Type) (α : Type u) extends Stream ι α where
 infixr:25 " →ₛ " => SStream
 
 namespace Stream
-variable {ι : Type} {α : Type _} [Mul α] [LinearOrder ι]
-variable (s : Stream ι α)
+variable {ι : Type} {α : Type _} [Mul α]
 
 @[simps, inline]
 def contract (s : Stream ι α) : Stream Unit α where
@@ -134,7 +134,10 @@ def FloatVec n := { x : FloatArray // x.size = n }
 
 namespace SStream
 
-variable {ι : Type} [LinearOrder ι] {α : Type u}
+variable {ι : Type}
+[LE ι] [DecidableRel (. ≤ . : ι → ι → Prop)]
+[LT ι] [DecidableRel (. < . : ι → ι → Prop)]
+{α : Type u}
 
 @[inline]
 def map (f : α → β) (s : ι →ₛ α) : ι →ₛ β := { s with value := f ∘ s.value}
@@ -201,7 +204,7 @@ class ToStream (α : Type u) (β : outParam $ Type v) where
 
 instance [Scalar α] : ToStream α α := ⟨id⟩
 
-instance {α β} [ToStream α β] : ToStream  (Array (ℕ × α)) (ℕ →ₛ β) where
+instance {α β} [ToStream α β] : ToStream  (Array (ι × α)) (ι →ₛ β) where
   stream := map ToStream.stream ∘ ofArray
 
 instance {α β} [ToStream α β] : ToStream  (Level ι α n) (ι →ₛ β) where
@@ -248,9 +251,9 @@ instance [OfStream α β] [Zero β]: OfStream (ι →ₛ α) (ArrayMap ι β) wh
 
 -- BEq issue without writing (@HashMap ...)
 instance [BEq ι] [Hashable ι] [OfStream α β] [Zero β] : OfStream (ι →ₛ α) (@HashMap ι β inferInstance inferInstance) where
-  eval := fold .modifyD ∘ map eval
+  eval := fold .modifyD' ∘ map eval
 
-instance [OfStream α β] [Zero β] : OfStream (ι →ₛ α) (RBMap ι β Ord.compare) where
+instance [OfStream α β] [Zero β] [Ord ι] : OfStream (ι →ₛ α) (RBMap ι β Ord.compare) where
   eval := fold .modifyD ∘ map eval
   -- bad: eval := fold fun m k => m.modifyD k ∘ eval
 
@@ -264,10 +267,37 @@ def contract (a : ι →ₛ α) : Unit →ₛ α := {
   q := a.q
 }
 
-@[inline] def contract2 : (ℕ →ₛ ℕ →ₛ α) → Unit →ₛ Unit →ₛ α := contract ∘ map contract
+@[inline] def contract2 : (ι →ₛ ι →ₛ α) → Unit →ₛ Unit →ₛ α := contract ∘ map contract
 
 @[inline] def eval [Zero β] [OfStream α β] : α → β := (OfStream.eval . 0)
 
 end SStream
 
 end Etch.Verification
+
+@[inline]
+instance : LE String where
+  le a b := match Ord.compare a b with | .gt => false | _ => true
+
+@[inline]
+instance : LT String where
+  lt a b := match Ord.compare a b with | .lt => true | _ => false
+
+-- inlines needed
+@[inline]
+instance : DecidableRel (. ≤ . : String → String → Prop) :=
+  fun a b => match h : Ord.compare a b with
+    | .gt => isFalse fun p => by simp [LE.le] at p; rw [h] at p; exact p;
+    | .lt => isTrue $ by simp [LE.le, h];
+    | .eq => isTrue $ by simp [LE.le, h];
+
+@[inline]
+instance : DecidableRel (. < . : String → String → Prop) :=
+  fun a b => match h : Ord.compare a b with
+    | .lt => isTrue $ by simp [LT.lt, h];
+    | .gt => isFalse fun p => by simp [LT.lt] at p; rw [h] at p; exact p;
+    | .eq => isFalse fun p => by simp [LT.lt] at p; rw [h] at p; exact p;
+
+@[inline]
+instance : Max String where
+  max a b := if a < b then b else a

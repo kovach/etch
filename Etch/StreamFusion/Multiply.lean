@@ -3,7 +3,11 @@ import Etch.StreamFusion.Stream
 namespace Etch.Verification.Stream
 
 section
-variable {ι : Type} {α : Type _} [Mul α] [LinearOrder ι]
+variable {ι : Type} {α : Type _} [Mul α]
+[LE ι] [DecidableRel (. ≤ . : ι → ι → Prop)]
+[LT ι] [DecidableRel (. < . : ι → ι → Prop)]
+[DecidableEq ι] [Max ι]
+
 variable (s : Stream ι α)
 --[h : LE ι] [DecidableRel h.le] [DecidableEq ι] -- todo: is the generated code different here?
 
@@ -48,16 +52,21 @@ end Stream
 namespace SStream
 
 section
-variable {ι : Type} [LinearOrder ι] {α : Type u}
+variable {ι : Type} {α : Type u}
+
+[LE ι] [DecidableRel (. ≤ . : ι → ι → Prop)]
+[LT ι] [DecidableRel (. < . : ι → ι → Prop)]
+[DecidableEq ι] [Max ι]
 
 @[inline]
 def mul [HMul α β γ] (a : SStream ι α) (b : SStream ι β) : SStream ι γ := {
   a.toStream.mul b.toStream with
   q := ⟨a.q, b.q⟩
 }
+
+@[inline] instance [HMul α β γ] : HMul (ι →ₛ α) (ι →ₛ β) (ι →ₛ γ) := ⟨mul⟩
 end
 
-@[inline] instance [LinearOrder ι] [HMul α β γ] : HMul (ι →ₛ α) (ι →ₛ β) (ι →ₛ γ) := ⟨mul⟩
 @[inline] instance [HMul α β γ] : HMul (ι → α) (ι →ₛ β) (ι →ₛ γ) where
   hMul f x := { x with value := fun q => f (x.index q) * x.value q}
 @[inline] instance [HMul α β γ] : HMul (ι →ₛ α) (ι → β) (ι →ₛ γ) where
