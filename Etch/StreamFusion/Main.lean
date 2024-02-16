@@ -112,13 +112,40 @@ def vecMulSum (num : Nat) : IO Unit := do
   pure ()
 
 -- todo: this has allocation and other perf issues
-def vecMulSum3 (num : Nat) : IO Unit := do
+def vecMul3 (num : Nat) : IO Unit := do
   IO.println "-----------"
-  let v := vecStream num
+  let v  := vecStream num
   let v₁ := vecStream num |>.map fun _ => 1
   let v₂ := vecStream num |>.map fun _ => 1
-  let s := contract $ v * v₁ * v₂
-  time "vec mul 3 sum slow?" fun _ =>
+  let s := v * (v₁ * v₂)
+  time "vec mul 3 sum" fun _ =>
+    for _ in [0:10] do
+      let x : ArrayMap ℕ ℕ := eval s
+      IO.println s!"{x.1.size}"
+  pure ()
+
+--set_option trace.compiler.stage2 true in
+def vecMulSum3 (num : Nat) : IO Unit := do
+  IO.println "-----------"
+  let v  := vecStream num
+  let v₁ := vecStream num |>.map fun _ => 1
+  let v₂ := vecStream num |>.map fun _ => 1
+  let s := contract $ v * (v₁ * v₂)
+  time "vec mul 3 sum" fun _ =>
+    for _ in [0:10] do
+      let x : ℕ := eval s
+      IO.println s!"{x}"
+  pure ()
+
+-- todo: this has allocation and other perf issues
+def vecMulSum4 (num : Nat) : IO Unit := do
+  IO.println "-----------"
+  let v  := vecStream num
+  let v₁ := vecStream num |>.map fun _ => 1
+  let v₂ := vecStream num |>.map fun _ => 1
+  let v₃ := vecStream num |>.map fun _ => 1
+  let s := contract $ v * v₁ * v₂ * v₃
+  time "vec mul 4 sum" fun _ =>
     for _ in [0:10] do
       let x : ℕ := eval s
       IO.println s!"{x}"
@@ -200,7 +227,10 @@ unsafe def testSome (args : List String) : IO Unit := do
 
   test.baseline num
   test.vecSum num
-  test.vecMulSum num
+  --test.vecMulSum num
+  test.vecMul3 num
+  test.vecMulSum3 num
+  test.vecMulSum4 num
 
 unsafe def _root_.main := testSome
 

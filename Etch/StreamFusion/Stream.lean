@@ -5,21 +5,15 @@ This file implements a prototype of indexed stream fusion,
 Authors: Scott Kovach
 -/
 
-/- Ideally we would use the same Stream definition from SkipStream, which doesn't critically use Classical.
-   For now, we redefine valid/ready to return Bool -/
-
 /- General notes:
   Stream.fold generates the top-level loop.
     For performance, we want this to include no calls to lean_apply_[n] and minimal allocations
       (so far there are still some tuples allocated for multiplication states)
     Some care is needed to ensure everything is inlined.
 
-  Stream.mul is the key combinator. it multiplies the non-zero values of two streams.
-
-  The choice of inline vs macro_inline is not intentional anywhere except for `Stream.next`, where macro_inline seems to be necessary
+  Stream.mul is the key combinator.
+    It multiplies the non-zero values of two streams by merging their index values.
 -/
-
-/- TODOs: see github wiki -/
 
 import Mathlib.Data.Prod.Lex
 import Init.Data.Array.Basic
@@ -30,6 +24,7 @@ import Mathlib.Data.ByteArray
 open Std (RBMap HashMap)
 
 -- hack: redefine these instances to ensure they are inlined (see instDecidableLeToLEToPreorderToPartialOrder)
+-- note: we are not relying on LinearOrder any more
 section
 variable [LinearOrder α]
 @[inline] instance (a b : α) : Decidable (a < b) := LinearOrder.decidableLT a b
@@ -63,6 +58,15 @@ abbrev HMap a [BEq a] [Hashable a] b := HashMap a b
 instance : EmptyCollection (ArrayMap α β) := ⟨#[], #[]⟩
 instance [EmptyCollection α] : Zero α := ⟨{}⟩
 
+class Modifiable (α : outParam Type*) (β : outParam Type*) (m : Type*) where
+  update : m → α → (β → β) → m
+
+instance [BEq α] [Hashable α] [Zero β] : Modifiable α β (HashMap α β) where
+  update := HashMap.modifyD'
+
+instance [Zero β] : Modifiable α β (RBMap α β h) where
+  update := RBMap.modifyD
+
 namespace Etch.Verification
 
 structure Stream (ι : Type) (α : Type u) where
@@ -88,8 +92,8 @@ def contract (s : Stream ι α) : Stream Unit α where
   valid := s.valid
   ready := s.ready
   index := default
-  value := s.value
   seek q := fun ((), r) => s.seek q (s.index q, r)
+  value := s.value
 
 -- For some reason, this definition *definitely* needs to be macro_inline for performance.
 -- Everything else I have checked is safe at @[inline].
@@ -102,7 +106,26 @@ def next (s : Stream ι α) (q : s.σ) (h : s.valid q = true) (ready : Bool) : s
 /- (Important def) Converting a Stream into data
    This definition follows the same inline/specialize pattern as Array.forInUnsafe
 -/
+
+-- todo: evaluate this vs other version
 @[inline] partial def fold (f : β → ι → α → β) (s : Stream ι α) (q : s.σ) (acc : β) : β :=
+  let rec @[specialize] go f
+      (valid : s.σ → Bool) (ready : (x : s.σ) → valid x → Bool)
+      (index : (x : s.σ) → valid x → ι) (value : (x : s.σ) → (h : valid x) → ready x h → α)
+      (next : (x : s.σ) → valid x → Bool → s.σ)
+      (acc : β) (q : s.σ) :=
+    if hv : valid q then
+      let i := index q hv
+      let hr := ready q hv
+      let q' := next q hv hr
+      let acc' := if hr : hr then f acc i (value q hv hr) else acc
+      go f valid ready index value next acc' q'
+    else acc
+
+  go f s.valid (fun q h => s.ready ⟨q,h⟩) (fun q h => s.index ⟨q,h⟩) (fun q v r => s.value ⟨⟨q,v⟩,r⟩) s.next
+     acc q
+
+@[inline] partial def fold' (f : β → ι → α → β) (s : Stream ι α) (q : s.σ) (acc : β) : β :=
   let rec @[specialize] go f
       (valid : s.σ → Bool) (ready : (x : s.σ) → valid x → Bool)
       (index : (x : s.σ) → valid x → ι) (value : (x : s.σ) → (h : valid x) → ready x h → α)
@@ -131,6 +154,12 @@ def Level.push (l : Level ι α n) (i : ι) (v : α) : Level ι α (n+1) :=
   ⟨l.is.push i, l.vs.push v⟩
 
 def FloatVec n := { x : FloatArray // x.size = n }
+
+class OfStream (α : Type u) (β : Type v) where
+  eval : α → β → β
+
+class ToStream (α : Type u) (β : outParam $ Type v) where
+  stream : α → β
 
 namespace SStream
 
@@ -199,9 +228,6 @@ instance : Scalar ℕ := ⟨⟩
 instance : Scalar Float := ⟨⟩
 instance : Scalar Bool := ⟨⟩
 
-class ToStream (α : Type u) (β : outParam $ Type v) where
-  stream : α → β
-
 instance [Scalar α] : ToStream α α := ⟨id⟩
 
 instance {α β} [ToStream α β] : ToStream  (Array (ι × α)) (ι →ₛ β) where
@@ -228,9 +254,6 @@ instance {α β} [ToStream α β] : ToStream  (ArrayMap ι α) (ι →ₛ β) wh
 --  let ⟨_, l⟩ : (n : _) × Level ι α n := s.fold (fun ⟨_, l⟩ i v => ⟨_, l.push i v⟩) ⟨0, ⟨⟨#[], rfl⟩, ⟨#[], rfl⟩⟩⟩ s.q
 --  (l.1.1, l.2.1)
 
-class OfStream (α : Type u) (β : Type v) where
-  eval : α → β → β
-
 section eval
 open OfStream
 
@@ -244,22 +267,16 @@ instance [OfStream α β] : OfStream (Unit →ₛ α) β where
   eval := fold (fun a _ b => b a) ∘ map eval
   -- bad: fold (fun a _ b => eval b a)
 
--- Doesn't support update of previous indices; assumes fully formed value is
+instance [OfStream α β] [Modifiable ι β m] : OfStream (ι →ₛ α) m where
+  eval := fold Modifiable.update ∘ map eval
+  -- bad: fold fun m k => Modifiable.update m k ∘ eval
+
+-- `toArrayMap` doesn't support update of previous indices; assumes fully formed value is
 --   inserted at each step (so pass 0 to recursive eval)
 instance [OfStream α β] [Zero β]: OfStream (ι →ₛ α) (ArrayMap ι β) where
   eval := toArrayMap ∘ map (eval . 0)
 
--- BEq issue without writing (@HashMap ...)
-instance [BEq ι] [Hashable ι] [OfStream α β] [Zero β] : OfStream (ι →ₛ α) (@HashMap ι β inferInstance inferInstance) where
-  eval := fold .modifyD' ∘ map eval
-
-instance [OfStream α β] [Zero β] [Ord ι] : OfStream (ι →ₛ α) (RBMap ι β Ord.compare) where
-  eval := fold .modifyD ∘ map eval
-  -- bad: eval := fold fun m k => m.modifyD k ∘ eval
-
 end eval
-
-@[inline] def expand (a : α) : ι → α := fun _ => a
 
 @[inline]
 def contract (a : ι →ₛ α) : Unit →ₛ α := {
@@ -267,9 +284,17 @@ def contract (a : ι →ₛ α) : Unit →ₛ α := {
   q := a.q
 }
 
+section -- todo remove these
+@[inline] def expand (a : α) : ι → α := fun _ => a
+
 @[inline] def contract2 : (ι →ₛ ι →ₛ α) → Unit →ₛ Unit →ₛ α := contract ∘ map contract
+end
 
 @[inline] def eval [Zero β] [OfStream α β] : α → β := (OfStream.eval . 0)
+
+@[inline]
+def memo (β) [Zero β] [OfStream α β] [ToStream β γ] : α → γ :=
+  ToStream.stream ∘ (OfStream.eval . (0 : β))
 
 end SStream
 
