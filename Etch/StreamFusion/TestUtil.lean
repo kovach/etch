@@ -28,19 +28,19 @@ def ofMat' [Scalar α] (is : Array (ℕ × Array ℕ)) (vs : ℕ → ℕ → α)
 
 -- adjusts size so that there are ~num non-zero entries
 @[macro_inline] -- macro_inline needed!
-def mat (num : Nat) :=
+def mat (num : ℕ) :=
   let is : Array (ℕ × Array ℕ) :=
     Array.range (2*num).sqrt |>.map id |>.map $ fun n => (n, Array.range num)
   ofMat is fun _ _ => 1
 
 @[macro_inline] -- macro_inline needed!
-def mat' (num : Nat) :=
+def mat' (num : ℕ) :=
   let is : Array (ℕ × Array ℕ) :=
     Array.range (2*num).sqrt |>.map id |>.map $ fun n => (n, Array.range num)
   ofMat' is fun _ _ => 1
 
 @[macro_inline] -- macro_inline needed!
-def str_mat (num : Nat) :=
+def str_mat (num : ℕ) :=
   let is : Array (String × Array String) :=
     Array.range (2*num).sqrt |>.map toString |>.map $ fun n => (n, Array.range num |>.map toString)
   ofMat is fun _ _ => 1

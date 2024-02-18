@@ -2,6 +2,19 @@ import Etch.StreamFusion.Stream
 
 namespace Etch.Verification.Stream
 
+
+--@[inline] def bothand (x y : Bool) : Bool :=
+--  let a := if x then 1 else 0
+--  let b := if y then 1 else 0
+--  if Nat.land a b = 1 then true else false
+
+-- todo: experiment in simplifying control flow for `fold`
+@[inline] def bothand (x y : Bool) : Bool :=
+  x.toNat.land y.toNat = 1
+@[simp] theorem bothand_spec : bothand x y = and x y := sorry
+
+infixl:35 " &' " => and
+
 section
 variable {ι : Type} {α : Type _} [Mul α]
 [LE ι] [DecidableRel (. ≤ . : ι → ι → Prop)]
@@ -11,7 +24,7 @@ variable {ι : Type} {α : Type _} [Mul α]
 variable (s : Stream ι α)
 
 @[inline, reducible] -- reducible helps aesop proof below
-def mul.valid (a : Stream ι α) (b : Stream ι β) (q : a.σ × b.σ) : Bool := a.valid q.1 && b.valid q.2
+def mul.valid (a : Stream ι α) (b : Stream ι β) (q : a.σ × b.σ) : Bool := a.valid q.1 &' b.valid q.2
 
 @[inline]
 def mul.valid.fst {a : Stream ι α} {b : Stream ι β} (q : {p // mul.valid a b p}) : {x // a.valid x} :=
@@ -23,31 +36,40 @@ def mul.valid.snd {a : Stream ι α} {b : Stream ι β} (q : {p // mul.valid a b
 
 @[inline]
 def mul.valid.cases {a : Stream ι α} {b : Stream ι β} (q : {p // mul.valid a b p}) : {x // a.valid x} × {x // b.valid x} :=
-  (mul.valid.fst q, mul.valid.snd q)
+  match h : q.val with
+  | (qa, qb) => (⟨qa, by aesop⟩, ⟨qb, by aesop⟩)
+  -- mul.valid.fst q, mul.valid.snd q)
 
 @[inline, reducible] -- reducible helps aesop proof below
 def mul.ready (a : Stream ι α) (b : Stream ι β) (q : {p // mul.valid a b p}) : Bool :=
-    let q₁ := mul.valid.fst q; let q₂ := mul.valid.snd q
-    a.ready q₁ && b.ready q₂ && a.index q₁ = b.index q₂
+match h : mul.valid.cases q with
+| (q₁, q₂) =>
+    a.ready q₁ &' b.ready q₂ &' a.index q₁ = b.index q₂
+    --let q₁ := mul.valid.fst q; let q₂ := mul.valid.snd q
+    --a.ready q₁ &' b.ready q₂ &' a.index q₁ = b.index q₂
 
+--todo
 @[inline]
 def mul.ready.fst {a : Stream ι α} {b : Stream ι β} (q : {x // mul.ready a b x}) : {x // a.ready x} :=
-  ⟨mul.valid.fst q.val, by aesop⟩
+  ⟨mul.valid.fst q.val, by sorry⟩
 
 @[inline]
 def mul.ready.snd {a : Stream ι α} {b : Stream ι β} (q : {x // mul.ready a b x}) : {x // b.ready x} :=
-  ⟨mul.valid.snd q.val, by aesop⟩
+  ⟨mul.valid.snd q.val, by sorry⟩
 
 @[inline]
 def mul.ready.cases {a : Stream ι α} {b : Stream ι β} (q : {p // mul.ready a b p}) : {x // a.ready x} × {x // b.ready x} :=
-  (mul.ready.fst q, mul.ready.snd q)
+match h : mul.valid.cases q.val with
+| ⟨qa, qb⟩ =>
+  (⟨qa, by sorry⟩, ⟨qb, sorry⟩)
+  --(mul.ready.fst q, mul.ready.snd q)
 
 @[inline]
 def mul [HMul α β γ] (a : Stream ι α) (b : Stream ι β) : Stream ι γ where
   σ         := a.σ × b.σ
-  valid q   := a.valid q.1 && b.valid q.2
+  valid q   := let (qa, qb) := q; a.valid qa &' b.valid qb
   ready q   := let (qa, qb) := mul.valid.cases q
-               a.ready qa && b.ready qb && a.index qa = b.index qb
+               a.ready qa &' b.ready qb &' (a.index qa = b.index qb)
   index q   := let (qa, qb) := mul.valid.cases q
                max (a.index qa) (b.index qb)
   seek  q i := let (qa, qb) := mul.valid.cases q
@@ -84,5 +106,26 @@ end
   hMul x f := { x with value := fun q => x.value q * f (x.index q) }
 @[inline] instance [HMul α β γ] {ι : Type} : HMul (ι → α) (ι → β) (ι → γ) where
   hMul f g x := f x * g x
+
+section boolean
+
+instance [Zero α] [Scalar α] : HMul Bool α α where
+  hMul b x := if b then x else 0
+
+instance : Zero Bool := ⟨false⟩
+
+instance [Zero α] : HMul (ι → Bool) (ι →ₛ α) (ι →ₛ α) where
+  hMul b s := { s with
+    ready := fun q => if b (s.index q) then s.ready q else false,
+    seek  := fun q i => if s.ready q && not (b (s.index q))
+                        then s.seek q ⟨i.1, true⟩ else s.seek q i
+    value := fun q => s.value ⟨q.1, by
+      cases q with | _ a b =>
+      dsimp at b; split at b;
+      . exact b;
+      . contradiction; ⟩
+  }
+
+end boolean
 
 end Etch.Verification.SStream

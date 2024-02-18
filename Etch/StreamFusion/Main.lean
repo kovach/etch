@@ -10,12 +10,16 @@ open Etch.Verification
 open SStream
 open OfStream ToStream
 
+
 -- deprecated
 --@[inline] def vecStream' (num : Nat) := stream $ Array.range num |>.map fun n => (n,n)
 
 @[inline] def vecStream (num : Nat) :=
   let v : Vec ℕ num := ⟨Array.range num, Array.size_range⟩
   stream $ Level.mk v v
+
+@[inline] def boolStream (num : Nat) : ℕ →ₛ Bool:=
+  stream $ Array.range num
 
 --@[inline] def floatVecStream (num : Nat) :=
 --  let is : Vec ℕ num := ⟨Array.range num, Array.size_range⟩
@@ -30,6 +34,17 @@ def time (s : String) (m : Unit → IO α) : IO α := do
   pure v
 
 namespace test
+
+-- todo investigate perf differences
+@[specialize]
+def genCase [OfStream α β] [Zero β] (label : String) (setup : ℕ → α) [ToString β'] (print : β → β') (num : Nat) (reps := 10) : IO Unit := do
+  IO.println "-----------"
+  let s := setup num
+  time label fun _ =>
+    for _ in [0:reps] do
+      let x := SStream.eval s
+      IO.println s!"{print x}"
+
 -- these tests need to be separate defs for profile legibility
 def baseline (num : Nat) : IO Unit := do
   IO.println "-----------"
@@ -42,22 +57,27 @@ def baseline (num : Nat) : IO Unit := do
         m := m + i
       IO.println s!"{m}"
 
-def vecSum_slow (num : Nat) : IO Unit := do
-  IO.println "-----------"
-  let s := contract $ vecStream num
-  time "vec sum (slower)" fun _ =>
-    for _ in [0:10] do
-      let x : ℕ := eval s
-      IO.println s!"{x}"
+set_option trace.compiler.ir.reset_reuse true in
+def vecSum : ℕ → IO Unit :=
+  genCase "vec sum"
+    (setup := fun num => contract $ vecStream num)
+    (print := fun x : ℕ => toString x)
 
---set_option trace.compiler.stage2 true in
-def vecSum (num : Nat) : IO Unit := do
-  IO.println "-----------"
-  let s := contract $ vecStream num
-  time "vec sum" fun _ =>
-    for _ in [0:10] do
-      let x : ℕ := eval s
-      IO.println s!"{x}"
+@[inline] def filt : ℕ → Bool := fun i => i > 50
+
+def vecBoolMul : Nat → IO Unit := genCase
+  "vec mul filter 2"
+  (setup := fun num => do
+    let b := boolStream num
+    b * (vecStream num))
+  (print := fun x : ArrayMap ℕ ℕ => s!"{x.1.size}")
+
+def vecBoolMul3 : Nat → IO Unit := genCase
+  "vec mul filter 3"
+  (setup := fun num => do
+    let b := boolStream num
+    b * (b * vecStream num))
+  (print := fun x : ArrayMap ℕ ℕ => x.1.size)
 
 --def testFloat (num : Nat) : IO Unit := do
 --  IO.println "-----------"
@@ -66,17 +86,6 @@ def vecSum (num : Nat) : IO Unit := do
 --    for _ in [0:10] do
 --      let x : Float := eval s
 --      IO.println s!"{x}"
-
-def vecMul (num : Nat) : IO Unit := do
-  IO.println "-----------"
-  let v := vecStream num
-  let v' := vecStream num |>.map fun _ => 1
-  let s := v * v'
-  time "vec mul" fun _ =>
-    for _ in [0:10] do
-      let x : Array ℕ × Array ℕ := eval s
-      IO.println s!"{x.1.size}"
-  pure ()
 
 def vecMul_rb (num : Nat) : IO Unit := do
   IO.println "-----------"
@@ -99,57 +108,53 @@ def vecMul_hash (num : Nat) : IO Unit := do
       IO.println s!"{x.1.size}"
   pure ()
 
--- todo: this has allocation and other perf issues
-def vecMulSum (num : Nat) : IO Unit := do
+#check Bool.xor
+set_option trace.compiler.ir.reset_reuse true in
+def vecMulSum : ℕ → IO Unit := genCase "vec mul sum"
+  (fun num =>
+    let v := vecStream num
+    let v' := vecStream num |>.map fun _ => 1
+    contract $ v * v')
+  (fun x : ℕ => x)
+
+#check Bool.toNat
+-- todo: vecMul' performs additional allocation in the inner loop
+set_option trace.compiler.ir.reset_reuse true in
+def vecMul : ℕ → IO Unit := genCase "vec mul"
+    (fun num =>
+      let v := vecStream num;
+      let v' := vecStream num |>.map fun _ => 1;
+      v * v')
+    (fun x : ArrayMap ℕ ℕ => x.1.size)
+
+set_option trace.compiler.ir.reset_reuse true in
+--set_option trace.compiler.stage2 true in
+def vecMulSum3 : ℕ → IO Unit := genCase "vec mul 3 sum"
+  (fun num =>
+    let v  := vecStream num
+    let v₁ := vecStream num |>.map fun _ => 1
+    let v₂ := vecStream num |>.map fun _ => 1
+    contract $ v * (v₁ * v₂))
+  (fun x : ℕ => x)
+
+def vecMul' (num : Nat) : IO Unit := do
   IO.println "-----------"
   let v := vecStream num
   let v' := vecStream num |>.map fun _ => 1
-  let s := contract $ v * v'
-  time "vec mul sum" fun _ =>
+  let s := v * v'
+  time "vec mul" fun _ =>
     for _ in [0:10] do
-      let x : ℕ := eval s
-      IO.println s!"{x}"
-  pure ()
-
--- todo: this has allocation and other perf issues
-def vecMul3 (num : Nat) : IO Unit := do
-  IO.println "-----------"
-  let v  := vecStream num
-  let v₁ := vecStream num |>.map fun _ => 1
-  let v₂ := vecStream num |>.map fun _ => 1
-  let s := v * (v₁ * v₂)
-  time "vec mul 3 sum" fun _ =>
-    for _ in [0:10] do
-      let x : ArrayMap ℕ ℕ := eval s
+      let x : Array ℕ × Array ℕ := eval s
       IO.println s!"{x.1.size}"
   pure ()
 
---set_option trace.compiler.stage2 true in
-def vecMulSum3 (num : Nat) : IO Unit := do
-  IO.println "-----------"
-  let v  := vecStream num
-  let v₁ := vecStream num |>.map fun _ => 1
-  let v₂ := vecStream num |>.map fun _ => 1
-  let s := contract $ v * (v₁ * v₂)
-  time "vec mul 3 sum" fun _ =>
-    for _ in [0:10] do
-      let x : ℕ := eval s
-      IO.println s!"{x}"
-  pure ()
-
--- todo: this has allocation and other perf issues
-def vecMulSum4 (num : Nat) : IO Unit := do
-  IO.println "-----------"
-  let v  := vecStream num
-  let v₁ := vecStream num |>.map fun _ => 1
-  let v₂ := vecStream num |>.map fun _ => 1
-  let v₃ := vecStream num |>.map fun _ => 1
-  let s := contract $ v * v₁ * v₂ * v₃
-  time "vec mul 4 sum" fun _ =>
-    for _ in [0:10] do
-      let x : ℕ := eval s
-      IO.println s!"{x}"
-  pure ()
+def vecMul3 : ℕ → IO Unit := genCase "vec mul 3"
+  (fun num =>
+    let v  := vecStream num
+    let v₁ := vecStream num |>.map fun _ => 1
+    let v₂ := vecStream num |>.map fun _ => 1
+    v * (v₁ * v₂))
+  (fun x : ArrayMap ℕ ℕ => x.1.size)
 
 def _root_.Nat.cubeRoot (n : Nat) : Nat :=
   if n ≤ 1 then n else
@@ -209,30 +214,21 @@ unsafe def testRB (args : List String) : IO Unit := do
 
 end test
 
-unsafe def testAll (args : List String) : IO Unit := do
+unsafe def tests (args : List String) : IO Unit := do
   let num := (args[0]!).toNat?.getD 1000
   IO.println s!"test of size {num}"
   IO.println "starting"
 
   test.baseline num
   test.vecSum num
-  test.vecMulSum num      -- ideally about 2x vecSum
-  test.vecMulSum3 num      -- ideally about 2x vecSum
-  test.vecMul num         -- ideally about 1x vecMulSum (currently 3x slower, but that's almost all Array.push. try pre-allocating?)
-
-unsafe def testSome (args : List String) : IO Unit := do
-  let num := (args[0]!).toNat?.getD 1000
-  IO.println s!"test of size {num}"
-  IO.println "starting"
-
-  test.baseline num
-  test.vecSum num
-  --test.vecMulSum num
+  --test.vecBoolMul num
+  --test.vecBoolMul3 num
+  test.vecMulSum num
+  test.vecMul num
   test.vecMul3 num
-  test.vecMulSum3 num
-  test.vecMulSum4 num
+  --test.vecMulSum3 num
 
-unsafe def _root_.main := testSome
+unsafe def _root_.main := tests
 
 section appendix
 -- simple inline/specialize example

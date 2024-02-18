@@ -6,7 +6,7 @@ namespace Etch.Verification.SStream
 def LabeledIndex (n : Label) (ι : Type) := ι
 def LabeledIndex.mk (n : Label) (i : ι) : LabeledIndex n ι := i
 
--- todo: choose a nicer notation
+-- todo: decide on a nicer notation
 notation n:30 "~" i:30 => LabeledIndex n i
 notation n:30 "//" i:30 => LabeledIndex n i
 --notation n:30 "/" i:30 => LabeledIndex n i
