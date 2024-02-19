@@ -6,14 +6,13 @@ namespace Etch.Verification.SStream
 abbrev EID   := ℕ       -- Employee ID
 abbrev ENAME := String  -- Emplyee Name
 
-abbrev eid   : ℕ := 0
-abbrev ename : ℕ := 1
-
 abbrev CID   := ℕ       -- Company ID
 abbrev CNAME := String  -- Company Name
 abbrev ENUM  := ℕ       -- Number of employees
 abbrev CSTATE := String -- State the company is employed in
 
+abbrev eid    : ℕ := 0
+abbrev ename  : ℕ := 1
 abbrev cid    : ℕ := 2
 abbrev cname  : ℕ := 3
 abbrev enum   : ℕ := 4
@@ -38,5 +37,4 @@ def countEmplyeesOfSmallCompanies
     Σ cid, employees * companies * inCal * leFifty
   42
 
--- def _root_.main (args : List String) : IO Unit := do
 end Etch.Verification.SStream
