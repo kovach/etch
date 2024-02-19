@@ -18,22 +18,19 @@ abbrev CNAME := String  -- Company Name
 abbrev ENUM  := ℕ       -- Number of employees
 abbrev CSTATE := String -- State the company is employed in
 
-def companyInCal : String →ₛ Bool := singleton "CA"
-def leFiftyEmployees  : ℕ →ₛ Bool := SStream.le 50
-
 @[inline]
 def countEmplyeesOfSmallCompanies
     [ToStream E (EID →ₛ ENAME →ₛ CID →ₛ Bool)]
-    [ToStream C (CID →ₛ CNAME →ₛ ENUM →ₛ CSTATE →ₛ Bool)]
+    [ToStream C (CID →ₛ CNAME →ₛ ENUM →ₛ CSTATE →ₛ ℕ)]
     (employeeStream : E)
     (companyStream : C)
-    : EID →ₛ ENAME →ₛ Unit →ₛ CNAME →ₛ ENUM →ₛ CSTATE →ₛ Bool :=
+    : EID →ₛ ENAME →ₛ Unit →ₛ CNAME →ₛ ENUM →ₛ CSTATE →ₛ ℕ :=
 
   let S := [(eid,EID),(ename,ENAME),(cid,CID),(cname,CNAME),(enum,ENUM),(cstate,CSTATE)]
   let employees := { S | employeeStream(eid,ename,cid) }
   let companies := { S | companyStream(cid,cname,enum,cstate) }
-  let inCal   := S ⇑ (idx companyInCal [cstate])
-  let leFifty := S ⇑ (idx leFiftyEmployees [enum])
+  let inCal   := S ⇑ (idx (singleton "CA") [cstate])
+  let leFifty := S ⇑ (idx (SStream.le 50) [enum])
   let result := Σ cid: inCal * leFifty * employees * companies
   result
 
