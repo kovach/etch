@@ -10,10 +10,7 @@ namespace Etch.Verification.Stream
 infixl:35 " &' " => and
 
 section
-variable {ι : Type} {α : Type _} [Mul α]
-[LE ι] [DecidableRel (. ≤ . : ι → ι → Prop)]
-[LT ι] [DecidableRel (. < . : ι → ι → Prop)]
-[DecidableEq ι] [Max ι]
+variable {ι : Type} [LinearOrder ι] {α : Type _} [Mul α]
 
 variable (s : Stream ι α)
 
@@ -77,9 +74,10 @@ namespace SStream
 
 section
 variable {ι : Type} {α : Type u}
+[LinearOrder ι]
 
-[LE ι] [DecidableRel (. ≤ . : ι → ι → Prop)]
-[LT ι] [DecidableRel (. < . : ι → ι → Prop)]
+--[LE ι] [DecidableRel (. ≤ . : ι → ι → Prop)]
+--[LT ι] [DecidableRel (. < . : ι → ι → Prop)]
 [DecidableEq ι] [Max ι]
 
 @[inline]

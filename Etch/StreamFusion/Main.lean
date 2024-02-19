@@ -108,8 +108,7 @@ def vecMul_hash (num : Nat) : IO Unit := do
       IO.println s!"{x.1.size}"
   pure ()
 
-#check Bool.xor
-set_option trace.compiler.ir.reset_reuse true in
+--set_option trace.compiler.ir.reset_reuse true in
 def vecMulSum : ℕ → IO Unit := genCase "vec mul sum"
   (fun num =>
     let v := vecStream num
@@ -117,9 +116,8 @@ def vecMulSum : ℕ → IO Unit := genCase "vec mul sum"
     contract $ v * v')
   (fun x : ℕ => x)
 
-#check Bool.toNat
 -- todo: vecMul' performs additional allocation in the inner loop
-set_option trace.compiler.ir.reset_reuse true in
+--set_option trace.compiler.ir.reset_reuse true in
 def vecMul : ℕ → IO Unit := genCase "vec mul"
     (fun num =>
       let v := vecStream num;
@@ -127,7 +125,7 @@ def vecMul : ℕ → IO Unit := genCase "vec mul"
       v * v')
     (fun x : ArrayMap ℕ ℕ => x.1.size)
 
-set_option trace.compiler.ir.reset_reuse true in
+--set_option trace.compiler.ir.reset_reuse true in
 --set_option trace.compiler.stage2 true in
 def vecMulSum3 : ℕ → IO Unit := genCase "vec mul 3 sum"
   (fun num =>

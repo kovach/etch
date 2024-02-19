@@ -13,10 +13,7 @@ open OfStream ToStream
 
 variable
 {ι ι' : Type}
-[LE ι] [DecidableRel (. ≤ . : ι → ι → Prop)]
-[LT ι] [DecidableRel (. < . : ι → ι → Prop)]
-[LE ι'] [DecidableRel (. ≤ . : ι' → ι' → Prop)]
-[LT ι'] [DecidableRel (. < . : ι' → ι' → Prop)]
+[LinearOrder ι] [LinearOrder ι']
 
 @[inline]
 def ofMat [Scalar α] (is : Array (ι × Array ι')) (vs : ι → ι' → α) : ι →ₛ ι' →ₛ α :=

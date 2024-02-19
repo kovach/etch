@@ -35,8 +35,6 @@ def matMul_ijjk [ToStream t (I →ₛ J →ₛ α)] [ToStream t' (J →ₛ K →
   let m  := m1 * m2
   Σ j, m
 
-#synth  OfStream (K →ₛ α) ((ArrayMap K α))
-
 -- todo: investigate these definitions and other approaches
 @[inline] def ABC
   [ToStream t1 (I →ₛ J →ₛ α)]

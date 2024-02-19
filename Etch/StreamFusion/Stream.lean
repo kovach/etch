@@ -16,7 +16,7 @@ Authors: Scott Kovach
 -/
 
 import Mathlib.Data.Prod.Lex
--- import Mathlib.Data.String.Basic -- todo
+ import Mathlib.Data.String.Basic
 import Init.Data.Array.Basic
 import Std.Data.RBMap
 import Std.Data.HashMap
@@ -170,10 +170,7 @@ class ToStream (α : Type u) (β : outParam $ Type v) where
 
 namespace SStream
 
-variable {ι : Type}
-[LE ι] [DecidableRel (. ≤ . : ι → ι → Prop)]
-[LT ι] [DecidableRel (. < . : ι → ι → Prop)]
-{α : Type u}
+variable {ι : Type} [LinearOrder ι] {α : Type u}
 
 @[inline]
 def map (f : α → β) (s : ι →ₛ α) : ι →ₛ β := { s with value := f ∘ s.value}

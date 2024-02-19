@@ -21,6 +21,8 @@ instance [Scalar α]     : Label [] α α := ⟨id⟩
 instance [Label is α β] : Label (i::is) (ι →ₛ α) (i//ι →ₛ β) := ⟨map (Label.label is)⟩
 instance [Label is α β] : Label (i::is) (ι → α) (i//ι → β) := ⟨(Label.label is ∘ .)⟩
 
+def idx (x : α) (shape : List ℕ) [Label shape α β] := Label.label shape x
+
 -- maybe we can get `Coe` and binop to cast all subexpressions to the right shape? see:
 --   abbrev LS' (_is : List (ℕ×Type)) (β : Type*) := β
 --   instance [Expand is α β] : Coe α (LS' is β) := ⟨Expand.expand is⟩
@@ -65,6 +67,8 @@ instance [HMul α β γ] : HMul (i//ι → α) (i//ι →ₛ β) (i//ι →ₛ �
   hMul f x := { x with value := fun q => f (x.index q) * x.value q}
 instance [HMul α β γ] : HMul (i//ι →ₛ α) (i//ι → β) (i//ι →ₛ γ) where
   hMul x f := { x with value := fun q => x.value q * f (x.index q) }
+instance [HMul α β γ] : HMul (i//ι → α) (i//ι → β) (i//ι → γ) where
+  hMul f g x := f x * g x
 
 notation s:80 "⇑" x:80 => Expand.expand s x
 

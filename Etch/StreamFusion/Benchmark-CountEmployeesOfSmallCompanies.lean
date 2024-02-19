@@ -1,40 +1,40 @@
 import Etch.StreamFusion.Stream
 import Etch.StreamFusion.Expand
+import Etch.StreamFusion.Multiply
 import Etch.StreamFusion.TestUtil
 namespace Etch.Verification.SStream
 
-abbrev EID   := ℕ       -- Employee ID
-abbrev ENAME := String  -- Emplyee Name
-
-abbrev CID   := ℕ       -- Company ID
-abbrev CNAME := String  -- Company Name
-abbrev ENUM  := ℕ       -- Number of employees
-abbrev CSTATE := String -- State the company is employed in
-
-abbrev eid    : ℕ := 0
-abbrev ename  : ℕ := 1
+abbrev eid   : ℕ := 0
+abbrev ename : ℕ := 1
 abbrev cid    : ℕ := 2
 abbrev cname  : ℕ := 3
 abbrev enum   : ℕ := 4
 abbrev cstate : ℕ := 5
 
-def companyInCal (company : String) : Bool := if company = "CA" then true else false
-def leFiftyEmployees (employeeNum : ℕ) : Bool := if employeeNum < 50 then true else false
+abbrev EID   := ℕ       -- Employee ID
+abbrev ENAME := String  -- Emplyee Name
+abbrev CID   := ℕ       -- Company ID
+abbrev CNAME := String  -- Company Name
+abbrev ENUM  := ℕ       -- Number of employees
+abbrev CSTATE := String -- State the company is employed in
+
+def companyInCal : String →ₛ Bool := singleton "CA"
+def leFiftyEmployees  : ℕ →ₛ Bool := SStream.le 50
 
 @[inline]
 def countEmplyeesOfSmallCompanies
-    [ToStream E (EID →ₛ ENAME →ₛ CID →ₛ ℕ)]
-    [ToStream C (CID →ₛ CNAME →ₛ ENUM →ₛ CSTATE →ₛ ℕ)]
+    [ToStream E (EID →ₛ ENAME →ₛ CID →ₛ Bool)]
+    [ToStream C (CID →ₛ CNAME →ₛ ENUM →ₛ CSTATE →ₛ Bool)]
     (employeeStream : E)
     (companyStream : C)
-    : EID →ₛ ENAME →ₛ Unit →ₛ CNAME →ₛ ENUM →ₛ CSTATE →ₛ ℕ :=
-  let qshape := [(eid,EID),(ename,ENAME),(cid,CID),(cname,CNAME),(enum,ENUM),(cstate,CSTATE)]
-  let employees := { qshape | employeeStream(eid,ename,cid) }
-  let companies := { qshape | companyStream(cid,cname,enum,cstate) }
-  let inCal   := { qshape | companyInCal(cstate) }
-  let leFifty := { qshape | leFiftyEmployees(enum) }
-  let result : EID →ₛ ENAME →ₛ Unit →ₛ CNAME →ₛ ENUM →ₛ CSTATE →ₛ ℕ :=
-    Σ cid, employees * companies * inCal * leFifty
-  42
+    : EID →ₛ ENAME →ₛ Unit →ₛ CNAME →ₛ ENUM →ₛ CSTATE →ₛ Bool :=
+
+  let S := [(eid,EID),(ename,ENAME),(cid,CID),(cname,CNAME),(enum,ENUM),(cstate,CSTATE)]
+  let employees := { S | employeeStream(eid,ename,cid) }
+  let companies := { S | companyStream(cid,cname,enum,cstate) }
+  let inCal   := S ⇑ (idx companyInCal [cstate])
+  let leFifty := S ⇑ (idx leFiftyEmployees [enum])
+  let result := Σ cid: inCal * leFifty * employees * companies
+  result
 
 end Etch.Verification.SStream
