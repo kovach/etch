@@ -2,12 +2,6 @@ import Etch.StreamFusion.Stream
 
 namespace Etch.Verification.Stream
 
-
---@[inline] def bothand (x y : Bool) : Bool :=
---  let a := if x then 1 else 0
---  let b := if y then 1 else 0
---  if Nat.land a b = 1 then true else false
-
 -- todo: experiment in simplifying control flow for `fold`
 @[inline] def bothand (x y : Bool) : Bool :=
   x.toNat.land y.toNat = 1
@@ -42,9 +36,8 @@ def mul.valid.cases {a : Stream ι α} {b : Stream ι β} (q : {p // mul.valid a
 
 @[inline, reducible] -- reducible helps aesop proof below
 def mul.ready (a : Stream ι α) (b : Stream ι β) (q : {p // mul.valid a b p}) : Bool :=
-match h : mul.valid.cases q with
-| (q₁, q₂) =>
-    a.ready q₁ &' b.ready q₂ &' a.index q₁ = b.index q₂
+match mul.valid.cases q with
+| (q₁, q₂) => a.ready q₁ &' b.ready q₂ &' a.index q₁ = b.index q₂
     --let q₁ := mul.valid.fst q; let q₂ := mul.valid.snd q
     --a.ready q₁ &' b.ready q₂ &' a.index q₁ = b.index q₂
 

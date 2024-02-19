@@ -107,12 +107,9 @@ def contract (s : Stream ι α) : Stream Unit α where
 def next (s : Stream ι α) (q : s.σ) (h : s.valid q = true) (ready : Bool) : s.σ :=
   let q := ⟨q, h⟩; s.seek q (s.index q, ready)
 
--- todo: use Bounded class, remove partial
-
 /- (Important def) Converting a Stream into data
    This definition follows the same inline/specialize pattern as Array.forInUnsafe
 -/
-
 -- todo: evaluate this vs other version
 @[inline] partial def fold (f : β → ι → α → β) (s : Stream ι α) (q : s.σ) (acc : β) : β :=
   let rec @[specialize] go f
@@ -326,10 +323,61 @@ end
 def memo (β) [Zero β] [OfStream α β] [ToStream β γ] : α → γ :=
   ToStream.stream ∘ (OfStream.eval . (0 : β))
 
+-- indicator for indices ≥ t
+def ge (t : ι) : ι →ₛ Bool where
+  σ := ι
+  q := t
+  valid _ := true
+  ready _q := true -- may need to be t ≤ _q
+  index q := q.val
+  value _ := true
+  seek _ i := i.1 -- may need check
+
+-- indicator for indices > t
+def gt (t : ι) : ι →ₛ Bool where
+  σ := ι
+  q := t
+  valid _ := true
+  ready q := t < q
+  index q := q.val
+  value _ := true
+  seek _ i := i.1 -- may need check
+
+-- indicator for indices ≤ t
+def le (t : ι) [Bot ι] : ι →ₛ Bool where
+  σ := ι
+  q := ⊥
+  valid q := q ≤ t
+  ready _q := true -- may need to be t ≤ _q
+  index q := q.val
+  value _ := true
+  seek _ i := i.1 -- may need check
+
+-- indicator for indices < t
+def lt (t : ι) [Bot ι] : ι →ₛ Bool where
+  σ := ι
+  q := ⊥
+  valid q := q < t
+  ready _q := true -- may need to be t ≤ _q
+  index q := q.val
+  value _ := true
+  seek _ i := i.1 -- may need check
+
+-- indicator for index = t
+def singleton (t : ι) [DecidableEq ι] : ι →ₛ Bool where
+  σ := Bool
+  q := true
+  valid q := q
+  ready _q := true -- may need to be t ≤ _q
+  index _ := t
+  value _ := true
+  seek q i := if i.2 then (if t ≤ i.1 then false else q) else (if t < i.1 then false else q)
+
 end SStream
 
 end Etch.Verification
 
+-- todo: switch back to linear order
 @[inline]
 instance : LE String where
   le a b := match Ord.compare a b with | .gt => false | _ => true
