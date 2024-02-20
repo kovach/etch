@@ -37,6 +37,9 @@ def mul.valid.cases {a : Stream ι α} {b : Stream ι β} (q : {p // mul.valid a
   | (qa, qb) => (⟨qa, by aesop⟩, ⟨qb, by aesop⟩)
   -- mul.valid.fst q, mul.valid.snd q)
 
+@[simp] lemma mul_valid_cases_eq {a : Stream ι α} {b : Stream ι β} (q : {p // mul.valid a b p}) :
+    mul.valid.cases q = (mul.valid.fst q, mul.valid.snd q) := rfl
+
 @[inline]
 def mul.ready (a : Stream ι α) (b : Stream ι β) (q : {p // mul.valid a b p}) : Bool :=
 match mul.valid.cases q with
@@ -62,7 +65,9 @@ match h : mul.valid.cases q.val with
   (⟨qa, by sorry⟩, ⟨qb, sorry⟩)
   --(mul.ready.fst q, mul.ready.snd q)
 
-attribute [simp] mul.valid.cases mul.ready.cases in
+@[simp] lemma mul_ready_cases_eq {a : Stream ι α} {b : Stream ι β} (q : {p // mul.ready a b p}) :
+    mul.ready.cases q = (mul.ready.fst q, mul.ready.snd q) := rfl
+
 @[inline, simps (config := { simpRhs := true })]
 def mul [HMul α β γ] (a : Stream ι α) (b : Stream ι β) : Stream ι γ where
   σ         := a.σ × b.σ
