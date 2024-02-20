@@ -10,25 +10,33 @@ variable {ι : Type} {α : Type _} [Mul α]
 
 variable (s : Stream ι α)
 
-@[inline, reducible] -- reducible helps aesop proof below
+@[inline]
 def mul.valid (a : Stream ι α) (b : Stream ι β) (q : a.σ × b.σ) : Bool := a.valid q.1 && b.valid q.2
+
+attribute [simp] mul.valid -- simp helps aesop proof below
 
 @[inline]
 def mul.valid.fst {a : Stream ι α} {b : Stream ι β} (q : {p // mul.valid a b p}) : {x // a.valid x} :=
   ⟨q.val.fst, by aesop⟩
 
+@[simp] lemma coe_mul_valid_fst {a : Stream ι α} {b : Stream ι β} (q : {p // mul.valid a b p}) : (mul.valid.fst q : a.σ) = q.val.fst := rfl
+
 @[inline]
 def mul.valid.snd {a : Stream ι α} {b : Stream ι β} (q : {p // mul.valid a b p}) : {x // b.valid x} :=
   ⟨q.val.snd, by aesop⟩
+
+@[simp] lemma coe_mul_valid_snd {a : Stream ι α} {b : Stream ι β} (q : {p // mul.valid a b p}) : (mul.valid.snd q : b.σ) = q.val.snd := rfl
 
 @[inline]
 def mul.valid.cases {a : Stream ι α} {b : Stream ι β} (q : {p // mul.valid a b p}) : {x // a.valid x} × {x // b.valid x} :=
   (mul.valid.fst q, mul.valid.snd q)
 
-@[inline, reducible] -- reducible helps aesop proof below
+@[inline]
 def mul.ready (a : Stream ι α) (b : Stream ι β) (q : {p // mul.valid a b p}) : Bool :=
     let q₁ := mul.valid.fst q; let q₂ := mul.valid.snd q
     a.ready q₁ && b.ready q₂ && a.index q₁ = b.index q₂
+
+attribute [simp] mul.ready -- simp helps aesop proof below
 
 @[inline]
 def mul.ready.fst {a : Stream ι α} {b : Stream ι β} (q : {x // mul.ready a b x}) : {x // a.ready x} :=
@@ -42,7 +50,8 @@ def mul.ready.snd {a : Stream ι α} {b : Stream ι β} (q : {x // mul.ready a b
 def mul.ready.cases {a : Stream ι α} {b : Stream ι β} (q : {p // mul.ready a b p}) : {x // a.ready x} × {x // b.ready x} :=
   (mul.ready.fst q, mul.ready.snd q)
 
-@[inline]
+attribute [simp] mul.valid.cases mul.ready.cases in
+@[inline, simps (config := { simpRhs := true })]
 def mul [HMul α β γ] (a : Stream ι α) (b : Stream ι β) : Stream ι γ where
   σ         := a.σ × b.σ
   valid q   := a.valid q.1 && b.valid q.2
@@ -54,6 +63,14 @@ def mul [HMul α β γ] (a : Stream ι α) (b : Stream ι β) : Stream ι γ whe
                ⟨a.seek qa i, b.seek qb i⟩
   value q   := let (qa, qb) := mul.ready.cases q
                a.value qa * b.value qb
+
+/-- Make a valid state given two valid states -/
+def mul.valid_mk {a : Stream ι α} {b : Stream ι β} (qa : {x // a.valid x}) (qb : {x // b.valid x}) : {x // mul.valid a b x} :=
+  ⟨(qa.val, qb.val), by aesop⟩
+
+/-- Make a ready state given two ready states at the same index -/
+def mul.ready_mk {a : Stream ι α} {b : Stream ι β} (qa : {x // a.ready x}) (qb : {x // b.ready x}) (h : a.index qa = b.index qb) : {x // mul.ready a b x} :=
+  ⟨mul.valid_mk qa.val qb.val, by aesop⟩
 
 end
 end Stream

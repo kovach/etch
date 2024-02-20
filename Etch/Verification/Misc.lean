@@ -292,7 +292,7 @@ theorem mk_true_le_mk_false_iff_lt [PartialOrder α] (x y : α) :
     @LE.le (α ×ₗ Bool) _ (x, true) (y, false) ↔ x < y := by simp [le_iff']
 #align prod.lex.mk_tt_le_mk_ff_iff_lt Prod.Lex.mk_true_le_mk_false_iff_lt
 
-theorem mk_min [LinearOrder α] [LinearOrder β] (x : α) (y₁ y₂ : β) :
+@[simp] theorem mk_min [LinearOrder α] [LinearOrder β] (x : α) (y₁ y₂ : β) :
     @min (α ×ₗ β) _ (x, y₁) (x, y₂) = (x, min y₁ y₂) :=
   (@Monotone.map_min _ (α ×ₗ β) _ _ (fun y => (x, y)) y₁ y₂ fun y₁ y₂ => by simp).symm
 #align prod.lex.mk_min Prod.Lex.mk_min
