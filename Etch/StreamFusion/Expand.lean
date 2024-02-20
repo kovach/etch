@@ -3,8 +3,8 @@ import Etch.StreamFusion.Multiply
 
 namespace Etch.Verification.SStream
 
-def LabeledIndex (n : Label) (ι : Type) := ι
-def LabeledIndex.mk (n : Label) (i : ι) : LabeledIndex n ι := i
+def LabeledIndex (n : Nat) (ι : Type) := ι
+def LabeledIndex.mk (n : Nat) (i : ι) : LabeledIndex n ι := i
 
 -- todo: decide on a nicer notation
 notation n:30 "~" i:30 => LabeledIndex n i
