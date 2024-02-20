@@ -66,7 +66,7 @@ instance [HMul α β γ] : HMul (i//ι →ₛ α) (i//ι → β) (i//ι →ₛ �
 instance [HMul α β γ] : HMul (i//ι → α) (i//ι → β) (i//ι → γ) where
   hMul f g x := f x * g x
 
-notation s:80 "⇑" x:80 => Expand.expand s x
+notation s:80 " ⇑ " x:80 => Expand.expand s x
 
 @[inline]
 def streamify (S : List (ℕ × Type)) (s : List ℕ) [ToStream α β] [Label s β γ] [Expand S γ δ] : α → δ :=
@@ -104,6 +104,29 @@ instance [CoeTail β β'] : CoeTail (i//I →ₛ β) (i//I →ₛ β') := ⟨map
 instance [CoeTail β β'] : CoeTail (i//I → β) (i//I → β') := ⟨(CoeTail.coe ∘ ·)⟩
 instance [NatLt j i] [CoeTail (i//I →ₛ β) β'] : CoeTail (i//I →ₛ β) (j//J → β') := ⟨fun v _ => CoeTail.coe v⟩
 instance [NatLt j i] [CoeTail (i//I → β) β'] : CoeTail (i//I → β) (j//J → β') := ⟨fun v _ => CoeTail.coe v⟩
+
+-- Note(kmill): it's not clear how to write the HMul instances...
+
+-- inductive IndexedFn (i : ℕ) (I : Type) (α : Type u) : Type (max u 1)
+--   | fn (f : i//I → α)
+--   | stream (s : i//I →ₛ α)
+
+-- syntax:25 "(" ident "//" term ")" " =>ₛ " term:25 : term
+-- macro_rules | `(($id:ident//$I) =>ₛ $α) => `(IndexedFn $id $I $α)
+
+-- class DefEq' {x : α} {y : outParam α} where
+--   eq : x = y
+-- instance : @DefEq' _ x x := ⟨rfl⟩
+-- abbrev DefEq (x y : α) := @DefEq' _ x y
+
+-- class ToIndexedFn (α : Type u) (β : outParam <| Type v) :=
+--   coe : α → β
+
+-- instance (priority := low) : ToIndexedFn α α := ⟨fun x => x⟩
+-- instance [ToIndexedFn α α'] : ToIndexedFn (i//I → α) ((i//I) =>ₛ α') := ⟨fun f => .fn (fun x => ToIndexedFn.coe (f x))⟩
+-- instance [ToIndexedFn α α'] : ToIndexedFn (i//I →ₛ α) ((i//I) =>ₛ α') := ⟨fun s => .stream (map ToIndexedFn.coe s)⟩
+
+--instance [HMul α β γ] : HMul ((i//I) =>ₛ α) ((j//J) =>ₛ β)
 
 end Etch.Verification.SStream
 
