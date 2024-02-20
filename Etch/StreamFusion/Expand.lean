@@ -35,9 +35,17 @@ def idx (x : α) (shape : List ℕ) [Label shape α β] := Label.label shape x
 --  abbrev LS (_is : List ℕ) (β : Type*) := β
 --  instance coeLS [Label is α β] : Coe α (LS is β) := ⟨Label.label is⟩
 
-class NatLt (m n : ℕ) where proof : m < n
-instance NatLt.one (n : ℕ) : NatLt 0 n.succ := ⟨Nat.succ_pos _⟩
-instance NatLt.step (m n : ℕ) [h : NatLt m n] : NatLt (m+1) (n+1) := ⟨Nat.succ_lt_succ h.proof⟩
+/--
+Class to put decidable propositions into the typeclass inference.
+It has a single instance, and it's like `[When p]` is satisfied when the `decide` tactic would prove `p`.
+There are some differences, because `decide` refuses to prove propositions with free variables or metavariables.
+-/
+class When (p : Prop) [Decidable p] : Prop where
+  isTrue : p
+
+instance : @When p (.isTrue h) := @When.mk p (.isTrue h) h
+
+abbrev NatLt (m n : ℕ) := When (m < n)
 
 class Contract (σ : ℕ) (α : Type*) (β : outParam Type*) where
   contract : α → β
