@@ -23,18 +23,6 @@ instance [Label is α β] : Label (i::is) (ι → α) (i//ι → β) := ⟨(Labe
 
 def idx (x : α) (shape : List ℕ) [Label shape α β] := Label.label shape x
 
--- maybe we can get `Coe` and binop to cast all subexpressions to the right shape? see:
---   abbrev LS' (_is : List (ℕ×Type)) (β : Type*) := β
---   instance [Expand is α β] : Coe α (LS' is β) := ⟨Expand.expand is⟩
--- but, requires: class Expand (σ : List (ℕ × Type)) (α : outParam Type*) (β : Type*)
--- which breaks it; there is ambiguity between expEqFun and expLt
---   (and same change to label)
--- ideas?
-
--- may also want:
---  abbrev LS (_is : List ℕ) (β : Type*) := β
---  instance coeLS [Label is α β] : Coe α (LS is β) := ⟨Label.label is⟩
-
 /--
 Class to put decidable propositions into the typeclass inference.
 It has a single instance, and it's like `[When p]` is satisfied when the `decide` tactic would prove `p`.
@@ -88,20 +76,32 @@ def streamify (S : List (ℕ × Type)) (s : List ℕ) [ToStream α β] [Label s 
 def streamifyFun (S : List (ℕ × Type)) (s : List ℕ) [h : Label s β γ] [Expand S γ δ] : β → δ :=
   Expand.expand S ∘ Label.label s (β := γ)
 
--- todo: maybe replace the {...} notation with `S ⇑ foo(i,j)`
 syntax:max term noWs "(" term,* ")" : term
 macro_rules
 | `($t($ss,*)) => `(Label.label [$ss,*] $t)
 
-/-- This instance helps `a{i,j}` notation work even if `a` isn't yet a stream that's labelable. -/
+/-- This instance helps `a(i,j)` notation work even if `a` isn't yet a stream that's labelable. -/
 instance (priority := low) [ToStream α α'] [Label is α' β] : Label is α β := ⟨Label.label is ∘ ToStream.stream⟩
 
 instance [OfStream (ι →ₛ α) β] : OfStream (i//ι →ₛ α) β := ⟨fun x : ι →ₛ α => OfStream.eval x⟩
 
+-- kmill: the CoeTail instances below might be addressing this comment, at least approximately.
+-- TODO(dsk):
+-- maybe we can get `Coe` and binop to cast all subexpressions to the right shape? see:
+--   abbrev LS' (_is : List (ℕ×Type)) (β : Type*) := β
+--   instance [Expand is α β] : Coe α (LS' is β) := ⟨Expand.expand is⟩
+-- but, requires: class Expand (σ : List (ℕ × Type)) (α : outParam Type*) (β : Type*)
+-- which breaks it; there is ambiguity between expEqFun and expLt
+--   (and same change to label)
+-- ideas?
+
+-- may also want:
+--  abbrev LS (_is : List ℕ) (β : Type*) := β
+--  instance coeLS [Label is α β] : Coe α (LS is β) := ⟨Label.label is⟩
+
 instance (priority := low) : CoeTail β (i//I → β) := ⟨fun v _ => v⟩
 instance [CoeTail β β'] : CoeTail (i//I →ₛ β) (i//I →ₛ β') := ⟨map CoeTail.coe⟩
 instance [CoeTail β β'] : CoeTail (i//I → β) (i//I → β') := ⟨(CoeTail.coe ∘ ·)⟩
---instance [NatLt j i] [CoeTail (i//I →ₛ β) β'] : CoeTail (i//I →ₛ β) (j//J →ₛ β') := ⟨fun v => letI v' : β' := CoeTail.coe v; let v'' := fun (_ : J) => v'; by exact?⟩
 instance [NatLt j i] [CoeTail (i//I →ₛ β) β'] : CoeTail (i//I →ₛ β) (j//J → β') := ⟨fun v _ => CoeTail.coe v⟩
 instance [NatLt j i] [CoeTail (i//I → β) β'] : CoeTail (i//I → β) (j//J → β') := ⟨fun v _ => CoeTail.coe v⟩
 
