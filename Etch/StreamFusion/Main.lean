@@ -5,7 +5,7 @@ import Etch.StreamFusion.Stream
 import Etch.StreamFusion.Multiply
 import Etch.StreamFusion.Traversals
 
-open Std (RBMap HashMap)
+open Std (RBMap RBSet HashMap)
 open Etch.Verification
 open SStream
 open OfStream ToStream

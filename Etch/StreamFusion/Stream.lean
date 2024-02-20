@@ -175,6 +175,12 @@ variable {ι : Type} [LinearOrder ι] {α : Type u}
 @[inline]
 def map (f : α → β) (s : ι →ₛ α) : ι →ₛ β := { s with value := f ∘ s.value}
 
+@[inline]
+def imap (f: ι → ι') (f' : ι' → ι) (s : ι →ₛ α) : ι' →ₛ α := { s with
+  index := f ∘ s.index
+  seek := fun q i => s.seek q (f' i.1, i.2)
+}
+
 variable [Inhabited ι]
 
 /- Converting data into a SStream -/

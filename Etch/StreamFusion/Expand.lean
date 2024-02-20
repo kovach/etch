@@ -89,20 +89,12 @@ def streamifyFun (S : List (ℕ × Type)) (s : List ℕ) [h : Label s β γ] [Ex
   Expand.expand S ∘ Label.label s (β := γ)
 
 -- todo: maybe replace the {...} notation with `S ⇑ foo(i,j)`
-syntax:max term noWs "{" term,* "}" : term
+syntax:max term noWs "(" term,* ")" : term
 macro_rules
-| `($t{$ss,*}) => `(Label.label [$ss,*] $t)
+| `($t($ss,*)) => `(Label.label [$ss,*] $t)
 
 /-- This instance helps `a{i,j}` notation work even if `a` isn't yet a stream that's labelable. -/
 instance (priority := low) [ToStream α α'] [Label is α' β] : Label is α β := ⟨Label.label is ∘ ToStream.stream⟩
-
-syntax "{" term "|" term noWs "(" term,* ")" "}" : term
-macro_rules
-| `({$S | $t($ss,*) }) => `(streamify $S [$ss,*] $t)
-
---syntax "{" term "|f" term noWs "(" term,* ")" "}" : term
---macro_rules
---| `({$S |f $t($ss,*) }) => `(streamifyFun $S [$ss,*] $t)
 
 instance [OfStream (ι →ₛ α) β] : OfStream (i//ι →ₛ α) β := ⟨fun x : ι →ₛ α => OfStream.eval x⟩
 
