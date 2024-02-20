@@ -89,9 +89,12 @@ def streamifyFun (S : List (ℕ × Type)) (s : List ℕ) [h : Label s β γ] [Ex
   Expand.expand S ∘ Label.label s (β := γ)
 
 -- todo: maybe replace the {...} notation with `S ⇑ foo(i,j)`
---syntax term noWs "(" term,* ")" : term
---macro_rules
---| `($t($ss,*)) => `(Label.label [$ss,*] $t)
+syntax:max term noWs "{" term,* "}" : term
+macro_rules
+| `($t{$ss,*}) => `(Label.label [$ss,*] $t)
+
+/-- This instance helps `a{i,j}` notation work even if `a` isn't yet a stream that's labelable. -/
+instance (priority := low) [ToStream α α'] [Label is α' β] : Label is α β := ⟨Label.label is ∘ ToStream.stream⟩
 
 syntax "{" term "|" term noWs "(" term,* ")" "}" : term
 macro_rules
@@ -102,6 +105,13 @@ macro_rules
 --| `({$S |f $t($ss,*) }) => `(streamifyFun $S [$ss,*] $t)
 
 instance [OfStream (ι →ₛ α) β] : OfStream (i//ι →ₛ α) β := ⟨fun x : ι →ₛ α => OfStream.eval x⟩
+
+instance (priority := low) : CoeTail β (i//I → β) := ⟨fun v _ => v⟩
+instance [CoeTail β β'] : CoeTail (i//I →ₛ β) (i//I →ₛ β') := ⟨map CoeTail.coe⟩
+instance [CoeTail β β'] : CoeTail (i//I → β) (i//I → β') := ⟨(CoeTail.coe ∘ ·)⟩
+--instance [NatLt j i] [CoeTail (i//I →ₛ β) β'] : CoeTail (i//I →ₛ β) (j//J →ₛ β') := ⟨fun v => letI v' : β' := CoeTail.coe v; let v'' := fun (_ : J) => v'; by exact?⟩
+instance [NatLt j i] [CoeTail (i//I →ₛ β) β'] : CoeTail (i//I →ₛ β) (j//J → β') := ⟨fun v _ => CoeTail.coe v⟩
+instance [NatLt j i] [CoeTail (i//I → β) β'] : CoeTail (i//I → β) (j//J → β') := ⟨fun v _ => CoeTail.coe v⟩
 
 end Etch.Verification.SStream
 

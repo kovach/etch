@@ -15,6 +15,15 @@ abbrev j : ℕ := 1
 abbrev k : ℕ := 2
 abbrev l : ℕ := 3
 
+/-
+Some coercion examples
+-/
+
+@[inline]
+def mul_fns [ToStream t (I → J → α)] [ToStream t' (J → K → α)] (a : t) (b : t')
+    : i//I → j//J → k//K → α :=
+  a{i,j} * b{j,k}
+
 /- Some examples of `{ shape | collection(indices) }` notation
 
   notes:
