@@ -35,8 +35,6 @@ def matMul_ijjk [ToStream t (I →ₛ J →ₛ α)] [ToStream t' (J →ₛ K →
   let m  := m1 * m2
   Σ j, m
 
-#synth  OfStream (K →ₛ α) ((ArrayMap K α))
-
 -- todo: investigate these definitions and other approaches
 @[inline] def ABC
   [ToStream t1 (I →ₛ J →ₛ α)]
@@ -70,7 +68,7 @@ def matMul_ijjk [ToStream t (I →ₛ J →ₛ α)] [ToStream t' (J →ₛ K →
 @[inline]
 def matMul_ikjk (a : sorry) (b : sorry) : I →ₛ J →ₛ Unit →ₛ α := sorry
 
-def matMul1 (num : Nat) : IO Unit := do
+def matMul1 (num : ℕ) : IO Unit := do
   let m := mat' num
   let x := matMul_ijjk m m
   time "matrix 1'" fun _ =>
@@ -78,7 +76,7 @@ def matMul1 (num : Nat) : IO Unit := do
       let x : HMap ℕ (HMap ℕ ℕ) := eval x
       IO.println s!"{x.1.size}"
 
-def matMul1' (num : Nat) : IO Unit := do
+def matMul1' (num : ℕ) : IO Unit := do
   let m := mat' num
   let x := Σ i, Σ k, matMul_ijjk m m
   time "matrix 1'" fun _ =>
@@ -86,14 +84,14 @@ def matMul1' (num : Nat) : IO Unit := do
       let x : ℕ := eval x
       IO.println s!"{x}"
 
-def testABC (num : Nat) : IO Unit := do
+def testABC (num : ℕ) : IO Unit := do
   let m := mat' num
   time "matrix abc" fun _ =>
     for _ in [0:10] do
       let x : ArrayMap ℕ (HMap ℕ ℕ) := eval $ ABC m m m
       IO.println s!"{x.1.size}"
 
-def testABC' (num : Nat) : IO Unit := do
+def testABC' (num : ℕ) : IO Unit := do
   let m := mat' num
   time "matrix abc'" fun _ =>
     for _ in [0:10] do
@@ -101,7 +99,7 @@ def testABC' (num : Nat) : IO Unit := do
       IO.println s!"{x.1.size}"
 
 /- Exercise: add a test that invokes matMul_ikjk, otherwise identical to matMul1 -/
-def matMul2 (num : Nat) : IO Unit := sorry
+def matMul2 (num : ℕ) : IO Unit := sorry
 
 /- Exercise: add a test that invokes vecSum -/
 

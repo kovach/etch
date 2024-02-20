@@ -16,6 +16,7 @@ Authors: Scott Kovach
 -/
 
 import Mathlib.Data.Prod.Lex
+ import Mathlib.Data.String.Basic
 import Init.Data.Array.Basic
 import Std.Data.RBMap
 import Std.Data.HashMap
@@ -55,7 +56,8 @@ abbrev Map a [Ord a] b := RBMap a b Ord.compare
 abbrev ArrayMap a b := Array a × Array b
 abbrev HMap a [BEq a] [Hashable a] b := HashMap a b
 
-instance : EmptyCollection (ArrayMap α β) := ⟨#[], #[]⟩
+-- todo
+instance : Zero (ArrayMap α β) := ⟨Array.mkEmpty 1000000, Array.mkEmpty 1000000⟩
 instance [EmptyCollection α] : Zero α := ⟨{}⟩
 
 class Modifiable (α : outParam Type*) (β : outParam Type*) (m : Type*) where
@@ -69,6 +71,7 @@ instance [Zero β] : Modifiable α β (RBMap α β h) where
 
 namespace Etch.Verification
 
+-- add `next` as field with default implementation?
 structure Stream (ι : Type) (α : Type u) where
   σ : Type
   valid : σ → Bool
@@ -95,18 +98,18 @@ def contract (s : Stream ι α) : Stream Unit α where
   seek q := fun ((), r) => s.seek q (s.index q, r)
   value := s.value
 
+-- todo: why ready
+
 -- For some reason, this definition *definitely* needs to be macro_inline for performance.
--- Everything else I have checked is safe at @[inline].
+--   todo: explain why
+-- Most everything else I have checked is safe at @[inline].
 @[macro_inline]
 def next (s : Stream ι α) (q : s.σ) (h : s.valid q = true) (ready : Bool) : s.σ :=
   let q := ⟨q, h⟩; s.seek q (s.index q, ready)
 
--- todo: use Bounded class, remove partial
-
 /- (Important def) Converting a Stream into data
    This definition follows the same inline/specialize pattern as Array.forInUnsafe
 -/
-
 -- todo: evaluate this vs other version
 @[inline] partial def fold (f : β → ι → α → β) (s : Stream ι α) (q : s.σ) (acc : β) : β :=
   let rec @[specialize] go f
@@ -117,8 +120,9 @@ def next (s : Stream ι α) (q : s.σ) (h : s.valid q = true) (ready : Bool) : s
     if hv : valid q then
       let i := index q hv
       let hr := ready q hv
-      let q' := next q hv hr
+      -- extern id hack?
       let acc' := if hr : hr then f acc i (value q hv hr) else acc
+      let q' := next q hv hr
       go f valid ready index value next acc' q'
     else acc
 
@@ -142,6 +146,8 @@ def next (s : Stream ι α) (q : s.σ) (h : s.valid q = true) (ready : Bool) : s
 end Stream
 
 def Vec α n := { x : Array α // x.size = n }
+instance [Repr α] : Repr (Vec α n) := ⟨fun x n => Repr.reprPrec x.val n⟩
+
 def Vec.map (v : Vec α n) (f : α → β) : Vec β n := ⟨v.1.map f, by have := Array.size_map f v.1; simp [*, v.2]⟩
 def Vec.push (l : Vec α n) (v : α) : Vec α (n+1) :=
   ⟨l.1.push v, by have := Array.size_push l.1 v; simp only [this, l.2]⟩
@@ -149,6 +155,7 @@ def Vec.push (l : Vec α n) (v : α) : Vec α (n+1) :=
 structure Level (ι : Type) (α : Type u) (n : ℕ) where
   is : Vec ι n
   vs : Vec α n
+deriving Repr
 
 def Level.push (l : Level ι α n) (i : ι) (v : α) : Level ι α (n+1) :=
   ⟨l.is.push i, l.vs.push v⟩
@@ -163,10 +170,7 @@ class ToStream (α : Type u) (β : outParam $ Type v) where
 
 namespace SStream
 
-variable {ι : Type}
-[LE ι] [DecidableRel (. ≤ . : ι → ι → Prop)]
-[LT ι] [DecidableRel (. < . : ι → ι → Prop)]
-{α : Type u}
+variable {ι : Type} [LinearOrder ι] {α : Type u}
 
 @[inline]
 def map (f : α → β) (s : ι →ₛ α) : ι →ₛ β := { s with value := f ∘ s.value}
@@ -174,12 +178,13 @@ def map (f : α → β) (s : ι →ₛ α) : ι →ₛ β := { s with value := f
 variable [Inhabited ι]
 
 /- Converting data into a SStream -/
+@[inline]
 def zero : ι →ₛ α where
   σ := Unit; q := (); valid _ := false; ready _ := false;
   index _ := default; value := fun ⟨_, h⟩ => nomatch h;
   seek _ _ := ();
 
-instance : Zero (ι →ₛ α) := ⟨.zero⟩
+instance : Zero (ι →ₛ α) := ⟨zero⟩
 
 -- deprecated
 @[inline]
@@ -192,6 +197,21 @@ def ofArray (l : Array (ι × α)) : ι →ₛ α where
   value := fun ⟨q, _⟩ => (l[q.1]'(by simpa using q.2)).2
   seek q := fun ⟨j, r⟩ =>
     let i := (l[q.1]'(by simpa using q.2)).fst
+    if r then if i ≤ j then q+1 else q
+         else if i < j then q+1 else q
+
+abbrev ArraySet ι := Array ι
+
+@[inline]
+def ofBoolArray (is : ArraySet ι) : ι →ₛ Bool where
+  σ := ℕ
+  q := 0
+  valid q := q < is.size
+  ready _ := true
+  index q := (is[q.1]'(by simpa using q.2))
+  value _ := true
+  seek q := fun ⟨j, r⟩ =>
+    let i := (is[q.1]'(by simpa using q.2))
     if r then if i ≤ j then q+1 else q
          else if i < j then q+1 else q
 
@@ -239,6 +259,9 @@ instance {α β} [ToStream α β] : ToStream  (Level ι α n) (ι →ₛ β) whe
 instance {α β} [ToStream α β] : ToStream  (ArrayMap ι α) (ι →ₛ β) where
   stream := map ToStream.stream ∘ (fun (is, vs) => ofArrayPair is vs sorry)
 
+instance : ToStream  (ArraySet ι) (ι →ₛ Bool) where
+  stream := map ToStream.stream ∘ ofBoolArray
+
 --instance : ToStream  (Vec ι n × FloatVec n) (SStream ι Float) where
 --  stream := fun (a, b) => ofFloatArray a.1 b.1 (a.property.trans b.property.symm)
 
@@ -273,6 +296,7 @@ instance [OfStream α β] [Modifiable ι β m] : OfStream (ι →ₛ α) m where
 
 -- `toArrayMap` doesn't support update of previous indices; assumes fully formed value is
 --   inserted at each step (so pass 0 to recursive eval)
+-- todo: pass accurate capacity estimate?
 instance [OfStream α β] [Zero β]: OfStream (ι →ₛ α) (ArrayMap ι β) where
   eval := toArrayMap ∘ map (eval . 0)
 
@@ -296,10 +320,61 @@ end
 def memo (β) [Zero β] [OfStream α β] [ToStream β γ] : α → γ :=
   ToStream.stream ∘ (OfStream.eval . (0 : β))
 
+-- indicator for indices ≥ t
+def ge (t : ι) : ι →ₛ Bool where
+  σ := ι
+  q := t
+  valid _ := true
+  ready _q := true -- may need to be t ≤ _q
+  index q := q.val
+  value _ := true
+  seek _ i := i.1 -- may need check
+
+-- indicator for indices > t
+def gt (t : ι) : ι →ₛ Bool where
+  σ := ι
+  q := t
+  valid _ := true
+  ready q := t < q
+  index q := q.val
+  value _ := true
+  seek _ i := i.1 -- may need check
+
+-- indicator for indices ≤ t
+def le (t : ι) [Bot ι] : ι →ₛ Bool where
+  σ := ι
+  q := ⊥
+  valid q := q ≤ t
+  ready _q := true -- may need to be t ≤ _q
+  index q := q.val
+  value _ := true
+  seek _ i := i.1 -- may need check
+
+-- indicator for indices < t
+def lt (t : ι) [Bot ι] : ι →ₛ Bool where
+  σ := ι
+  q := ⊥
+  valid q := q < t
+  ready _q := true -- may need to be t ≤ _q
+  index q := q.val
+  value _ := true
+  seek _ i := i.1 -- may need check
+
+-- indicator for index = t
+def singleton (t : ι) [DecidableEq ι] : ι →ₛ Bool where
+  σ := Bool
+  q := true
+  valid q := q
+  ready _q := true -- may need to be t ≤ _q
+  index _ := t
+  value _ := true
+  seek q i := if i.2 then (if t ≤ i.1 then false else q) else (if t < i.1 then false else q)
+
 end SStream
 
 end Etch.Verification
 
+-- todo: switch back to linear order
 @[inline]
 instance : LE String where
   le a b := match Ord.compare a b with | .gt => false | _ => true

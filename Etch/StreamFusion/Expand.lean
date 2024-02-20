@@ -6,7 +6,7 @@ namespace Etch.Verification.SStream
 def LabeledIndex (n : Label) (ι : Type) := ι
 def LabeledIndex.mk (n : Label) (i : ι) : LabeledIndex n ι := i
 
--- todo: choose a nicer notation
+-- todo: decide on a nicer notation
 notation n:30 "~" i:30 => LabeledIndex n i
 notation n:30 "//" i:30 => LabeledIndex n i
 --notation n:30 "/" i:30 => LabeledIndex n i
@@ -20,6 +20,20 @@ class Label (σ : List ℕ) (α : Type*) (β : outParam Type*) where
 instance [Scalar α]     : Label [] α α := ⟨id⟩
 instance [Label is α β] : Label (i::is) (ι →ₛ α) (i//ι →ₛ β) := ⟨map (Label.label is)⟩
 instance [Label is α β] : Label (i::is) (ι → α) (i//ι → β) := ⟨(Label.label is ∘ .)⟩
+
+def idx (x : α) (shape : List ℕ) [Label shape α β] := Label.label shape x
+
+-- maybe we can get `Coe` and binop to cast all subexpressions to the right shape? see:
+--   abbrev LS' (_is : List (ℕ×Type)) (β : Type*) := β
+--   instance [Expand is α β] : Coe α (LS' is β) := ⟨Expand.expand is⟩
+-- but, requires: class Expand (σ : List (ℕ × Type)) (α : outParam Type*) (β : Type*)
+-- which breaks it; there is ambiguity between expEqFun and expLt
+--   (and same change to label)
+-- ideas?
+
+-- may also want:
+--  abbrev LS (_is : List ℕ) (β : Type*) := β
+--  instance coeLS [Label is α β] : Coe α (LS is β) := ⟨Label.label is⟩
 
 class NatLt (m n : ℕ) where proof : m < n
 instance NatLt.one (n : ℕ) : NatLt 0 n.succ := ⟨Nat.succ_pos _⟩
@@ -42,23 +56,42 @@ instance expScalar {ι : Type}   {i : ℕ} [Scalar α]  [Expand σ α β]       
 instance expLt     {ι : Type} {i j : ℕ} [NatLt i j] [Expand σ (j//ι' →ₛ α) β] : Expand ((i,ι) :: σ) (j//ι' →ₛ α) (i//ι → β)   := ⟨fun v _ => Expand.expand σ v⟩
 instance expGt     {ι : Type} {i j : ℕ} [NatLt j i] [Expand ((i,ι) :: σ) α β] : Expand ((i,ι) :: σ) (j//ι' →ₛ α) (j//ι' →ₛ β) := ⟨fun v => map (Expand.expand ((i,ι)::σ)) v⟩
 instance expEq     {ι : Type}   {i : ℕ}             [Expand σ α β]            : Expand ((i,ι) :: σ) (i//ι  →ₛ α) (i//ι →ₛ β)  := ⟨fun v => map (Expand.expand σ) v⟩
+
+instance expLtFun  {ι α β : Type} {i j : ℕ} [NatLt i j] [Expand σ (j//ι' → α) β] : Expand ((i,ι) :: σ) (j//ι' → α) (i//ι → β) := ⟨fun v _ => Expand.expand σ v⟩
+instance expGtFun  {ι : Type} {i j : ℕ} [NatLt j i] [Expand ((i,ι) :: σ) α β] : Expand ((i,ι) :: σ) (j//ι' → α) (j//ι' → β)   := ⟨fun v => Expand.expand ((i,ι)::σ) ∘ v⟩
 instance expEqFun  {ι : Type}   {i : ℕ}             [Expand σ α β]            : Expand ((i,ι) :: σ) (i//ι  → α)  (i//ι → β)   := ⟨fun v => (Expand.expand σ) ∘ v⟩
+
 
 instance [LinearOrder ι] [HMul α β γ] : HMul (i//ι →ₛ α) (i//ι →ₛ β) (i//ι →ₛ γ) := ⟨mul⟩
 instance [HMul α β γ] : HMul (i//ι → α) (i//ι →ₛ β) (i//ι →ₛ γ) where
   hMul f x := { x with value := fun q => f (x.index q) * x.value q}
 instance [HMul α β γ] : HMul (i//ι →ₛ α) (i//ι → β) (i//ι →ₛ γ) where
   hMul x f := { x with value := fun q => x.value q * f (x.index q) }
+instance [HMul α β γ] : HMul (i//ι → α) (i//ι → β) (i//ι → γ) where
+  hMul f g x := f x * g x
 
 notation s:80 "⇑" x:80 => Expand.expand s x
 
 @[inline]
 def streamify (S : List (ℕ × Type)) (s : List ℕ) [ToStream α β] [Label s β γ] [Expand S γ δ] : α → δ :=
-  Expand.expand S ∘ Label.label s ∘ ToStream.stream
+  Expand.expand S ∘ Label.label s (β := γ) ∘ ToStream.stream
+
+@[inline]
+def streamifyFun (S : List (ℕ × Type)) (s : List ℕ) [h : Label s β γ] [Expand S γ δ] : β → δ :=
+  Expand.expand S ∘ Label.label s (β := γ)
+
+-- todo: maybe replace the {...} notation with `S ⇑ foo(i,j)`
+--syntax term noWs "(" term,* ")" : term
+--macro_rules
+--| `($t($ss,*)) => `(Label.label [$ss,*] $t)
 
 syntax "{" term "|" term noWs "(" term,* ")" "}" : term
 macro_rules
 | `({$S | $t($ss,*) }) => `(streamify $S [$ss,*] $t)
+
+--syntax "{" term "|f" term noWs "(" term,* ")" "}" : term
+--macro_rules
+--| `({$S |f $t($ss,*) }) => `(streamifyFun $S [$ss,*] $t)
 
 instance [OfStream (ι →ₛ α) β] : OfStream (i//ι →ₛ α) β := ⟨fun x : ι →ₛ α => OfStream.eval x⟩
 
