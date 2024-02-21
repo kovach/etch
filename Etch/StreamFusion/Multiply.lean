@@ -5,7 +5,7 @@ namespace Etch.Verification.Stream
 -- todo: experiment in simplifying control flow for `fold`
 @[inline] def bothand (x y : Bool) : Bool :=
   x.toNat.land y.toNat = 1
-@[simp] theorem bothand_spec : bothand x y = and x y := sorry
+@[simp] theorem bothand_spec : ∀ x y, bothand x y = and x y := by decide
 
 infixl:35 " &' " => and
 
