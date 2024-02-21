@@ -22,7 +22,7 @@ def emplyeesOfSmallCompanies
   let leFifty := SStream.le 50
   -- convert `Bool` entries to 0/1
   let company := Bool.toNat $[cstate] company(cid, cname, cstate)
-  -- count employeeds per company
+  -- count employees per company
   let counts : ArrayMap CID ℕ := eval $ Σ eid, ename, cname, cstate: employee(eid,ename,cid) * company
   -- reshape to CID →ₛ Nat →ₛ Bool
   let counts := (stream counts).map singleton
