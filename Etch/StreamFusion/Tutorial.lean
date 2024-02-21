@@ -26,10 +26,15 @@ abbrev l : ℕ := 3
 Some coercion examples
 -/
 
-@[inline]
 def mul_fns [ToStream t (I → J → α)] [ToStream t' (J → K → α)] (a : t) (b : t')
     : i//I → j//J → k//K → α :=
   a(i,j) * b(j,k)
+
+def mul_fns' [ToStream t (I → J → α)] [ToStream t' (J → K → α)] (a : t) (b : t') :=
+  a(i,j) * b(j,k)
+
+-- Notice, no Broadcast helper class, it was unfolded
+#print mul_fns
 
 /- Some examples of notation
 

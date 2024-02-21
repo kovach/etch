@@ -1,7 +1,9 @@
 import Etch.StreamFusion.Stream
 import Etch.StreamFusion.Multiply
+import Etch.Util.ExpressionTree
 
 namespace Etch.Verification.SStream
+open Etch.ExpressionTree
 
 def LabeledIndex (n : Nat) (ι : Type) := ι
 def LabeledIndex.mk (n : Nat) (i : ι) : LabeledIndex n ι := i
@@ -14,6 +16,9 @@ notation n:30 "//" i:30 => LabeledIndex n i
 
 @[inline] instance [LinearOrder ι] : LinearOrder (i//ι) := by unfold LabeledIndex; exact inferInstance
 @[inline] instance [Inhabited ι] : Inhabited (i//ι) := by unfold LabeledIndex; exact inferInstance
+
+instance : TypeHasIndex (i//ι →ₛ β) i ι β where
+instance : TypeHasIndex (i//ι → β) i ι β where
 
 class Label (σ : List ℕ) (α : Type*) (β : outParam Type*) where
   label : α → β
@@ -57,6 +62,9 @@ instance expLtFun  {ι α β : Type} {i j : ℕ} [NatLt i j] [Expand σ (j//ι' 
 instance expGtFun  {ι : Type} {i j : ℕ} [NatLt j i] [Expand ((i,ι) :: σ) α β] : Expand ((i,ι) :: σ) (j//ι' → α) (j//ι' → β)   := ⟨fun v => Expand.expand ((i,ι)::σ) ∘ v⟩
 instance expEqFun  {ι : Type}   {i : ℕ}             [Expand σ α β]            : Expand ((i,ι) :: σ) (i//ι  → α)  (i//ι → β)   := ⟨fun v => (Expand.expand σ) ∘ v⟩
 
+-- Ignoring `base` for now. It should be used for a coercion.
+instance [Expand σ α β] : EnsureBroadcast σ base α β where
+  broadcast := Expand.expand σ
 
 instance [LinearOrder ι] [HMul α β γ] : HMul (i//ι →ₛ α) (i//ι →ₛ β) (i//ι →ₛ γ) := ⟨mul⟩
 instance [HMul α β γ] : HMul (i//ι → α) (i//ι →ₛ β) (i//ι →ₛ γ) where
@@ -99,11 +107,15 @@ instance [OfStream (ι →ₛ α) β] : OfStream (i//ι →ₛ α) β := ⟨fun 
 --  abbrev LS (_is : List ℕ) (β : Type*) := β
 --  instance coeLS [Label is α β] : Coe α (LS is β) := ⟨Label.label is⟩
 
-instance (priority := low) : CoeTail β (i//I → β) := ⟨fun v _ => v⟩
-instance [CoeTail β β'] : CoeTail (i//I →ₛ β) (i//I →ₛ β') := ⟨map CoeTail.coe⟩
-instance [CoeTail β β'] : CoeTail (i//I → β) (i//I → β') := ⟨(CoeTail.coe ∘ ·)⟩
-instance [NatLt j i] [CoeTail (i//I →ₛ β) β'] : CoeTail (i//I →ₛ β) (j//J → β') := ⟨fun v _ => CoeTail.coe v⟩
-instance [NatLt j i] [CoeTail (i//I → β) β'] : CoeTail (i//I → β) (j//J → β') := ⟨fun v _ => CoeTail.coe v⟩
+
+-- Note(kmill): superceded by ExpressionTree
+-- instance (priority := low) : CoeTail β (i//I → β) := ⟨fun v _ => v⟩
+-- instance [CoeTail β β'] : CoeTail (i//I →ₛ β) (i//I →ₛ β') := ⟨map CoeTail.coe⟩
+-- instance [CoeTail β β'] : CoeTail (i//I → β) (i//I → β') := ⟨(CoeTail.coe ∘ ·)⟩
+-- instance [NatLt j i] [CoeTail (i//I →ₛ β) β'] : CoeTail (i//I →ₛ β) (j//J → β') := ⟨fun v _ => CoeTail.coe v⟩
+-- instance [NatLt j i] [CoeTail (i//I → β) β'] : CoeTail (i//I → β) (j//J → β') := ⟨fun v _ => CoeTail.coe v⟩
+
+
 
 -- Note(kmill): it's not clear how to write the HMul instances...
 
