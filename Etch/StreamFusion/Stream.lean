@@ -164,6 +164,7 @@ def FloatVec n := { x : FloatArray // x.size = n }
 
 class OfStream (α : Type u) (β : Type v) where
   eval : α → β → β
+  -- todo: ⟦ a ⟧ => eval a notation?
 
 class ToStream (α : Type u) (β : outParam $ Type v) where
   stream : α → β
@@ -174,6 +175,16 @@ variable {ι : Type} [LinearOrder ι] {α : Type u}
 
 @[inline]
 def map (f : α → β) (s : ι →ₛ α) : ι →ₛ β := { s with value := f ∘ s.value}
+
+instance : Functor (ι →ₛ .) where
+  map := map
+
+@[inline]
+-- requires order preserving bijection
+def imap (f: ι → ι') (f' : ι' → ι) (s : ι →ₛ α) : ι' →ₛ α := { s with
+  index := f ∘ s.index
+  seek := fun q i => s.seek q (f' i.1, i.2)
+}
 
 variable [Inhabited ι]
 
@@ -361,7 +372,7 @@ def lt (t : ι) [Bot ι] : ι →ₛ Bool where
   seek _ i := i.1 -- may need check
 
 -- indicator for index = t
-def singleton (t : ι) [DecidableEq ι] : ι →ₛ Bool where
+def singleton (t : ι) : ι →ₛ Bool where
   σ := Bool
   q := true
   valid q := q

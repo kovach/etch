@@ -4,7 +4,14 @@ import Etch.StreamFusion.Stream
 import Etch.StreamFusion.Expand
 import Etch.StreamFusion.TestUtil
 
+import Std.Data.RBMap
+import Std.Data.HashMap
+
+open Std (RBMap RBSet HashMap)
+
 namespace Etch.Verification.SStream
+
+open ToStream
 
 variable {I J K L α β : Type}
 [LinearOrder I] [LinearOrder J] [LinearOrder K] [LinearOrder L]
@@ -15,7 +22,26 @@ abbrev j : ℕ := 1
 abbrev k : ℕ := 2
 abbrev l : ℕ := 3
 
-/- Some examples of `{ shape | collection(indices) }` notation
+/-
+Some coercion examples
+-/
+
+def mul_fns [ToStream t (I → J → α)] [ToStream t' (J → K → α)] (a : t) (b : t')
+    : i~I → j~J → k~K → α :=
+  a(i,j) * b(j,k)
+
+def mul_fns' [ToStream t (I → J → α)] [ToStream t' (J → K → α)] (a : t) (b : t') :=
+  a(i,j) * b(j,k)
+
+section
+--set_option trace.Meta.synthInstance true
+#synth ExpressionTree.EnsureBroadcast [(0, I), (1, J), (2, K)] α (j~J → k~K →ₛ α) _
+end
+
+-- Notice, no Broadcast helper class, it was unfolded
+#print mul_fns'
+
+/- Some examples of notation
 
   notes:
     - a shape is a list of (Nat, Type) pairs
@@ -23,53 +49,38 @@ abbrev l : ℕ := 3
     - indices are index names encoded as natural numbers for now
 -/
 
-@[inline] def vecSum [ToStream t (I →ₛ α)] (v : t)      := Σ i, { [(i,I)] | v(i) }
-@[inline] def matSum [ToStream t (I →ₛ J →ₛ α)] (m : t) := Σ i, Σ j, { [(i,I), (j,J)] | m(i, j) }
+@[inline] def vecSum (v : I →ₛ α) := Σ i: v(i)
+@[inline] def matSum (m : I →ₛ J →ₛ α) (v : J →ₛ α) := Σ i, j: m(i, j) * v(j)
 
 @[inline]
-def matMul_ijjk [ToStream t (I →ₛ J →ₛ α)] [ToStream t' (J →ₛ K →ₛ α)] (a : t) (b : t')
-    : i//I →ₛ Unit →ₛ k//K →ₛ α :=
-  let ijk := [(i,I),(j,J),(k,K)]
-  let m1 := { ijk | a(i,j) }
-  let m2 := { ijk | b(j,k) }
-  let m  := m1 * m2
-  Σ j, m
+def matMul_ijjk (a : I →ₛ J →ₛ α) (b : J →ₛ K →ₛ α) :=
+  Σ j: a(i,j) * b(j,k)
 
 -- todo: investigate these definitions and other approaches
 @[inline] def ABC
-  [ToStream t1 (I →ₛ J →ₛ α)]
-  [ToStream t2 (J →ₛ K →ₛ α)]
-  [ToStream t3 (K →ₛ L →ₛ α)]
-   (a : t1) (b : t2) (c : t3) : i//I →ₛ Unit →ₛ l//L →ₛ α :=
-  let S1 := [(i,I),(j,J),(k,K)]
-  let S2 := [(i,I),(k,K),(l,L)]
-  let m1 := { S1 | a(i,j) }
-  let m2 := { S1 | b(j,k) }
-  let m3 := { S2 | c(k,l) }
-  let x : ArrayMap I (ArrayMap K α) := eval $ Σ j, m1 * m2
-  let m  := {S2| x(i,k)} * m3
-  Σ k, m
+  (a : I →ₛ J →ₛ α)
+  (b : J →ₛ K →ₛ α)
+  (c : K →ₛ L →ₛ α)
+   : i~I →ₛ Unit →ₛ l~L →ₛ α :=
+  let m1 :=  a(i,j)
+  let m2 :=  b(j,k)
+  let m3 :=  c(k,l)
+  let x : ArrayMap I (ArrayMap K α) := eval $ Σ j: m1 * m2
+  let m  := (stream x)(i,k) * m3
+  Σ k: m
 
-@[inline] def ABC' [ToStream t1 (I →ₛ J →ₛ α)] [ToStream t2 (J →ₛ K →ₛ α)] [ToStream t3 (K →ₛ L →ₛ α)]
-   (a : t1) (b : t2) (c : t3) : i//I →ₛ Unit →ₛ l//L →ₛ α :=
-  let jk := [(j,J),(k,K)]
+@[inline] def ABC' (a : I →ₛ J →ₛ α) (b : J →ₛ K →ₛ α) (c : K →ₛ L →ₛ α) :=
   let ijk := [(i,I),(j,J),(k,K)]
   let ikl := [(i,I),(k,K),(l,L)]
-  let m1 := { ijk | a(i,j) }
-  let m3 := {ikl| c(k,l) }
-  let m : i//I →ₛ k//K →ₛ α := m1.map fun (row : j//J →ₛ k//K → α) =>
-             memo (ArrayMap K α) (Σ j: row * { jk | b(j,k) })
+  let m1 := ijk ⇑ a(i,j)
+  let m3 := ikl ⇑ c(k,l)
+  let m : i~I →ₛ k~K →ₛ α := m1.map fun (row : j~J →ₛ k~K → α) =>
+             memo (ArrayMap K α) (Σ j: row * b(j,k))
   let m  := ikl ⇑ m * m3
-  Σ k, m
-
-/- Exercise: write out the types for a and b and fill in the body;
-   It should compute a(i,k) * b(j,k) and mirror the definition of matMul_ijjk
--/
-@[inline]
-def matMul_ikjk (a : sorry) (b : sorry) : I →ₛ J →ₛ Unit →ₛ α := sorry
+  Σ k: m
 
 def matMul1 (num : ℕ) : IO Unit := do
-  let m := mat' num
+  let m := stream $ mat' num
   let x := matMul_ijjk m m
   time "matrix 1'" fun _ =>
     for _ in [0:10] do
@@ -77,22 +88,22 @@ def matMul1 (num : ℕ) : IO Unit := do
       IO.println s!"{x.1.size}"
 
 def matMul1' (num : ℕ) : IO Unit := do
-  let m := mat' num
-  let x := Σ i, Σ k, matMul_ijjk m m
+  let m := stream $ mat' num
+  let x := Σ i, k: matMul_ijjk m m
   time "matrix 1'" fun _ =>
     for _ in [0:10] do
       let x : ℕ := eval x
       IO.println s!"{x}"
 
 def testABC (num : ℕ) : IO Unit := do
-  let m := mat' num
+  let m := stream $ mat' num
   time "matrix abc" fun _ =>
     for _ in [0:10] do
       let x : ArrayMap ℕ (HMap ℕ ℕ) := eval $ ABC m m m
       IO.println s!"{x.1.size}"
 
 def testABC' (num : ℕ) : IO Unit := do
-  let m := mat' num
+  let m := stream $ mat' num
   time "matrix abc'" fun _ =>
     for _ in [0:10] do
       let x : ArrayMap ℕ (HMap ℕ ℕ) := eval $ ABC' m m m
@@ -111,5 +122,27 @@ def _root_.main (args : List String) : IO Unit := do
   --matMul1' num
   testABC num
   testABC' num
+
+open ToStream
+
+instance [Ord ι] : ToStream (RBSet ι Ord.compare) (ι →ₛ Bool) := ⟨sorry⟩
+instance [Ord ι] : ToStream (RBMap ι α Ord.compare) (ι →ₛ α) := ⟨sorry⟩
+
+variable
+  (locations : RBSet String Ord.compare)
+  (predicate : String → Bool)
+     (counts : RBMap String Nat Ord.compare)
+
+example : Nat := Id.run $ do
+    let mut result := 0
+    for key in locations do
+      if predicate key then
+        result ← result + counts.findD ("prefix_" ++ key) 0
+    pure result
+
+example : Nat := eval $
+  let locations := (imap ("prefix_" ++ .) sorry (stream locations))(i)
+  let counts := (stream counts)(i)
+  Σ i: predicate(i) * locations * counts
 
 end Etch.Verification.SStream
