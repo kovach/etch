@@ -3,6 +3,8 @@ import Etch.StreamFusion.Stream
 namespace Etch.Verification.Stream
 
 -- todo: experiment in simplifying control flow for `fold`
+-- Note: you can change how a particular function gets compiled using @[csimp] I think
+-- we should try that
 @[inline] def bothand (x y : Bool) : Bool :=
   x.toNat.land y.toNat = 1
 @[simp] theorem bothand_spec : ∀ x y, bothand x y = and x y := by decide
