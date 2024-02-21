@@ -195,7 +195,7 @@ macro_rules
         let delabName := Lean.mkIdent <| idx.getId ++ `delab
         let i := Lean.quote (i : Nat)
         `(abbrev $idx : Nat := $i
-          @[delab $delabName] def $delabName := delabLabeledIndexFor $i ``$idxName
+          --@[delab $delabName] def $delabName := delabLabeledIndexFor $i ``$idxName
           abbrev $id := $ty)
       | _ => Macro.throwUnsupported
     return Lean.mkNullNode cmds

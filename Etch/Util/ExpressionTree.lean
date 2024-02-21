@@ -27,30 +27,35 @@ def _root_.Lean.MVarId.safeAssign (m : MVarId) (v : Expr) : MetaM Unit := do
     throwError "not defeq"
   m.assign v
 
+structure IndexData where
+  iVal : Nat
+  i : Expr
+  type : Expr
+  deriving Inhabited
+
 /--
 Takes a type and uses a `TypeHasIndex` instance to extract `i`, `I`, and `β` in `i//I → β` or analogues.
 If no match (or can't reduce `i` to a natural number literal), fails.
 -/
-def extractTypeIndex (ty : Expr) : MetaM (Nat × Expr × Expr) := do
+def extractTypeIndex (ty : Expr) : MetaM (IndexData × Expr) := do
   let f ← mkConstWithFreshMVarLevels ``TypeHasIndex
   let (#[α, i, I, β], _) ← forallMetaTelescope (← inferType f) | failure
   α.mvarId!.safeAssign ty
   discard <| synthInstance (mkAppN f #[α, i, I, β])
-  let i ← whnf i
-  let some i := i.natLit? | throwError "could not reduce i{indentD i}"
-  return (i, ← instantiateMVars I, ← instantiateMVars β)
+  let some iVal := (← whnf i).natLit? | throwError "could not reduce i{indentD i}"
+  return ({iVal := iVal, i := ← instantiateMVars i, type := ← instantiateMVars I}, ← instantiateMVars β)
 
 /--
 Takes a type and returns the recursively extracted indices using `extractTypeIndex`.
 -/
-partial def extractTypeIndices (ty : Expr) : MetaM (List (Nat × Expr) × Expr) := do
-  let rec go ty (acc : Array (Nat × Expr)) := do
-    let some (i, I, ty') ← observing? (extractTypeIndex ty) | return (acc, ty)
-    go ty' (acc.push (i, I))
+partial def extractTypeIndices (ty : Expr) : MetaM (List IndexData × Expr) := do
+  let rec go ty (acc : Array IndexData) := do
+    let some (data, ty') ← observing? (extractTypeIndex ty) | return (acc, ty)
+    go ty' (acc.push data)
   let (indices, ty') ← go ty #[]
   for i in [0:indices.size - 1] do
-    unless indices[i]!.1 < indices[i+1]!.1 do
-      logError m!"Indices out of order: {indices}"
+    unless indices[i]!.iVal < indices[i+1]!.iVal do
+      logError m!"Indices out of order:{indentD ty}"
       return ([], ty)
   return (indices.toList, ty')
 
@@ -70,17 +75,17 @@ instance : TypeHasIndex (label i α → β) i α β where
 Merges index lists.
 Does not look at types. Just takes types from first list.
 -/
-partial def mergeTypeIndices (indices1 indices2 : List (Nat × Expr)) : List (Nat × Expr) :=
+partial def mergeTypeIndices (indices1 indices2 : List IndexData) : List IndexData :=
   match indices1, indices2 with
   | [], _ => indices2
   | _, [] => indices1
-  | (i, tyi) :: indices1', (j, tyj) :: indices2' =>
-    match compare i j with
-    | .lt => (i, tyi) :: mergeTypeIndices indices1' indices2
-    | .gt => (j, tyj) :: mergeTypeIndices indices1 indices2'
-    | .eq => (i, tyi) :: mergeTypeIndices indices1' indices2'
+  | d1 :: indices1', d2 :: indices2' =>
+    match compare d1.iVal d2.iVal with
+    | .lt => d1 :: mergeTypeIndices indices1' indices2
+    | .gt => d2 :: mergeTypeIndices indices1 indices2'
+    | .eq => d1 :: mergeTypeIndices indices1' indices2'
 
-def mkEnsureBroadcast (indices : List (Nat × Expr)) (base? : Option Expr) (e : Expr) : TermElabM Expr := do
+def mkEnsureBroadcast (indices : List IndexData) (base? : Option Expr) (e : Expr) : TermElabM Expr := do
   if indices.isEmpty then
     if let some base := base? then
       if ← isDefEq base (← inferType e) then
@@ -92,9 +97,9 @@ def mkEnsureBroadcast (indices : List (Nat × Expr)) (base? : Option Expr) (e : 
   else
     -- Note(kmill) This does not handle coercion as well as it could, since it's not deferring
     -- finding a coercion if there are metavariables
-    let sort ← inferType indices.head!.2
+    let sort ← inferType indices.head!.type
     let listTy ← mkAppM ``Prod #[.const ``Nat [], sort]
-    let list ← mkListLit listTy <| ← indices.mapM fun (i, ty) => mkAppM ``Prod.mk #[toExpr i, ty]
+    let list ← mkListLit listTy <| ← indices.mapM fun data => mkAppOptM ``Prod.mk #[Expr.const ``Nat [], sort, data.i, data.type]
     let e ← Term.elabAppArgs (explicit := false) (ellipsis := false) (expectedType? := none)
               (← mkConstWithFreshMVarLevels ``EnsureBroadcast.broadcast)
               #[]
@@ -271,7 +276,7 @@ private def hasCoe (fromType toType : Expr) : TermElabM Bool := do
     return false
 
 private structure AnalyzeResult where
-  indices         : List (Nat × Expr) := [] -- kmill
+  indices         : List IndexData := [] -- kmill
   max?            : Option Expr := none
   hasUncomparable : Bool := false -- `true` if there are two types `α` and `β` where we don't have coercions in any direction.
 
@@ -413,7 +418,7 @@ mutual
 
     Remark: if `hasHeterogeneousDefaultInstances` implementation is not good enough we should refine it in the future.
   -/
-  private partial def applyCoe (t : Tree) (indices : List (Nat × Expr)) (maxType? : Option Expr) (isPred : Bool) : TermElabM Tree := do
+  private partial def applyCoe (t : Tree) (indices : List IndexData) (maxType? : Option Expr) (isPred : Bool) : TermElabM Tree := do
     go t none false isPred
   where
     go (t : Tree) (f? : Option Expr) (lhs : Bool) (isPred : Bool) : TermElabM Tree := do
@@ -442,7 +447,7 @@ mutual
         return .unop ref f (← go arg none false false)
       | .term ref trees e =>
         let (indices', type) ← extractTypeIndices (← instantiateMVars (← inferType e))
-        trace[Elab.binop] "visiting {e}, indices' = {indices'} : {type} =?= {maxType?}"
+        trace[Elab.binop] "visiting {e} : {type} =?= {maxType?}"
         if isUnknown type then
           if let some maxType := maxType? then
             if let some f := f? then
@@ -457,7 +462,7 @@ mutual
               return t
           else
             return t
-        trace[Elab.binop] "added coercion: {e}, indices = {indices} : {type} => {maxType?}"
+        trace[Elab.binop] "added coercion: {e}: {type} => {maxType?}"
         withRef ref <| return .term ref trees (← mkEnsureBroadcast indices maxType? e)
       | .macroExpansion macroName stx stx' nested =>
         withRef stx <| withPushMacroExpansionStack stx stx' do
