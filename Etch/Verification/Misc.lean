@@ -292,7 +292,7 @@ theorem mk_true_le_mk_false_iff_lt [PartialOrder α] (x y : α) :
     @LE.le (α ×ₗ Bool) _ (x, true) (y, false) ↔ x < y := by simp [le_iff']
 #align prod.lex.mk_tt_le_mk_ff_iff_lt Prod.Lex.mk_true_le_mk_false_iff_lt
 
-theorem mk_min [LinearOrder α] [LinearOrder β] (x : α) (y₁ y₂ : β) :
+@[simp] theorem mk_min [LinearOrder α] [LinearOrder β] (x : α) (y₁ y₂ : β) :
     @min (α ×ₗ β) _ (x, y₁) (x, y₂) = (x, min y₁ y₂) :=
   (@Monotone.map_min _ (α ×ₗ β) _ _ (fun y => (x, y)) y₁ y₂ fun y₁ y₂ => by simp).symm
 #align prod.lex.mk_min Prod.Lex.mk_min
@@ -311,13 +311,6 @@ theorem max_le_min_iff {α : Type _} [LinearOrder α] {x y : α} : max x y ≤ m
 theorem max_eq_min_iff {α : Type _} [LinearOrder α] {x y : α} : min x y = max x y ↔ x = y :=
   ⟨fun h => max_le_min_iff.mp h.symm.le, fun h => by simp [h]⟩
 #align max_eq_min_iff max_eq_min_iff
-
-@[simp]
-theorem Finsupp.mul_single {ι β : Type _} [MulZeroClass β] (i : ι) (x y : β) :
-    Finsupp.single i x * Finsupp.single i y = Finsupp.single i (x * y) := by
-  ext a
-  by_cases i = a <;> simp [*]
-#align finsupp.mul_single Finsupp.mul_single
 
 theorem Finsupp.mul_eq_zero_of_disjoint_support {ι β : Type _} [DecidableEq ι] [MulZeroClass β]
     (f g : ι →₀ β) (h : Disjoint f.support g.support) : f * g = 0 := by
