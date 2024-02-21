@@ -54,7 +54,6 @@ def vecSum (v : I →ₛ α) := Σ i, v(i)
 @[inline]
 def matSum (m : I →ₛ J →ₛ α) := Σ i, Σ j, m(i, j)
 
-#check CoeTail
 @[inline]
 def matMul_ijjk (a : I →ₛ J →ₛ α) (b : J →ₛ K →ₛ α) :=
   let ijk := [(i,I),(j,J),(k,K)]

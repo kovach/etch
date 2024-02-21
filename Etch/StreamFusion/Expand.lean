@@ -52,15 +52,18 @@ notation "Σ " j ": " t => Contract.contract j t
 class Expand (σ : List (ℕ × Type)) (α : Type*) (β : outParam Type*) where
   expand : α → β
 
+section
+variable {α β : Type*}
 instance expBase                                                              : Expand [] α α                                 := ⟨id⟩
 instance expScalar {ι : Type}   {i : ℕ} [Scalar α]  [Expand σ α β]            : Expand ((i,ι) :: σ) α           (i//ι → β)    := ⟨fun v _ => Expand.expand σ v⟩
 instance expLt     {ι : Type} {i j : ℕ} [NatLt i j] [Expand σ (j//ι' →ₛ α) β] : Expand ((i,ι) :: σ) (j//ι' →ₛ α) (i//ι → β)   := ⟨fun v _ => Expand.expand σ v⟩
 instance expGt     {ι : Type} {i j : ℕ} [NatLt j i] [Expand ((i,ι) :: σ) α β] : Expand ((i,ι) :: σ) (j//ι' →ₛ α) (j//ι' →ₛ β) := ⟨fun v => map (Expand.expand ((i,ι)::σ)) v⟩
 instance expEq     {ι : Type}   {i : ℕ}             [Expand σ α β]            : Expand ((i,ι) :: σ) (i//ι  →ₛ α) (i//ι →ₛ β)  := ⟨fun v => map (Expand.expand σ) v⟩
 
-instance expLtFun  {ι α β : Type} {i j : ℕ} [NatLt i j] [Expand σ (j//ι' → α) β] : Expand ((i,ι) :: σ) (j//ι' → α) (i//ι → β) := ⟨fun v _ => Expand.expand σ v⟩
+instance expLtFun  {ι : Type} {i j : ℕ} [NatLt i j] [Expand σ (j//ι' → α) β] : Expand ((i,ι) :: σ) (j//ι' → α) (i//ι → β) := ⟨fun v _ => Expand.expand σ v⟩
 instance expGtFun  {ι : Type} {i j : ℕ} [NatLt j i] [Expand ((i,ι) :: σ) α β] : Expand ((i,ι) :: σ) (j//ι' → α) (j//ι' → β)   := ⟨fun v => Expand.expand ((i,ι)::σ) ∘ v⟩
 instance expEqFun  {ι : Type}   {i : ℕ}             [Expand σ α β]            : Expand ((i,ι) :: σ) (i//ι  → α)  (i//ι → β)   := ⟨fun v => (Expand.expand σ) ∘ v⟩
+end
 
 -- Ignoring `base` for now. It should be used for a coercion.
 instance [Expand σ α β] : EnsureBroadcast σ base α β where
