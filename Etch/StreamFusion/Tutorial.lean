@@ -27,15 +27,15 @@ Some coercion examples
 -/
 
 def mul_fns [ToStream t (I → J → α)] [ToStream t' (J → K → α)] (a : t) (b : t')
-    : i//I → j//J → k//K → α :=
+    : i~I → j~J → k~K → α :=
   a(i,j) * b(j,k)
 
 def mul_fns' [ToStream t (I → J → α)] [ToStream t' (J → K → α)] (a : t) (b : t') :=
   a(i,j) * b(j,k)
 
 section
-set_option trace.Meta.synthInstance true
-#synth ExpressionTree.EnsureBroadcast [(0, I), (1, J), (2, K)] α (j//J → k//K →ₛ α) _
+--set_option trace.Meta.synthInstance true
+#synth ExpressionTree.EnsureBroadcast [(0, I), (1, J), (2, K)] α (j~J → k~K →ₛ α) _
 end
 
 -- Notice, no Broadcast helper class, it was unfolded
@@ -49,49 +49,35 @@ end
     - indices are index names encoded as natural numbers for now
 -/
 
-@[inline]
-def vecSum (v : I →ₛ α) := Σ i, v(i)
-@[inline]
-def matSum (m : I →ₛ J →ₛ α) := Σ i, Σ j, m(i, j)
+@[inline] def vecSum (v : I →ₛ α) := Σ i: v(i)
+@[inline] def matSum (m : I →ₛ J →ₛ α) (v : J →ₛ α) := Σ i, j: m(i, j) * v(j)
 
 @[inline]
 def matMul_ijjk (a : I →ₛ J →ₛ α) (b : J →ₛ K →ₛ α) :=
-  let ijk := [(i,I),(j,J),(k,K)]
-  let m1 := ijk ⇑ a(i,j)
-  let m2 := ijk ⇑ b(j,k)
-  let m  := m1 * m2
-  Σ j, m
+  Σ j: a(i,j) * b(j,k)
 
 -- todo: investigate these definitions and other approaches
 @[inline] def ABC
   (a : I →ₛ J →ₛ α)
   (b : J →ₛ K →ₛ α)
   (c : K →ₛ L →ₛ α)
-   : i//I →ₛ Unit →ₛ l//L →ₛ α :=
-  let ijk := [(i,I),(j,J),(k,K)]
-  let ikl := [(i,I),(k,K),(l,L)]
-  let m1 :=  ijk ⇑ a(i,j)
-  let m2 :=  ijk ⇑ b(j,k)
-  let m3 :=  ikl ⇑ c(k,l)
-  let x : ArrayMap I (ArrayMap K α) := eval $ Σ j, m1 * m2
-  let m  := ikl ⇑ (stream x)(i,k) * m3
-  Σ k, m
+   : i~I →ₛ Unit →ₛ l~L →ₛ α :=
+  let m1 :=  a(i,j)
+  let m2 :=  b(j,k)
+  let m3 :=  c(k,l)
+  let x : ArrayMap I (ArrayMap K α) := eval $ Σ j: m1 * m2
+  let m  := (stream x)(i,k) * m3
+  Σ k: m
 
 @[inline] def ABC' (a : I →ₛ J →ₛ α) (b : J →ₛ K →ₛ α) (c : K →ₛ L →ₛ α) :=
   let ijk := [(i,I),(j,J),(k,K)]
   let ikl := [(i,I),(k,K),(l,L)]
   let m1 := ijk ⇑ a(i,j)
   let m3 := ikl ⇑ c(k,l)
-  let m : i//I →ₛ k//K →ₛ α := m1.map fun (row : j//J →ₛ k//K → α) =>
+  let m : i~I →ₛ k~K →ₛ α := m1.map fun (row : j~J →ₛ k~K → α) =>
              memo (ArrayMap K α) (Σ j: row * b(j,k))
   let m  := ikl ⇑ m * m3
-  Σ k, m
-
-/- Exercise: write out the types for a and b and fill in the body;
-   It should compute a(i,k) * b(j,k) and mirror the definition of matMul_ijjk
--/
-@[inline]
-def matMul_ikjk (a : sorry) (b : sorry) : I →ₛ J →ₛ Unit →ₛ α := sorry
+  Σ k: m
 
 def matMul1 (num : ℕ) : IO Unit := do
   let m := stream $ mat' num
@@ -103,7 +89,7 @@ def matMul1 (num : ℕ) : IO Unit := do
 
 def matMul1' (num : ℕ) : IO Unit := do
   let m := stream $ mat' num
-  let x := Σ i, Σ k, matMul_ijjk m m
+  let x := Σ i, k: matMul_ijjk m m
   time "matrix 1'" fun _ =>
     for _ in [0:10] do
       let x : ℕ := eval x
@@ -157,6 +143,6 @@ example : Nat := Id.run $ do
 example : Nat := eval $
   let locations := (imap ("prefix_" ++ .) sorry (stream locations))(i)
   let counts := (stream counts)(i)
-  Σ i, predicate(i) * locations * counts
+  Σ i: predicate(i) * locations * counts
 
 end Etch.Verification.SStream

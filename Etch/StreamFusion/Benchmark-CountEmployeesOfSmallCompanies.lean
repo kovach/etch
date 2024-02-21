@@ -18,18 +18,21 @@ abbrev CNAME := String  -- Company Name
 abbrev ENUM  := ℕ       -- Number of employees
 abbrev CSTATE := String -- State the company is employed in
 
-@[inline]
-def countEmplyeesOfSmallCompanies
-    (employee : (EID →ₛ ENAME →ₛ CID →ₛ Bool))
-    (company : (CID →ₛ CNAME →ₛ ENUM →ₛ CSTATE →ₛ ℕ))
-    : EID →ₛ ENAME →ₛ Unit →ₛ CNAME →ₛ ENUM →ₛ CSTATE →ₛ ℕ :=
+open ToStream
 
-  let S := [(eid,EID),(ename,ENAME),(cid,CID),(cname,CNAME),(enum,ENUM),(cstate,CSTATE)]
-  let employees :=  S ⇑ employee(eid,ename,cid)
-  let companies :=  S ⇑ company(cid,cname,enum,cstate)
-  let inCal   := S ⇑ (singleton "CA")(cstate)
-  let leFifty := S ⇑ (SStream.le 50)(enum)
-  let result := Σ cid: inCal * leFifty * employees * companies
-  result
+@[inline]
+def emplyeesOfSmallCompanies
+    (employee : (EID →ₛ ENAME →ₛ CID →ₛ Bool))
+    (company  : (CID →ₛ CNAME →ₛ CSTATE →ₛ Bool)) :=
+  let inCal   := singleton "CA"
+  let leFifty := SStream.le 50
+  -- convert `Bool` entries to 0/1
+  let company := Bool.toNat $[cstate] company(cid, cname, cstate)
+  -- count employeeds per company
+  let counts : ArrayMap CID ℕ := eval $ Σ eid, ename, cname, cstate: employee(eid,ename,cid) * company
+  -- reshape to CID →ₛ Nat →ₛ Bool
+  let counts := (stream counts).map singleton
+  -- get result of shape EID →ₛ EName →ₛ Bool
+  Σ cid,enum,cstate: inCal(cstate) * leFifty(enum) * counts(cid, enum) * employee(eid,ename,cid)
 
 end Etch.Verification.SStream
