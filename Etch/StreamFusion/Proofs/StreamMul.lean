@@ -47,107 +47,34 @@ instance Stream.mul.isBounded (a b : Stream ι α) [IsBounded a] [IsBounded b] :
 
 end IndexLemmas
 
-#exit
-
-section IndexLemmas
-
-variable [Mul α]
-
-theorem Stream.mul.ready.index' {a : Stream ι α} {b : Stream ι α} {x y}
-    (h : (a.mul b).ready (x, y)) : a.index' x = b.index' y := by
-  rw [Stream.index'_val h.v₁, Stream.index'_val h.v₂]
-  simpa using h.index
-#align Stream.mul.ready.index' Etch.Verification.Stream.mul.ready.index'
-
-theorem Stream.mul_index' (a b : Stream ι α) (xy : a.σ × b.σ) :
-    (a.mul b).index' xy = max (a.index' xy.1) (b.index' xy.2) := by
-  rcases xy with ⟨x, y⟩
-  rw [Stream.index']
-  simp only [Stream.mul_index, WithTop.coe_max]
-  split_ifs with h
-  · rw [Stream.index'_val h.1, Stream.index'_val h.2]
-  · erw [not_and_or] at h
-    rcases h with h | h <;> (rw [Stream.index'_invalid h]; simp)
-#align Stream.mul_index' Etch.Verification.Stream.mul_index'
-
-theorem order_eq_of_mul_ready {a b : Stream ι α} {x y} (h : (a.mul b).ready (x, y)) :
-    a.toOrder x h.v₁ = (a.mul b).toOrder (x, y) ⟨h.v₁, h.v₂⟩ ∧
-      b.toOrder y h.v₂ = (a.mul b).toOrder (x, y) ⟨h.v₁, h.v₂⟩ := by
-  dsimp only [Stream.mul_ready] at h
-  have := h.index; have := h.r₁; have := h.r₂; dsimp only at *
-  constructor <;> simp [Stream.toOrder, *]
-#align order_eq_of_mul_ready Etch.Verification.order_eq_of_mul_ready
-
-/-- This lemma takes a surprising amount of effort to prove -/
-theorem min_toOrder_le (a b : Stream ι α) (q : a.σ × b.σ) (hv : (a.mul b).valid q) :
-    min (a.toOrder q.1 hv.1) (b.toOrder q.2 hv.2) ≤ (a.mul b).toOrder q hv := by
-  rw [Prod.Lex.le_iff'']
-  simp only [Monotone.map_min (@Prod.Lex.fst_mono ι Bool _ _)]
-  constructor
-  · exact min_le_max
-  · intro h
-    simp only [Stream.toOrder_fst, Stream.mul_index, max_eq_min_iff] at h
-    suffices a.ready q.1 → b.ready q.2 → (a.mul b).ready q by
-      simpa [Stream.toOrder, h, Prod.Lex.mk_min, Bool.min_eq_and, Bool.le_iff_imp]
-    intro hr₁ hr₂
-    refine ⟨hv.1, hv.2, hr₁, hr₂, ?_⟩
-    simpa [hv.1, hv.2] using h
-#align min_to_order_le Etch.Verification.min_toOrder_le
-
-theorem toOrder_le_max (a b : Stream ι α) (q : a.σ × b.σ) (hv : (a.mul b).valid q) :
-    (a.mul b).toOrder q hv ≤ max (a.toOrder q.1 hv.1) (b.toOrder q.2 hv.2) := by
-  rw [Prod.Lex.le_iff']; right; constructor
-  · simp [Monotone.map_max (@Prod.Lex.fst_mono ι Bool _ _), Stream.mul_index']
-  simp only [Bool.le_iff_imp, Stream.toOrder_snd, Bool.of_decide_iff]
-  intro hr; rcases q with ⟨qa, qb⟩
-  simpa [order_eq_of_mul_ready hr]
-#align to_order_le_max Etch.Verification.toOrder_le_max
-
-instance Stream.mul.isBounded (a b : Stream ι α) [IsBounded a] [IsBounded b] :
-    IsBounded (a.mul b) :=
-  ⟨⟨Prod.rprodEq a.wfRel b.wfRel,
-    fun q hq i => by
-      rcases a.wf_valid q.1 hq.1 i with (h | ⟨ha₁, ha₂⟩)
-      · left; left; exact ⟨h, b.no_backward ..⟩
-      · rcases b.wf_valid q.2 hq.2 i with (h | ⟨hb₁, hb₂⟩)
-        · left; right; exact ⟨h, a.no_backward ..⟩
-        · right; constructor; swap
-          · simp [ha₂, hb₂]
-          · exact lt_of_lt_of_le (lt_min ha₁ hb₁) (min_toOrder_le (hv := hq) ..)⟩⟩
-#align Stream.mul.is_bounded Etch.Verification.Stream.mul.isBounded
-
-theorem Stream.mul_map {β : Type _} [Mul β] (f : α → β) (f_mul : ∀ x y, f (x * y) = f x * f y)
-    (q r : Stream ι α) : (q.mul r).map f = (q.map f).mul (r.map f) := by
-  ext <;> solve_refl
-  · simp only [Stream.mul.ready_iff]; rfl
-  · simp only [f_mul, apply_ite f]
-#align Stream.mul_map Etch.Verification.Stream.mul_map
-
-end IndexLemmas
-
 section ValueLemmas
 
 variable [NonUnitalNonAssocSemiring α]
 
-theorem mul_eval₀_of_neq {a : Stream ι α} {b : Stream ι α} {x y} (H : (a.mul b).valid (x, y))
-    (h : a.toOrder x H.1 ≠ b.toOrder y H.2) : (a.mul b).eval₀ (x, y) H = 0 := by
+lemma mul_eval₀_of_neq {a : Stream ι α} {b : Stream ι α} (q)
+    (h : a.toOrder (mul.valid.fst q) ≠ b.toOrder (mul.valid.snd q)) : (a.mul b).eval₀ q = 0 := by
   contrapose! h
   apply Stream.mul.ready.order_eq
   simp only [Stream.eval₀, Stream.mul_ready, Stream.mul_index, ge_iff_le, Stream.mul_value, ne_eq, dite_eq_right_iff,
     Finsupp.single_eq_zero, not_forall] at h
   exact h.fst
 
-theorem mul_eval₀ (a b : Stream ι α) (x : a.σ) (y : b.σ) (H) :
-    (a.mul b).eval₀ (x, y) H = a.eval₀ x H.1 * b.eval₀ y H.2 := by
+theorem mul_eval₀ (a b : Stream ι α) (q) :
+    (a.mul b).eval₀ q = a.eval₀ (mul.valid.fst q) * b.eval₀ (mul.valid.snd q) := by
   rw [Stream.eval₀]; split_ifs with hr
-  · obtain ⟨v₁, v₂, r₁, r₂, hi⟩ := hr; dsimp only at v₁ v₂ r₁ r₂ hi
-    simp only [Stream.mul_index, max_self, Stream.mul_value, Stream.eval₀._eq_1, dite_true, Finsupp.mul_single, *]
-  ·
-    simp [Stream.mul.ready_iff, H.1, H.2] at hr
-    simp [Stream.eval₀]
+  · simp only [mul_ready, Bool.and_eq_true, decide_eq_true_eq] at hr
+    rcases hr with ⟨⟨hr₁, hr₂⟩, hr₃⟩
+    simp [Stream.eval₀, hr₁, hr₂, hr₃]
+    rfl
+  · simp only [Stream.eval₀]
     split_ifs with h₁ h₂ <;> try simp
-    rw [Finsupp.mul_single_eq_zero _ _ (hr h₁ h₂ H.1 H.2)]
-#align mul_eval₀ Etch.Verification.mul_eval₀
+    simp only [mul_ready, h₁, h₂, Bool.and_self, Bool.true_and, decide_eq_true_eq] at hr
+    rw [Finsupp.mul_single_eq_zero]
+    assumption
+
+end ValueLemmas
+
+#exit
 
 theorem mul_eval₀_spec (a b : Stream ι α) [IsBounded a] [IsBounded b] (ha : a.IsStrictMono)
     (hb : b.IsStrictMono) (q : (a.mul b).σ) (hv : (a.mul b).valid q) :
