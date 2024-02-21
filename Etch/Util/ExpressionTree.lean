@@ -95,8 +95,12 @@ def mkEnsureBroadcast (indices : List (Nat × Expr)) (base? : Option Expr) (e : 
     let sort ← inferType indices.head!.2
     let listTy ← mkAppM ``Prod #[.const ``Nat [], sort]
     let list ← mkListLit listTy <| ← indices.mapM fun (i, ty) => mkAppM ``Prod.mk #[toExpr i, ty]
-    let e ← mkAppM ``EnsureBroadcast.broadcast #[list, ← base?.getDM (inferType e), e]
-    -- Unfold EnsureBroadcast.broadcast
+    let e ← Term.elabAppArgs (explicit := false) (ellipsis := false) (expectedType? := none)
+              (← mkConstWithFreshMVarLevels ``EnsureBroadcast.broadcast)
+              #[]
+              #[.expr list, .expr (← base?.getDM (inferType e)), .expr e]
+    synthesizeSyntheticMVars (mayPostpone := true)
+    -- Unfold EnsureBroadcast.broadcast (slight bug: we would like to wait until the end to do this)
     withReducibleAndInstances <| Meta.transform e
       (pre := fun e => do
         let f := e.getAppFn

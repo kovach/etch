@@ -33,8 +33,13 @@ def mul_fns [ToStream t (I → J → α)] [ToStream t' (J → K → α)] (a : t)
 def mul_fns' [ToStream t (I → J → α)] [ToStream t' (J → K → α)] (a : t) (b : t') :=
   a(i,j) * b(j,k)
 
+section
+set_option trace.Meta.synthInstance true
+#synth ExpressionTree.EnsureBroadcast [(0, I), (1, J), (2, K)] α (j//J → k//K →ₛ α) _
+end
+
 -- Notice, no Broadcast helper class, it was unfolded
-#print mul_fns
+#print mul_fns'
 
 /- Some examples of notation
 
