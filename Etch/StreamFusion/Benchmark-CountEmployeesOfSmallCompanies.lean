@@ -4,26 +4,20 @@ import Etch.StreamFusion.Multiply
 import Etch.StreamFusion.TestUtil
 namespace Etch.Verification.SStream
 
-abbrev eid   : ℕ := 0
-abbrev ename : ℕ := 1
-abbrev cid    : ℕ := 2
-abbrev cname  : ℕ := 3
-abbrev enum   : ℕ := 4
-abbrev cstate : ℕ := 5
-
-abbrev EID   := ℕ       -- Employee ID
-abbrev ENAME := String  -- Emplyee Name
-abbrev CID   := ℕ       -- Company ID
-abbrev CNAME := String  -- Company Name
-abbrev ENUM  := ℕ       -- Number of employees
-abbrev CSTATE := String -- State the company is employed in
+def_index_group
+  EID   := ℕ       -- Employee ID
+  ENAME := String  -- Emplyee Name
+  CID   := ℕ       -- Company ID
+  CNAME := String  -- Company Name
+  ENUM  := ℕ       -- Number of employees
+  CSTATE := String -- State the company is employed in
 
 open ToStream
 
 @[inline]
 def emplyeesOfSmallCompanies
-    (employee : (EID →ₛ ENAME →ₛ CID →ₛ Bool))
-    (company  : (CID →ₛ CNAME →ₛ CSTATE →ₛ Bool)) :=
+    (employee : EID →ₛ ENAME →ₛ CID →ₛ Bool)
+    (company  : CID →ₛ CNAME →ₛ CSTATE →ₛ Bool) :=
   let inCal   := singleton "CA"
   let leFifty := SStream.le 50
   -- convert `Bool` entries to 0/1

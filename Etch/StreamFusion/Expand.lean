@@ -169,6 +169,56 @@ instance [OfStream (ι →ₛ α) β] : OfStream (i~ι →ₛ α) β := ⟨fun x
 
 --instance [HMul α β γ] : HMul ((i//I) =>ₛ α) ((j//J) =>ₛ β)
 
+open Lean Elab PrettyPrinter Delaborator SubExpr in
+def delabLabeledIndexFor (i : Nat) (name : Name) : Delab := whenPPOption getPPNotation do
+  let e ← getExpr
+  guard <| e.getAppNumArgs = 2
+  guard <| (← Meta.whnf e.appFn!.appArg!).natLit? = i
+  let i ← withAppFn <| withAppArg do
+    withTheReader SubExpr (fun s => {s with expr := .const name []}) do
+      delab
+  let ty ← withAppArg <| delab
+  `($i~$ty)
+
+/--
+Defines a list of abbreviations for the given indices in order.
+-/
+syntax "def_index_enum_group " ident,* : command
+
+-- TODO(kmill) make this an elaborator and keep track of how many have been added so far,
+-- so we can pick up where we left off at the next command?
+macro_rules
+  | `(command| def_index_enum_group $idxs,*) => do
+    let cmds ← idxs.getElems.mapIdxM fun i idx => do
+      let name := Lean.mkIdent idx.getId
+      let delabName := Lean.mkIdent <| idx.getId ++ `delab
+      let delabApp := Lean.mkIdent <| `app ++ ``LabeledIndex
+      let i := Lean.quote (i : Nat)
+      `(abbrev $name : Nat := $i
+        @[delab $delabApp]
+        def $delabName := delabLabeledIndexFor $i ``$name)
+    return Lean.mkNullNode cmds
+
+syntax indexGroupDef := ident " := " term
+/--
+Defines a collection of type abbreviations along with index variables that correspond to their positions.
+-/
+syntax "def_index_group " group(sepByIndentSemicolon(ppGroup(indexGroupDef))) : command
+
+open Lean in
+macro_rules
+  | `(command| def_index_group $ds*) => do
+    let res ← ds.getElems.mapM fun d => match d with
+      | `(indexGroupDef| $id := $ty) => do
+        let n := id.getId
+        let .str .anonymous n := n | Macro.throwErrorAt id "name must be atomic string"
+        unless n.toLower != n do Macro.throwErrorAt id "name must not be all lower case"
+        pure (mkIdent n.toLower, id, ty)
+      | _ => Macro.throwUnsupported
+    let idxs := res.map fun (n, _, _) => n
+    let cmds ← res.mapM fun (_, n, ty) => `(command| abbrev $n := $ty)
+    return Lean.mkNullNode <| cmds.push <| ← `(def_index_enum_group $idxs,*)
+
 end Etch.Verification.SStream
 
 -- not working
