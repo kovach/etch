@@ -312,13 +312,6 @@ theorem max_eq_min_iff {α : Type _} [LinearOrder α] {x y : α} : min x y = max
   ⟨fun h => max_le_min_iff.mp h.symm.le, fun h => by simp [h]⟩
 #align max_eq_min_iff max_eq_min_iff
 
-@[simp]
-theorem Finsupp.mul_single {ι β : Type _} [MulZeroClass β] (i : ι) (x y : β) :
-    Finsupp.single i x * Finsupp.single i y = Finsupp.single i (x * y) := by
-  ext a
-  by_cases i = a <;> simp [*]
-#align finsupp.mul_single Finsupp.mul_single
-
 theorem Finsupp.mul_eq_zero_of_disjoint_support {ι β : Type _} [DecidableEq ι] [MulZeroClass β]
     (f g : ι →₀ β) (h : Disjoint f.support g.support) : f * g = 0 := by
   rw [← Finsupp.support_eq_empty, ← Finset.subset_empty]

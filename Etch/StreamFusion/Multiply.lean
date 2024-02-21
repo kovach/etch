@@ -3,9 +3,11 @@ import Etch.StreamFusion.Stream
 namespace Etch.Verification.Stream
 
 -- todo: experiment in simplifying control flow for `fold`
+-- Note: you can change how a particular function gets compiled using @[csimp] I think
+-- we should try that
 @[inline] def bothand (x y : Bool) : Bool :=
   x.toNat.land y.toNat = 1
-@[simp] theorem bothand_spec : bothand x y = and x y := sorry
+@[simp] theorem bothand_spec : ∀ x y, bothand x y = and x y := by decide
 
 infixl:35 " &' " => and
 
@@ -52,17 +54,17 @@ attribute [simp] mul.ready -- simp helps aesop proof below
 
 @[inline]
 def mul.ready.fst {a : Stream ι α} {b : Stream ι β} (q : {x // mul.ready a b x}) : {x // a.ready x} :=
-  ⟨mul.valid.fst q.val, by sorry⟩
+  ⟨mul.valid.fst q.val, by aesop⟩
 
 @[inline]
 def mul.ready.snd {a : Stream ι α} {b : Stream ι β} (q : {x // mul.ready a b x}) : {x // b.ready x} :=
-  ⟨mul.valid.snd q.val, by sorry⟩
+  ⟨mul.valid.snd q.val, by aesop⟩
 
 @[inline]
 def mul.ready.cases {a : Stream ι α} {b : Stream ι β} (q : {p // mul.ready a b p}) : {x // a.ready x} × {x // b.ready x} :=
 match h : mul.valid.cases q.val with
 | ⟨qa, qb⟩ =>
-  (⟨qa, by sorry⟩, ⟨qb, sorry⟩)
+  (⟨qa, by aesop⟩, ⟨qb, by aesop⟩)
   --(mul.ready.fst q, mul.ready.snd q)
 
 @[simp] lemma mul_ready_cases_eq {a : Stream ι α} {b : Stream ι β} (q : {p // mul.ready a b p}) :
