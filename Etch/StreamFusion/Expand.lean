@@ -180,26 +180,7 @@ def delabLabeledIndexFor (i : Nat) (name : Name) : Delab := whenPPOption getPPNo
   let ty ← withAppArg <| delab
   `($i~$ty)
 
-/--
-Defines a list of abbreviations for the given indices in order.
--/
-syntax "def_index_enum_group " ident,* : command
-
--- TODO(kmill) make this an elaborator and keep track of how many have been added so far,
--- so we can pick up where we left off at the next command?
-macro_rules
-  | `(command| def_index_enum_group $idxs,*) => do
-    let cmds ← idxs.getElems.mapIdxM fun i idx => do
-      let name := Lean.mkIdent idx.getId
-      let delabName := Lean.mkIdent <| idx.getId ++ `delab
-      let delabApp := Lean.mkIdent <| `app ++ ``LabeledIndex
-      let i := Lean.quote (i : Nat)
-      `(abbrev $name : Nat := $i
-        @[delab $delabApp]
-        def $delabName := delabLabeledIndexFor $i ``$name)
-    return Lean.mkNullNode cmds
-
-syntax indexGroupDef := ident " := " term
+syntax indexGroupDef := ident "~" ident " := " term
 /--
 Defines a collection of type abbreviations along with index variables that correspond to their positions.
 -/
@@ -208,16 +189,16 @@ syntax "def_index_group " group(sepByIndentSemicolon(ppGroup(indexGroupDef))) : 
 open Lean in
 macro_rules
   | `(command| def_index_group $ds*) => do
-    let res ← ds.getElems.mapM fun d => match d with
-      | `(indexGroupDef| $id := $ty) => do
-        let n := id.getId
-        let .str .anonymous n := n | Macro.throwErrorAt id "name must be atomic string"
-        unless n.toLower != n do Macro.throwErrorAt id "name must not be all lower case"
-        pure (mkIdent n.toLower, id, ty)
+    let cmds ← ds.getElems.mapIdxM fun i d => match d with
+      | `(indexGroupDef| $idx~$id := $ty) => do
+        let idxName := Lean.mkIdent idx.getId
+        let delabName := Lean.mkIdent <| idx.getId ++ `delab
+        let i := Lean.quote (i : Nat)
+        `(abbrev $idx : Nat := $i
+          @[delab $delabName] def $delabName := delabLabeledIndexFor $i ``$idxName
+          abbrev $id := $ty)
       | _ => Macro.throwUnsupported
-    let idxs := res.map fun (n, _, _) => n
-    let cmds ← res.mapM fun (_, n, ty) => `(command| abbrev $n := $ty)
-    return Lean.mkNullNode <| cmds.push <| ← `(def_index_enum_group $idxs,*)
+    return Lean.mkNullNode cmds
 
 end Etch.Verification.SStream
 

@@ -5,12 +5,12 @@ import Etch.StreamFusion.TestUtil
 namespace Etch.Verification.SStream
 
 def_index_group
-  EID   := ℕ       -- Employee ID
-  ENAME := String  -- Emplyee Name
-  CID   := ℕ       -- Company ID
-  CNAME := String  -- Company Name
-  ENUM  := ℕ       -- Number of employees
-  CSTATE := String -- State the company is employed in
+  eid~EID       := ℕ       -- Employee ID
+  ename~ENAME   := String  -- Emplyee Name
+  cid~CID       := ℕ       -- Company ID
+  cname~CNAME   := String  -- Company Name
+  enum~ENUM     := ℕ       -- Number of employees
+  cstate~CSTATE := String  -- State the company is employed in
 
 open ToStream
 
