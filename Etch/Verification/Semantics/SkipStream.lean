@@ -356,7 +356,7 @@ theorem Stream.eval_invalid [AddZeroClass α]
 
 @[simp]
 theorem Stream.eval_valid [AddZeroClass α]
-(s : Stream ι α) [IsBounded s] (q : s.σ)
+    (s : Stream ι α) [IsBounded s] (q : s.σ)
     (h : s.valid q) : s.eval q = s.eval₀ q h + s.eval (s.next q) := by rw [Stream.eval, dif_pos]
 #align Stream.eval_valid Etch.Verification.Stream.eval_valid
 

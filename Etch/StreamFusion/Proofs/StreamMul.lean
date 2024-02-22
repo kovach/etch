@@ -12,10 +12,25 @@ section IndexLemmas
 
 variable [Mul α]
 
-theorem Stream.mul.ready.order_eq {a : Stream ι α} {b : Stream ι α} {q}
+theorem mul.ready.order_eq {a : Stream ι α} {b : Stream ι α} {q}
     (h : mul.ready a b q) : a.toOrder (mul.valid.fst q) = b.toOrder (mul.valid.snd q) := by
   dsimp only [Stream.toOrder]
   aesop
+
+theorem order_eq_of_mul_ready {a : Stream ι α} {b : Stream ι α} {q}
+    (h : mul.ready a b q) : a.toOrder (mul.valid.fst q) = (a.mul b).toOrder q ∧
+      b.toOrder (mul.valid.snd q) = (a.mul b).toOrder q := by
+  dsimp only [Stream.toOrder]
+  aesop
+
+theorem Stream.mul_index' (a : Stream ι α) (b : Stream ι α) (q) :
+    (a.mul b).index' q = max (a.index' q.1) (b.index' q.2) := by
+  rw [Stream.index']
+  split_ifs with h
+  · simp at h; simp [index'_val' _ h.1, index'_val' _ h.2]; rfl
+  · simp [-not_and, not_and_or] at h
+    rcases h with h | h
+    <;> simp [index'_invalid h]
 
 theorem min_toOrder_le (a b : Stream ι α) (q) :
     min (a.toOrder (mul.valid.fst q)) (b.toOrder (mul.valid.snd q)) ≤ (a.mul b).toOrder q := by
@@ -72,104 +87,91 @@ theorem mul_eval₀ (a b : Stream ι α) (q) :
     rw [Finsupp.mul_single_eq_zero]
     assumption
 
-end ValueLemmas
-
-#exit
-
 theorem mul_eval₀_spec (a b : Stream ι α) [IsBounded a] [IsBounded b] (ha : a.IsStrictMono)
-    (hb : b.IsStrictMono) (q : (a.mul b).σ) (hv : (a.mul b).valid q) :
-    (a.mul b).eval₀ q hv =
-      (a.eval q.1 * b.eval q.2).filter fun i => (i, false) <ₗ (a.mul b).toOrder q hv := by classical
+    (hb : b.IsStrictMono) (q) :
+    (a.mul b).eval₀ q =
+      (a.eval (mul.valid.fst q) * b.eval (mul.valid.snd q)).filter fun i => (i, false) <ₗ (a.mul b).toOrder q := by classical
   by_cases H : (a.mul b).ready q
-  · rcases q with ⟨qa, qb⟩
-    calc
-      (a.mul b).eval₀ (qa, qb) hv = a.eval₀ qa hv.1 * b.eval₀ qb hv.2 := by
-        dsimp
-        rw [mul_eval₀]
-      _ = ((a.eval qa).filter fun i => (i, false) <ₗ a.toOrder qa hv.1) *
-            ((b.eval qb).filter fun i => (i, false) <ₗ b.toOrder qb hv.2) :=
+  · calc
+      (a.mul b).eval₀ q = a.eval₀ (mul.valid.fst q) * b.eval₀ (mul.valid.snd q) := mul_eval₀ ..
+      _ = ((a.eval <| mul.valid.fst q).filter fun i => (i, false) <ₗ a.toOrder (mul.valid.fst q)) *
+            ((b.eval <| mul.valid.snd q).filter fun i => (i, false) <ₗ b.toOrder (mul.valid.snd q)) :=
         by rw [ha.eval₀_eq_eval_filter, hb.eval₀_eq_eval_filter]
-      _ = (a.eval qa * b.eval qb).filter fun i =>
-            (i, false) <ₗ min (a.toOrder qa hv.1) (b.toOrder qb hv.2) :=
+      _ = (a.eval (mul.valid.fst q) * b.eval (mul.valid.snd q)).filter fun i =>
+            (i, false) <ₗ min (a.toOrder (mul.valid.fst q)) (b.toOrder (mul.valid.snd q)) :=
         by simp only [Finsupp.mul_filter, lt_min_iff]
-      _ = (a.eval qa * b.eval qb).filter fun i => (i, false) <ₗ (a.mul b).toOrder (qa, qb) hv :=
+      _ = (a.eval (mul.valid.fst q) * b.eval (mul.valid.snd q)).filter fun i => (i, false) <ₗ (a.mul b).toOrder q :=
         by
-          congr
-          ext i
-          simp [(order_eq_of_mul_ready H).1, (order_eq_of_mul_ready H).2]
-
+          dsimp only [Stream.toOrder]
+          aesop
   · symm
-    simp only [Stream.eval₀, H, dif_neg, not_false_iff, Finsupp.filter_eq_zero_iff,
-      Stream.toOrder, decide_False', Prod.Lex.mk_snd_mono_lt_iff, Finsupp.mul_apply,
-      Stream.mul_index, lt_max_iff]
+    simp only [Stream.eval₀, H, dite_false, coe_mul_valid_fst,
+      mul.valid, coe_mul_valid_snd, Finsupp.filter_eq_zero_iff]
     intro i hi
+    simp only [Stream.toOrder, H, mul_index, Prod.Lex.mk_snd_mono_lt_iff, lt_max_iff] at hi
     refine
         mul_eq_zero_of
           (hi.imp (fun h => ha.1.eq_zero_of_lt_index i ?_) fun h =>
             hb.1.eq_zero_of_lt_index i ?_) <;>
-      simpa [hv.1, hv.2] using h
-#align mul_eval₀_spec Etch.Verification.mul_eval₀_spec
+      rwa [Stream.index'_val', WithTop.coe_lt_coe]
 
 theorem mul_mono {a b : Stream ι α} (ha : a.IsMonotonic) (hb : b.IsMonotonic) :
     (a.mul b).IsMonotonic := by
-  intro q hv i
+  intro q i
   simp only [Stream.mul_index']
-  exact max_le_max (ha _ _ _) (hb _ _ _)
-#align mul_mono Etch.Verification.mul_mono
+  exact max_le_max (ha _ _) (hb _ _)
 
 theorem mul_strict_mono {a b : Stream ι α} (ha : a.IsStrictMono) (hb : b.IsStrictMono) :
     (a.mul b).IsStrictMono where
   left := mul_mono ha.1 hb.1
-  right q hv i H hr :=
-    ne_of_lt
-      (by
-        simp only [Stream.mul_index']
-        rcases q with ⟨qa, qb⟩
-        apply max_lt_max (ha.lt (hr := hr.r₁) ..) (hb.lt (hr := hr.r₂) ..) <;>
-          simpa [order_eq_of_mul_ready hr])
-#align mul_strict_mono Etch.Verification.mul_strict_mono
+  right q i H hr :=
+    ne_of_lt (by
+      simp only [Stream.mul_index']
+      have := order_eq_of_mul_ready hr
+      simp at hr
+      apply max_lt_max (ha.lt (hr := hr.1.1) ..) (hb.lt (hr := hr.1.2) ..) <;>
+        simpa [this])
 
-theorem next_eval_mul_eq (a b : Stream ι α) [IsStrictLawful a] [IsStrictLawful b] (q : (a.mul b).σ)
-    (hv : (a.mul b).valid q) :
-    a.eval ((a.mul b).next q).1 * b.eval ((a.mul b).next q).2 =
-      (a.eval q.1 * b.eval q.2).filter fun i => (a.mul b).toOrder q hv ≤ (i, false) := by
+theorem next_eval_mul_eq (a b : Stream ι α) [IsStrictLawful a] [IsStrictLawful b] (q : {q // (a.mul b).valid q}) :
+    a.eval ((a.mul b).advance q).1 * b.eval ((a.mul b).advance q).2 =
+      (a.eval (mul.valid.fst q) * b.eval (mul.valid.snd q)).filter fun i => (a.mul b).toOrder q ≤ (i, false) := by
   ext j
-  simp only [Finsupp.mul_apply, Finsupp.filter_apply, Stream.next_val hv]
+  simp only [Finsupp.mul_apply, Finsupp.filter_apply, Stream.advance_val]
   split_ifs with hj
-  · simp only [Stream.toOrder, Stream.index'_val hv, Stream.mul_skip] at hj ⊢
-    rw [IsLawful.skip_spec q.1 hv.1 _ _ hj, IsLawful.skip_spec q.2 hv.2 _ _ hj]
-  · change a.eval (a.skip ..) j * b.eval (b.skip ..) j = 0
+  · simp only [Stream.toOrder, Stream.index'_val, Stream.mul_seek] at hj ⊢
+    rw [IsLawful.skip_spec (mul.valid.fst q) _ _ hj, IsLawful.skip_spec (mul.valid.snd q) _ _ hj]
+  · dsimp only [mul_seek]
     rw [not_le] at hj
-    rcases le_max_iff.mp <| toOrder_le_max _ _ _ hv with hj' | hj'
+    rcases le_max_iff.mp <| toOrder_le_max a b q with hj' | hj'
     · rw [a.strictMono.eval_skip_eq_zero, MulZeroClass.zero_mul] <;> assumption
     · rw [b.strictMono.eval_skip_eq_zero, MulZeroClass.mul_zero] <;> assumption
-#align next_eval_mul_eq Etch.Verification.next_eval_mul_eq
+
 
 theorem mul_spec (a b : Stream ι α) [IsStrictLawful a] [IsStrictLawful b] (q : (a.mul b).σ) :
     (a.mul b).eval q = a.eval q.1 * b.eval q.2 := by
   apply (a.mul b).wf.induction q
   clear q; intro q ih
   by_cases hv : (a.mul b).valid q; swap
-  · rcases not_and_or.mp hv with hv' | hv' <;> simp [hv, hv']
-  · rw [Stream.eval_valid _ _ hv, ih _ ((a.mul b).next_wf q hv), next_eval_mul_eq _ _ _ hv,
-      mul_eval₀_spec _ _ a.strictMono b.strictMono _ hv]
+  · have := hv
+    simp only [mul_valid, Bool.and_eq_true, not_and_or, Bool.not_eq_true] at hv
+    rcases hv with hv' | hv' <;> simp [this, hv']
+  · rw [Stream.eval_valid _ ⟨_, hv⟩, ih _ ((a.mul b).next_wf ⟨q, hv⟩), next_eval_mul_eq _ _ ⟨_, hv⟩,
+      mul_eval₀_spec _ _ a.strictMono b.strictMono ⟨_, hv⟩]
     convert Finsupp.filter_pos_add_filter_neg (α := ι) (M := α) ..
     simp
-#align mul_spec Etch.Verification.mul_spec
 
-theorem mul_skip_spec (a b : Stream ι α) [IsStrictLawful a] [IsStrictLawful b] (q : (a.mul b).σ)
-    (hq : (a.mul b).valid q) (i : ι ×ₗ Bool) (j : ι) (h : i ≤ₗ (j, false)) :
-    (a.mul b).eval ((a.mul b).skip q hq i) j = (a.mul b).eval q j := by
-  simp only [Finsupp.mul_apply, mul_spec];
-  congr 1 <;> dsimp <;> rwa [IsLawful.skip_spec]
-#align mul_skip_spec Etch.Verification.mul_skip_spec
+theorem mul_skip_spec (a b : Stream ι α) [IsStrictLawful a] [IsStrictLawful b] (q : {q // (a.mul b).valid q})
+    (i : ι ×ₗ Bool) (j : ι) (h : i ≤ₗ (j, false)) :
+    (a.mul b).eval ((a.mul b).seek q i) j = (a.mul b).eval q j := by
+  simp only [Finsupp.mul_apply, mul_spec]
+  congr 1 <;> dsimp <;> rw [IsLawful.skip_spec] <;> aesop
 
 instance (a b : Stream ι α) [IsStrictLawful a] [IsStrictLawful b] :
     IsStrictLawful (a.mul b) where
   skip_spec := mul_skip_spec a b
   strictMono := mul_strict_mono a.strictMono b.strictMono
 
+
 end ValueLemmas
 
-
-end Etch.Verification
+end Etch.Verification.Stream

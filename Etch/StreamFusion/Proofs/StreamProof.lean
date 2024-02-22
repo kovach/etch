@@ -44,8 +44,8 @@ def Stream.ready' (x : s.σ) : Prop :=
 instance : DecidablePred s.ready' :=
   fun x => inferInstanceAs (Decidable (∃ h, s.ready ⟨x, h⟩))
 
-@[simp] lemma Stream.ready'_val {x : s.σ} (h : s.valid x) : s.ready' x ↔ s.ready ⟨x, h⟩ :=
-  by simp [Stream.ready', h]
+@[simp] lemma Stream.ready'_val (x : {q // s.valid q}) : s.ready' x ↔ s.ready x :=
+  by simp [Stream.ready', x.prop]
 
 /-- The current `(index', valid ∧ ready)` value of the stream -/
 def Stream.toOrder' (q : s.σ) : WithTop ι ×ₗ Bool :=
@@ -91,12 +91,15 @@ end order
 variable {s}
 
 @[simp]
-theorem Stream.index'_val {x : s.σ} (h : s.valid x) : s.index' x = s.index ⟨x, h⟩ :=
-  dif_pos h
+theorem Stream.index'_val (x : {q // s.valid q}) : s.index' x = s.index x :=
+  dif_pos x.prop
+
+theorem Stream.index'_val' (x : s.σ) (h : s.valid x) : s.index' x = s.index ⟨x, h⟩ :=
+  Stream.index'_val ⟨x, h⟩
 
 @[simp]
-theorem Stream.index'_invalid {x : s.σ} (h : ¬s.valid x) : s.index' x = ⊤ :=
-  dif_neg h
+theorem Stream.index'_invalid {x : s.σ} (h : s.valid x = false) : s.index' x = ⊤ :=
+  dif_neg (by simpa)
 
 
 @[simp]
@@ -129,17 +132,16 @@ theorem Stream.seek'_invalid {q : s.σ} (hq : ¬s.valid q) (i : ι ×ₗ Bool) :
     s.seek' q i = q :=
   dif_neg hq
 
-theorem Stream.toOrder'_val {q : s.σ} (hq : s.valid q) :
-    s.toOrder' q = (s.index' q, s.ready ⟨q, hq⟩) := by simp [Stream.toOrder', hq]
+theorem Stream.toOrder'_val (q : {q // s.valid q}) :
+    s.toOrder' q = (s.index' q, s.ready q) := by simp [Stream.toOrder']
+
+theorem Stream.coeLex_toOrder (q : {q // s.valid q}) :
+    s.toOrder' q = coeLex (s.toOrder q) := by
+  simp [coeLex, Stream.toOrder'_val]
 
 @[simp]
-theorem Stream.coeLex_toOrder {q : s.σ} (hq : s.valid q) :
-    coeLex (s.toOrder ⟨q, hq⟩) = s.toOrder' q := by
-  simp [coeLex, Stream.toOrder'_val, hq]
-
-@[simp]
-theorem Stream.toOrder'_val_snd {q : s.σ} (hq : s.valid q) :
-    (s.toOrder' q).2 = s.ready ⟨q, hq⟩ := by simp [Stream.toOrder'_val hq]
+theorem Stream.toOrder'_val_snd (q : {q // s.valid q}) :
+    (s.toOrder' q).2 = s.ready q := by simp [Stream.toOrder'_val]
 
 
 @[simp]
@@ -197,7 +199,7 @@ theorem Stream.wf_valid [IsBounded s] :
 theorem wf_valid_iff (wf_rel : s.σ → s.σ → Prop) (q i) :
     wf_rel (s.seek q i) q ∨ i < s.toOrder q ∧ s.seek q i = q ↔
       wf_rel (s.seek' q i) q ∨ coeLex i < s.toOrder' q ∧ s.seek' q i = q :=
-  by simp only [Stream.seek'_val q.prop, ← Stream.coeLex_toOrder q.prop, coeLex_lt_iff]
+  by simp only [Stream.seek'_val q.prop, Stream.coeLex_toOrder, coeLex_lt_iff]
 
 variable {s}
 theorem IsBounded.mk'
@@ -303,5 +305,185 @@ theorem Stream.eval₀_support' [Zero α]
 
 
 end StreamDefs
+
+section Mono
+open Streams
+
+variable [LinearOrder ι]
+
+/-- A stream is monotonic if the index does not decrease after `skip` is called. -/
+def Stream.IsMonotonic (s : Stream ι α) : Prop :=
+  ∀ (q : {q // s.valid q}) i, s.index' q ≤ s.index' (s.seek q i)
+
+/-- A stream is strictly monotonic if it is monotonic and strictly advances its
+  index when (non-trivially) skipped from a ready state. -/
+def Stream.IsStrictMono (s : Stream ι α) : Prop :=
+  s.IsMonotonic ∧ ∀ q i, s.toOrder q ≤ i → s.ready q → s.index' q ≠ s.index' (s.seek q i)
+
+theorem Stream.isMonotonic_iff {s : Stream ι α} :
+    s.IsMonotonic ↔ ∀ q i hq, s.index q ≤ s.index ⟨s.seek q i, hq⟩ := by
+  constructor
+  · intro h q i hq
+    simpa [index'_val' _ hq] using h q i
+  · intro h q i
+    by_cases hq' : s.valid (s.seek q i)
+    · simpa [index'_val' _ hq'] using h q i hq'
+    · rw [Bool.not_eq_true] at hq'
+      rw [Stream.index'_invalid hq']
+      exact le_top
+
+theorem Stream.IsMonotonic.index_le_index_advance {s : Stream ι α} (h : s.IsMonotonic) (q : s.σ) :
+    s.index' q ≤ s.index' (s.advance q) := by
+  by_cases H : s.valid q; swap;
+  · simp [H]
+  · simp only [Stream.advance, H, dif_pos]
+    apply h
+
+theorem Stream.IsMonotonic.index_le_of_mem_support [AddZeroClass α] {s : Stream ι α} [IsBounded s]
+    (hs : s.IsMonotonic) {q : s.σ} : ∀ i : ι, s.eval q i ≠ 0 → s.index' q ≤ i := by
+  classical
+  simp only [← Finsupp.mem_support_iff]
+  apply s.wf.induction q; clear q
+  intro q ih i hi
+  by_cases H : s.valid q; swap
+  · simp [H] at hi
+  · rw [s.eval_valid ⟨_, H⟩] at hi
+    rcases Finset.mem_union.mp (Finsupp.support_add hi) with hi | hi
+    · rw [Finset.mem_singleton.mp (s.eval₀_support ⟨_, H⟩ hi)]
+      exact le_of_eq (Stream.index'_val' _ _)
+    · exact (hs.index_le_index_advance q).trans (ih (s.advance q) (s.next_wf ⟨q, H⟩) i hi)
+
+theorem Stream.IsMonotonic.eq_zero_of_lt_index [AddZeroClass α] {s : Stream ι α} [IsBounded s]
+    (hs : s.IsMonotonic) {q : s.σ} (i : ι) : ↑i < s.index' q → s.eval q i = 0 := by
+  contrapose!
+  exact hs.index_le_of_mem_support i
+
+theorem Stream.IsStrictMono.lt {s : Stream ι α} (hs : s.IsStrictMono) (q i)
+    (H : s.toOrder q ≤ i) (hr : s.ready q) : s.index' q < s.index' (s.seek q i) :=
+  lt_of_le_of_ne (hs.1 _ _) (hs.2 _ _ H hr)
+
+theorem Stream.IsStrictMono.advance_ne {s : Stream ι α} (hs : s.IsStrictMono) (q : {q // s.valid q})
+    (hr : s.ready q) : s.index' q ≠ s.index' (s.advance q) := by
+  rw [Stream.advance_val]
+  exact hs.2 q _ rfl.le hr
+
+theorem Stream.IsStrictMono.spec {s : Stream ι α} (hs : s.IsStrictMono) (q : {q // s.valid q})
+    {i} (hi : s.toOrder q ≤ i) : s.toOrder' q ≤ (s.index' (s.seek q i), false) :=
+  Prod.Lex.le_iff''.mpr
+    ⟨by simpa using hs.1 q i, by
+      simp
+      contrapose
+      simpa using hs.2 q i hi⟩
+
+theorem Stream.IsStrictMono.index_le_of_mem_support [AddZeroClass α] {s : Stream ι α} [IsBounded s]
+    (hs : s.IsStrictMono) (q : {q // s.valid q}) {i} (hi : s.toOrder q ≤ i) :
+    ∀ j : ι, s.eval (s.seek q i) j ≠ 0 → s.toOrder q ≤ (j, false) := fun j hj =>
+  coeLex_le_iff.mp
+    (by
+      rw [← Stream.coeLex_toOrder]
+      refine (hs.spec q hi).trans ?_
+      simpa using hs.1.index_le_of_mem_support j hj)
+
+theorem Stream.IsStrictMono.eq_zero_of_lt_index [AddZeroClass α] {s : Stream ι α} [IsBounded s]
+    (hs : s.IsStrictMono) (q : {q // s.valid q}) {i} (hi : s.toOrder q ≤ i) (j : ι) :
+    ((j, false) <ₗ s.toOrder q) → s.eval (s.seek q i) j = 0 := by
+  contrapose
+  simpa using hs.index_le_of_mem_support q hi j
+
+theorem fst_lt_of_lt_of_lt {α : Type _} [Preorder α] :
+    ∀ {x y z : α ×ₗ Bool}, x < y → y < z → x.1 < z.1
+  | x, y, ⟨z, false⟩, h₁, h₂ => Prod.Lex.fst_lt_of_lt_of_le (h₁.trans h₂) (by simp)
+  | x, ⟨y, true⟩, ⟨z, true⟩, h₁, h₂ =>
+    lt_of_le_of_lt (show x.1 ≤ y from Prod.Lex.fst_le_of_le h₁.le) (by simpa using h₂)
+  | x, ⟨y, false⟩, ⟨z, true⟩, h₁, h₂ =>
+    lt_of_lt_of_le (show x.1 < y from Prod.Lex.fst_lt_of_lt_of_le h₁ (by simp))
+      (Prod.Lex.fst_le_of_le h₂.le)
+
+theorem Stream.IsStrictMono.eval_skip_eq_zero [AddZeroClass α] {s : Stream ι α} [IsBounded s]
+    (hs : s.IsStrictMono) (q : {q // s.valid q}) {i : StreamOrder ι} {j : ι}
+    (h₁ : (j, false) <ₗ i) (h₂ : i ≤ₗ s.toOrder q) : s.eval (s.seek q i) j = 0 := by
+  rcases eq_or_lt_of_le h₂ with h₂ | h₂
+  · refine hs.eq_zero_of_lt_index _ h₂.symm.le _ ?_
+    rwa [← h₂]
+  · apply hs.1.eq_zero_of_lt_index
+    refine lt_of_lt_of_le ?_ (hs.1 _ _)
+    simpa using fst_lt_of_lt_of_lt h₁ h₂
+
+theorem Stream.IsStrictMono.eval₀_eq_eval_filter [AddCommMonoid α] {s : Stream ι α} [IsBounded s]
+    (hs : s.IsStrictMono) (q : {q // s.valid q}) :
+    s.eval₀ q = (s.eval q).filter fun i => (i, false) <ₗ s.toOrder q := by
+  rw [s.eval_valid, Finsupp.filter_add]
+  convert (add_zero (M := ι →₀ α) _).symm
+  · rw [Finsupp.filter_eq_self_iff]
+    intro i hi
+    rw [s.eval₀_support' q hi]
+    simp
+  · rw [Finsupp.filter_eq_zero_iff]
+    intro i hi
+    rw [Stream.advance_val]
+    exact hs.eq_zero_of_lt_index q rfl.le i hi
+
+section Lawful
+
+/-- A stream is lawful if it is monotonic and satisfies the following property about `skip`:
+    Whenever we ask the stream to skip past `i : stream_order ι`, we do not affect the evaluation
+    of the stream at any `j ≥ i`, where `j : ι` is interpreted in `stream_order ι` as `(j, ff)`.
+    In other words, when we ask to skip past `i`, we do not skip past any `j ≥ i`.
+
+    This also demonstrates the interpretation of the strictness indicator: when `i = (i, ff)`, `skip q _ i` means
+    "skip up to (but not past) any ready states with index `i`" (since `(j, ff) ≥ (i, ff) ↔ j ≥ i`). On the other hand, when `i = (i, tt)`,
+    this means "skip up to and including states with index `i`, but not anything strictly past `i`".
+ -/
+
+class IsLawful {ι : Type} {α : Type _} [LinearOrder ι] [AddZeroClass α] (s : Stream ι α) extends
+  IsBounded s where
+  mono : s.IsMonotonic
+  skip_spec : ∀ q i j, (i ≤ₗ (j, false)) → s.eval (s.seek q i) j = s.eval q j
+
+
+/-- A stream is strictly lawful if in addition to being lawful, it is strictly monotonic -/
+class IsStrictLawful {ι : Type} {α : Type _} [LinearOrder ι] [AddZeroClass α]
+  (s : Stream ι α) extends IsLawful s where
+  strictMono : s.IsStrictMono
+  mono := strictMono.1
+
+
+variable [AddZeroClass α]
+
+theorem Stream.mono (s : Stream ι α) [IsLawful s] : s.IsMonotonic :=
+  ‹IsLawful s›.mono
+
+theorem Stream.strictMono (s : Stream ι α) [IsStrictLawful s] : s.IsStrictMono :=
+  ‹IsStrictLawful s›.strictMono
+
+theorem Stream.skip_spec (s : Stream ι α) [IsLawful s] (q : {q // s.valid q})
+    (i : StreamOrder ι) :
+    ((s.eval (s.seek q i)).filter fun j => i ≤ₗ (j, false)) =
+      (s.eval q).filter fun j => i ≤ₗ (j, false) := by
+  rw [Finsupp.filter_ext_iff]
+  exact IsLawful.skip_spec q i
+
+theorem Stream.skip_lt_toOrder {s : Stream ι α} [IsLawful s] {q : {q // s.valid q}}
+    {i : StreamOrder ι} (hi : i < s.toOrder q) : s.eval (s.seek q i) = s.eval q := by
+  ext j
+  by_cases H : s.toOrder q ≤ (j, true)
+  · rw [IsLawful.skip_spec q]
+    simpa [Prod.Lex.lt_iff'', Prod.Lex.le_iff''] using lt_of_lt_of_le hi H
+  have : ↑j < s.index' q := by
+    simpa using fst_lt_of_lt_of_lt (show (j, false) <ₗ (j, true) by simp) (not_le.mp H)
+  rw [s.mono.eq_zero_of_lt_index j this,
+    s.mono.eq_zero_of_lt_index _ (this.trans_le (s.mono q i))]
+
+theorem Stream.eval_skip_eq_of_false (s : Stream ι α) [IsLawful s] (q : {q // s.valid q}) :
+    s.eval (s.seek q (s.index q, false)) = s.eval q := by
+  by_cases hr : s.ready q
+  · apply Stream.skip_lt_toOrder
+    simp [Stream.toOrder, hr]
+  . simp [s.eval_valid, Stream.eval₀, hr, Stream.advance_val, Stream.toOrder]
+
+
+end Lawful
+
+end Mono
 
 end Etch.Verification
