@@ -89,9 +89,8 @@ def vecSum : ℕ → IO Unit := genCase "vec sum"
 
 def vecCopy : ℕ → IO Unit := genCase "vec copy"
     (fun num => let v := vecStream num; v)
-    (fun x : SparseArray ℕ ℕ => x.1.size)
+    (fun x : F ℕ ℕ => x.1.size)
 
-@[noinline]
 def matSum : SparseArrayMat Nat Nat Nat → IO Unit := genCase "matrix sum"
     (fun mat => Σ 0,1: mat(0,1))
     (fun x : ℕ => x)
@@ -111,7 +110,7 @@ def vecMul : ℕ → IO Unit := genCase "vec mul"
       let v := vecStream num;
       let v' := vecStream num |>.map fun _ => 1;
       v * v')
-    (fun x : SparseArray ℕ ℕ => x.1.size)
+    (fun x : F ℕ ℕ => x.1.size)
 
 --set_option trace.compiler.ir.reset_reuse true in
 --set_option trace.compiler.stage2 true in
@@ -141,7 +140,7 @@ def vecMul3 : ℕ → IO Unit := genCase "vec mul 3"
     let v₁ := vecStream num |>.map fun _ => 1
     let v₂ := vecStream num |>.map fun _ => 1
     v * (v₁ * v₂))
-  (fun x : SparseArray ℕ ℕ => x.1.size)
+  (fun x : F ℕ ℕ => x.1.size)
 
 def _root_.Nat.cubeRoot (n : Nat) : Nat :=
   if n ≤ 1 then n else
@@ -206,8 +205,6 @@ unsafe def tests (args : List String) : IO Unit := do
   IO.println s!"test of size {num}"
   IO.println "starting"
 
-  --let v := vecStream num
-  --let m := test.mat num.sqrt
   let m' := sparseMat num.sqrt
 
   test.baseline num
@@ -254,13 +251,15 @@ unsafe def test2 (num : Nat) : IO Unit := do
       let x := myArrayLoop arr 0
       IO.println s!"{x}"
 
--- IR playground
+-- IR option examples
 section compiler_trace
 @[inline]
 def str1 := vecStream 10
 --set_option trace.compiler.inline true
 --set_option trace.compiler.specialize true
 --set_option trace.compiler.stage2 true
+--set_option trace.compiler.ir.reset_reuse true in
+--set_option trace.compiler.ir.result true in
 --def thetest' : ℕ := eval (contract (vecStream' 10)) --
 @[noinline] def dup (x : α) := (x, x) example (x : ℕ) := let (a, _) := dup x; a
 --def multest_ := let str1 := vecStream' 10; eval (contract (str1 * str1))

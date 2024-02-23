@@ -57,8 +57,8 @@ abbrev HMap a [BEq a] [Hashable a] b := HashMap a b
 
 instance [EmptyCollection α] : Zero α := ⟨{}⟩
 
-class Modifiable (α β : outParam Type*) (m : Type*) where
-  update : m → α → (β → β) → m
+class Modifiable (k v : outParam Type*) (m : Type*) where
+  update : m → k → (v → v) → m
 
 instance [BEq α] [Hashable α] [Zero β] : Modifiable α β (HashMap α β) where
   update := HashMap.modifyD'
@@ -101,7 +101,10 @@ def contract (s : Stream ι α) : Stream Unit α where
 --   todo: explain why
 -- Most everything else I have checked is safe at @[inline].
 @[macro_inline]
-def next (s : Stream ι α) (q : s.σ) (h : s.valid q = true) (ready : Bool) : s.σ :=
+def next (s : Stream ι α) (q : {q // s.valid q}) (i : ι) (ready : Bool) : s.σ :=
+  s.seek q (i, ready)
+
+def next_ (s : Stream ι α) (q : s.σ) (h : s.valid q = true) (ready : Bool) : s.σ :=
   let q := ⟨q, h⟩; s.seek q (s.index q, ready)
 
 @[macro_inline]
@@ -118,13 +121,14 @@ def next' (s : Stream ι α) (q : {q // s.valid q}) (ready : Bool) : s.σ :=
   let rec @[specialize] go f
       (valid : s.σ → Bool) (ready : (x : s.σ) → valid x → Bool)
       (index : (x : s.σ) → valid x → ι) (value : (x : s.σ) → (h : valid x) → ready x h → α)
-      (next : (x : s.σ) → valid x → Bool → s.σ)
+      (next : {x // valid x} → ι → Bool → s.σ)
+      --(next : (x : s.σ) → valid x → Bool → s.σ)
       (acc : β) (q : s.σ) :=
     if hv : valid q then
       let i := index q hv
       let hr := ready q hv
       let acc' := if hr : hr then f acc i (value q hv hr) else acc
-      let q' := next q hv hr
+      let q' := next ⟨q, hv⟩ i hr
       go f valid ready index value next acc' q'
     else acc
   go f s.valid (fun q h => s.ready ⟨q,h⟩) (fun q h => s.index ⟨q,h⟩) (fun q v r => s.value ⟨⟨q,v⟩,r⟩) s.next
@@ -151,6 +155,7 @@ def next' (s : Stream ι α) (q : {q // s.valid q}) (ready : Bool) : s.σ :=
     else acc
   go f s.valid s.ready s.index s.value s.next' acc q
 
+/-
 @[inline] partial def fold_old (f : β → ι → α → β) (s : Stream ι α) (q : s.σ) (acc : β) : β :=
   let rec @[specialize] go f
       (valid : s.σ → Bool) (ready : (x : s.σ) → valid x → Bool)
@@ -163,12 +168,13 @@ def next' (s : Stream ι α) (q : {q // s.valid q}) (ready : Bool) : s.σ :=
            else go f valid ready index value next acc (next q hv false)
     else acc
   go f s.valid (fun q h => s.ready ⟨q,h⟩) (fun q h => s.index ⟨q,h⟩) (fun q v r => s.value ⟨⟨q,v⟩,r⟩) s.next acc q
+-/
 
 end Stream
 
 def FloatVec n := { x : FloatArray // x.size = n }
 
-class OfStream (α : Type u) (β : Type v) where
+class OfStream (α : Type*) (β : Type*) where
   eval : α → β → β
   -- todo: (⟦ a ⟧ => eval a) notation?
 
@@ -258,7 +264,7 @@ def SparseArray.mapVals {ι} {α β : Type*} (arr : SparseArray ι α) (f : α �
 
 -- benefits from macro_inline (matrix sum)
 @[macro_inline]
-def SparseArray.of (arr : SparseArray ι α) : ι →ₛ α where
+def SparseArray.linearToStream (arr : SparseArray ι α) : ι →ₛ α where
   σ := ℕ
   q := 0
   valid q := q < arr.n
@@ -295,7 +301,7 @@ instance : Scalar Bool := ⟨⟩
 instance [Scalar α] : ToStream α α := ⟨id⟩
 
 instance {α β} [ToStream α β] : ToStream  (SparseArray ι α) (ι →ₛ β) where
-  stream := map ToStream.stream ∘ SparseArray.of
+  stream := map ToStream.stream ∘ SparseArray.linearToStream
 
 instance : ToStream  (ArraySet ι) (ι →ₛ Bool) where
   stream := map ToStream.stream ∘ ofBoolArray
@@ -308,20 +314,27 @@ instance : ToStream  (ArraySet ι) (ι →ₛ Bool) where
 @[inline] def toSparseArray (s : ι →ₛ α) : SparseArray ι α → SparseArray ι α :=
   s.fold (fun ⟨_, a, b⟩ i v => ⟨_, a.push i, b.push v⟩)
 
+-- todo: we would prefer to fix the weird perf issue with SparseArray.linearToStream
+abbrev F α β := Array α × Array β
+
+@[inline] def toArrayPair (s : ι →ₛ α) : F ι α → F ι α :=
+  s.fold (fun ⟨a, b⟩ i v => ⟨a.push i, b.push v⟩)
+
 section eval
 open OfStream
 
-instance [Scalar α] [Add α] : OfStream α α := ⟨(.+.)⟩
+instance instBase [Scalar α] [Add α] : OfStream α α where
+  eval := Add.add
 
 /- Note!! recursive application of `eval` needs to occur outside of any enclosing functions to achieve full inlining
    (see bad examples below)
 -/
 
-instance [OfStream α β] : OfStream (Unit →ₛ α) β where
+instance instContract [OfStream α β] : OfStream (Unit →ₛ α) β where
   eval := fold (fun a _ b => b a) ∘ map eval
   -- bad: fold (fun a _ b => eval b a)
 
-instance [OfStream α β] [Modifiable ι β m] : OfStream (ι →ₛ α) m where
+instance instStep [OfStream α β] [Modifiable ι β m] : OfStream (ι →ₛ α) m where
   eval := fold Modifiable.update ∘ map eval
   -- bad: fold fun m k => Modifiable.update m k ∘ eval
 
@@ -330,6 +343,9 @@ instance [OfStream α β] [Modifiable ι β m] : OfStream (ι →ₛ α) m where
 -- todo: pass accurate capacity estimate?
 instance [OfStream α β] [Zero β]: OfStream (ι →ₛ α) (SparseArray ι β) where
   eval := toSparseArray ∘ map (eval . 0)
+
+instance [OfStream α β] [Zero β]: OfStream (ι →ₛ α) (F ι β) where
+  eval := toArrayPair ∘ map (eval . 0)
 
 end eval
 
