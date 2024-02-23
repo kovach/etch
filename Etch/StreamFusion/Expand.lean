@@ -91,6 +91,19 @@ syntax "memo(" term " with " term ")" : term
 macro_rules
   | `(memo($e with $ty)) => `(eraseUnits%(Etch.Verification.SStream.memo $ty) $e)
 
+open Lean Elab Term Meta in
+elab "select " idxs:term,* " from " e:term : term => do
+  let idxs ← withSynthesize <| idxs.getElems.mapM <| (elabTermEnsuringType · (Expr.const ``Nat []))
+  let idxVals ← idxs.mapM (ExpressionTree.reduceIndexNat ·)
+  let e ← withSynthesize (mayPostpone := true) <| elabTerm e none
+  let (indices, _) ← ExpressionTree.extractTypeIndices (← inferType e)
+  let contracted := indices.filter fun data => !idxVals.contains data.iVal
+  contracted.foldrM (init := e) fun data e => do
+    Term.elabAppArgs (explicit := false) (ellipsis := false) (expectedType? := none)
+      (← mkConstWithFreshMVarLevels ``Contract.contract)
+      #[]
+      #[.expr data.i, .expr e]
+
 class Expand (σ : List (ℕ × Type)) (α : Type*) (β : outParam Type*) where
   expand : α → β
 

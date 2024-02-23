@@ -33,6 +33,10 @@ structure IndexData where
   type : Expr
   deriving Inhabited
 
+def reduceIndexNat (i : Expr) : MetaM Nat := do
+  let some iVal := (← whnf i).natLit? | throwError "could not reduce i{indentD i}"
+  return iVal
+
 /--
 Takes a type and uses a `TypeHasIndex` instance to extract `i`, `I`, and `β` in `i//I → β` or analogues.
 If no match (or can't reduce `i` to a natural number literal), fails.
@@ -42,7 +46,7 @@ def extractTypeIndex (ty : Expr) : MetaM (IndexData × Expr) := do
   let (#[α, i, I, β], _) ← forallMetaTelescope (← inferType f) | failure
   α.mvarId!.safeAssign ty
   discard <| synthInstance (mkAppN f #[α, i, I, β])
-  let some iVal := (← whnf i).natLit? | throwError "could not reduce i{indentD i}"
+  let iVal ← reduceIndexNat i
   return ({iVal := iVal, i := ← instantiateMVars i, type := ← instantiateMVars I}, ← instantiateMVars β)
 
 /--
@@ -282,7 +286,7 @@ where
 
   processUpdateIndex (ref : Syntax) (i ty f x : Syntax) := do
     let ie ← withSynthesize <| elabTermEnsuringType i (Expr.const ``Nat [])
-    let some iVal := (← whnf ie).natLit? | throwErrorAt i "could not reduce i{indentD ie}"
+    let iVal ← reduceIndexNat ie
     let tye ← elabType ty
     let fe ← elabTerm f none
     let tree ← go x

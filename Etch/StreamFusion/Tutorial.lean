@@ -50,6 +50,9 @@ Contract.contract j
       [(i, Unit), (j, J), (k, K)] ⇑ Label.label [j, k] B)
 -/
 
+@[inline] def testSelect (m : I →ₛ J →ₛ α) (v : J →ₛ α) := memo(select i from m(i, j) * v(j) with SparseArray I α)
+-- I →ₛ α
+
 /- Some examples of notation
 
   notes:
