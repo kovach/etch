@@ -27,6 +27,8 @@ class Label (σ : List ℕ) (α : Type*) (β : outParam Type*) where
 instance [Scalar α]     : Label [] α α := ⟨id⟩
 instance [Label is α β] : Label (i::is) (ι →ₛ α) (i~ι →ₛ β) := ⟨map (Label.label is)⟩
 instance [Label is α β] : Label (i::is) (ι → α) (i~ι → β) := ⟨(Label.label is ∘ .)⟩
+instance [Label is α β] : Label (i::is) (i'~ι →ₛ α) (i~ι →ₛ β) := ⟨map (Label.label is)⟩
+instance [Label is α β] : Label (i::is) (i'~ι → α) (i~ι → β) := ⟨(Label.label is ∘ .)⟩
 
 #check 0~Nat →ₛ 1~Nat →ₛ Nat
 
@@ -80,6 +82,14 @@ syntax "Σ"  term,* ":" term : term
 macro_rules
 | `(Σ $is,* : $t) => show Lean.MacroM Lean.Term from do
   is.getElems.foldlM (init := t) fun acc i => `(updateIndex%($i, Unit, Contract.contract $i) $acc)
+
+/--
+Memoize the expression.
+`μ(e with ty)`
+-/
+syntax "μ(" term " with " term ")" : term
+macro_rules
+  | `(μ($e with $ty)) => `(eraseUnits%(Etch.Verification.SStream.memo $ty) $e)
 
 class Expand (σ : List (ℕ × Type)) (α : Type*) (β : outParam Type*) where
   expand : α → β

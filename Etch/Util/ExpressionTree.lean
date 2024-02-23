@@ -198,6 +198,12 @@ Remarks:
 -/
 syntax (name := updateIndexStx) "updateIndex%(" term ", " term ", " term ")" term : term
 
+/--
+`eraseUnits%(f) x` => `f x` while not propagating `Unit` indices outwards.
+Does not propagate indices into `x`.
+-/
+syntax (name := eraseUnitsStx) "eraseUnits%(" term ")" term : term
+
 private inductive BinOpKind where
   | regular   -- `binop%`
   | lazy      -- `binop_lazy%`
@@ -221,6 +227,7 @@ private inductive Tree where
   -/
   | unop (ref : Syntax) (f : Expr) (arg : Tree)
   | updateIndex (ref : Syntax) (data : IndexData) (innerType : Expr) (f : Expr) (arg : Tree)
+  | eraseUnits (ref : Syntax) (innerIndices : Option (List IndexData)) (f : Expr) (arg : Tree)
   /--
   Used for assembling the info tree. We store this information
   to make sure "go to definition" behaves similarly to notation defined without using `binop%` helper elaborator.
@@ -252,6 +259,7 @@ where
       else
         go e
     | `(updateIndex%($i,$ty,$f) $x) => processUpdateIndex s i ty f x
+    | `(eraseUnits%($f) $x) => processEraseUnits s f x
     | _ =>
       withRef s do
         match (← liftMacroM <| expandMacroImpl? (← getEnv) s) with
@@ -281,6 +289,10 @@ where
     let innerType ← mkFreshExprMVar none
     return .updateIndex ref {iVal := iVal, i := ie, type := tye} innerType fe tree
 
+  processEraseUnits (ref : Syntax) (f arg : Syntax) := do
+    let f ← elabTerm f none
+    return .eraseUnits ref none f (← go arg)
+
   processLeaf (s : Syntax) := do
     let e ← elabTerm s none
     let info ← getResetInfoTrees
@@ -309,7 +321,7 @@ private def isUnknown : Expr → Bool
   | .mdata _ b      => isUnknown b
   | _               => false
 
-private def analyze (t : Tree) (expectedType? : Option Expr) : TermElabM AnalyzeResult := do
+private def analyze (t : Tree) (expectedType? : Option Expr) : TermElabM (Tree × AnalyzeResult) := do
   let (indices, max?) ←
     match expectedType? with
     | none => pure ([], none)
@@ -317,20 +329,22 @@ private def analyze (t : Tree) (expectedType? : Option Expr) : TermElabM Analyze
       let expectedType ← instantiateMVars expectedType
       let (indices, expectedType) ← extractTypeIndices expectedType -- kmill
       if isUnknown expectedType then pure ([], none) else pure (indices, some expectedType)
-  (go t *> get).run' { indices, max? }
+  (go t ).run { indices, max? }
 where
-  go (t : Tree) : StateRefT AnalyzeResult TermElabM Unit := do
-    unless (← get).hasUncomparable do
+  go (t : Tree) : StateRefT AnalyzeResult TermElabM Tree := do
+    if (← get).hasUncomparable then
+      return t
+    else
       match t with
-      | .macroExpansion _ _ _ nested => go nested
-      | .binop _ .leftact  _ _ rhs => go rhs
-      | .binop _ .rightact _ lhs _ => go lhs
-      | .binop _ _ _ lhs rhs => go lhs; go rhs
-      | .unop _ _ arg => go arg
-      | .updateIndex _ data innerType _ tree => do
+      | .macroExpansion macroName stx stx' nested => return .macroExpansion macroName stx stx' (← go nested)
+      | .binop ref .leftact  f lhs rhs => return .binop ref .leftact f lhs (← go rhs)
+      | .binop ref .rightact f lhs rhs => return .binop ref .rightact f (← go lhs) rhs
+      | .binop ref kind f lhs rhs => return .binop ref kind f (← go lhs) (← go rhs)
+      | .unop ref f arg => return .unop ref f (← go arg)
+      | .updateIndex ref data innerType f tree => do
         let indices := (← get).indices
         modify fun s => {s with indices := []}
-        go tree
+        let tree ← go tree
         let indices' := (← get).indices
         -- Unify innerType with the result
         discard <| mergeTypeIndices [{data with type := innerType}] indices'
@@ -339,6 +353,16 @@ where
         -- Merge the saved indices back in now that the type is updated
         let indices ← mergeTypeIndices indices indices'
         modify fun s => {s with indices := indices}
+        return .updateIndex ref data innerType f tree
+      | .eraseUnits ref _ f arg => do
+        let indices := (← get).indices
+        modify fun s => {s with indices := []}
+        let arg ← go arg
+        let innerIndices := (← get).indices
+        let outerIndices := innerIndices.filter fun data => data.type.isAppOf ``Unit
+        let indices ← mergeTypeIndices indices outerIndices
+        modify fun s => {s with indices := indices}
+        return .eraseUnits ref innerIndices f arg
       | .term ref _ val =>
         let type ← instantiateMVars (← inferType val)
         let (indices', type) ← withRef ref <| extractTypeIndices type
@@ -350,12 +374,13 @@ where
           | some max =>
             unless (← withNewMCtxDepth <| isDefEqGuarded max type) do
               if (← hasCoe type max) then
-                return ()
+                pure ()
               else if (← hasCoe max type) then
                 modify fun s => { s with max? := type }
               else
                 trace[Elab.binop] "uncomparable types: {max}, {type}"
                 modify fun s => { s with hasUncomparable := true }
+        return t
 
 private def mkBinOp (lazy : Bool) (f : Expr) (lhs rhs : Expr) : TermElabM Expr := do
   let mut rhs := rhs
@@ -377,6 +402,9 @@ private def toExprCore (t : Tree) : TermElabM Expr := do
     withRef ref <| withInfoContext' ref (mkInfo := mkTermInfo .anonymous ref) do
       mkUnOp f (← toExprCore arg)
   | .updateIndex ref _ _ f arg =>
+    withRef ref <| withInfoContext' ref (mkInfo := mkTermInfo .anonymous ref) do
+      mkUnOp f (← toExprCore arg)
+  | .eraseUnits ref _ f arg =>
     withRef ref <| withInfoContext' ref (mkInfo := mkTermInfo .anonymous ref) do
       mkUnOp f (← toExprCore arg)
   | .macroExpansion macroName stx stx' nested =>
@@ -488,6 +516,9 @@ mutual
         let indices' ← mergeTypeIndices (preferLeft := true) [{data with type := innerType}] indices
         let arg ← go arg indices' none false false
         return .updateIndex ref data innerType f arg
+      | .eraseUnits ref innerIndices? f arg =>
+        let arg ← go arg innerIndices?.get! none false false
+        return .eraseUnits ref innerIndices? f arg
       | .term ref trees e =>
         let (indices', type) ← extractTypeIndices (← instantiateMVars (← inferType e))
         trace[Elab.binop] "visiting {e} : {type} =?= {maxType?}"
@@ -512,7 +543,7 @@ mutual
           return .macroExpansion macroName stx stx' (← go nested indices f? lhs isPred)
 
   private partial def toExpr (tree : Tree) (expectedType? : Option Expr) : TermElabM Expr := do
-    let r ← analyze tree expectedType?
+    let (tree, r) ← analyze tree expectedType?
     trace[Elab.binop] "hasUncomparable: {r.hasUncomparable}, maxType: {r.max?}"
     if r.indices.isEmpty && (r.hasUncomparable || r.max?.isNone) then
       let result ← toExprCore tree
@@ -533,6 +564,7 @@ def elabOp : TermElab := fun stx expectedType? => do
 @[term_elab rightact] def elabRightact : TermElab := elabOp
 @[term_elab unop] def elabUnOp : TermElab := elabOp
 @[term_elab updateIndexStx] def elabUpdateIndex : TermElab := elabOp
+@[term_elab eraseUnitsStx] def elabEraseUnits : TermElab := elabOp
 
 /--
   Elaboration functions for `binrel%` and `binrel_no_prop%` notations.
@@ -583,7 +615,7 @@ def elabBinRelCore (noProp : Bool) (stx : Syntax) (expectedType? : Option Expr) 
     let lhs ← withRef stx[2] <| toTree stx[2]
     let rhs ← withRef stx[3] <| toTree stx[3]
     let tree := .binop stx .regular f lhs rhs
-    let r ← analyze tree none
+    let (tree, r) ← analyze tree none
     trace[Elab.binrel] "hasUncomparable: {r.hasUncomparable}, maxType: {r.max?}"
     if r.hasUncomparable || r.max?.isNone then
       unless r.indices.isEmpty do

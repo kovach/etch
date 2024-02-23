@@ -79,12 +79,10 @@ Contract.contract j
 
 @[inline] def ABC' (a : I →ₛ J →ₛ α) (b : J →ₛ K →ₛ α) (c : K →ₛ L →ₛ α) :=
   let ijk := [(i,I),(j,J),(k,K)]
-  let ikl := [(i,I),(k,K),(l,L)]
   let m1 := ijk ⇑ a(i,j)
-  let m3 := ikl ⇑ c(k,l)
-  let m : i~I →ₛ k~K →ₛ α := m1.map fun (row : j~J →ₛ k~K → α) =>
-             memo (SparseArray K α) (Σ j: row * b(j,k))
-  let m  := ikl ⇑ m * m3
+  let m := m1.map fun row =>
+             μ(Σ j: row * b(j,k) with SparseArray K α)
+  let m  := m(i,k) * c(k,l)
   Σ k: m
 
 def matMul1 (num : ℕ) : IO Unit := do
