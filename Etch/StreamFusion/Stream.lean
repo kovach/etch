@@ -69,6 +69,7 @@ instance [Zero β] : Modifiable α β (RBMap α β h) where
 namespace Etch.Verification
 
 -- add `next` as field with default implementation?
+@[ext]
 structure Stream (ι : Type) (α : Type u) where
   σ : Type
   valid : σ → Bool
@@ -164,6 +165,9 @@ def next' (s : Stream ι α) (q : {q // s.valid q}) (ready : Bool) : s.σ :=
     else acc
   go f s.valid (fun q h => s.ready ⟨q,h⟩) (fun q h => s.index ⟨q,h⟩) (fun q v r => s.value ⟨⟨q,v⟩,r⟩) s.next acc q
 
+def map (f : α → β) (s : Stream ι α) : Stream ι β :=
+  { s with value := fun h => f (s.value h) }
+
 end Stream
 
 def FloatVec n := { x : FloatArray // x.size = n }
@@ -183,6 +187,9 @@ variable {ι : Type} [LinearOrder ι] {α : Type u}
 def map (f : α → β) (s : ι →ₛ α) : ι →ₛ β := {
   s with value := f ∘ s.value
 }
+
+lemma map_eq_map (f : α → β) (s : ι →ₛ α) :
+  (map f s).toStream = s.toStream.map f := rfl
 
 instance : Functor (ι →ₛ .) where
   map := map
