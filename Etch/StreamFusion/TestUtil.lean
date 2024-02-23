@@ -15,29 +15,17 @@ variable
 {ι ι' : Type}
 [LinearOrder ι] [LinearOrder ι']
 
-@[inline]
-def ofMat [Scalar α] (is : Array (ι × Array ι')) (vs : ι → ι' → α) : ι →ₛ ι' →ₛ α :=
-  stream $ is.map fun (row, cs) => (row, cs.map fun col => (col, vs row col))
+@[inline] def vecStream (num : Nat) :=
+  let v  : Vec ℕ num := ⟨Array.range num, Array.size_range⟩
+  stream $ SparseArray.mk v v
 
 @[inline]
-def ofMat' [Scalar α] (is : Array (ℕ × Array ℕ)) (vs : ℕ → ℕ → α) :=
-  is.map fun (row, cs) => (row, cs.map fun col => (col, vs row col))
+def SparseArray.range (num : Nat) : SparseArray ℕ ℕ :=
+  let v := Vec.range num; SparseArray.mk v v
 
--- adjusts size so that there are ~num non-zero entries
-@[macro_inline] -- macro_inline needed!
-def mat (num : ℕ) :=
-  let is : Array (ℕ × Array ℕ) :=
-    Array.range (2*num).sqrt |>.map id |>.map $ fun n => (n, Array.range num)
-  ofMat is fun _ _ => 1
+@[inline] def sparseMat (num : Nat) :=
+  let v := SparseArray.range num
+  v.mapVals fun _ => SparseArray.range num
 
-@[macro_inline] -- macro_inline needed!
-def mat' (num : ℕ) :=
-  let is : Array (ℕ × Array ℕ) :=
-    Array.range (2*num).sqrt |>.map id |>.map $ fun n => (n, Array.range num)
-  ofMat' is fun _ _ => 1
-
-@[macro_inline] -- macro_inline needed!
-def str_mat (num : ℕ) :=
-  let is : Array (String × Array String) :=
-    Array.range (2*num).sqrt |>.map toString |>.map $ fun n => (n, Array.range num |>.map toString)
-  ofMat is fun _ _ => 1
+@[inline] def boolStream (num : Nat) : ℕ →ₛ Bool:=
+  stream $ Array.range num

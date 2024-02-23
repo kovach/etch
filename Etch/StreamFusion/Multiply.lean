@@ -70,7 +70,7 @@ match h : mul.valid.cases q.val with
 @[simp] lemma mul_ready_cases_eq {a : Stream ι α} {b : Stream ι β} (q : {p // mul.ready a b p}) :
     mul.ready.cases q = (mul.ready.fst q, mul.ready.snd q) := rfl
 
-@[inline, simps (config := { simpRhs := true })]
+@[macro_inline, simps (config := { simpRhs := true })]
 def mul [HMul α β γ] (a : Stream ι α) (b : Stream ι β) : Stream ι γ where
   σ         := a.σ × b.σ
   valid q   := let (qa, qb) := q; a.valid qa &' b.valid qb
@@ -93,6 +93,8 @@ def mul.ready_mk {a : Stream ι α} {b : Stream ι β} (qa : {x // a.ready x}) (
 
 end
 end Stream
+
+-- todo offer zip (as a way to provide an ad-hoc mul instance)?
 
 namespace SStream
 
@@ -142,5 +144,7 @@ instance [Zero α] : HMul (ι → Bool) (ι →ₛ α) (ι →ₛ α) where
   }
 
 end boolean
+
+def filter [Zero α] (p : ι → Bool) (s : ι →ₛ α) : ι →ₛ α := p * s
 
 end Etch.Verification.SStream

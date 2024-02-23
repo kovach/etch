@@ -3,41 +3,20 @@ import Std.Data.HashMap
 
 import Etch.StreamFusion.Stream
 import Etch.StreamFusion.Multiply
+import Etch.StreamFusion.Expand
 import Etch.StreamFusion.Traversals
+import Etch.StreamFusion.TestUtil
 
 open Std (RBMap RBSet HashMap)
 open Etch.Verification
 open SStream
 open OfStream ToStream
 
-
--- deprecated
---@[inline] def vecStream' (num : Nat) := stream $ Array.range num |>.map fun n => (n,n)
-
-@[inline] def vecStream (num : Nat) :=
-  let v : Vec ℕ num := ⟨Array.range num, Array.size_range⟩
-  stream $ Level.mk v v
-
-@[inline] def boolStream (num : Nat) : ℕ →ₛ Bool:=
-  stream $ Array.range num
-
---@[inline] def floatVecStream (num : Nat) :=
---  let is : Vec ℕ num := ⟨Array.range num, Array.size_range⟩
---  let vs : FloatVec num := ⟨Array.range num |>.toList.map (fun x => x.toFloat) |>.toFloatArray, by sorry⟩
---  stream $ (is, vs)
-
-def time (s : String) (m : Unit → IO α) : IO α := do
-  let t0 ← IO.monoMsNow
-  let v ← m ()
-  let t1 ← IO.monoMsNow
-  IO.println s!"[{s}] time: {t1-t0}"
-  pure v
-
 namespace test
 
 -- todo investigate perf differences
 @[specialize]
-def genCase [OfStream α β] [Zero β] (label : String) (setup : ℕ → α) [ToString β'] (print : β → β') (num : Nat) (reps := 10) : IO Unit := do
+def genCase [OfStream α β] [Zero β] (label : String) (setup : init → α) [ToString β'] (print : β → β') (num : init) (reps := 10) : IO Unit := do
   IO.println "-----------"
   let s := setup num
   time label fun _ =>
@@ -57,27 +36,21 @@ def baseline (num : Nat) : IO Unit := do
         m := m + i
       IO.println s!"{m}"
 
-set_option trace.compiler.ir.reset_reuse true in
-def vecSum : ℕ → IO Unit :=
-  genCase "vec sum"
-    (setup := fun num => contract $ vecStream num)
-    (print := fun x : ℕ => toString x)
-
-@[inline] def filt : ℕ → Bool := fun i => i > 50
-
+/-
 def vecBoolMul : Nat → IO Unit := genCase
   "vec mul filter 2"
   (setup := fun num => do
     let b := boolStream num
     b * (vecStream num))
-  (print := fun x : ArrayMap ℕ ℕ => s!"{x.1.size}")
+  (print := fun x : SparseArray ℕ ℕ => s!"{x.1.size}")
 
 def vecBoolMul3 : Nat → IO Unit := genCase
   "vec mul filter 3"
   (setup := fun num => do
     let b := boolStream num
     b * (b * vecStream num))
-  (print := fun x : ArrayMap ℕ ℕ => x.1.size)
+  (print := fun x : SparseArray ℕ ℕ => x.1.size)
+-/
 
 --def testFloat (num : Nat) : IO Unit := do
 --  IO.println "-----------"
@@ -108,6 +81,21 @@ def vecMul_hash (num : Nat) : IO Unit := do
       IO.println s!"{x.1.size}"
   pure ()
 
+--set_option trace.compiler.ir.result true in
+--set_option trace.compiler.stage2 true in
+def vecSum : ℕ → IO Unit := genCase "vec sum"
+    (fun num => let v := vecStream num; contract v)
+    (fun x : ℕ => x)
+
+def vecCopy : ℕ → IO Unit := genCase "vec copy"
+    (fun num => let v := vecStream num; v)
+    (fun x : SparseArray ℕ ℕ => x.1.size)
+
+@[noinline]
+def matSum : SparseArrayMat Nat Nat Nat → IO Unit := genCase "matrix sum"
+    (fun mat => Σ 0,1: mat(0,1))
+    (fun x : ℕ => x)
+
 --set_option trace.compiler.ir.reset_reuse true in
 def vecMulSum : ℕ → IO Unit := genCase "vec mul sum"
   (fun num =>
@@ -117,13 +105,13 @@ def vecMulSum : ℕ → IO Unit := genCase "vec mul sum"
   (fun x : ℕ => x)
 
 -- todo: vecMul' performs additional allocation in the inner loop
---set_option trace.compiler.ir.reset_reuse true in
+--set_option trace.compiler.ir.result true in
 def vecMul : ℕ → IO Unit := genCase "vec mul"
     (fun num =>
       let v := vecStream num;
       let v' := vecStream num |>.map fun _ => 1;
       v * v')
-    (fun x : ArrayMap ℕ ℕ => x.1.size)
+    (fun x : SparseArray ℕ ℕ => x.1.size)
 
 --set_option trace.compiler.ir.reset_reuse true in
 --set_option trace.compiler.stage2 true in
@@ -135,24 +123,25 @@ def vecMulSum3 : ℕ → IO Unit := genCase "vec mul 3 sum"
     contract $ v * (v₁ * v₂))
   (fun x : ℕ => x)
 
-def vecMul' (num : Nat) : IO Unit := do
-  IO.println "-----------"
-  let v := vecStream num
-  let v' := vecStream num |>.map fun _ => 1
-  let s := v * v'
-  time "vec mul" fun _ =>
-    for _ in [0:10] do
-      let x : Array ℕ × Array ℕ := eval s
-      IO.println s!"{x.1.size}"
-  pure ()
+--def vecMul' (num : Nat) : IO Unit := do
+--  IO.println "-----------"
+--  let v := vecStream num
+--  let v' := vecStream num |>.map fun _ => 1
+--  let s := v * v'
+--  time "vec mul" fun _ =>
+--    for _ in [0:10] do
+--      let x : SparseArray ℕ ℕ := eval s
+--      IO.println s!"{x.1.size}"
+--  pure ()
 
+--set_option trace.compiler.ir.reset_reuse true in
 def vecMul3 : ℕ → IO Unit := genCase "vec mul 3"
   (fun num =>
     let v  := vecStream num
     let v₁ := vecStream num |>.map fun _ => 1
     let v₂ := vecStream num |>.map fun _ => 1
     v * (v₁ * v₂))
-  (fun x : ArrayMap ℕ ℕ => x.1.size)
+  (fun x : SparseArray ℕ ℕ => x.1.size)
 
 def _root_.Nat.cubeRoot (n : Nat) : Nat :=
   if n ≤ 1 then n else
@@ -217,8 +206,14 @@ unsafe def tests (args : List String) : IO Unit := do
   IO.println s!"test of size {num}"
   IO.println "starting"
 
+  --let v := vecStream num
+  --let m := test.mat num.sqrt
+  let m' := sparseMat num.sqrt
+
   test.baseline num
   test.vecSum num
+  test.vecCopy num
+  test.matSum m'
   --test.vecBoolMul num
   --test.vecBoolMul3 num
   test.vecMulSum num

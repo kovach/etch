@@ -52,8 +52,7 @@ end
 @[inline] def vecSum (v : I →ₛ α) := Σ i: v(i)
 @[inline] def matSum (m : I →ₛ J →ₛ α) (v : J →ₛ α) := Σ i, j: m(i, j) * v(j)
 
-@[inline]
-def matMul_ijjk (a : I →ₛ J →ₛ α) (b : J →ₛ K →ₛ α) :=
+@[inline] def matMul_ijjk (a : I →ₛ J →ₛ α) (b : J →ₛ K →ₛ α) :=
   Σ j: a(i,j) * b(j,k)
 
 -- todo: investigate these definitions and other approaches
@@ -138,7 +137,7 @@ example : Nat := Id.run $ do
     for key in locations do
       if predicate key then
         result ← result + counts.findD ("prefix_" ++ key) 0
-    pure result
+    return result
 
 example : Nat := eval $
   let locations := (imap ("prefix_" ++ .) sorry (stream locations))(i)

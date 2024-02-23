@@ -55,8 +55,6 @@ instance (I : Type) : MapIndex i α β (i~I →ₛ α) (i~I →ₛ β)where
 instance (J : Type) [NatLt j i] [MapIndex i a b a' b'] : MapIndex i a b (j~J →ₛ a') (j~J →ₛ b') where
   map f s := s.map (MapIndex.map i f)
 
-#synth MapIndex 0 Nat Nat (0~Nat →ₛ Nat) (0~Nat →ₛ Nat)
-
 notation f " $[" i "] " t => MapIndex.map i f t
 
 class Contract (σ : ℕ) (α : Type*) (β : outParam Type*) where
@@ -79,13 +77,13 @@ class Expand (σ : List (ℕ × Type)) (α : Type*) (β : outParam Type*) where
 
 section
 variable {α β : Type*}
-instance expBase                                                              : Expand [] α α                                 := ⟨id⟩
-instance expScalar {ι : Type}   {i : ℕ} [Scalar α]  [Expand σ α β]            : Expand ((i,ι) :: σ) α           (i~ι → β)    := ⟨fun v _ => Expand.expand σ v⟩
-instance expLt     {ι : Type} {i j : ℕ} [NatLt i j] [Expand σ (j~ι' →ₛ α) β] : Expand ((i,ι) :: σ) (j~ι' →ₛ α) (i~ι → β)   := ⟨fun v _ => Expand.expand σ v⟩
+instance expBase                                                              : Expand [] α α                               := ⟨id⟩
+instance expScalar {ι : Type}   {i : ℕ} [Scalar α]  [Expand σ α β]            : Expand ((i,ι) :: σ) α           (i~ι → β)   := ⟨fun v _ => Expand.expand σ v⟩
+instance expLt     {ι : Type} {i j : ℕ} [NatLt i j] [Expand σ (j~ι' →ₛ α) β]  : Expand ((i,ι) :: σ) (j~ι' →ₛ α) (i~ι → β)   := ⟨fun v _ => Expand.expand σ v⟩
 instance expGt     {ι : Type} {i j : ℕ} [NatLt j i] [Expand ((i,ι) :: σ) α β] : Expand ((i,ι) :: σ) (j~ι' →ₛ α) (j~ι' →ₛ β) := ⟨fun v => map (Expand.expand ((i,ι)::σ)) v⟩
 instance expEq     {ι : Type}   {i : ℕ}             [Expand σ α β]            : Expand ((i,ι) :: σ) (i~ι  →ₛ α) (i~ι →ₛ β)  := ⟨fun v => map (Expand.expand σ) v⟩
 
-instance expLtFun  {ι : Type} {i j : ℕ} [NatLt i j] [Expand σ (j~ι' → α) β] : Expand ((i,ι) :: σ) (j~ι' → α) (i~ι → β) := ⟨fun v _ => Expand.expand σ v⟩
+instance expLtFun  {ι : Type} {i j : ℕ} [NatLt i j] [Expand σ (j~ι' → α) β]   : Expand ((i,ι) :: σ) (j~ι' → α) (i~ι → β)    := ⟨fun v _ => Expand.expand σ v⟩
 instance expGtFun  {ι : Type} {i j : ℕ} [NatLt j i] [Expand ((i,ι) :: σ) α β] : Expand ((i,ι) :: σ) (j~ι' → α) (j~ι' → β)   := ⟨fun v => Expand.expand ((i,ι)::σ) ∘ v⟩
 instance expEqFun  {ι : Type}   {i : ℕ}             [Expand σ α β]            : Expand ((i,ι) :: σ) (i~ι  → α)  (i~ι → β)   := ⟨fun v => (Expand.expand σ) ∘ v⟩
 end
@@ -179,6 +177,24 @@ def delabLabeledIndexFor (i : Nat) (name : Name) : Delab := whenPPOption getPPNo
       delab
   let ty ← withAppArg <| delab
   `($i~$ty)
+
+/--
+Defines a list of abbreviations for the given indices in order.
+-/
+syntax "def_index_enum_group " ident,* : command
+
+macro_rules
+  | `(command| def_index_enum_group $idxs,*) => do
+    let cmds ← idxs.getElems.mapIdxM fun i idx => do
+      let name := Lean.mkIdent idx.getId
+      let delabName := Lean.mkIdent <| idx.getId ++ `delab
+      let delabApp := Lean.mkIdent <| `app ++ ``LabeledIndex
+      let i := Lean.quote (i : Nat)
+      `(abbrev $name : Nat := $i
+        @[delab $delabApp]
+        def $delabName := delabLabeledIndexFor $i ``$name)
+    return Lean.mkNullNode cmds
+
 
 syntax indexGroupDef := ident "~" ident " := " term
 /--

@@ -53,14 +53,11 @@ def RBMap.modifyD [Zero β] (self : RBMap α β h) (a : α) (f : β → β) : RB
 end Std
 
 abbrev Map a [Ord a] b := RBMap a b Ord.compare
-abbrev ArrayMap a b := Array a × Array b
 abbrev HMap a [BEq a] [Hashable a] b := HashMap a b
 
--- todo
-instance : Zero (ArrayMap α β) := ⟨Array.mkEmpty 1000000, Array.mkEmpty 1000000⟩
 instance [EmptyCollection α] : Zero α := ⟨{}⟩
 
-class Modifiable (α : outParam Type*) (β : outParam Type*) (m : Type*) where
+class Modifiable (α β : outParam Type*) (m : Type*) where
   update : m → α → (β → β) → m
 
 instance [BEq α] [Hashable α] [Zero β] : Modifiable α β (HashMap α β) where
@@ -89,7 +86,7 @@ infixr:25 " →ₛ " => SStream
 namespace Stream
 variable {ι : Type} {α : Type _} [Mul α]
 
-@[simps, inline]
+@[simps, macro_inline]
 def contract (s : Stream ι α) : Stream Unit α where
   σ := s.σ
   valid := s.valid
@@ -107,10 +104,16 @@ def contract (s : Stream ι α) : Stream Unit α where
 def next (s : Stream ι α) (q : s.σ) (h : s.valid q = true) (ready : Bool) : s.σ :=
   let q := ⟨q, h⟩; s.seek q (s.index q, ready)
 
+@[macro_inline]
+def next' (s : Stream ι α) (q : {q // s.valid q}) (ready : Bool) : s.σ :=
+  s.seek q (s.index q, ready)
+
 /- (Important def) Converting a Stream into data
    This definition follows the same inline/specialize pattern as Array.forInUnsafe
 -/
 -- todo: evaluate this vs other version
+
+
 @[inline] partial def fold (f : β → ι → α → β) (s : Stream ι α) (q : s.σ) (acc : β) : β :=
   let rec @[specialize] go f
       (valid : s.σ → Bool) (ready : (x : s.σ) → valid x → Bool)
@@ -120,16 +123,35 @@ def next (s : Stream ι α) (q : s.σ) (h : s.valid q = true) (ready : Bool) : s
     if hv : valid q then
       let i := index q hv
       let hr := ready q hv
-      -- extern id hack?
       let acc' := if hr : hr then f acc i (value q hv hr) else acc
       let q' := next q hv hr
       go f valid ready index value next acc' q'
     else acc
-
   go f s.valid (fun q h => s.ready ⟨q,h⟩) (fun q h => s.index ⟨q,h⟩) (fun q v r => s.value ⟨⟨q,v⟩,r⟩) s.next
      acc q
 
-@[inline] partial def fold' (f : β → ι → α → β) (s : Stream ι α) (q : s.σ) (acc : β) : β :=
+-- this one is a little more uniform, and has better inlining behavior for products, but worse behavior for very simple examples
+@[macro_inline] partial def fold' (f : β → ι → α → β) (s : Stream ι α) (q : s.σ) (acc : β) : β :=
+  let rec @[specialize] go f
+      (valid : s.σ → Bool)
+      (ready : {x // valid x} → Bool)
+      (index : {x // valid x} → ι)
+      (value : (x : {x // ready x}) → α)
+      --(value : (x : {x // valid x}) → ready x → α)
+      (next : {x // valid x} → Bool → s.σ)
+      --(next : (x : s.σ) → valid x → Bool → s.σ)
+      (acc : β) (q : s.σ) :=
+    if hv : valid q then
+      let q := ⟨q, hv⟩
+      let i := index q
+      let hr := ready q
+      let acc' := if hr : hr then f acc i (value ⟨q, hr⟩) else acc
+      let q' := next q hr
+      go f valid ready index value next acc' q'
+    else acc
+  go f s.valid s.ready s.index s.value s.next' acc q
+
+@[inline] partial def fold_old (f : β → ι → α → β) (s : Stream ι α) (q : s.σ) (acc : β) : β :=
   let rec @[specialize] go f
       (valid : s.σ → Bool) (ready : (x : s.σ) → valid x → Bool)
       (index : (x : s.σ) → valid x → ι) (value : (x : s.σ) → (h : valid x) → ready x h → α)
@@ -140,31 +162,15 @@ def next (s : Stream ι α) (q : s.σ) (h : s.valid q = true) (ready : Bool) : s
            then go f valid ready index value next (f acc (index q hv) (value q hv hr)) (next q hv true)
            else go f valid ready index value next acc (next q hv false)
     else acc
-  go f s.valid (fun q h => s.ready ⟨q,h⟩) (fun q h => s.index ⟨q,h⟩) (fun q v r => s.value ⟨⟨q,v⟩,r⟩) s.next
-     acc q
+  go f s.valid (fun q h => s.ready ⟨q,h⟩) (fun q h => s.index ⟨q,h⟩) (fun q v r => s.value ⟨⟨q,v⟩,r⟩) s.next acc q
 
 end Stream
-
-def Vec α n := { x : Array α // x.size = n }
-instance [Repr α] : Repr (Vec α n) := ⟨fun x n => Repr.reprPrec x.val n⟩
-
-def Vec.map (v : Vec α n) (f : α → β) : Vec β n := ⟨v.1.map f, by have := Array.size_map f v.1; simp [*, v.2]⟩
-def Vec.push (l : Vec α n) (v : α) : Vec α (n+1) :=
-  ⟨l.1.push v, by have := Array.size_push l.1 v; simp only [this, l.2]⟩
-
-structure Level (ι : Type) (α : Type u) (n : ℕ) where
-  is : Vec ι n
-  vs : Vec α n
-deriving Repr
-
-def Level.push (l : Level ι α n) (i : ι) (v : α) : Level ι α (n+1) :=
-  ⟨l.is.push i, l.vs.push v⟩
 
 def FloatVec n := { x : FloatArray // x.size = n }
 
 class OfStream (α : Type u) (β : Type v) where
   eval : α → β → β
-  -- todo: ⟦ a ⟧ => eval a notation?
+  -- todo: (⟦ a ⟧ => eval a) notation?
 
 class ToStream (α : Type u) (β : outParam $ Type v) where
   stream : α → β
@@ -173,17 +179,20 @@ namespace SStream
 
 variable {ι : Type} [LinearOrder ι] {α : Type u}
 
-@[inline]
-def map (f : α → β) (s : ι →ₛ α) : ι →ₛ β := { s with value := f ∘ s.value}
+@[macro_inline]
+def map (f : α → β) (s : ι →ₛ α) : ι →ₛ β := {
+  s with value := f ∘ s.value
+}
 
 instance : Functor (ι →ₛ .) where
   map := map
 
 @[inline]
--- requires order preserving bijection
-def imap (f: ι → ι') (f' : ι' → ι) (s : ι →ₛ α) : ι' →ₛ α := { s with
+-- todo check this gen code
+def imap [LinearOrder ι'] (f : ι ≃o ι') (s : ι →ₛ α) : ι' →ₛ α := {
+  s with
   index := f ∘ s.index
-  seek := fun q i => s.seek q (f' i.1, i.2)
+  seek  := fun q (i, r) => s.seek q (f.symm i, r)
 }
 
 variable [Inhabited ι]
@@ -196,20 +205,6 @@ def zero : ι →ₛ α where
   seek _ _ := ();
 
 instance : Zero (ι →ₛ α) := ⟨zero⟩
-
--- deprecated
-@[inline]
-def ofArray (l : Array (ι × α)) : ι →ₛ α where
-  σ := ℕ
-  q := 0
-  valid q := q < l.size
-  ready _ := true
-  index q := (l[q.1]'(by simpa using q.2)).1
-  value := fun ⟨q, _⟩ => (l[q.1]'(by simpa using q.2)).2
-  seek q := fun ⟨j, r⟩ =>
-    let i := (l[q.1]'(by simpa using q.2)).fst
-    if r then if i ≤ j then q+1 else q
-         else if i < j then q+1 else q
 
 abbrev ArraySet ι := Array ι
 
@@ -226,18 +221,56 @@ def ofBoolArray (is : ArraySet ι) : ι →ₛ Bool where
     if r then if i ≤ j then q+1 else q
          else if i < j then q+1 else q
 
-@[inline]
-def ofArrayPair (is : Array ι) (vs : Array α) (eq : is.size = vs.size) : ι →ₛ α where
+def Vec α n := { x : Array α // x.size = n }
+instance [Repr α] : Repr (Vec α n) := ⟨fun x n => Repr.reprPrec x.val n⟩
+
+def Vec.range (num : ℕ) : Vec ℕ num:= ⟨Array.range num, Array.size_range⟩
+def Vec.mkEmpty {a} (num : ℕ) : Vec a 0 := ⟨Array.mkEmpty num, by simp⟩
+
+@[inline] def Vec.map (v : Vec α n) (f : α → β) : Vec β n := ⟨v.1.map f, by have := Array.size_map f v.1; simp [*, v.2]⟩
+@[inline] def Vec.push (l : Vec α n) (v : α) : Vec α (n+1) :=
+  ⟨l.1.push v, by have := Array.size_push l.1 v; simp only [this, l.2]⟩
+--@[inline] def SparseArray.push (l : SparseArray ι α n) (i : ι) (v : α) : SparseArray ι α (n+1) :=
+--  ⟨l.is.push i, l.vs.push v⟩
+
+@[reducible]
+structure SparseArray (ι : Type) (α : Type*) where
+  mk' ::
+    n : Nat
+    is : Vec ι n
+    vs : Vec α n
+
+abbrev SparseArrayMat a b c := SparseArray a (SparseArray b c)
+
+@[macro_inline] def SparseArray.mk {n} : Vec ι n → Vec α n → SparseArray ι α  := SparseArray.mk' n
+
+@[macro_inline]
+def SparseArray.getI (arr : SparseArray ι α) (q : {q // decide (q < arr.n) = true}) : ι :=
+  arr.is.val[q.1]'(by simpa [arr.is.prop] using q.2)
+@[macro_inline]
+def SparseArray.getV (arr : SparseArray ι α) (q : {q // decide (q < arr.n) = true}) : α :=
+  arr.vs.val[q.1]'(by simpa [arr.vs.prop] using q.2)
+
+@[macro_inline]
+def SparseArray.mapVals {ι} {α β : Type*} (arr : SparseArray ι α) (f : α → β) : SparseArray ι β :=
+  let ⟨_, is, vs⟩ := arr
+  ⟨_, is, vs.map f⟩
+
+-- benefits from macro_inline (matrix sum)
+@[macro_inline]
+def SparseArray.of (arr : SparseArray ι α) : ι →ₛ α where
   σ := ℕ
   q := 0
-  valid q := q < is.size
+  valid q := q < arr.n
   ready _ := true
-  index q := (is[q.1]'(by simpa using q.2))
-  value := fun ⟨q, _⟩ => (vs[q.1]'(eq ▸ (by simpa using q.2)))
-  seek q := fun ⟨j, r⟩ =>
-    let i := (is[q.1]'(by simpa using q.2))
+  index q := arr.getI q
+  value   := fun ⟨q, _⟩ => arr.getV q
+  seek q  := fun (j, r) =>
+    let i := arr.getI q
     if r then if i ≤ j then q+1 else q
          else if i < j then q+1 else q
+
+instance : Zero (SparseArray ι α) := ⟨0, Vec.mkEmpty 1000000, Vec.mkEmpty 1000000⟩
 
 -- not tested yet
 --@[macro_inline]
@@ -261,14 +294,8 @@ instance : Scalar Bool := ⟨⟩
 
 instance [Scalar α] : ToStream α α := ⟨id⟩
 
-instance {α β} [ToStream α β] : ToStream  (Array (ι × α)) (ι →ₛ β) where
-  stream := map ToStream.stream ∘ ofArray
-
-instance {α β} [ToStream α β] : ToStream  (Level ι α n) (ι →ₛ β) where
-  stream := map ToStream.stream ∘ (fun ⟨⟨is, _⟩, ⟨vs, _⟩⟩ => ofArrayPair is vs (by simp [*]))
-
-instance {α β} [ToStream α β] : ToStream  (ArrayMap ι α) (ι →ₛ β) where
-  stream := map ToStream.stream ∘ (fun (is, vs) => ofArrayPair is vs sorry)
+instance {α β} [ToStream α β] : ToStream  (SparseArray ι α) (ι →ₛ β) where
+  stream := map ToStream.stream ∘ SparseArray.of
 
 instance : ToStream  (ArraySet ι) (ι →ₛ Bool) where
   stream := map ToStream.stream ∘ ofBoolArray
@@ -278,15 +305,8 @@ instance : ToStream  (ArraySet ι) (ι →ₛ Bool) where
 
 @[inline] def fold (f : β → ι → α → β) (s : ι →ₛ α) : β → β := s.toStream.fold f s.q
 
-@[inline] def toArrayMap (s : ι →ₛ α) : ArrayMap ι α → ArrayMap ι α :=
-  s.fold (fun (a,b) i v => ⟨a.push i, b.push v⟩)
-
--- not used yet
---@[inline] def toLevel (s : SStream ι α) : (n : ℕ) × (Level ι α n) :=
---  s.fold (fun ⟨_, l⟩ i v => ⟨_, l.push i v⟩) s.q ⟨0, ⟨⟨#[], rfl⟩, ⟨#[], rfl⟩⟩⟩
---@[inline] def toArrayPair (s : SStream ι α) : Array ι × Array α :=
---  let ⟨_, l⟩ : (n : _) × Level ι α n := s.fold (fun ⟨_, l⟩ i v => ⟨_, l.push i v⟩) ⟨0, ⟨⟨#[], rfl⟩, ⟨#[], rfl⟩⟩⟩ s.q
---  (l.1.1, l.2.1)
+@[inline] def toSparseArray (s : ι →ₛ α) : SparseArray ι α → SparseArray ι α :=
+  s.fold (fun ⟨_, a, b⟩ i v => ⟨_, a.push i, b.push v⟩)
 
 section eval
 open OfStream
@@ -305,15 +325,15 @@ instance [OfStream α β] [Modifiable ι β m] : OfStream (ι →ₛ α) m where
   eval := fold Modifiable.update ∘ map eval
   -- bad: fold fun m k => Modifiable.update m k ∘ eval
 
--- `toArrayMap` doesn't support update of previous indices; assumes fully formed value is
+-- `toSparseArray` doesn't support update of previous indices; assumes fully formed value is
 --   inserted at each step (so pass 0 to recursive eval)
 -- todo: pass accurate capacity estimate?
-instance [OfStream α β] [Zero β]: OfStream (ι →ₛ α) (ArrayMap ι β) where
-  eval := toArrayMap ∘ map (eval . 0)
+instance [OfStream α β] [Zero β]: OfStream (ι →ₛ α) (SparseArray ι β) where
+  eval := toSparseArray ∘ map (eval . 0)
 
 end eval
 
-@[inline]
+@[macro_inline]
 def contract (a : ι →ₛ α) : Unit →ₛ α := {
   a.toStream.contract with
   q := a.q
@@ -373,13 +393,12 @@ def lt (t : ι) [Bot ι] : ι →ₛ Bool where
 
 -- indicator for index = t
 def singleton (t : ι) : ι →ₛ Bool where
-  σ := Bool
-  q := true
+  σ := Bool; q := true
   valid q := q
-  ready _q := true -- may need to be t ≤ _q
-  index _ := t
+  index   := fun | ⟨true, _⟩ => t
+  seek _  := fun (i, ready) => (ready ∧ i < t) ∨ (¬ ready ∧ i ≤ t)
+  ready _ := true
   value _ := true
-  seek q i := if i.2 then (if t ≤ i.1 then false else q) else (if t < i.1 then false else q)
 
 end SStream
 
