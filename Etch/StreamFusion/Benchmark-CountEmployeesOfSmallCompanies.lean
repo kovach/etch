@@ -41,7 +41,7 @@ def emplyeesOfSmallCompanies
   -- convert `Bool` entries to 0/1
   let company := Bool.toNat $[state] company
   -- count employees per company in CA
-  let counts : ArrayMap Id ℕ := eval $
+  let counts : SparseArray Id ℕ := eval $
     Σ eid, ename, cname, state: employee * (singleton "CA")(state) * company
   -- reshape to CID →ₛ Nat →ₛ Bool
   let counts := ((stream counts).map singleton)(cid, companySize)
@@ -58,7 +58,7 @@ def emplyeesOfSmallCompanies'
   -- convert `Bool` entries to 0/1
   let company := Bool.toNat $[state] company(cid, cname, state)
   -- count employees per company
-  let counts : ArrayMap CID ℕ := eval $ Σ eid, ename, cname, state: employee(eid,ename,cid) * company
+  let counts : SparseArray CID ℕ := eval $ Σ eid, ename, cname, state: employee(eid,ename,cid) * company
   -- reshape to CID →ₛ Nat →ₛ Bool
   let counts := (stream counts).map singleton
   -- get result of shape EID →ₛ EName →ₛ Bool

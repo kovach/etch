@@ -73,7 +73,7 @@ Contract.contract j
   let m1 :=  a(i,j)
   let m2 :=  b(j,k)
   let m3 :=  c(k,l)
-  let x : ArrayMap I (ArrayMap K α) := eval $ Σ j: m1 * m2
+  let x : SparseArray I (SparseArray K α) := eval $ Σ j: m1 * m2
   let m  := (stream x)(i,k) * m3
   Σ k: m
 
@@ -83,7 +83,7 @@ Contract.contract j
   let m1 := ijk ⇑ a(i,j)
   let m3 := ikl ⇑ c(k,l)
   let m : i~I →ₛ k~K →ₛ α := m1.map fun (row : j~J →ₛ k~K → α) =>
-             memo (ArrayMap K α) (Σ j: row * b(j,k))
+             memo (SparseArray K α) (Σ j: row * b(j,k))
   let m  := ikl ⇑ m * m3
   Σ k: m
 
@@ -107,14 +107,14 @@ def testABC (num : ℕ) : IO Unit := do
   let m := stream $ mat' num
   time "matrix abc" fun _ =>
     for _ in [0:10] do
-      let x : ArrayMap ℕ (HMap ℕ ℕ) := eval $ ABC m m m
+      let x : SparseArray ℕ (HMap ℕ ℕ) := eval $ ABC m m m
       IO.println s!"{x.1.size}"
 
 def testABC' (num : ℕ) : IO Unit := do
   let m := stream $ mat' num
   time "matrix abc'" fun _ =>
     for _ in [0:10] do
-      let x : ArrayMap ℕ (HMap ℕ ℕ) := eval $ ABC' m m m
+      let x : SparseArray ℕ (HMap ℕ ℕ) := eval $ ABC' m m m
       IO.println s!"{x.1.size}"
 
 /- Exercise: add a test that invokes matMul_ikjk, otherwise identical to matMul1 -/
