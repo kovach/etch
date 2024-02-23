@@ -41,7 +41,7 @@ end
 -- Notice, no Broadcast helper class, it was unfolded
 #print mul_fns'
 
-def testContractElab (A : I →ₛ J →ₛ α) (B : J →ₛ K →ₛ α) := Σ j : (Σ i: A(i,j)) * B(j,k)
+def testContractElab (A : I →ₛ J →ₛ α) (B : J →ₛ K →ₛ α) := Σ j, k : (Σ i: A(i,j)) * B(j,k)
 -- i~Unit →ₛ j~Unit →ₛ k~K →ₛ α
 #print testContractElab
 /-

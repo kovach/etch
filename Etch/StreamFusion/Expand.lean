@@ -68,11 +68,6 @@ instance : Contract i (i~ι →ₛ α) (i~Unit →ₛ α) := ⟨fun s => contrac
 instance [Contract j α β] [NatLt i j] : Contract j (i~ι →ₛ α) (i~ι →ₛ β) := ⟨map (Contract.contract j)⟩
 instance [Contract j α β]  : Contract j (Unit →ₛ α) (Unit →ₛ β) := ⟨map (Contract.contract j)⟩
 
--- kmill: needed this given the labeled `i~Unit →ₛ α` instance above
-instance [inst : OfStream (Unit →ₛ α) β] : OfStream (i~Unit →ₛ α) β := inst
--- and for eval
-instance [inst : Zero (ι →ₛ α)]: Zero (i~ι →ₛ α) := inst
-
 --notation "Σ " j ", " t => Contract.contract j t
 --notation "Σ " j ": " t => Contract.contract j t
 
