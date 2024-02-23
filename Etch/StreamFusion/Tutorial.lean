@@ -41,8 +41,14 @@ end
 -- Notice, no Broadcast helper class, it was unfolded
 #print mul_fns'
 
-def testContractElab (A : I →ₛ J →ₛ α) (v : J →ₛ α) := Σ j : (Σ i: A(i,j)) * v(j)
--- i~Unit →ₛ j~Unit →ₛ α
+def testContractElab (A : I →ₛ J →ₛ α) (B : J →ₛ K →ₛ α) := Σ j : (Σ i: A(i,j)) * B(j,k)
+-- i~Unit →ₛ j~Unit →ₛ k~K →ₛ α
+#print testContractElab
+/-
+Contract.contract j
+    (Contract.contract i ([(i, I), (j, J), (k, K)] ⇑ Label.label [i, j] A) *
+      [(i, Unit), (j, J), (k, K)] ⇑ Label.label [j, k] B)
+-/
 
 /- Some examples of notation
 
