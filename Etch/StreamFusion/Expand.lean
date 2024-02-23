@@ -85,11 +85,11 @@ macro_rules
 
 /--
 Memoize the expression.
-`μ(e with ty)`
+`memo(e with ty)`
 -/
-syntax "μ(" term " with " term ")" : term
+syntax "memo(" term " with " term ")" : term
 macro_rules
-  | `(μ($e with $ty)) => `(eraseUnits%(Etch.Verification.SStream.memo $ty) $e)
+  | `(memo($e with $ty)) => `(eraseUnits%(Etch.Verification.SStream.memo $ty) $e)
 
 class Expand (σ : List (ℕ × Type)) (α : Type*) (β : outParam Type*) where
   expand : α → β

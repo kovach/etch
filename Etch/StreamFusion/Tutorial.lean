@@ -81,7 +81,7 @@ Contract.contract j
   let ijk := [(i,I),(j,J),(k,K)]
   let m1 := ijk ⇑ a(i,j)
   let m := m1.map fun row =>
-             μ(Σ j: row * b(j,k) with SparseArray K α)
+             memo(Σ j: row * b(j,k) with SparseArray K α)
   let m  := m(i,k) * c(k,l)
   Σ k: m
 
