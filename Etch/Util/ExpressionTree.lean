@@ -359,7 +359,7 @@ where
         modify fun s => {s with indices := []}
         let arg ← go arg
         let innerIndices := (← get).indices
-        let outerIndices := innerIndices.filter fun data => data.type.isAppOf ``Unit
+        let outerIndices := innerIndices.filter fun data => !data.type.isAppOf ``Unit
         let indices ← mergeTypeIndices indices outerIndices
         modify fun s => {s with indices := indices}
         return .eraseUnits ref innerIndices f arg
@@ -517,8 +517,14 @@ mutual
         let arg ← go arg indices' none false false
         return .updateIndex ref data innerType f arg
       | .eraseUnits ref innerIndices? f arg =>
-        let arg ← go arg innerIndices?.get! none false false
-        return .eraseUnits ref innerIndices? f arg
+        let innerIndices := innerIndices?.get!
+        let arg ← go arg innerIndices none false false
+        let outerIndices := innerIndices.filter fun data => !data.type.isAppOf ``Unit
+        if outerIndices.length != indices.length then
+          -- Need to insert broadcast
+          throwError "unimplemented(kmill): eraseUnits needs to broadcast"
+        else
+          return .eraseUnits ref innerIndices f arg
       | .term ref trees e =>
         let (indices', type) ← extractTypeIndices (← instantiateMVars (← inferType e))
         trace[Elab.binop] "visiting {e} : {type} =?= {maxType?}"
