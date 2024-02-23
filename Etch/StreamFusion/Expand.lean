@@ -32,6 +32,11 @@ instance [Label is α β] : Label (i::is) (ι → α) (i~ι → β) := ⟨(Label
 
 def idx (x : α) (shape : List ℕ) [Label shape α β] := Label.label shape x
 
+class Unlabel (α : Type*) (β : outParam Type*) where
+  unlabel : α → β
+instance [Scalar α]     : Unlabel α α := ⟨id⟩
+instance [Unlabel α β] : Unlabel (i~ι →ₛ α) (ι →ₛ β) := ⟨map (Unlabel.unlabel)⟩
+instance [Unlabel α β] : Unlabel (i~ι → α) (ι → β) := ⟨(Unlabel.unlabel ∘ .)⟩
 
 /--
 Class to put decidable propositions into the typeclass inference.
@@ -59,18 +64,27 @@ notation f " $[" i "] " t => MapIndex.map i f t
 
 class Contract (σ : ℕ) (α : Type*) (β : outParam Type*) where
   contract : α → β
-instance : Contract i (i~ι →ₛ α) (Unit →ₛ α) := ⟨fun s => contract s⟩
+instance : Contract i (i~ι →ₛ α) (i~Unit →ₛ α) := ⟨fun s => contract s⟩
 instance [Contract j α β] [NatLt i j] : Contract j (i~ι →ₛ α) (i~ι →ₛ β) := ⟨map (Contract.contract j)⟩
 instance [Contract j α β]  : Contract j (Unit →ₛ α) (Unit →ₛ β) := ⟨map (Contract.contract j)⟩
+
+-- kmill: needed this given the labeled `i~Unit →ₛ α` instance above
+instance [inst : OfStream (Unit →ₛ α) β] : OfStream (i~Unit →ₛ α) β := inst
+-- and for eval
+instance [inst : Zero (ι →ₛ α)]: Zero (i~ι →ₛ α) := inst
 
 --notation "Σ " j ", " t => Contract.contract j t
 --notation "Σ " j ": " t => Contract.contract j t
 
+/--
+`Σ i,j : e` contracts indices `i` and `j` in `e`.
+
+Participates in the index elaboration system.
+-/
 syntax "Σ"  term,* ":" term : term
 macro_rules
-| `(Σ $is,* : $t) => do
-  let t ← is.getElems.foldlM (init := (t : Lean.TSyntax `term)) fun acc i => `(Contract.contract $i $acc)
-  pure t
+| `(Σ $is,* : $t) => show Lean.MacroM Lean.Term from do
+  is.getElems.foldlM (init := t) fun acc i => `(updateIndex%($i, Unit, Contract.contract $i) $acc)
 
 class Expand (σ : List (ℕ × Type)) (α : Type*) (β : outParam Type*) where
   expand : α → β

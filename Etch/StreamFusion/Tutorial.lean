@@ -41,6 +41,9 @@ end
 -- Notice, no Broadcast helper class, it was unfolded
 #print mul_fns'
 
+def testContractElab (A : I →ₛ J →ₛ α) (v : J →ₛ α) := Σ j : (Σ i: A(i,j)) * v(j)
+-- i~Unit →ₛ j~Unit →ₛ α
+
 /- Some examples of notation
 
   notes:
