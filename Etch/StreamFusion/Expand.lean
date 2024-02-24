@@ -74,14 +74,14 @@ instance [Contract j α β]  : Contract j (Unit →ₛ α) (Unit →ₛ β) := �
 --notation "Σ " j ": " t => Contract.contract j t
 
 /--
-`Σ i,j : e` contracts indices `i` and `j` in `e`.
+`Σ i j => e` contracts indices `i` and `j` in `e`.
 
 Participates in the index elaboration system.
 -/
-syntax "Σ"  term,* ":" term : term
+syntax "Σ "  term:max* " => " term : term
 macro_rules
-| `(Σ $is,* : $t) => show Lean.MacroM Lean.Term from do
-  is.getElems.foldlM (init := t) fun acc i => `(updateIndex%($i, Unit, Contract.contract $i) $acc)
+| `(Σ $is* => $t) => show Lean.MacroM Lean.Term from do
+  is.foldlM (init := t) fun acc i => `(updateIndex%($i, Unit, Contract.contract $i) $acc)
 
 /--
 Memoize the expression.
@@ -92,7 +92,7 @@ macro_rules
   | `(memo($e with $ty)) => `(eraseUnits%(Etch.Verification.SStream.memo $ty) $e)
 
 open Lean Elab Term Meta in
-elab "select " idxs:term,* " from " e:term : term => do
+elab "select " idxs:term,* " => " e:term : term => do
   let idxs ← withSynthesize <| idxs.getElems.mapM <| (elabTermEnsuringType · (Expr.const ``Nat []))
   let idxVals ← idxs.mapM (ExpressionTree.reduceIndexNat ·)
   let e ← withSynthesize (mayPostpone := true) <| elabTerm e none
