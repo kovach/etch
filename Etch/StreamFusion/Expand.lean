@@ -199,6 +199,18 @@ instance [OfStream (ι →ₛ α) β] : OfStream (i~ι →ₛ α) β := ⟨fun x
 
 --instance [HMul α β γ] : HMul ((i//I) =>ₛ α) ((j//J) =>ₛ β)
 
+/-!
+Indicators
+-/
+syntax "I([)" term ")" : term
+macro_rules | `(I($_)) => Lean.Macro.throwError "unimplemented indicator"
+
+macro_rules | `(I($idx = $val)) => ``((singleton $val)($idx))
+macro_rules | `(I($idx ≥ $val)) => ``((ge $val)($idx))
+macro_rules | `(I($idx > $val)) => ``((gt $val)($idx))
+macro_rules | `(I($idx ≤ $val)) => ``((le $val)($idx))
+macro_rules | `(I($idx < $val)) => ``((lt $val)($idx))
+
 open Lean Elab PrettyPrinter Delaborator SubExpr in
 def delabLabeledIndexFor (i : Nat) (name : Name) : Delab := whenPPOption getPPNotation do
   let e ← getExpr

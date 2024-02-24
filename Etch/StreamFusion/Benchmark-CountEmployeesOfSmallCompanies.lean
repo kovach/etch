@@ -32,7 +32,7 @@ def_index_enum_group
   companySize
 
 -- yields employee Ids who work for companies based in CA with at most 50 employees
-def emplyeesOfSmallCompanies
+def employeesOfSmallCompanies
     (employee : (Id →ₛ String →ₛ Id →ₛ Bool))
     (company  : (Id →ₛ String →ₛ String →ₛ Bool)) :=
   -- label columns
@@ -42,15 +42,15 @@ def emplyeesOfSmallCompanies
   let company := Bool.toNat $[state] company
   -- count employees per company in CA
   let counts : SparseArray Id ℕ := eval $
-    Σ eid, ename, cname, state: employee * (singleton "CA")(state) * company
+    Σ eid ename cname state => employee * I(state = "CA") * company
   -- reshape to CID →ₛ Nat →ₛ Bool
   let counts := ((stream counts).map singleton)(cid, companySize)
-  let small := (le 50)(companySize)
+  let small := I(companySize ≤ 50)
   -- get result of shape eid~Id →ₛ Bool
-  Σ ename,cid,companySize: small * counts * employee
+  Σ ename cid companySize => small * counts * employee
 
 @[inline]
-def emplyeesOfSmallCompanies'
+def employeesOfSmallCompanies'
     (employee : (EID →ₛ ENAME →ₛ CID →ₛ Bool))
     (company  : (CID →ₛ CNAME →ₛ CSTATE →ₛ Bool)) :=
   let inCal   := singleton "CA"
@@ -58,10 +58,10 @@ def emplyeesOfSmallCompanies'
   -- convert `Bool` entries to 0/1
   let company := Bool.toNat $[state] company(cid, cname, state)
   -- count employees per company
-  let counts : SparseArray CID ℕ := eval $ Σ eid, ename, cname, state: employee(eid,ename,cid) * company
+  let counts : SparseArray CID ℕ := eval $ Σ eid ename cname state => employee(eid,ename,cid) * company
   -- reshape to CID →ₛ Nat →ₛ Bool
   let counts := (stream counts).map singleton
   -- get result of shape EID →ₛ EName →ₛ Bool
-  Σ cid,enum,state: inCal(state) * leFifty(enum) * counts(cid, enum) * employee(eid,ename,cid)
+  Σ cid enum state => inCal(state) * leFifty(enum) * counts(cid, enum) * employee(eid,ename,cid)
 
 end Etch.Verification.SStream
