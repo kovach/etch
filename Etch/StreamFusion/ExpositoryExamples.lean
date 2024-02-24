@@ -20,12 +20,24 @@ structure Stream (α : Type) where
 namespace Stream
 
 open Step
-def map (f : α → β) (s : Stream α) : Stream β where
+
+def old_map (f : α → β) (s : Stream α) : Stream β where
   q := s.q
-  next state := match s.next state with
+  next state :=
+    match s.next state with
     | done             => done
     | skip state       => skip state
     | emit state value => emit state (f value)
+
+-- use this style instead
+def map (f : α → β) : Stream α → Stream β := fun s => {
+  s with
+  next := fun state =>
+    match s.next state with
+    | done             => done
+    | skip state       => skip state
+    | emit state value => emit state (f value)
+}
 
 partial def eval : Stream α → List α := fun {q, next} =>
   match next q with
@@ -101,7 +113,7 @@ def mul [Mul α] (a b : Stream ι α) : Stream ι α where
 instance : Mul (Stream ι α) := ⟨mul⟩
 variable  [Zero α] [Add α]
 
-partial def eval [Add α] : Stream ι α → (ι → Option α) :=
+def eval [Add α] : Stream ι α → (ι → Option α) :=
   fun {q, next} =>
     match next q with
     | done => zero

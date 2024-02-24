@@ -57,3 +57,12 @@ def Std.RBNode.look [Inhabited α] (t : RBNode α) : α :=
   match t with
   | .nil => default
   | .node _ _ v _ => v
+
+/-- `upperBound? cut` retrieves the smallest entry greater than or equal to `cut`, if it exists. -/
+@[specialize] def Std.RBNode.upperBoundP? (cut : α → Ordering) : RBNode α → Option α → Option α
+  | .nil,          lb => lb
+  | .node _ a y b, lb =>
+    match cut y with
+    | .lt => upperBoundP? cut a (some y)
+    | .gt => upperBoundP? cut b lb
+    | .eq => some y

@@ -139,15 +139,20 @@ instance [Ord ι] : ToStream (RBMap ι α Ord.compare) (ι →ₛ α) := ⟨sorr
 
 variable
   (locations : RBSet String Ord.compare)
-  (predicate : String → Bool)
      (counts : RBMap String Nat Ord.compare)
+  (predicate : String → Bool)
+          (f : String → String)
 
 example : Nat := Id.run $ do
     let mut result := 0
     for key in locations do
       if predicate key then
-        result ← result + counts.findD ("prefix_" ++ key) 0
+        result ← result + counts.findD (f key) 0
     return result
+
+example : Nat :=
+  (locations.filter predicate).toList.map f
+  |>.foldl (init := 0) (fun result k' => result + counts.findD k' 0)
 
 example : Nat := eval $
   let locations := (imap ("prefix_" ++ .) sorry (stream locations))(i)
