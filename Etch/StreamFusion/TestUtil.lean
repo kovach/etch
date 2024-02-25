@@ -1,4 +1,5 @@
 import Etch.StreamFusion.Stream
+import Etch.StreamFusion.Traversals
 
 def time (s : String) (m : Unit → IO α) : IO α := do
   let t0 ← IO.monoMsNow
@@ -14,6 +15,13 @@ open OfStream ToStream
 variable
 {ι ι' : Type}
 [LinearOrder ι] [LinearOrder ι']
+
+@[inline] def sparseVec (num : Nat) :=
+  let v  : Vec ℕ num := ⟨Array.range num, Array.size_range⟩
+  SparseArray.mk v v
+
+@[inline] def sparseVecRB (num : Nat) :=
+  RB.TreeMap.ofList $ (List.range num).map fun n => (n,n)
 
 @[inline] def vecStream (num : Nat) :=
   let v  : Vec ℕ num := ⟨Array.range num, Array.size_range⟩
