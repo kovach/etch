@@ -81,7 +81,7 @@ Participates in the index elaboration system.
 syntax "Σ "  term:max* " => " term : term
 macro_rules
 | `(Σ $is* => $t) => show Lean.MacroM Lean.Term from do
-  is.foldlM (init := t) fun acc i => `(updateIndex%($i, Unit, Contract.contract $i) $acc)
+  is.foldlM (init := t) fun acc i => `(updateIndex%($i, Unit, Contract.contract) $acc)
 
 /--
 Memoize the expression.
@@ -202,7 +202,12 @@ instance [OfStream (ι →ₛ α) β] : OfStream (i~ι →ₛ α) β := ⟨fun x
 /-!
 Indicators
 -/
-syntax "I([)" term ")" : term
+/--
+Indicator bracket notation.
+Provides notation for special streams,
+such as `I(i = val)` for the stream `i~I →ₛ Bool` that gives whether the index is equal to `val`.
+-/
+syntax "I(" term ")" : term
 macro_rules | `(I($_)) => Lean.Macro.throwError "unimplemented indicator"
 
 macro_rules | `(I($idx = $val)) => ``((singleton $val)($idx))

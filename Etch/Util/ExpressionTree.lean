@@ -198,7 +198,7 @@ Remarks:
 
 -- kmill
 /--
-`updateIndex%(i, ty, f) x` -> `f x` while setting index `i` to have type `ty`.
+`updateIndex%(i, ty, f) x` -> `f i x` while setting index `i` to have type `ty`.
 -/
 syntax (name := updateIndexStx) "updateIndex%(" term ", " term ", " term ")" term : term
 
@@ -405,9 +405,10 @@ private def toExprCore (t : Tree) : TermElabM Expr := do
   | .unop ref f arg =>
     withRef ref <| withInfoContext' ref (mkInfo := mkTermInfo .anonymous ref) do
       mkUnOp f (← toExprCore arg)
-  | .updateIndex ref _ _ f arg =>
+  | .updateIndex ref data _ f arg =>
     withRef ref <| withInfoContext' ref (mkInfo := mkTermInfo .anonymous ref) do
-      mkUnOp f (← toExprCore arg)
+      let arg ← toExprCore arg
+      elabAppArgs f #[] #[Arg.expr data.i, Arg.expr arg] (expectedType? := none) (explicit := false) (ellipsis := false) (resultIsOutParamSupport := false)
   | .eraseUnits ref _ f arg =>
     withRef ref <| withInfoContext' ref (mkInfo := mkTermInfo .anonymous ref) do
       mkUnOp f (← toExprCore arg)
