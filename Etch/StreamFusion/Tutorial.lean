@@ -88,6 +88,8 @@ Contract.contract j
   let m  := m(i,k) * c(k,l)
   Σ k => m
 
+def mat' (num : ℕ) := sparseMat num.sqrt
+
 def matMul1 (num : ℕ) : IO Unit := do
   let m := stream $ mat' num
   let x := matMul_ijjk m m
@@ -117,11 +119,6 @@ def testABC' (num : ℕ) : IO Unit := do
     for _ in [0:10] do
       let x : SparseArray ℕ (HMap ℕ ℕ) := eval $ ABC' m m m
       IO.println s!"{x.1.size}"
-
-/- Exercise: add a test that invokes matMul_ikjk, otherwise identical to matMul1 -/
-def matMul2 (num : ℕ) : IO Unit := sorry
-
-/- Exercise: add a test that invokes vecSum -/
 
 def _root_.main (args : List String) : IO Unit := do
   let num := (args[0]!).toNat?.getD 1000
@@ -154,9 +151,11 @@ example : Nat :=
   (locations.filter predicate).toList.map f
   |>.foldl (init := 0) (fun result k' => result + counts.findD k' 0)
 
+/-
 example : Nat := eval $
   let locations := (imap ("prefix_" ++ .) sorry (stream locations))(i)
   let counts := (stream counts)(i)
   Σ i => predicate(i) * locations * counts
 
 end Etch.Verification.SStream
+-/

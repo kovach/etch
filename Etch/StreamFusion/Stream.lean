@@ -111,12 +111,14 @@ def next_ (s : Stream ι α) (q : s.σ) (h : s.valid q = true) (ready : Bool) : 
 def next' (s : Stream ι α) (q : {q // s.valid q}) (ready : Bool) : s.σ :=
   s.seek q (s.index q, ready)
 
+
+
+-- todo: try no go?
+
 /- (Important def) Converting a Stream into data
    This definition follows the same inline/specialize pattern as Array.forInUnsafe
 -/
 -- todo: evaluate this vs other version
-
-
 @[inline] partial def fold (f : β → ι → α → β) (s : Stream ι α) (q : s.σ) (acc : β) : β :=
   let rec @[specialize] go f
       (valid : s.σ → Bool) (ready : (x : s.σ) → valid x → Bool)
@@ -135,7 +137,7 @@ def next' (s : Stream ι α) (q : {q // s.valid q}) (ready : Bool) : s.σ :=
      acc q
 
 -- this one is a little more uniform, and has better inlining behavior for products, but worse behavior for very simple examples
-@[macro_inline] partial def fold' (f : β → ι → α → β) (s : Stream ι α) (q : s.σ) (acc : β) : β :=
+@[inline] partial def fold' (f : β → ι → α → β) (s : Stream ι α) (q : s.σ) (acc : β) : β :=
   let rec @[specialize] go f
       (valid : s.σ → Bool)
       (ready : {x // valid x} → Bool)

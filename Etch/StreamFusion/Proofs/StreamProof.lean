@@ -264,7 +264,7 @@ end well_founded
           let acc' := if hr : hr then f acc i (value q hv hr) else acc
           go f valid ready index value next h acc' q'
         else acc
-  go f s.valid (fun q h => s.ready ⟨q,h⟩) (fun q h => s.index ⟨q,h⟩) (fun q v r => s.value ⟨⟨q,v⟩,r⟩) s.next
+  go f s.valid (fun q h => s.ready ⟨q,h⟩) (fun q h => s.index ⟨q,h⟩) (fun q v r => s.value ⟨⟨q,v⟩,r⟩) s.next_
     (fun q hv => s.progress rfl.le) acc q
 termination_by _ => s.wf.wrap q
 decreasing_by exact h q hv

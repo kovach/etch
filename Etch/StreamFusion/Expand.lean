@@ -30,8 +30,6 @@ instance [Label is α β] : Label (i::is) (ι → α) (i~ι → β) := ⟨(Label
 instance [Label is α β] : Label (i::is) (i'~ι →ₛ α) (i~ι →ₛ β) := ⟨map (Label.label is)⟩
 instance [Label is α β] : Label (i::is) (i'~ι → α) (i~ι → β) := ⟨(Label.label is ∘ .)⟩
 
-#check 0~Nat →ₛ 1~Nat →ₛ Nat
-
 def idx (x : α) (shape : List ℕ) [Label shape α β] := Label.label shape x
 
 class Unlabel (α : Type*) (β : outParam Type*) where
