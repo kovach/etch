@@ -16,7 +16,7 @@ Authors: Scott Kovach
 -/
 
 import Mathlib.Data.Prod.Lex
- import Mathlib.Data.String.Basic
+import Mathlib.Data.String.Basic
 import Init.Data.Array.Basic
 import Std.Data.RBMap
 import Std.Data.HashMap

@@ -269,6 +269,13 @@ end well_founded
 termination_by _ => s.wf.wrap q
 decreasing_by exact h q hv
 
+theorem Stream.fold_wf_spec [Preorder ι] (f : β → ι → α → β) (s : Stream ι α) [IsBounded s]
+    (q : {q // s.valid q}) (acc : β) :
+  s.fold_wf f q acc =
+    s.fold_wf f (s.advance q) (if hr : s.ready q then f acc (s.index q) (s.value ⟨q, hr⟩) else acc) := by
+  rw [Stream.fold_wf, fold_wf.go]
+  simp only [q.prop, Subtype.coe_eta, dite_true, advance_val]
+  rfl
 
 variable [PartialOrder ι]
 
