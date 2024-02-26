@@ -27,11 +27,16 @@ class Label (σ : List ℕ) (α : Type*) (β : outParam Type*) where
 instance [Scalar α]     : Label [] α α := ⟨id⟩
 instance [Label is α β] : Label (i::is) (ι →ₛ α) (i~ι →ₛ β) := ⟨map (Label.label is)⟩
 instance [Label is α β] : Label (i::is) (ι → α) (i~ι → β) := ⟨(Label.label is ∘ .)⟩
-
-#check 0~Nat →ₛ 1~Nat →ₛ Nat
+instance [Label is α β] : Label (i::is) (i'~ι →ₛ α) (i~ι →ₛ β) := ⟨map (Label.label is)⟩
+instance [Label is α β] : Label (i::is) (i'~ι → α) (i~ι → β) := ⟨(Label.label is ∘ .)⟩
 
 def idx (x : α) (shape : List ℕ) [Label shape α β] := Label.label shape x
 
+class Unlabel (α : Type*) (β : outParam Type*) where
+  unlabel : α → β
+instance [Scalar α]     : Unlabel α α := ⟨id⟩
+instance [Unlabel α β] : Unlabel (i~ι →ₛ α) (ι →ₛ β) := ⟨map (Unlabel.unlabel)⟩
+instance [Unlabel α β] : Unlabel (i~ι → α) (ι → β) := ⟨(Unlabel.unlabel ∘ .)⟩
 
 /--
 Class to put decidable propositions into the typeclass inference.
@@ -59,18 +64,43 @@ notation f " $[" i "] " t => MapIndex.map i f t
 
 class Contract (σ : ℕ) (α : Type*) (β : outParam Type*) where
   contract : α → β
-instance : Contract i (i~ι →ₛ α) (Unit →ₛ α) := ⟨fun s => contract s⟩
+instance : Contract i (i~ι →ₛ α) (i~Unit →ₛ α) := ⟨fun s => contract s⟩
 instance [Contract j α β] [NatLt i j] : Contract j (i~ι →ₛ α) (i~ι →ₛ β) := ⟨map (Contract.contract j)⟩
 instance [Contract j α β]  : Contract j (Unit →ₛ α) (Unit →ₛ β) := ⟨map (Contract.contract j)⟩
 
 --notation "Σ " j ", " t => Contract.contract j t
 --notation "Σ " j ": " t => Contract.contract j t
 
-syntax "Σ"  term,* ":" term : term
+/--
+`Σ i j => e` contracts indices `i` and `j` in `e`.
+
+Participates in the index elaboration system.
+-/
+syntax "Σ "  term:max* " => " term : term
 macro_rules
-| `(Σ $is,* : $t) => do
-  let t ← is.getElems.foldlM (init := (t : Lean.TSyntax `term)) fun acc i => `(Contract.contract $i $acc)
-  pure t
+| `(Σ $is* => $t) => show Lean.MacroM Lean.Term from do
+  is.foldlM (init := t) fun acc i => `(updateIndex%($i, Unit, Contract.contract) $acc)
+
+/--
+Memoize the expression.
+`memo(e with ty)`
+-/
+syntax "memo(" term " with " term ")" : term
+macro_rules
+  | `(memo($e with $ty)) => `(eraseUnits%(Etch.Verification.SStream.memo $ty) $e)
+
+open Lean Elab Term Meta in
+elab "select " idxs:term,* " => " e:term : term => do
+  let idxs ← withSynthesize <| idxs.getElems.mapM <| (elabTermEnsuringType · (Expr.const ``Nat []))
+  let idxVals ← idxs.mapM (ExpressionTree.reduceIndexNat ·)
+  let e ← withSynthesize (mayPostpone := true) <| elabTerm e none
+  let (indices, _) ← ExpressionTree.extractTypeIndices (← inferType e)
+  let contracted := indices.filter fun data => !idxVals.contains data.iVal
+  contracted.foldrM (init := e) fun data e => do
+    Term.elabAppArgs (explicit := false) (ellipsis := false) (expectedType? := none)
+      (← mkConstWithFreshMVarLevels ``Contract.contract)
+      #[]
+      #[.expr data.i, .expr e]
 
 class Expand (σ : List (ℕ × Type)) (α : Type*) (β : outParam Type*) where
   expand : α → β
@@ -166,6 +196,23 @@ instance [OfStream (ι →ₛ α) β] : OfStream (i~ι →ₛ α) β := ⟨fun x
 -- instance [ToIndexedFn α α'] : ToIndexedFn (i//I →ₛ α) ((i//I) =>ₛ α') := ⟨fun s => .stream (map ToIndexedFn.coe s)⟩
 
 --instance [HMul α β γ] : HMul ((i//I) =>ₛ α) ((j//J) =>ₛ β)
+
+/-!
+Indicators
+-/
+/--
+Indicator bracket notation.
+Provides notation for special streams,
+such as `I(i = val)` for the stream `i~I →ₛ Bool` that gives whether the index is equal to `val`.
+-/
+syntax "I(" term ")" : term
+macro_rules | `(I($_)) => Lean.Macro.throwError "unimplemented indicator"
+
+macro_rules | `(I($idx = $val)) => ``((singleton $val)($idx))
+macro_rules | `(I($idx ≥ $val)) => ``((ge $val)($idx))
+macro_rules | `(I($idx > $val)) => ``((gt $val)($idx))
+macro_rules | `(I($idx ≤ $val)) => ``((le $val)($idx))
+macro_rules | `(I($idx < $val)) => ``((lt $val)($idx))
 
 open Lean Elab PrettyPrinter Delaborator SubExpr in
 def delabLabeledIndexFor (i : Nat) (name : Name) : Delab := whenPPOption getPPNotation do

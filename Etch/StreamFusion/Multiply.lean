@@ -70,18 +70,25 @@ match h : mul.valid.cases q.val with
 @[simp] lemma mul_ready_cases_eq {a : Stream ι α} {b : Stream ι β} (q : {p // mul.ready a b p}) :
     mul.ready.cases q = (mul.ready.fst q, mul.ready.snd q) := rfl
 
+/-
+"simplified" mul def
+def mul [HMul α β γ] (a : Stream ι α) (b : Stream ι β) : Stream ι γ where
+  σ         := a.σ × b.σ
+  valid := fun ⟨qa, qb⟩   => a.valid qa && b.valid qb
+  index := fun ⟨qa, qb⟩   => max (a.index qa) (b.index qb)
+  seek  := fun ⟨qa, qb⟩ i => ⟨a.seek qa i, b.seek qb i⟩
+  ready := fun ⟨qa, qb⟩   => a.ready qa && b.ready qb && (a.index qa = b.index qb)
+  value := fun ⟨qa, qb⟩   => a.value qa * b.value qb
+-/
+
 @[macro_inline, simps (config := { simpRhs := true })]
 def mul [HMul α β γ] (a : Stream ι α) (b : Stream ι β) : Stream ι γ where
   σ         := a.σ × b.σ
-  valid q   := let (qa, qb) := q; a.valid qa &' b.valid qb
-  ready q   := let (qa, qb) := mul.valid.cases q
-               a.ready qa &' b.ready qb &' (a.index qa = b.index qb)
-  index q   := let (qa, qb) := mul.valid.cases q
-               max (a.index qa) (b.index qb)
-  seek  q i := let (qa, qb) := mul.valid.cases q
-               ⟨a.seek qa i, b.seek qb i⟩
-  value q   := let (qa, qb) := mul.ready.cases q
-               a.value qa * b.value qb
+  valid q   := let (qa, qb) := q; a.valid qa && b.valid qb
+  index q   := let (qa, qb) := mul.valid.cases q; max (a.index qa) (b.index qb)
+  seek  q i := let (qa, qb) := mul.valid.cases q; ⟨a.seek qa i, b.seek qb i⟩
+  ready q   := let (qa, qb) := mul.valid.cases q; a.ready qa && b.ready qb && (a.index qa = b.index qb)
+  value q   := let (qa, qb) := mul.ready.cases q; a.value qa * b.value qb
 
 /-- Make a valid state given two valid states -/
 def mul.valid_mk {a : Stream ι α} {b : Stream ι β} (qa : {x // a.valid x}) (qb : {x // b.valid x}) : {x // mul.valid a b x} :=
@@ -93,8 +100,6 @@ def mul.ready_mk {a : Stream ι α} {b : Stream ι β} (qa : {x // a.ready x}) (
 
 end
 end Stream
-
--- todo offer zip (as a way to provide an ad-hoc mul instance)?
 
 namespace SStream
 

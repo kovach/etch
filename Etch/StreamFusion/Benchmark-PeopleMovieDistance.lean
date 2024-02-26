@@ -24,11 +24,7 @@ def peopleMovieDistance
     (movieStream   : M)
     (requestStream : R)
     : ℕ :=
-  let shape := [ (pid,PID),(mid,MID),(i,I) ]
-  let persons  := { shape | personStream(pid,i) }
-  let movies   := { shape | movieStream(mid,i) }
-  let requests := { shape | requestStream(pid,mid) }
-  let result := Σ i, requests * persons * movies
+  let result := Σ i => requestStream(pid,mid) * personStream(pid,i) * movieStream(mid,i)
   42
 
 end Etch.Verification.SStream

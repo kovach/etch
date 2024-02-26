@@ -41,6 +41,18 @@ end
 -- Notice, no Broadcast helper class, it was unfolded
 #print mul_fns'
 
+def testContractElab (A : I →ₛ J →ₛ α) (B : J →ₛ K →ₛ α) := Σ j k => (Σ i => A(i,j)) * B(j,k)
+-- i~Unit →ₛ j~Unit →ₛ k~K →ₛ α
+#print testContractElab
+/-
+Contract.contract j
+    (Contract.contract i ([(i, I), (j, J), (k, K)] ⇑ Label.label [i, j] A) *
+      [(i, Unit), (j, J), (k, K)] ⇑ Label.label [j, k] B)
+-/
+
+@[inline] def testSelect (m : I →ₛ J →ₛ α) (v : J →ₛ α) := memo(select i => m(i, j) * v(j) with SparseArray I α)
+-- I →ₛ α
+
 /- Some examples of notation
 
   notes:
@@ -49,11 +61,11 @@ end
     - indices are index names encoded as natural numbers for now
 -/
 
-@[inline] def vecSum (v : I →ₛ α) := Σ i: v(i)
-@[inline] def matSum (m : I →ₛ J →ₛ α) (v : J →ₛ α) := Σ i, j: m(i, j) * v(j)
+@[inline] def vecSum (v : I →ₛ α) := Σ i => v(i)
+@[inline] def matSum (m : I →ₛ J →ₛ α) (v : J →ₛ α) := Σ i j => m(i, j) * v(j)
 
 @[inline] def matMul_ijjk (a : I →ₛ J →ₛ α) (b : J →ₛ K →ₛ α) :=
-  Σ j: a(i,j) * b(j,k)
+  Σ j => a(i,j) * b(j,k)
 
 -- todo: investigate these definitions and other approaches
 @[inline] def ABC
@@ -64,19 +76,19 @@ end
   let m1 :=  a(i,j)
   let m2 :=  b(j,k)
   let m3 :=  c(k,l)
-  let x : ArrayMap I (ArrayMap K α) := eval $ Σ j: m1 * m2
+  let x : SparseArray I (SparseArray K α) := eval $ Σ j => m1 * m2
   let m  := (stream x)(i,k) * m3
-  Σ k: m
+  Σ k => m
 
 @[inline] def ABC' (a : I →ₛ J →ₛ α) (b : J →ₛ K →ₛ α) (c : K →ₛ L →ₛ α) :=
   let ijk := [(i,I),(j,J),(k,K)]
-  let ikl := [(i,I),(k,K),(l,L)]
   let m1 := ijk ⇑ a(i,j)
-  let m3 := ikl ⇑ c(k,l)
-  let m : i~I →ₛ k~K →ₛ α := m1.map fun (row : j~J →ₛ k~K → α) =>
-             memo (ArrayMap K α) (Σ j: row * b(j,k))
-  let m  := ikl ⇑ m * m3
-  Σ k: m
+  let m := m1.map fun row =>
+             memo(Σ j => row * b(j,k) with SparseArray K α)
+  let m  := m(i,k) * c(k,l)
+  Σ k => m
+
+def mat' (num : ℕ) := sparseMat num.sqrt
 
 def matMul1 (num : ℕ) : IO Unit := do
   let m := stream $ mat' num
@@ -88,7 +100,7 @@ def matMul1 (num : ℕ) : IO Unit := do
 
 def matMul1' (num : ℕ) : IO Unit := do
   let m := stream $ mat' num
-  let x := Σ i, k: matMul_ijjk m m
+  let x := Σ i k => matMul_ijjk m m
   time "matrix 1'" fun _ =>
     for _ in [0:10] do
       let x : ℕ := eval x
@@ -98,20 +110,15 @@ def testABC (num : ℕ) : IO Unit := do
   let m := stream $ mat' num
   time "matrix abc" fun _ =>
     for _ in [0:10] do
-      let x : ArrayMap ℕ (HMap ℕ ℕ) := eval $ ABC m m m
+      let x : SparseArray ℕ (HMap ℕ ℕ) := eval $ ABC m m m
       IO.println s!"{x.1.size}"
 
 def testABC' (num : ℕ) : IO Unit := do
   let m := stream $ mat' num
   time "matrix abc'" fun _ =>
     for _ in [0:10] do
-      let x : ArrayMap ℕ (HMap ℕ ℕ) := eval $ ABC' m m m
+      let x : SparseArray ℕ (HMap ℕ ℕ) := eval $ ABC' m m m
       IO.println s!"{x.1.size}"
-
-/- Exercise: add a test that invokes matMul_ikjk, otherwise identical to matMul1 -/
-def matMul2 (num : ℕ) : IO Unit := sorry
-
-/- Exercise: add a test that invokes vecSum -/
 
 def _root_.main (args : List String) : IO Unit := do
   let num := (args[0]!).toNat?.getD 1000
@@ -129,19 +136,26 @@ instance [Ord ι] : ToStream (RBMap ι α Ord.compare) (ι →ₛ α) := ⟨sorr
 
 variable
   (locations : RBSet String Ord.compare)
-  (predicate : String → Bool)
      (counts : RBMap String Nat Ord.compare)
+  (predicate : String → Bool)
+          (f : String → String)
 
 example : Nat := Id.run $ do
     let mut result := 0
     for key in locations do
       if predicate key then
-        result ← result + counts.findD ("prefix_" ++ key) 0
+        result ← result + counts.findD (f key) 0
     return result
 
+example : Nat :=
+  (locations.filter predicate).toList.map f
+  |>.foldl (init := 0) (fun result k' => result + counts.findD k' 0)
+
+/-
 example : Nat := eval $
   let locations := (imap ("prefix_" ++ .) sorry (stream locations))(i)
   let counts := (stream counts)(i)
-  Σ i: predicate(i) * locations * counts
+  Σ i => predicate(i) * locations * counts
 
 end Etch.Verification.SStream
+-/
