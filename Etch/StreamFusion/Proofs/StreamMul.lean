@@ -60,6 +60,14 @@ instance Stream.mul.isBounded (a b : Stream ι α) [IsBounded a] [IsBounded b] :
           · simp [ha₂, hb₂]
           · exact lt_of_lt_of_le (lt_min ha₁ hb₁) (min_toOrder_le ..)⟩⟩
 
+theorem mul_map [Mul α] [Mul β] (a : Stream ι α) (b : Stream ι α) (f : α → β) (hf : ∀ x y, f (x * y) = (f x) * (f y)) :
+    (a.mul b).map f = (a.map f).mul (b.map f) := by
+  ext <;> try rfl
+  simp only [heq_iff_eq]
+  ext q₁
+  simp [map, hf]
+  rfl
+
 end IndexLemmas
 
 section ValueLemmas
@@ -101,9 +109,7 @@ theorem mul_eval₀_spec (a b : Stream ι α) [IsBounded a] [IsBounded b] (ha : 
             (i, false) <ₗ min (a.toOrder (mul.valid.fst q)) (b.toOrder (mul.valid.snd q)) :=
         by simp only [Finsupp.mul_filter, lt_min_iff]
       _ = (a.eval (mul.valid.fst q) * b.eval (mul.valid.snd q)).filter fun i => (i, false) <ₗ (a.mul b).toOrder q :=
-        by
-          dsimp only [Stream.toOrder]
-          aesop
+        by simp [order_eq_of_mul_ready H]
   · symm
     simp only [Stream.eval₀, H, dite_false, coe_mul_valid_fst,
       mul.valid, coe_mul_valid_snd, Finsupp.filter_eq_zero_iff]
