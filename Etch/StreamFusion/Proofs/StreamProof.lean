@@ -179,6 +179,9 @@ class IsBounded : Prop where
     ∃ wf_rel : WellFoundedRelation s.σ,
       ∀ q i, wf_rel.rel (s.seek q i) q ∨ (i <ₗ s.toOrder q) ∧ s.seek q i = q
 
+instance IsBounded.map (s : Stream ι α) (f : α → β) [IsBounded s] : IsBounded (s.map f) :=
+  ⟨‹IsBounded s›.out⟩
+
 /-- Extract the well-founded relation on a bounded stream -/
 noncomputable def Stream.wfRel [IsBounded s] : WellFoundedRelation s.σ :=
   ‹IsBounded s›.out.choose

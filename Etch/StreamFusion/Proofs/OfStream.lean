@@ -22,7 +22,9 @@ variable {ι}
     value := f ∘ s.value
     bdd := ⟨s.bdd.out⟩ }
 
-@[inline] def BddSStream.fold {α : Type} (f : β → ι → α → β) (s : ι →ₛb α) (b : β) : β :=
+-- lemma BddSStream.map_eq_map {α β : Type} (f : α → β) (
+
+@[inline, simp] def BddSStream.fold {α : Type} (f : β → ι → α → β) (s : ι →ₛb α) (b : β) : β :=
   s.toStream.fold_wf f s.q b
 
 end bdd_stream
@@ -36,9 +38,11 @@ variable {ι : Type} [LinearOrder ι]
    (see bad examples below)
 -/
 
+@[simps]
 instance [OfStream α β] : OfStream (Unit →ₛb α) β where
   eval := BddSStream.fold (fun (a : β) _ (b : β → β) => b a) ∘ BddSStream.map OfStream.eval
 
+@[simps]
 instance [OfStream α β] [Modifiable ι β m] : OfStream (ι →ₛb α) m where
   eval := BddSStream.fold Modifiable.update ∘ BddSStream.map OfStream.eval
 
@@ -50,11 +54,22 @@ class LawfulModifiable (α β : outParam Type*) (m : Type*) [Zero β] [Zero m] e
   get_update_ne : ∀ (m : m) (x y : α) (v : β → β), x ≠ y → get (update m x v) y = get m y
   get_zero : ∀ (x : α), get 0 x = 0
 
-attribute [simp] LawfulModifiable.get_update
+attribute [simp] LawfulModifiable.get_update LawfulModifiable.get_zero
 
-theorem LawfulModifiable.get_eq_eval (s : ι →ₛb α) (x : ι) [Zero m] [LawfulModifiable ι α m] :
+theorem LawfulModifiable.get_eq_eval_aux (s : ι →ₛb α) (x : ι) [Zero m] [LawfulModifiable ι α m] :
     LawfulModifiable.get (OfStream.eval s 0 : m) x = s.toStream.eval s.q x := by
-  sorry
+  rcases s with ⟨⟨s, q⟩, bdd⟩; dsimp at bdd ⊢
+  suffices :
+    ∀ (m₀ : m), LawfulModifiable.get ((s.map OfStream.eval).fold_wf Modifiable.update q m₀) x =
+      (LawfulModifiable.get m₀ x) + s.eval q x
+  · simpa using this 0
+  apply s.wf.induction q; clear q
+  intro q ih m₀
+  cases hv : s.valid q with
+  | false =>
+    sorry
+  | true => sorry
+
 
 -- theorem rbmap_eval (s : ι →ₛb α) (x : ι) :
 --     (OfStream.eval s 0 : Map ι α).findD x 0 = s.toStream.eval s.q x :=
