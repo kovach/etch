@@ -36,6 +36,9 @@ variable {ι : Type} [LinearOrder ι]
    (see bad examples below)
 -/
 
+@[simp] lemma OfStream.eval_scalar [Scalar α] [Add α] (x y : α) :
+    OfStream.eval x y = x + y := rfl
+
 @[simps]
 instance [OfStream α β] : OfStream (Unit →ₛb α) β where
   eval := BddSStream.fold (fun (a : β) _ (b : β → β) => b a) ∘ BddSStream.map OfStream.eval
@@ -54,6 +57,17 @@ class LawfulModifiable (α β : outParam Type*) (m : Type*) [Zero β] [Zero m] e
 
 attribute [simp] LawfulModifiable.get_update LawfulModifiable.get_zero
 
+lemma LawfulModifiable.get_update' [Zero β] [Zero m] [DecidableEq α] (m₀ : m) (x t : α) (v : β → β) [LawfulModifiable α β m] :
+    LawfulModifiable.get (Modifiable.update m₀ x v) t = if x = t then v (LawfulModifiable.get m₀ t) else LawfulModifiable.get m₀ t := by
+  split_ifs with h
+  · rw [← h, LawfulModifiable.get_update]
+  · rw [LawfulModifiable.get_update_ne _ _ _ _ h]
+
+
+@[elab_as_elim]
+lemma _root_.Subtype.with_prop {α : Sort*} (p : α → Prop) {f : α → Sort*}
+  (x : α) (h₁ : p x) (h₂ : ∀ (x : Subtype p), f x) : f x := h₂ ⟨x, h₁⟩
+
 theorem LawfulModifiable.get_eq_eval_aux (s : ι →ₛb α) (x : ι) [Zero m] [LawfulModifiable ι α m] :
     LawfulModifiable.get (OfStream.eval s 0 : m) x = s.toStream.eval s.q x := by
   rcases s with ⟨⟨s, q⟩, bdd⟩; dsimp at bdd ⊢
@@ -63,10 +77,25 @@ theorem LawfulModifiable.get_eq_eval_aux (s : ι →ₛb α) (x : ι) [Zero m] [
   · simpa using this 0
   apply s.wf.induction q; clear q
   intro q ih m₀
-  cases hv : s.valid q with
-  | false =>
-    sorry
-  | true => sorry
+  by_cases hv : s.valid q
+  · -- TODO: can induction tactic do this?
+    revert ih; refine Subtype.with_prop (fun t => s.valid t) q hv ?_; clear q hv
+    intro q ih
+    rw [Stream.fold_wf_spec, Stream.eval_valid, Stream.eval₀]
+    dsimp only [map_σ, map_valid, map_ready, map_index, map_value, Finsupp.coe_add, Pi.add_apply]
+    simp only [advance_val, map_seek, map_toOrder]
+    rw [ih]
+    split_ifs with hr
+    · rw [Finsupp.single_apply, LawfulModifiable.get_update']
+      split_ifs with heq
+      · simp [← add_assoc, add_comm]
+      · simp
+    · simp
+    · exact s.progress rfl.le
+  · rw [Stream.fold_wf_invalid, Stream.eval_invalid (h := hv)]; swap; exact hv
+    simp
+
+
 
 
 -- theorem rbmap_eval (s : ι →ₛb α) (x : ι) :
