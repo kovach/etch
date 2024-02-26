@@ -1,5 +1,7 @@
+/- This is largely duplicated into ExpandSeq! Please ensure any changes stay in sync. -/
 import Etch.StreamFusion.Stream
 import Etch.StreamFusion.Multiply
+import Etch.StreamFusion.ExpandSeq
 import Etch.Util.ExpressionTree
 
 namespace Etch.Verification.SStream
@@ -10,10 +12,6 @@ def LabeledIndex.mk (n : Nat) (i : ι) : LabeledIndex n ι := i
 
 -- todo: decide on a nicer notation
 notation n:30 "~" i:30 => LabeledIndex n i
---notation n:30 "//" i:30 => LabeledIndex n i
-@[reducible] instance : HDiv ℕ Type Type := ⟨LabeledIndex⟩
---notation n:30 "/" i:30 => LabeledIndex n i
---macro_rules | `($label / $type)   => `(LabeledIndex $label $type)
 
 variable (i : ℕ) (ι : Type)
 @[inline] instance [LinearOrder ι] : LinearOrder (i~ι) := by change LinearOrder ι; exact inferInstance
@@ -64,12 +62,12 @@ notation f " $[" i "] " t => MapIndex.map i f t
 
 class Contract (σ : ℕ) (α : Type*) (β : outParam Type*) where
   contract : α → β
-instance : Contract i (i~ι →ₛ α) (i~Unit →ₛ α) := ⟨fun s => contract s⟩
+instance [Scalar α] : Contract i (i~ι →ₛ α) (i~Unit →ₛ α) := ⟨fun s => s.contract⟩
+open SStream in
+instance : Contract i (i~ι →ₛ j~ι' →ₛ α) (i~Unit →ₛ j~ι' →ₛ! α) := ⟨map downgrade ∘ contract⟩
+instance : Contract i (i~ι →ₛ! α) (i~Unit →ₛ! α) := ⟨fun s => s.contract⟩
 instance [Contract j α β] [NatLt i j] : Contract j (i~ι →ₛ α) (i~ι →ₛ β) := ⟨map (Contract.contract j)⟩
-instance [Contract j α β]  : Contract j (Unit →ₛ α) (Unit →ₛ β) := ⟨map (Contract.contract j)⟩
-
---notation "Σ " j ", " t => Contract.contract j t
---notation "Σ " j ": " t => Contract.contract j t
+instance [Contract j α β] : Contract j (Unit →ₛ α) (Unit →ₛ β) := ⟨map (Contract.contract j)⟩
 
 /--
 `Σ i j => e` contracts indices `i` and `j` in `e`.
@@ -123,10 +121,17 @@ instance [Expand σ α β] : EnsureBroadcast σ base α β where
   broadcast := Expand.expand σ
 
 instance [LinearOrder ι] [HMul α β γ] : HMul (i~ι →ₛ α) (i~ι →ₛ β) (i~ι →ₛ γ) := ⟨mul⟩
+
 instance [HMul α β γ] : HMul (i~ι → α) (i~ι →ₛ β) (i~ι →ₛ γ) where
   hMul f x := { x with value := fun q => f (x.index q) * x.value q}
 instance [HMul α β γ] : HMul (i~ι →ₛ α) (i~ι → β) (i~ι →ₛ γ) where
   hMul x f := { x with value := fun q => x.value q * f (x.index q) }
+
+instance [HMul α β γ] : HMul (i~ι → α) (i~ι →ₛ! β) (i~ι →ₛ! γ) where
+  hMul f x := { x with value := fun q => f (x.index q) * x.value q}
+instance [HMul α β γ] : HMul (i~ι →ₛ! α) (i~ι → β) (i~ι →ₛ! γ) where
+  hMul x f := { x with value := fun q => x.value q * f (x.index q) }
+
 instance [HMul α β γ] : HMul (i~ι → α) (i~ι → β) (i~ι → γ) where
   hMul f g x := f x * g x
 
@@ -144,11 +149,11 @@ syntax:max term noWs "(" term,* ")" : term
 macro_rules
 | `($t($ss,*)) => `(Label.label [$ss,*] $t)
 
-#check ∀ (x : ℕ) (y : ℕ), True
 /-- This instance helps `a(i,j)` notation work even if `a` isn't yet a stream that's labelable. -/
 instance (priority := low) [ToStream α α'] [Label is α' β] : Label is α β := ⟨Label.label is ∘ ToStream.stream⟩
 
 instance [OfStream (ι →ₛ α) β] : OfStream (i~ι →ₛ α) β := ⟨fun x : ι →ₛ α => OfStream.eval x⟩
+instance [OfStream (ι →ₛ! α) β] : OfStream (i~ι →ₛ! α) β := ⟨fun x : ι →ₛ! α => OfStream.eval x⟩
 
 -- kmill: the CoeTail instances below might be addressing this comment, at least approximately.
 -- TODO(dsk):
@@ -264,15 +269,3 @@ macro_rules
     return Lean.mkNullNode cmds
 
 end Etch.Verification.SStream
-
--- not working
-syntax "!_aux(" num ", " num ")" : term
-syntax "!(" num ")" : term
-open Lean in
-macro_rules
-| `(!_aux($count, $limit)) => do
-  let count' := count.getNat + 1
-  if count' < limit.getNat
-  then `((($count : Nat), !_aux($(quote count'), $limit)))
-  else `($count)
-| `(!($limit)) => `(!_aux($(quote 0), $limit))

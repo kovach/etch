@@ -1,6 +1,7 @@
 import Mathlib.Init.Order.Defs
 import Mathlib.Data.Nat.Basic
 import Std.Data.RBMap
+import Etch.StreamFusion.Basic
 import Etch.StreamFusion.Stream
 
 open Std (RBMap RBNode RBColor)
@@ -48,8 +49,12 @@ deriving Repr
 abbrev DirectedTree ι [Ord ι] (d : Type) (α : Type u) := RBNode (Data ι α d)
 instance : Inhabited (DirectedTree ι l α) := ⟨.nil⟩
 
-abbrev TreeMap ι [Ord ι] (α : Type*) := DirectedTree ι (From) α
-abbrev TreeContext ι [Ord ι] α := DirectedTree ι (From) α
+abbrev TreeMap     ι [Ord ι] (α : Type*) := DirectedTree ι From α
+abbrev TreeContext ι [Ord ι] (α : Type*) := DirectedTree ι From α
+
+-- TODO: fix this
+--instance [Zero β] [Ord ι] : Modifiable ι β (TreeMap ι β) where
+--  update := RBMap.modifyD
 
 def _root_.Std.RBNode.pp [ToString x] : RBNode x → String
 | .nil => "."
@@ -68,38 +73,34 @@ deriving Inhabited, Repr
 variable {ι : Type} [LinearOrder ι] {α : Type u}
 [Inhabited ι]
 
-@[inline] def Cursor.seek (now : Cursor ι α) (target : ι) (ready : Bool) : Cursor ι α :=
-  let {t, k, d} := now
-  match d with
-  | .down =>
-    match t with
-    | .node c l ⟨i, x, _⟩ r =>
-       match Ord.compare i target with
-       | .eq => {now with t := l, k := .node c r ⟨i, x, .r⟩ k , d := .up} -- going straight `up` is an optimization
-       | .gt => {now with t := l, k := .node c r ⟨i, x, .r⟩ k}
-       | .lt => {now with t := r, k := .node c t ⟨i, x, .l⟩ k}
-    | .nil   => {now with d := .up} -- .seek target ready
-  | .up =>
-    match k with
-    | .nil => now
-    | .node c r ⟨i, x, .r⟩ k =>
-      if ready then
-        if target < i then now else {now with t := r, k := .node c t ⟨i, x, .l⟩ k, d := .down}
-      else
-        if target ≤ i then now else {now with t := r, k := .node c t ⟨i, x, .l⟩ k, d := .down}
-    | .node c l ⟨i, x, .l⟩ k => { now with t := .node c l ⟨i, x, .no⟩ t, k := k}
-    | .node .. => now -- impossible
-
 @[inline] def Cursor.valid (now : Cursor ι α) : Bool :=
   match now.t, now.k, now.d with
   | .nil, .nil, _ => false -- empty tree is done
   | _, .nil, .up => false
   | _, _, _ => true
 
-@[inline] def Cursor.ready (now : Cursor ι α) : Bool :=
-  match now.k, now.d with
-  | .node _ _ ⟨_, _, .r⟩ _, .up => true
-  | _, _ => false
+@[inline] def Cursor.seek (now : Cursor ι α) (target : ι) (ready : Bool) : Cursor ι α :=
+  let {t, k, d} := now
+  match d with
+  | .down =>
+    match t with
+    | .node c l ⟨i, x, _⟩ r =>
+      match Ord.compare i target with
+      | .eq => {now with t := l, k := .node c r ⟨i, x, .r⟩ k , d := .up} -- going straight `up` is an optimization
+      | .gt => {now with t := l, k := .node c r ⟨i, x, .r⟩ k}
+      | .lt => {now with t := r, k := .node c t ⟨i, x, .l⟩ k}
+    | .nil   => {now with d := .up} -- .seek target ready
+  | .up =>
+    match k with
+    | .nil => now
+    | .node c r ⟨i, x, .r⟩ k =>
+      let op : ι → ι → Bool  := if ready then (.<.) else (.≤.)
+      if op target i then
+        {now with t := t, k := .node c r ⟨i, x, .r⟩ k} --now
+      else
+        {now with t := r, k := .node c t ⟨i, x, .l⟩ k, d := .down}
+    | .node c l ⟨i, x, .l⟩ k => { now with t := .node c l ⟨i, x, .no⟩ t, k}
+    | .node .. => now -- impossible
 
 theorem RBNode.min_isSome (h : t = RBNode.node c l d r) : t.min.isSome := by
   revert h
@@ -108,8 +109,7 @@ theorem RBNode.min_isSome (h : t = RBNode.node c l d r) : t.min.isSome := by
   | node c l d r hl _ =>
     rintro ⟨_⟩
     cases h' : l with
-    | nil => rfl
-    | node _ _ _ _ => unfold RBNode.min; rw [← h']; exact hl h'
+    | nil => rfl | node _ _ _ _ => unfold RBNode.min; rw [← h']; exact hl h'
 
 theorem RBNode.max_isSome (h : t = RBNode.node c l d r) : t.max.isSome := by
   revert h
@@ -118,8 +118,7 @@ theorem RBNode.max_isSome (h : t = RBNode.node c l d r) : t.max.isSome := by
   | node c _ d r _ hr =>
     rintro ⟨_⟩
     cases h' : r with
-    | nil => rfl
-    | node _ _ _ _ => unfold RBNode.max; rw [← h']; exact hr h';
+    | nil => rfl | node _ _ _ _ => unfold RBNode.max; rw [← h']; exact hr h';
 
 @[inline] def Cursor.index [Zero ι] (now : Cursor ι α) (h : now.valid) : ι :=
   match now.d with
@@ -134,9 +133,14 @@ theorem RBNode.max_isSome (h : t = RBNode.node c l d r) : t.max.isSome := by
     match h₁ : now.t with
     | .node _ l _ _  => now.t.min.get (by apply RBNode.min_isSome h₁) |>.key
     | .nil =>
-    match h₂ : now.k with
-    | .node _ _ ⟨i,_,_⟩ _  => i
-    | .nil => by exfalso; unfold valid at h; rw [h₁, h₂] at h; cases now.d <;> simp? at h;
+      match h₂ : now.k with
+      | .node _ _ ⟨i,_,_⟩ _  => i
+      | .nil => by exfalso; unfold valid at h; rw [h₁, h₂] at h; cases now.d <;> simp? at h;
+
+@[inline] def Cursor.ready (now : Cursor ι α) : Bool :=
+  match now.k, now.d with
+  | .node _ _ ⟨_, _, .r⟩ _, .up => true
+  | _, _ => false
 
 @[inline] def Cursor.value [Zero ι] (now : Cursor ι α) (h : now.ready) : α :=
   match hk : now.k, hd : now.d, h with
@@ -160,6 +164,7 @@ def iterate {α} (f : α → α) (s0 : α) : ℕ → List α :=
           | 0 => acc.reverse
           | n+1 => go (f x) (x :: acc) n
   go s0 []
+
 def eg1 (n : Nat) :=
   let tree :=
     let l : List (Nat × Unit) := [2,3,4,5,6,7].map (fun i => (i*2, ()))
@@ -167,6 +172,8 @@ def eg1 (n : Nat) :=
     c
   iterate (fun c => Cursor.seek c (c.index sorry) (c.ready)) tree n |>.map
   fun c => (c.t.pp, c.k.pp, c.d, c.index sorry, c.valid)
+
+-- #eval eg1 25
 
 @[inline]
 def TreeMap.toStream [Zero ι] {α : Type} (t : TreeMap ι α) : ι →ₛ α where

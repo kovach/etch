@@ -30,8 +30,6 @@ variable {ι}
 end bdd_stream
 
 section eval
-open SStream (Scalar)
-
 variable {ι : Type} [LinearOrder ι]
 
 /- Note!! recursive application of `eval` needs to occur outside of any enclosing functions to achieve full inlining

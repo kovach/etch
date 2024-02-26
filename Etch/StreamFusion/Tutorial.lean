@@ -17,10 +17,8 @@ variable {I J K L α β : Type}
 [LinearOrder I] [LinearOrder J] [LinearOrder K] [LinearOrder L]
 [Scalar α] [Mul α] [Zero α] [Add α]
 
-abbrev i : ℕ := 0
-abbrev j : ℕ := 1
-abbrev k : ℕ := 2
-abbrev l : ℕ := 3
+def_index_enum_group
+  i,j,k,l
 
 /-
 Some coercion examples
@@ -63,6 +61,7 @@ Contract.contract j
 
 @[inline] def vecSum (v : I →ₛ α) := Σ i => v(i)
 @[inline] def matSum (m : I →ₛ J →ₛ α) (v : J →ₛ α) := Σ i j => m(i, j) * v(j)
+
 
 @[inline] def matMul_ijjk (a : I →ₛ J →ₛ α) (b : J →ₛ K →ₛ α) :=
   Σ j => a(i,j) * b(j,k)
@@ -130,32 +129,3 @@ def _root_.main (args : List String) : IO Unit := do
   testABC' num
 
 open ToStream
-
-instance [Ord ι] : ToStream (RBSet ι Ord.compare) (ι →ₛ Bool) := ⟨sorry⟩
-instance [Ord ι] : ToStream (RBMap ι α Ord.compare) (ι →ₛ α) := ⟨sorry⟩
-
-variable
-  (locations : RBSet String Ord.compare)
-     (counts : RBMap String Nat Ord.compare)
-  (predicate : String → Bool)
-          (f : String → String)
-
-example : Nat := Id.run $ do
-    let mut result := 0
-    for key in locations do
-      if predicate key then
-        result ← result + counts.findD (f key) 0
-    return result
-
-example : Nat :=
-  (locations.filter predicate).toList.map f
-  |>.foldl (init := 0) (fun result k' => result + counts.findD k' 0)
-
-/-
-example : Nat := eval $
-  let locations := (imap ("prefix_" ++ .) sorry (stream locations))(i)
-  let counts := (stream counts)(i)
-  Σ i => predicate(i) * locations * counts
-
-end Etch.Verification.SStream
--/
