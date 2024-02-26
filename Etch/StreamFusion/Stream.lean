@@ -223,6 +223,9 @@ instance {α β} [ToStream α β] : ToStream  (SparseArray ι α) (ι →ₛ β)
 instance : ToStream  (ArraySet ι) (ι →ₛ Bool) where
   stream := map ToStream.stream ∘ ofBoolArray
 
+instance {α β ι} [Hashable ι] [BEq ι] [Zero α] [ToStream α β] : ToStream  (HashMap ι α) (ι → β) where
+  stream h v := ToStream.stream $ (h.findD v 0)
+
 --instance : ToStream  (Vec ι n × FloatVec n) (SStream ι Float) where
 --  stream := fun (a, b) => ofFloatArray a.1 b.1 (a.property.trans b.property.symm)
 

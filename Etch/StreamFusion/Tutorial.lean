@@ -39,9 +39,9 @@ end
 -- Notice, no Broadcast helper class, it was unfolded
 #print mul_fns'
 
-def testContractElab (A : I →ₛ J →ₛ α) (B : J →ₛ K →ₛ α) := Σ j k => (Σ i => A(i,j)) * B(j,k)
+--def testContractElab (A : I →ₛ J →ₛ α) (B : J →ₛ K →ₛ α) := Σ j k => (Σ i => A(i,j)) * B(j,k)
 -- i~Unit →ₛ j~Unit →ₛ k~K →ₛ α
-#print testContractElab
+--#print testContractElab
 /-
 Contract.contract j
     (Contract.contract i ([(i, I), (j, J), (k, K)] ⇑ Label.label [i, j] A) *
@@ -66,16 +66,17 @@ Contract.contract j
 @[inline] def matMul_ijjk (a : I →ₛ J →ₛ α) (b : J →ₛ K →ₛ α) :=
   Σ j => a(i,j) * b(j,k)
 
+variable [Hashable K]
+#synth ToFun (HashMap K α) _ _
 -- todo: investigate these definitions and other approaches
 @[inline] def ABC
-  (a : I →ₛ J →ₛ α)
-  (b : J →ₛ K →ₛ α)
-  (c : K →ₛ L →ₛ α)
-   : i~I →ₛ Unit →ₛ l~L →ₛ α :=
+    (a : I →ₛ J →ₛ α)
+    (b : J →ₛ K →ₛ α)
+    (c : K →ₛ L →ₛ α) :=
   let m1 :=  a(i,j)
   let m2 :=  b(j,k)
   let m3 :=  c(k,l)
-  let x : SparseArray I (SparseArray K α) := eval $ Σ j => m1 * m2
+  let x : SparseArray I (HashMap K α) := eval $ Σ j => m1 * m2
   let m  := (stream x)(i,k) * m3
   Σ k => m
 
@@ -83,7 +84,7 @@ Contract.contract j
   let ijk := [(i,I),(j,J),(k,K)]
   let m1 := ijk ⇑ a(i,j)
   let m := m1.map fun row =>
-             memo(Σ j => row * b(j,k) with SparseArray K α)
+             memo(Σ j => row * b(j,k) with HashMap K α)
   let m  := m(i,k) * c(k,l)
   Σ k => m
 
@@ -99,6 +100,7 @@ def matMul1 (num : ℕ) : IO Unit := do
 
 def matMul1' (num : ℕ) : IO Unit := do
   let m := stream $ mat' num
+  let x := matMul_ijjk m m
   let x := Σ i k => matMul_ijjk m m
   time "matrix 1'" fun _ =>
     for _ in [0:10] do
