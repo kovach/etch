@@ -105,9 +105,6 @@ def contract (s : Stream ι α) : Stream Unit α where
 def next (s : Stream ι α) (q : {q // s.valid q}) (i : ι) (ready : Bool) : s.σ :=
   s.seek q (i, ready)
 
-def next_ (s : Stream ι α) (q : s.σ) (h : s.valid q = true) (ready : Bool) : s.σ :=
-  let q := ⟨q, h⟩; s.seek q (s.index q, ready)
-
 @[macro_inline]
 def next' (s : Stream ι α) (q : {q // s.valid q}) (ready : Bool) : s.σ :=
   s.seek q (s.index q, ready)

@@ -254,17 +254,17 @@ end well_founded
   let rec @[specialize] go [Preorder ι] [IsBounded s] f
       (valid : s.σ → Bool) (ready : (x : s.σ) → valid x → Bool)
       (index : (x : s.σ) → valid x → ι) (value : (x : s.σ) → (h : valid x) → ready x h → α)
-      (next : (x : s.σ) → valid x → Bool → s.σ)
-      (h : ∀ (q : s.σ) (hv : valid q), next q hv (ready q hv) ≺ q)
+      (next : (x : {q // valid q}) → ι → Bool → s.σ)
+      (h : ∀ (q : s.σ) (hv : valid q), next ⟨q, hv⟩ (index q hv) (ready q hv) ≺ q)
       (acc : β) (q : s.σ) : β :=
         if hv : valid q then
           let i := index q hv
           let hr := ready q hv
-          let q' := next q hv hr
+          let q' := next ⟨q, hv⟩ i hr
           let acc' := if hr : hr then f acc i (value q hv hr) else acc
           go f valid ready index value next h acc' q'
         else acc
-  go f s.valid (fun q h => s.ready ⟨q,h⟩) (fun q h => s.index ⟨q,h⟩) (fun q v r => s.value ⟨⟨q,v⟩,r⟩) s.next_
+  go f s.valid (fun q h => s.ready ⟨q,h⟩) (fun q h => s.index ⟨q,h⟩) (fun q v r => s.value ⟨⟨q,v⟩,r⟩) s.next
     (fun q hv => s.progress rfl.le) acc q
 termination_by _ => s.wf.wrap q
 decreasing_by exact h q hv
