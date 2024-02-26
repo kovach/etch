@@ -1,6 +1,7 @@
 import Mathlib.Init.Order.Defs
 import Mathlib.Data.Nat.Basic
 import Std.Data.RBMap
+
 import Etch.StreamFusion.Basic
 import Etch.StreamFusion.Stream
 
@@ -175,6 +176,9 @@ def eg1 (n : Nat) :=
 
 -- #eval eg1 25
 
+open ToStream
+open SStream
+
 @[inline]
 def TreeMap.toStream [Zero ι] {α : Type} (t : TreeMap ι α) : ι →ₛ α where
   σ := Cursor ι α
@@ -186,6 +190,6 @@ def TreeMap.toStream [Zero ι] {α : Type} (t : TreeMap ι α) : ι →ₛ α wh
   seek := fun q i => Cursor.seek q.1 i.1 i.2
 
 instance {α β} [Zero ι] [ToStream α β] : ToStream (TreeMap ι α) (ι →ₛ β) where
-  stream := SStream.map ToStream.stream ∘ TreeMap.toStream
+  stream := map stream ∘ TreeMap.toStream
 
 end Etch.Verification.RB

@@ -137,13 +137,11 @@ instance [HMul α β γ] : HMul (i~ι → α) (i~ι → β) (i~ι → γ) where
 
 notation s:80 " ⇑ " x:80 => Expand.expand s x
 
-@[inline]
-def streamify (S : List (ℕ × Type)) (s : List ℕ) [ToStream α β] [Label s β γ] [Expand S γ δ] : α → δ :=
-  Expand.expand S ∘ Label.label s (β := γ) ∘ ToStream.stream
-
-@[inline]
-def streamifyFun (S : List (ℕ × Type)) (s : List ℕ) [h : Label s β γ] [Expand S γ δ] : β → δ :=
-  Expand.expand S ∘ Label.label s (β := γ)
+--@[inline] def streamify (S : List (ℕ × Type)) (s : List ℕ) [ToStream α β] [Label s β γ] [Expand S γ δ] : α → δ :=
+--  Expand.expand S ∘ Label.label s (β := γ) ∘ ToStream.stream
+--
+--@[inline] def streamifyFun (S : List (ℕ × Type)) (s : List ℕ) [h : Label s β γ] [Expand S γ δ] : β → δ :=
+--  Expand.expand S ∘ Label.label s (β := γ)
 
 syntax:max term noWs "(" term,* ")" : term
 macro_rules
