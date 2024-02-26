@@ -277,6 +277,11 @@ theorem Stream.fold_wf_spec [Preorder ι] (f : β → ι → α → β) (s : Str
   simp only [q.prop, Subtype.coe_eta, dite_true, advance_val]
   rfl
 
+theorem Stream.fold_wf_invalid [Preorder ι] (f : β → ι → α → β) (s : Stream ι α) [IsBounded s]
+    (q : s.σ) (acc : β) (h : ¬s.valid q) : s.fold_wf f q acc = acc := by
+  rw [Stream.fold_wf, fold_wf.go]
+  simp [h]
+
 variable [PartialOrder ι]
 
 @[simp]
