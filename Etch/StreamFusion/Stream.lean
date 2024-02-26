@@ -170,8 +170,6 @@ def zero : ι →ₛ α where
 
 instance : Zero (ι →ₛ α) := ⟨zero⟩
 
-abbrev ArraySet ι := Array ι
-
 @[inline]
 def ofBoolArray (is : ArraySet ι) : ι →ₛ Bool where
   σ := ℕ

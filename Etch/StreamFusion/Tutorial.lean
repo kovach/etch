@@ -17,8 +17,7 @@ variable {I J K L α β : Type}
 [LinearOrder I] [LinearOrder J] [LinearOrder K] [LinearOrder L]
 [Scalar α] [Mul α] [Zero α] [Add α]
 
-def_index_enum_group
-  i,j,k,l
+def_index_enum_group i,j,k,l
 
 /-
 Some coercion examples
@@ -67,7 +66,6 @@ Contract.contract j
   Σ j => a(i,j) * b(j,k)
 
 variable [Hashable K]
-#synth ToFun (HashMap K α) _ _
 -- todo: investigate these definitions and other approaches
 @[inline] def ABC
     (a : I →ₛ J →ₛ α)

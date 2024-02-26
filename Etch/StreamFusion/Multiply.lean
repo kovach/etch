@@ -148,6 +148,16 @@ instance [Zero α] : HMul (ι → Bool) (ι →ₛ α) (ι →ₛ α) where
       . contradiction; ⟩
   }
 
+instance [Zero α] : HMul (ι → Bool) (ι →ₛ! α) (ι →ₛ! α) where
+  hMul b s := { s with
+    ready := fun q => if b (s.index q) then s.ready q else false,
+    value := fun q => s.value ⟨q.1, by
+      cases q with | _ a b =>
+      dsimp at b; split at b;
+      . exact b;
+      . contradiction; ⟩
+  }
+
 end boolean
 
 def filter [Zero α] (p : ι → Bool) (s : ι →ₛ α) : ι →ₛ α := p * s

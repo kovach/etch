@@ -7,9 +7,6 @@ open Etch.ExpressionTree
 
 namespace Etch.Verification.SequentialStream
 
-def LabeledIndex (n : Nat) (ι : Type) := ι
-def LabeledIndex.mk (n : Nat) (i : ι) : LabeledIndex n ι := i
-
 section
 
 local infixr:25 " →ₛ " => SequentialStream
@@ -24,8 +21,6 @@ variable (i : ℕ) (ι : Type)
 instance : TypeHasIndex (i~ι →ₛ β) i ι β where
 instance : TypeHasIndex (i~ι → β) i ι β where
 
-class Label (σ : List ℕ) (α : Type*) (β : outParam Type*) where
-  label : α → β
 instance [Scalar α]     : Label [] α α := ⟨id⟩
 instance [Label is α β] : Label (i::is) (ι →ₛ α) (i~ι →ₛ β) := ⟨map (Label.label is)⟩
 instance [Label is α β] : Label (i::is) (ι → α) (i~ι → β) := ⟨(Label.label is ∘ .)⟩
@@ -34,27 +29,9 @@ instance [Label is α β] : Label (i::is) (i'~ι → α) (i~ι → β) := ⟨(La
 
 def idx (x : α) (shape : List ℕ) [Label shape α β] := Label.label shape x
 
-class Unlabel (α : Type*) (β : outParam Type*) where
-  unlabel : α → β
 instance [Scalar α]     : Unlabel α α := ⟨id⟩
 instance [Unlabel α β] : Unlabel (i~ι →ₛ α) (ι →ₛ β) := ⟨map (Unlabel.unlabel)⟩
 instance [Unlabel α β] : Unlabel (i~ι → α) (ι → β) := ⟨(Unlabel.unlabel ∘ .)⟩
-
-/--
-Class to put decidable propositions into the typeclass inference.
-It has a single instance, and it's like `[When p]` is satisfied when the `decide` tactic would prove `p`.
-There are some differences, because `decide` refuses to prove propositions with free variables or metavariables.
--/
-class When (p : Prop) [Decidable p] : Prop where
-  isTrue : p
-
-instance : @When p (.isTrue h) := @When.mk p (.isTrue h) h
-
-abbrev NatLt (m n : ℕ) := When (m < n)
-
--- this doesn't seem ideal
-class MapIndex (i : ℕ) (α β α' : Type*) (β' : outParam Type*) where
-  map : (α → β) → α' → β'
 
 instance (I : Type) : MapIndex i α β (i~I →ₛ α) (i~I →ₛ β)where
   map f s := s.map f
@@ -64,17 +41,12 @@ instance (J : Type) [NatLt j i] [MapIndex i a b a' b'] : MapIndex i a b (j~J →
 
 notation f " $[" i "] " t => MapIndex.map i f t
 
-class Contract (σ : ℕ) (α : Type*) (β : outParam Type*) where
-  contract : α → β
 instance : Contract i (i~ι →ₛ α) (i~Unit →ₛ α) := ⟨fun s => contract s⟩
 instance [Contract j α β] [NatLt i j] : Contract j (i~ι →ₛ α) (i~ι →ₛ β) := ⟨map (Contract.contract j)⟩
 instance [Contract j α β]  : Contract j (Unit →ₛ α) (Unit →ₛ β) := ⟨map (Contract.contract j)⟩
 
 --notation "Σ " j ", " t => Contract.contract j t
 --notation "Σ " j ": " t => Contract.contract j t
-
-class Expand (σ : List (ℕ × Type)) (α : Type*) (β : outParam Type*) where
-  expand : α → β
 
 variable {σ : List (Nat × Type)}
 
