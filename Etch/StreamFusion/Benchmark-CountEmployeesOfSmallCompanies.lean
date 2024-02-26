@@ -1,8 +1,12 @@
+import Std.Data.HashMap
+
 import Etch.StreamFusion.Stream
 import Etch.StreamFusion.Expand
 import Etch.StreamFusion.Multiply
 import Etch.StreamFusion.TestUtil
 namespace Etch.Verification.SStream
+
+open Std (HashMap)
 
 abbrev Id := ℕ
 
@@ -26,7 +30,7 @@ def employeesOfSmallCompanies
   -- count employees per company in CA
   let counts := memo(
     select cid => employee * I(state = "CA") * company with
-    SparseArray Id ℕ) -- todo fix data structure
+    HashMap Id ℕ) -- todo fix data structure
   let counts := (counts.map singleton)(cid, companySize)
   let small := I(companySize ≤ 50)
   -- get result of shape eid~Id →ₛ Bool
