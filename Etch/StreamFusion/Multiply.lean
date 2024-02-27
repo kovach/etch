@@ -134,8 +134,6 @@ section boolean
 instance [Zero α] [Scalar α] : HMul Bool α α where
   hMul b x := if b then x else 0
 
-instance : Zero Bool := ⟨false⟩
-
 instance [Zero α] : HMul (ι → Bool) (ι →ₛ α) (ι →ₛ α) where
   hMul b s := { s with
     ready := fun q => if b (s.index q) then s.ready q else false,

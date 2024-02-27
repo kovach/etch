@@ -37,3 +37,24 @@ def SparseArray.range (num : Nat) : SparseArray ℕ ℕ :=
 
 @[inline] def boolStream (num : Nat) : ℕ →ₛ Bool:=
   stream $ Array.range num
+
+-- todo investigate perf differences
+@[specialize]
+def genCase [OfStream α β] [Zero β] (label : String) (setup : init → α) [ToString β'] (print : β → β') (num : init) (reps := 10) : IO Unit := do
+  IO.println s!"reps: {reps}-----"
+  let s := setup num
+  time label fun _ => do
+    for i in [0:reps] do
+      let x := SStream.eval s
+      if i % 1000000 = 0 then
+        IO.println s!"{print x}"
+
+@[specialize]
+def genCase' [Zero β] (label : String) (setup : init → α) (op : α → β) [ToString β'] (print : β → β') (num : init) (reps := 10) : IO Unit := do
+  IO.println s!"reps: {reps}-----"
+  let s := setup num
+  time label fun _ => do
+    for i in [0:reps] do
+      let x := op s
+      if i % 1000000 = 0 then
+        IO.println s!"{print x}"

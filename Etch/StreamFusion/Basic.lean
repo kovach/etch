@@ -128,8 +128,10 @@ class MapIndex (i : ℕ) (α β α' : Type*) (β' : outParam Type*) where
 class MapAtIndex (i : ℕ) (α β α' : Type*) (β' : outParam Type*) where
   map : (α → β) → α' → β'
 
-class Unlabel (α : Type*) (β : outParam Type*) where
-  unlabel : α → β
+instance : Zero Bool := ⟨false⟩
+instance : One Bool := ⟨true⟩
+instance : Add Bool := ⟨or⟩
+instance : Mul Bool := ⟨and⟩
 
 /--
 Class to put decidable propositions into the typeclass inference.

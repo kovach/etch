@@ -25,10 +25,6 @@ instance [Label is α β] : Label (i::is) (i'~ι → α) (i~ι → β) := ⟨(La
 
 def idx (x : α) (shape : List ℕ) [Label shape α β] := Label.label shape x
 
-instance [Scalar α]     : Unlabel α α := ⟨id⟩
-instance [Unlabel α β] : Unlabel (i~ι →ₛ α) (ι →ₛ β) := ⟨map (Unlabel.unlabel)⟩
-instance [Unlabel α β] : Unlabel (i~ι → α) (ι → β) := ⟨(Unlabel.unlabel ∘ .)⟩
-
 -- this doesn't seem ideal
 instance (I : Type) : MapIndex i α β (i~I →ₛ α) (i~I →ₛ β) where
   map f s := s.map f
