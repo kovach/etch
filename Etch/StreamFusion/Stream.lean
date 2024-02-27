@@ -123,6 +123,7 @@ def next' (s : Stream ι α) (q : {q // s.valid q}) (ready : Bool) : s.σ :=
   go f s.valid (fun q h => s.ready ⟨q,h⟩) (fun q h => s.index ⟨q,h⟩) (fun q v r => s.value ⟨⟨q,v⟩,r⟩) s.next acc q
 -/
 
+@[simps]
 def map (f : α → β) (s : Stream ι α) : Stream ι β :=
   { s with value := fun h => f (s.value h) }
 

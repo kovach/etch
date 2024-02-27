@@ -33,6 +33,9 @@ noncomputable def Stream.eval₀ [Zero α]  (σ₀ : {q // s.valid q}) : ι →�
 def Stream.toOrder (q : {q // s.valid q}) : StreamOrder ι :=
   (s.index q, s.ready q)
 
+@[simp] lemma map_toOrder (f : α → β) (s : Stream ι α) (q) :
+  (s.map f).toOrder q = s.toOrder q := rfl
+
 /-- The index with a default value of `⊤` if the state `x` is not valid -/
 def Stream.index' (x : s.σ) : WithTop ι :=
   if h : s.valid x then s.index ⟨x, h⟩ else ⊤
@@ -179,6 +182,9 @@ class IsBounded : Prop where
     ∃ wf_rel : WellFoundedRelation s.σ,
       ∀ q i, wf_rel.rel (s.seek q i) q ∨ (i <ₗ s.toOrder q) ∧ s.seek q i = q
 
+instance IsBounded.map (s : Stream ι α) (f : α → β) [IsBounded s] : IsBounded (s.map f) :=
+  ⟨‹IsBounded s›.out⟩
+
 /-- Extract the well-founded relation on a bounded stream -/
 noncomputable def Stream.wfRel [IsBounded s] : WellFoundedRelation s.σ :=
   ‹IsBounded s›.out.choose
@@ -276,6 +282,12 @@ theorem Stream.fold_wf_spec [Preorder ι] (f : β → ι → α → β) (s : Str
   rw [Stream.fold_wf, fold_wf.go]
   simp only [q.prop, Subtype.coe_eta, dite_true, advance_val]
   rfl
+
+theorem Stream.fold_wf_spec' [Preorder ι] (f : β → ι → α → β) (s : Stream ι α) [IsBounded s]
+    (q) (hv : s.valid q) (acc : β) :
+  s.fold_wf f q acc =
+    s.fold_wf f (s.advance q) (if hr : s.ready ⟨q, hv⟩ then f acc (s.index ⟨q, hv⟩) (s.value ⟨⟨q, hv⟩, hr⟩) else acc) :=
+  Stream.fold_wf_spec f s ⟨q, hv⟩ acc
 
 theorem Stream.fold_wf_invalid [Preorder ι] (f : β → ι → α → β) (s : Stream ι α) [IsBounded s]
     (q : s.σ) (acc : β) (h : ¬s.valid q) : s.fold_wf f q acc = acc := by
