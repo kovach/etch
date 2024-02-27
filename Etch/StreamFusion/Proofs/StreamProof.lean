@@ -25,8 +25,10 @@ def StreamOrder (ι : Type) : Type :=
 
 /-- The current emmited value; if ready, this is `index ↦ value`, otherwise it is 0.
   This is denoted `index(r) ↦ −→ ready(r) · ⟦value(r)⟧` in the paper. -/
-noncomputable def Stream.eval₀ [Zero α]  (σ₀ : {q // s.valid q}) : ι →₀ α :=
-  if h₂ : s.ready σ₀ then Finsupp.single (s.index σ₀) (s.value ⟨σ₀, h₂⟩) else 0
+noncomputable def Stream.eval₀ [Zero α]  (q : {q // s.valid q}) : ι →₀ α :=
+  if h₂ : s.ready q then
+    fun₀ | s.index q => (s.value ⟨q, h₂⟩)
+  else 0
 
 /-- The current `(index, ready)` value of the stream -/
 @[simps]
@@ -245,11 +247,10 @@ theorem Stream.no_backward [IsBounded s] (q i) :
   (s.wf_valid q i).imp_right And.right
 
 /-- Evaluates `∑_{q →* r} eval₀ r`, which is well-defined for bounded streams. -/
-noncomputable def Stream.eval [AddZeroClass α] (s : Stream ι α) [IsBounded s]
-    : s.σ → ι →₀ α
-  | q =>
+noncomputable def Stream.eval [AddZeroClass α] (s : Stream ι α) [IsBounded s] : s.σ → ι →₀ α
+| q =>
     if h : s.valid q then
-      have : s.WfRel (s.advance q) q := s.next_wf ⟨q, h⟩
+      have : (s.advance q) ≺ q := s.next_wf ⟨q, h⟩
       s.eval₀ ⟨q, h⟩ + s.eval (s.advance q)
     else 0
 termination_by _ x => s.wf.wrap x
