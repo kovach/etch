@@ -41,31 +41,30 @@ namespace RB
 
 inductive From | no | r | l deriving Inhabited, Repr
 
-structure Data (ι : Type) (α : Type*) (d : Type) where
-  key : ι
+structure Data (α : Type*) (d : Type) where
   value : α
   label : d
 deriving Repr
 
-abbrev DirectedTree ι [Ord ι] (d : Type) (α : Type u) := RBNode (Data ι α d)
-instance : Inhabited (DirectedTree ι l α) := ⟨.nil⟩
-abbrev TreeMap     ι [Ord ι] (α : Type*) := DirectedTree ι From α
-abbrev TreeContext ι [Ord ι] (α : Type*) := DirectedTree ι From α
+--abbrev DirectedTree ι [Ord ι] (d : Type) (α : Type u) := RBMap ι (Data α d) Ord.compare
+abbrev TreeMap     ι [Ord ι] (α : Type*) := RBMap ι (Data α From) Ord.compare
+abbrev TreeMap'    ι [Ord ι] (α : Type*) := RBNode (ι × Data α From)
+abbrev TreeContext ι [Ord ι] (α : Type*) := TreeMap' ι α
 abbrev TreeSet (ι : Type) [Ord ι] := TreeMap ι Bool
 
 -- TODO: fix this
 --instance [Zero β] [Ord ι] : Modifiable ι β (TreeMap ι β) where
 --  update := RBMap.modifyD
 
-def _root_.Std.RBNode.pp [ToString x] : RBNode x → String
+def _root_.Std.RBNode.pp [ToString α] : RBNode (α × β) → String
 | .nil => "."
-| .node _ l v r => s!"({l.pp} {toString v} {r.pp})"
+| .node _ l v r => s!"({l.pp} {toString v.1} {r.pp})"
 
-instance : ToString (Data Nat Unit From) := ⟨fun x => s!"{x.key}"⟩
-instance [ToString (Data ι α d)] : Repr (RBNode (Data ι α d)) := ⟨fun x _ => x.pp⟩
+--instance : ToString (Data Nat Unit From) := ⟨fun x => s!"{x.key}"⟩
+instance [ToString ι] : Repr (TreeMap ι α) := ⟨fun x _ => x.val.pp⟩
 
 structure Cursor (ι : Type) [LinearOrder ι] (α : Type*) where
-  t : TreeMap ι α
+  t : TreeMap' ι α
   k : TreeContext ι α
   d : Direction
   --last : ι
@@ -121,18 +120,18 @@ theorem RBNode.max_isSome (h : t = RBNode.node c l d r) : t.max.isSome := by
     cases h' : r with
     | nil => rfl | node _ _ _ _ => unfold RBNode.max; rw [← h']; exact hr h';
 
-@[inline] def Cursor.index [Zero ι] (now : Cursor ι α) (h : now.valid) : ι :=
+@[inline] def Cursor.index (now : Cursor ι α) (h : now.valid) : ι :=
   match now.d with
   | .up =>
     match now.t, h₂ : now.k with
-    | t, .node _ _ ⟨i,_,_⟩ _ => max (t.max.map (·.key) |>.getD i) i
+    | t, .node _ _ ⟨i,_⟩ _ => max (t.max.map (·.fst) |>.getD i) i
     | _, .nil => now.t.max |>.get (by
       cases ht : now.t <;> cases hd : now.d <;> unfold valid at h <;> simp [*] at h
       rw [← ht]
-      apply RBNode.max_isSome ht) |>.key
+      apply RBNode.max_isSome ht) |>.fst
   | .down =>
     match h₁ : now.t with
-    | .node _ l _ _  => now.t.min.get (by apply RBNode.min_isSome h₁) |>.key
+    | .node _ l _ _  => now.t.min.get (by apply RBNode.min_isSome h₁) |>.fst
     | .nil =>
       match h₂ : now.k with
       | .node _ _ ⟨i,_,_⟩ _  => i
@@ -143,7 +142,7 @@ theorem RBNode.max_isSome (h : t = RBNode.node c l d r) : t.max.isSome := by
   | .node _ _ ⟨_, _, .r⟩ _, .up => true
   | _, _ => false
 
-@[inline] def Cursor.value [Zero ι] (now : Cursor ι α) (h : now.ready) : α :=
+@[inline] def Cursor.value (now : Cursor ι α) (h : now.ready) : α :=
   match hk : now.k, hd : now.d, h with
   | .node _ _ ⟨_, v, .r⟩ _, .up, _ => v
   | .node _ _ ⟨_, v, .l⟩ _, .up, _ => by simp only [hk, hd, ready] at h
@@ -152,13 +151,9 @@ theorem RBNode.max_isSome (h : t = RBNode.node c l d r) : t.max.isSome := by
   | _, .down, _ => by simp only [hk, hd, ready] at h
 
 def TreeMap.ofList (l : List (ι × α)) : TreeMap ι α :=
-  RBMap.ofList l Ord.compare |>.1.map fun (i,v) => ⟨i, v, .no⟩
+  RBMap.ofList l Ord.compare |>.map fun (i, v) => (i, ⟨v, .no⟩)
 
-@[inline] def cursorInit [Zero ι] (m : TreeMap ι α) : Cursor ι α := ⟨m, .nil, .down⟩
-
-def DirectedTree.isNil : DirectedTree ι From α → Bool
-| .nil => true
-| _ => false
+@[inline] def cursorInit (m : TreeMap ι α) : Cursor ι α := ⟨m.val, .nil, .down⟩
 
 def iterate {α} (f : α → α) (s0 : α) : ℕ → List α :=
   let rec go x acc : ℕ → List α
@@ -180,7 +175,7 @@ open ToStream
 open SStream
 
 @[inline]
-def TreeMap.toStream [Zero ι] {α : Type} (t : TreeMap ι α) : ι →ₛ α where
+def TreeMap.toStream {α : Type} (t : TreeMap ι α) : ι →ₛ α where
   σ := Cursor ι α
   q := cursorInit t
   valid := Cursor.valid
@@ -189,7 +184,7 @@ def TreeMap.toStream [Zero ι] {α : Type} (t : TreeMap ι α) : ι →ₛ α wh
   value := fun q => Cursor.value q.1.1 q.2
   seek := fun q i => Cursor.seek q.1 i.1 i.2
 
-instance {α β} [Zero ι] [ToStream α β] : ToStream (TreeMap ι α) (ι →ₛ β) where
+instance {α β} [ToStream α β] : ToStream (TreeMap ι α) (ι →ₛ β) where
   stream := map stream ∘ TreeMap.toStream
 
 end Etch.Verification.RB
