@@ -30,13 +30,22 @@ instance [Unlabel α β] : Unlabel (i~ι →ₛ α) (ι →ₛ β) := ⟨map (Un
 instance [Unlabel α β] : Unlabel (i~ι → α) (ι → β) := ⟨(Unlabel.unlabel ∘ .)⟩
 
 -- this doesn't seem ideal
-instance (I : Type) : MapIndex i α β (i~I →ₛ α) (i~I →ₛ β)where
+instance (I : Type) : MapIndex i α β (i~I →ₛ α) (i~I →ₛ β) where
   map f s := s.map f
+
+instance (I J : Type) : MapAtIndex i I J (i~I →ₛ α) (i~J →ₛ! α) where
+  map f s := s.imap' f
+
+instance (I J : Type) [NatLt j i] [MapAtIndex i a b a' b'] : MapAtIndex i a b (j~J →ₛ a') (j~J →ₛ b') where
+  map f s := s.map (MapAtIndex.map i f)
 
 instance (J : Type) [NatLt j i] [MapIndex i a b a' b'] : MapIndex i a b (j~J →ₛ a') (j~J →ₛ b') where
   map f s := s.map (MapIndex.map i f)
 
-notation f " $[" i "] " t => MapIndex.map i f t
+notation f " $$[" i "] " t => MapIndex.map i f t -- todo :grimace:
+notation f " $[" i "] " t => MapAtIndex.map i f t
+
+#synth MapIndex i Bool Nat (i~Nat →ₛ Bool) _
 
 instance [Scalar α] : Contract i (i~ι →ₛ α) (i~Unit →ₛ α) := ⟨fun s => s.contract⟩
 open SStream in

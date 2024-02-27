@@ -125,7 +125,7 @@ open RB
 
 def rbVecSumBaseline := genCase' "baseline rb sum"
   (fun (mat : TreeMap ℕ ℕ) => mat)
-  (op := fun mat => mat.foldl (fun acc v => acc + v.value) 0)
+  (op := fun mat => mat.foldl (fun acc _ v => acc + v.value) 0)
   (fun x : ℕ => x)
 
 def rbVecSum := genCase "rbVec sum"

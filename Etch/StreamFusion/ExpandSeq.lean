@@ -39,8 +39,6 @@ instance (I : Type) : MapIndex i α β (i~I →ₛ α) (i~I →ₛ β)where
 instance (J : Type) [NatLt j i] [MapIndex i a b a' b'] : MapIndex i a b (j~J →ₛ a') (j~J →ₛ b') where
   map f s := s.map (MapIndex.map i f)
 
-notation f " $[" i "] " t => MapIndex.map i f t
-
 instance : Contract i (i~ι →ₛ α) (i~Unit →ₛ α) := ⟨fun s => contract s⟩
 instance [Contract j α β] [NatLt i j] : Contract j (i~ι →ₛ α) (i~ι →ₛ β) := ⟨map (Contract.contract j)⟩
 instance [Contract j α β]  : Contract j (Unit →ₛ α) (Unit →ₛ β) := ⟨map (Contract.contract j)⟩
