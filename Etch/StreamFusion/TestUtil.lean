@@ -21,7 +21,7 @@ variable
   SparseArray.mk v v
 
 @[inline] def sparseVecRB (num : Nat) :=
-  RB.TreeMap.ofList $ (List.range num).map fun n => (n,n)
+  RB.TreeMap.ofArray $ (Array.range num).map fun n => (n,n)
 
 @[inline] def vecStream (num : Nat) :=
   let v  : Vec ℕ num := ⟨Array.range num, Array.size_range⟩

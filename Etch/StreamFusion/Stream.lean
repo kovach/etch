@@ -201,6 +201,16 @@ def SparseArray.linearToStream (arr : SparseArray ι α) : ι →ₛ α where
     if r then if i ≤ j then q+1 else q
          else if i < j then q+1 else q
 
+@[macro_inline]
+def SparseArray.toSeqStream (arr : SparseArray ι α) : ι →ₛ! α where
+  σ := ℕ
+  q := 0
+  valid q := q < arr.n
+  ready _ := true
+  index q := arr.getI q
+  value   := fun ⟨q, _⟩ => arr.getV q
+  next q  := q + 1
+
 -- not tested yet
 --@[macro_inline]
 --def ofFloatArray (is : Array ι) (vs : FloatArray) (eq : is.size = vs.size) : SStream ι Float where
@@ -242,6 +252,9 @@ instance {α β ι} [Hashable ι] [BEq ι] [Zero α] [ToStream α β] : ToStream
 @[inline] def toArrayPair (s : ι →ₛ α) : F ι α → F ι α :=
   s.fold (fun ⟨a, b⟩ i v => ⟨a.push i, b.push v⟩)
 
+@[inline] def toArraySet (s : ι →ₛ Bool) : ArraySet ι → ArraySet ι :=
+  s.fold (fun s i v => if v then s.push i else s)
+
 section eval
 open OfStream
 
@@ -268,6 +281,9 @@ instance [OfStream α β] [Zero β]: OfStream (ι →ₛ α) (SparseArray ι β)
 
 instance [OfStream α β] [Zero β]: OfStream (ι →ₛ α) (F ι β) where
   eval := toArrayPair ∘ map (eval . 0)
+
+instance [OfStream α Bool] : OfStream (ι →ₛ α) (ArraySet ι) where
+  eval := toArraySet ∘ map (eval . false)
 
 end eval
 

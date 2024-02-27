@@ -35,7 +35,7 @@ def RBMap.modifyD [Zero β] (self : RBMap α β h) (a : α) (f : β → β) : RB
 end Std
 
 -- Canonical data structure names
-abbrev Map a [Ord a] b := RBMap a b Ord.compare
+--abbrev Map a [Ord a] b := RBMap a b Ord.compare
 --abbrev HMap a [BEq a] [Hashable a] b := HashMap a b
 abbrev ArraySet ι := Array ι
 

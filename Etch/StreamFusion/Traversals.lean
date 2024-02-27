@@ -150,11 +150,11 @@ theorem RBNode.max_isSome (h : t = RBNode.node c l d r) : t.max.isSome := by
   | .nil, .up, _ => by simp only [hk, hd, ready] at h
   | _, .down, _ => by simp only [hk, hd, ready] at h
 
-def TreeMap.ofList (l : List (ι × α)) : TreeMap ι α :=
-  RBMap.ofList l Ord.compare |>.map fun (i, v) => (i, ⟨v, .no⟩)
+def TreeMap.ofArray (l : Array (ι × α)) : TreeMap ι α :=
+  RBMap.ofArray l Ord.compare |>.map fun (i, v) => (i, ⟨v, .no⟩)
 
-def TreeSet.ofList (l : List ι) : TreeSet ι :=
-  RBMap.ofList (l.map fun i => (i, ⟨True, .no⟩)) Ord.compare
+def TreeSet.ofArray (l : Array ι) : TreeSet ι :=
+  RBMap.ofArray (l.map fun i => (i, ⟨True, .no⟩)) Ord.compare
 
 @[inline] def cursorInit (m : TreeMap ι α) : Cursor ι α := ⟨m.val, .nil, .down⟩
 
@@ -166,8 +166,8 @@ def iterate {α} (f : α → α) (s0 : α) : ℕ → List α :=
 
 def eg1 (n : Nat) :=
   let tree :=
-    let l : List (Nat × Unit) := [2,3,4,5,6,7].map (fun i => (i*2, ()))
-    let c := cursorInit (TreeMap.ofList l)
+    let l : Array (Nat × Unit) := #[2,3,4,5,6,7].map (fun i => (i*2, ()))
+    let c := cursorInit (TreeMap.ofArray l)
     c
   iterate (fun c => Cursor.seek c (c.index sorry) (c.ready)) tree n |>.map
   fun c => (c.t.pp, c.k.pp, c.d, c.index sorry, c.valid)
