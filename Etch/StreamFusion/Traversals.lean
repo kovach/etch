@@ -49,9 +49,9 @@ deriving Repr
 
 abbrev DirectedTree ι [Ord ι] (d : Type) (α : Type u) := RBNode (Data ι α d)
 instance : Inhabited (DirectedTree ι l α) := ⟨.nil⟩
-
 abbrev TreeMap     ι [Ord ι] (α : Type*) := DirectedTree ι From α
 abbrev TreeContext ι [Ord ι] (α : Type*) := DirectedTree ι From α
+abbrev TreeSet (ι : Type) [Ord ι] := TreeMap ι Bool
 
 -- TODO: fix this
 --instance [Zero β] [Ord ι] : Modifiable ι β (TreeMap ι β) where

@@ -4,7 +4,7 @@ import Init.Data.Array.Basic
 import Std.Data.RBMap
 import Std.Data.HashMap
 
-open Std (RBMap HashMap)
+open Std (RBMap RBSet HashMap)
 
 -- hack: redefine these instances to ensure they are inlined (see instDecidableLeToLEToPreorderToPartialOrder)
 -- note: we are not relying on LinearOrder any more
@@ -34,8 +34,10 @@ def RBMap.modifyD [Zero β] (self : RBMap α β h) (a : α) (f : β → β) : RB
   --self.alter a (fun | none => some 0 | some a => some (f a))
 end Std
 
+-- Canonical data structure names
 abbrev Map a [Ord a] b := RBMap a b Ord.compare
-abbrev HMap a [BEq a] [Hashable a] b := HashMap a b
+--abbrev HMap a [BEq a] [Hashable a] b := HashMap a b
+abbrev ArraySet ι := Array ι
 
 instance [EmptyCollection α] : Zero α := ⟨{}⟩
 
@@ -96,3 +98,37 @@ class Scalar (α : Type u)
 instance : Scalar ℕ := ⟨⟩
 instance : Scalar Float := ⟨⟩
 instance : Scalar Bool := ⟨⟩
+
+namespace Etch.Verification
+
+def LabeledIndex (_n : Nat) (ι : Type) := ι
+def LabeledIndex.mk (_n : Nat) (i : ι) : LabeledIndex n ι := i
+
+class Label (σ : List ℕ) (α : Type*) (β : outParam Type*) where
+  label : α → β
+
+class Contract (σ : ℕ) (α : Type*) (β : outParam Type*) where
+  contract : α → β
+
+class Expand (σ : List (ℕ × Type)) (α : Type*) (β : outParam Type*) where
+  expand : α → β
+
+class MapIndex (i : ℕ) (α β α' : Type*) (β' : outParam Type*) where
+  map : (α → β) → α' → β'
+
+class Unlabel (α : Type*) (β : outParam Type*) where
+  unlabel : α → β
+
+/--
+Class to put decidable propositions into the typeclass inference.
+It has a single instance, and it's like `[When p]` is satisfied when the `decide` tactic would prove `p`.
+There are some differences, because `decide` refuses to prove propositions with free variables or metavariables.
+-/
+class When (p : Prop) [Decidable p] : Prop where
+  isTrue : p
+
+instance : @When p (.isTrue h) := @When.mk p (.isTrue h) h
+
+abbrev NatLt (m n : ℕ) := When (m < n)
+
+end Etch.Verification
