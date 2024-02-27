@@ -48,8 +48,7 @@ instance [OfStream α β] : OfStream (Unit →ₛb α) β where
 instance [OfStream α β] [Modifiable ι β m] : OfStream (ι →ₛb α) m where
   eval := BddSStream.fold Modifiable.update ∘ BddSStream.map OfStream.eval
 
-class LawfulModifiable (α β : outParam Type*) (m : Type*) [Zero β] [Zero m] extends Modifiable α β m where
-  get : m → α → β
+class LawfulModifiable (α β : outParam Type*) (m : Type*) [Zero β] [Zero m] extends Modifiable α β m, Readable α β m where
   get_update : ∀ (m : m) (x : α) (v : β → β), get (update m x v) x = v (get m x)
   get_update_ne : ∀ (m : m) (x y : α) (v : β → β), x ≠ y → get (update m x v) y = get m y
   get_zero : ∀ (x : α), get 0 x = 0
@@ -75,17 +74,17 @@ instance [Zero β] : LawfulModifiable ι β (Std.RBMap ι β Ord.compare) where
 end lawful_mod
 
 lemma LawfulModifiable.get_update' [Zero β] [Zero m] [DecidableEq α] (m₀ : m) (x t : α) (v : β → β) [LawfulModifiable α β m] :
-    LawfulModifiable.get (Modifiable.update m₀ x v) t = if x = t then v (LawfulModifiable.get m₀ t) else LawfulModifiable.get m₀ t := by
+    Readable.get (Modifiable.update m₀ x v) t = if x = t then v (Readable.get m₀ t) else Readable.get m₀ t := by
   split_ifs with h
   · rw [← h, LawfulModifiable.get_update]
   · rw [LawfulModifiable.get_update_ne _ _ _ _ h]
 
 theorem LawfulModifiable.get_eq_eval [AddCommMonoid α] [Scalar α] (s : ι →ₛb α) (x : ι) [Zero m] [LawfulModifiable ι α m] :
-    LawfulModifiable.get (OfStream.eval s 0 : m) x = s.toStream.eval s.q x := by
+    Readable.get (OfStream.eval s 0 : m) x = s.toStream.eval s.q x := by
   rcases s with ⟨⟨s, q⟩, bdd⟩; dsimp at bdd ⊢
   suffices :
-    ∀ (m₀ : m), LawfulModifiable.get ((s.map OfStream.eval).fold_wf Modifiable.update q m₀) x =
-      (LawfulModifiable.get m₀ x) + s.eval q x
+    ∀ (m₀ : m), Readable.get ((s.map OfStream.eval).fold_wf Modifiable.update q m₀) x =
+      (Readable.get m₀ x) + s.eval q x
   · simpa using this 0
   apply s.wf.induction q; clear q
   intro q ih m₀
@@ -111,12 +110,12 @@ theorem LawfulModifiable.get_eq_eval'  [OfStream α β] [Modifiable ι β m] (s 
     [AddCommMonoid γ] {F} [ZeroHomClass F β γ] (tr : F)
     -- (htr : ∀ (i : ι) (s' : β), tr (OfStream.eval s' )) some additional assumption needed
     (x : ι) :
-    tr (LawfulModifiable.get (OfStream.eval s 0 : m) x) =
+    tr (Readable.get (OfStream.eval s 0 : m) x) =
       (s.map fun a => tr (OfStream.eval a 0)).toStream.eval s.q x := by
   rcases s with ⟨⟨s, q⟩, bdd⟩; dsimp at bdd ⊢
   suffices :
-    ∀ (m₀ : m), tr (LawfulModifiable.get ((s.map OfStream.eval).fold_wf Modifiable.update q m₀) x) =
-      tr (LawfulModifiable.get m₀ x) + (s.map fun a => tr (OfStream.eval a 0)).eval q x
+    ∀ (m₀ : m), tr (Readable.get ((s.map OfStream.eval).fold_wf Modifiable.update q m₀) x) =
+      tr (Readable.get m₀ x) + (s.map fun a => tr (OfStream.eval a 0)).eval q x
   · simpa using this 0
   · sorry
 
