@@ -351,3 +351,7 @@ theorem mul_eq_zero_of {α : Type _} [MulZeroClass α] {x y : α} : x = 0 ∨ y 
     rw [h]
     exact MulZeroClass.mul_zero x
 #align mul_eq_zero_of mul_eq_zero_of
+
+@[elab_as_elim]
+lemma Subtype.with_prop {α : Sort*} (p : α → Prop) {f : α → Sort*}
+  (x : α) (h₁ : p x) (h₂ : ∀ (x : Subtype p), f x) : f x := h₂ ⟨x, h₁⟩

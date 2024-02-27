@@ -147,8 +147,11 @@ def map (f : α → β) (s : ι →ₛ α) : ι →ₛ β := {
   s with value := f ∘ s.value
 }
 
-lemma map_eq_map (f : α → β) (s : ι →ₛ α) :
+@[simp] lemma map_eq_map (f : α → β) (s : ι →ₛ α) :
   (map f s).toStream = s.toStream.map f := rfl
+
+@[simp] lemma map_q (f : α → β) (s : ι →ₛ α) :
+  (map f s).q = s.q := rfl
 
 instance : Functor (ι →ₛ .) where
   map := map
@@ -219,10 +222,14 @@ instance {α β} [ToStream α β] : ToStream  (SparseArray ι α) (ι →ₛ β)
   stream := map ToStream.stream ∘ SparseArray.linearToStream
 
 instance : ToStream  (ArraySet ι) (ι →ₛ Bool) where
-  stream := map ToStream.stream ∘ ofBoolArray
+  stream := ofBoolArray
 
-instance {α β ι} [Hashable ι] [BEq ι] [Zero α] [ToStream α β] : ToStream  (HashMap ι α) (ι → β) where
-  stream h v := ToStream.stream $ (h.findD v 0)
+/-- Convert a data structure to a "stream" function -/
+@[inline] def ToStream.asFun {α β ι m} [ToStream α β] [Readable ι α m] : ToStream m (ι → β) where
+  stream := fun m i => ToStream.stream (Readable.get m i)
+
+instance {α β ι} [Hashable ι] [BEq ι] [Zero α] [ToStream α β] : ToStream  (HashMap ι α) (ι → β) :=
+  ToStream.asFun
 
 --instance : ToStream  (Vec ι n × FloatVec n) (SStream ι Float) where
 --  stream := fun (a, b) => ofFloatArray a.1 b.1 (a.property.trans b.property.symm)
