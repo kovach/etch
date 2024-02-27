@@ -93,7 +93,7 @@ def matMul1 (num : ℕ) : IO Unit := do
   let x := matMul_ijjk m m
   time "matrix 1'" fun _ =>
     for _ in [0:10] do
-      let x : HMap ℕ (HMap ℕ ℕ) := eval x
+      let x : HashMap ℕ (HashMap ℕ ℕ) := eval x
       IO.println s!"{x.1.size}"
 
 def matMul1' (num : ℕ) : IO Unit := do
@@ -109,14 +109,14 @@ def testABC (num : ℕ) : IO Unit := do
   let m := stream $ mat' num
   time "matrix abc" fun _ =>
     for _ in [0:10] do
-      let x : SparseArray ℕ (HMap ℕ ℕ) := eval $ ABC m m m
+      let x : SparseArray ℕ (HashMap ℕ ℕ) := eval $ ABC m m m
       IO.println s!"{x.1.size}"
 
 def testABC' (num : ℕ) : IO Unit := do
   let m := stream $ mat' num
   time "matrix abc'" fun _ =>
     for _ in [0:10] do
-      let x : SparseArray ℕ (HMap ℕ ℕ) := eval $ ABC' m m m
+      let x : SparseArray ℕ (HashMap ℕ ℕ) := eval $ ABC' m m m
       IO.println s!"{x.1.size}"
 
 def _root_.main (args : List String) : IO Unit := do

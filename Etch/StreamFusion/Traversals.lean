@@ -153,6 +153,9 @@ theorem RBNode.max_isSome (h : t = RBNode.node c l d r) : t.max.isSome := by
 def TreeMap.ofList (l : List (ι × α)) : TreeMap ι α :=
   RBMap.ofList l Ord.compare |>.map fun (i, v) => (i, ⟨v, .no⟩)
 
+def TreeSet.ofList (l : List ι) : TreeSet ι :=
+  RBMap.ofList (l.map fun i => (i, ⟨True, .no⟩)) Ord.compare
+
 @[inline] def cursorInit (m : TreeMap ι α) : Cursor ι α := ⟨m.val, .nil, .down⟩
 
 def iterate {α} (f : α → α) (s0 : α) : ℕ → List α :=
