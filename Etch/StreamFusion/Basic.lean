@@ -44,11 +44,20 @@ instance [EmptyCollection α] : Zero α := ⟨{}⟩
 class Modifiable (k v : outParam Type*) (m : Type*) where
   update : m → k → (v → v) → m
 
+class Readable (k v : outParam Type*) (m : Type*) where
+  get : m → k → v  -- should choose a default "zero" value when key does not exist
+
 instance [BEq α] [Hashable α] [Zero β] : Modifiable α β (HashMap α β) where
   update := HashMap.modifyD'
 
+instance [BEq α] [Hashable α] [Zero β] : Readable α β (HashMap α β) where
+  get := (HashMap.findD · · 0)
+
 instance [Zero β] : Modifiable α β (RBMap α β h) where
   update := RBMap.modifyD
+
+instance [Zero β] : Readable α β (RBMap α β h) where
+  get := (RBMap.findD · · 0)
 
 def Vec α n := { x : Array α // x.size = n }
 instance [Repr α] : Repr (Vec α n) := ⟨fun x n => Repr.reprPrec x.val n⟩
