@@ -54,23 +54,24 @@ def LabelIdx.freshAfterAux (x : Nat) : Nat :=
 
 def LabelIdx.freshAfter (x : LabelIdx) : LabelIdx := LabelIdx.mk (freshAfterAux x.data)
 
-def LabelIdx.nextBeforeAux (x y : Nat) : Nat :=
+def LabelIdx.freshBeforeAux (x y : Nat) : Nat :=
   if h : y = 0 then
-    panic! "x < y not true in nextBeforeAux"
+    panic! "x < y not true in freshBeforeAux"
   else
     let xb := x % 2
     let yb := y % 2
     if xb = yb then
       have : y / 2 < y := by omega
-      xb + 2 * nextBeforeAux (x / 2) (y / 2)
+      xb + 2 * freshBeforeAux (x / 2) (y / 2)
     else if xb < yb then
       2 * freshAfterAux (xb / 2)
     else
-      panic! "x < y not true in nextBeforeAux"
+      panic! "x < y not true in freshBeforeAux"
 termination_by _ x y => y
 
-def LabelIdx.nextBefore (x y : LabelIdx) : LabelIdx :=
-  LabelIdx.mk <| LabelIdx.nextBeforeAux x.data y.data
+/-- Gives a label that is between `x` and `y`, assuming that `x < y`. -/
+def LabelIdx.freshBefore (x y : LabelIdx) : LabelIdx :=
+  LabelIdx.mk <| LabelIdx.freshBeforeAux x.data y.data
 
 /-- An injection from `Nat` into LabelIdxs. -/
 def LabelIdx.nth (n : Nat) : LabelIdx :=
