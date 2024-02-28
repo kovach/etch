@@ -46,6 +46,13 @@ infixr:25 " →ₛ " => SStream
 namespace Stream
 variable {ι : Type} {α : Type _} [Mul α]
 
+@[simps]
+def imap_general (f : ι → ι') (g : ι → ι' → ι) (s : Stream ι α) : Stream ι' α := {
+  s with
+  index := f ∘ s.index
+  seek  := fun q (j, r) => s.seek q (g (s.index q) j, r)
+}
+
 @[simps, macro_inline]
 def contract (s : Stream ι α) : Stream Unit α := {
   s with
