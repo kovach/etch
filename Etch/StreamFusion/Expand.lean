@@ -5,7 +5,9 @@ import Etch.StreamFusion.ExpandSeq
 import Etch.Util.ExpressionTree
 
 namespace Etch.Verification.SStream
-open Etch.ExpressionTree
+
+-- Use our labels for ExpressionTree labeling.
+instance [Label σ α β] : ExpressionTree.Label σ α β := ⟨Label.label σ⟩
 
 -- todo: decide on a nicer notation
 notation n:30 "~" i:30 => LabeledIndex n i
@@ -14,8 +16,8 @@ variable (i : ℕ) (ι : Type)
 @[inline] instance [LinearOrder ι] : LinearOrder (i~ι) := by change LinearOrder ι; exact inferInstance
 @[inline] instance [Inhabited ι] : Inhabited (i~ι) := by change Inhabited ι; exact inferInstance
 
-instance : TypeHasIndex (i~ι →ₛ β) i ι β where
-instance : TypeHasIndex (i~ι → β) i ι β where
+instance : ExpressionTree.TypeHasIndex (i~ι →ₛ β) i ι β where
+instance : ExpressionTree.TypeHasIndex (i~ι → β) i ι β where
 
 instance [Scalar α]     : Label [] α α := ⟨id⟩
 instance [Label is α β] : Label (i::is) (ι →ₛ α) (i~ι →ₛ β) := ⟨map (Label.label is)⟩
@@ -97,7 +99,7 @@ instance expEqFun  {ι : Type}   {i : ℕ}             [Expand σ α β]        
 end
 
 -- Ignoring `base` for now. It should be used for a coercion.
-instance [Expand σ α β] : EnsureBroadcast σ base α β where
+instance [Expand σ α β] : ExpressionTree.EnsureBroadcast σ base α β where
   broadcast := Expand.expand σ
 
 instance [LinearOrder ι] [HMul α β γ] : HMul (i~ι →ₛ α) (i~ι →ₛ β) (i~ι →ₛ γ) := ⟨mul⟩

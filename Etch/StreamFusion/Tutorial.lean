@@ -35,6 +35,10 @@ section
 #synth ExpressionTree.EnsureBroadcast [(0, I), (1, J), (2, K)] α (j~J → k~K →ₛ α) _
 end
 
+@[inline] def ABC_memo (a : I →ₛ J →ₛ α) (b : J →ₛ K →ₛ α) (c : K →ₛ L →ₛ α) :=
+  Σ k => (memo SparseArray I (SparseArray K α) from Σ j=> a(i,j)*b(j,k)) * c(k,l)
+
+
 -- Notice, no Broadcast helper class, it was unfolded
 #print mul_fns'
 

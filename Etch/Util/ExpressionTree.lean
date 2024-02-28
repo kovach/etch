@@ -11,6 +11,11 @@ This is based on (and overrides) the core expression tree elaborator from `Lean.
 but it has support for reasoning about indices and merging them.
 -/
 
+/--
+Labeling class for expression tree elaborator.
+-/
+class Label (σ : List ℕ) (α : Type _) (β : outParam <| Type _) where
+  label : α → β
 
 class TypeHasIndex (α : Type _) (i : outParam <| Nat) (I : outParam <| Type _) (β : outParam <| Type _)
 
@@ -94,6 +99,16 @@ partial def mergeTypeIndices (indices1 indices2 : List IndexData) (preferLeft :=
         discard <| isDefEqGuarded d1.type d2.type
       return d1 :: (← mergeTypeIndices indices1' indices2')
 
+def mkIndexDataList (indices : List IndexData) : TermElabM Expr := do
+  let sort ← inferType indices.head!.type
+  let listTy ← mkAppM ``Prod #[.const ``Nat [], sort]
+  let list ← mkListLit listTy <| ← indices.mapM fun data => mkAppOptM ``Prod.mk #[Expr.const ``Nat [], sort, data.i, data.type]
+  return list
+
+def mkIndexDataNatList (indices : List IndexData) : TermElabM Expr := do
+  let list ← mkListLit (.const ``Nat []) <| indices.map fun data => data.i
+  return list
+
 def mkEnsureBroadcast (indices : List IndexData) (base? : Option Expr) (e : Expr) : TermElabM Expr := do
   if indices.isEmpty then
     if let some base := base? then
@@ -106,10 +121,8 @@ def mkEnsureBroadcast (indices : List IndexData) (base? : Option Expr) (e : Expr
   else
     -- Note(kmill) This does not handle coercion as well as it could, since it's not deferring
     -- finding a coercion if there are metavariables
-    let sort ← inferType indices.head!.type
-    let listTy ← mkAppM ``Prod #[.const ``Nat [], sort]
-    let list ← mkListLit listTy <| ← indices.mapM fun data => mkAppOptM ``Prod.mk #[Expr.const ``Nat [], sort, data.i, data.type]
-    let e ← Term.elabAppArgs (explicit := false) (ellipsis := false) (expectedType? := none)
+    let list ← mkIndexDataList indices
+    let e ← Term.elabAppArgs (explicit := false) (ellipsis := false) (expectedType? := none) (resultIsOutParamSupport := false)
               (← mkConstWithFreshMVarLevels ``EnsureBroadcast.broadcast)
               #[]
               #[.expr list, .expr (← base?.getDM (inferType e)), .expr e]
@@ -232,6 +245,7 @@ private inductive Tree where
   | unop (ref : Syntax) (f : Expr) (arg : Tree)
   | updateIndex (ref : Syntax) (data : IndexData) (innerType : Expr) (f : Expr) (arg : Tree)
   | eraseUnits (ref : Syntax) (innerIndices : Option (List IndexData)) (f : Expr) (arg : Tree)
+  | broadcast (ref : Syntax) (indices : List IndexData) (maxType? : Option Expr) (arg : Tree)
   /--
   Used for assembling the info tree. We store this information
   to make sure "go to definition" behaves similarly to notation defined without using `binop%` helper elaborator.
@@ -367,6 +381,13 @@ where
         let indices ← mergeTypeIndices indices outerIndices
         modify fun s => {s with indices := indices}
         return .eraseUnits ref innerIndices f arg
+      | .broadcast ref indices maxType? arg =>
+        -- Have it unify the indices and type
+        unless maxType?.isNone do throwError "unimplemented(kmill): merging maxType in .broadcast during analysis"
+        let indices ← mergeTypeIndices (← get).indices indices
+        modify fun s => {s with indices := indices}
+        let arg ← go arg
+        return .broadcast ref (← get).indices maxType? arg
       | .term ref _ val =>
         let type ← instantiateMVars (← inferType val)
         let (indices', type) ← withRef ref <| extractTypeIndices type
@@ -395,6 +416,19 @@ private def mkBinOp (lazy : Bool) (f : Expr) (lhs rhs : Expr) : TermElabM Expr :
 private def mkUnOp (f : Expr) (arg : Expr) : TermElabM Expr := do
   elabAppArgs f #[] #[Arg.expr arg] (expectedType? := none) (explicit := false) (ellipsis := false) (resultIsOutParamSupport := false)
 
+private def mkEraseUnits (indices : List IndexData) (f : Expr) (arg : Expr) : TermElabM Expr := do
+  let val ← elabAppArgs f #[] #[Arg.expr arg] (expectedType? := none) (explicit := false) (ellipsis := false) (resultIsOutParamSupport := false)
+  -- Want to make sure labels are preserved.
+  let outerIndices := indices.filter fun data => !data.type.isAppOf ``Unit
+  let list ← mkIndexDataNatList outerIndices
+  let e ← Term.elabAppArgs (explicit := false) (ellipsis := false) (expectedType? := none) (resultIsOutParamSupport := false)
+    (← mkConstWithFreshMVarLevels ``Label.label)
+    #[]
+    #[.expr list, .expr val]
+  synthesizeSyntheticMVars
+  logInfo m!"got {← instantiateMVars e}"
+  return e
+
 private def toExprCore (t : Tree) : TermElabM Expr := do
   match t with
   | .term _ trees e =>
@@ -409,9 +443,12 @@ private def toExprCore (t : Tree) : TermElabM Expr := do
     withRef ref <| withInfoContext' ref (mkInfo := mkTermInfo .anonymous ref) do
       let arg ← toExprCore arg
       elabAppArgs f #[] #[Arg.expr data.i, Arg.expr arg] (expectedType? := none) (explicit := false) (ellipsis := false) (resultIsOutParamSupport := false)
-  | .eraseUnits ref _ f arg =>
+  | .eraseUnits ref indices? f arg =>
     withRef ref <| withInfoContext' ref (mkInfo := mkTermInfo .anonymous ref) do
-      mkUnOp f (← toExprCore arg)
+      mkEraseUnits indices?.get! f (← toExprCore arg)
+  | .broadcast ref indices type? arg =>
+    withRef ref <| withInfoContext' ref (mkInfo := mkTermInfo .anonymous ref) do
+      mkEnsureBroadcast indices type? (← toExprCore arg)
   | .macroExpansion macroName stx stx' nested =>
     withRef stx <| withInfoContext' stx (mkInfo := mkTermInfo macroName stx) do
       withMacroExpansion stx stx' do
@@ -525,12 +562,15 @@ mutual
         let innerIndices := innerIndices?.get!
         let arg ← go arg innerIndices none false false
         let outerIndices := innerIndices.filter fun data => !data.type.isAppOf ``Unit
+        let tree := Tree.eraseUnits ref innerIndices f arg
         if outerIndices.length != indices.length then
-          -- Need to insert broadcast
-          throwError "unimplemented(kmill): eraseUnits needs to broadcast"
+          return Tree.broadcast ref indices maxType? tree
         else
-          return .eraseUnits ref innerIndices f arg
-      | .term ref trees e =>
+          return tree
+      | .broadcast ref _ _ arg =>
+        -- We assume indices and maxType have already been unified.
+        return .broadcast ref indices maxType? (← go arg indices maxType? false false)
+      | .term ref _ e =>
         let (indices', type) ← extractTypeIndices (← instantiateMVars (← inferType e))
         trace[Elab.binop] "visiting {e} : {type} =?= {maxType?}"
         if isUnknown type then
@@ -548,7 +588,7 @@ mutual
           else
             return t
         trace[Elab.binop] "added coercion: {e}: {type} => {maxType?}"
-        withRef ref <| return .term ref trees (← mkEnsureBroadcast indices maxType? e)
+        withRef ref <| return .broadcast ref indices maxType? t
       | .macroExpansion macroName stx stx' nested =>
         withRef stx <| withPushMacroExpansionStack stx stx' do
           return .macroExpansion macroName stx stx' (← go nested indices f? lhs isPred)
