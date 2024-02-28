@@ -88,9 +88,18 @@ structure SparseArray (ι : Type) (α : Type*) where
     vs : Vec α n
 deriving Repr
 
+
+def SparseArrayLookup (ι : Type) (α : Type*) := SparseArray ι α
+
 abbrev SparseArrayMat a b c := SparseArray a (SparseArray b c)
 
 @[macro_inline] def SparseArray.mk {n} : Vec ι n → Vec α n → SparseArray ι α  := SparseArray.mk' n
+instance : Inhabited (SparseArray ι α) := ⟨SparseArray.mk (Vec.mkEmpty 0) (Vec.mkEmpty 0)⟩
+
+@[macro_inline] def SparseArray.mk_unsafe : Array ι → Array α → SparseArray ι α  := fun a b =>
+  if a.size = b.size then
+    SparseArray.mk' a.size ⟨a, sorry⟩ ⟨b, sorry⟩
+  else panic!"array size mismatch"
 
 @[macro_inline]
 def SparseArray.getI (arr : SparseArray ι α) (q : {q // decide (q < arr.n) = true}) : ι :=

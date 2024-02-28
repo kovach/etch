@@ -188,7 +188,7 @@ def TreeMap.toStream {α : Type} (t : TreeMap ι α) : ι →ₛ α where
   ready := fun q => Cursor.ready q.1
   index := fun q => Cursor.index q.1 q.2
   value := fun q => Cursor.value q.1.1 q.2
-  seek := fun q i => Cursor.seek q.1 i.1 i.2
+  seek  := fun q i => Cursor.seek q.1 i.1 i.2
 
 instance {α β} [ToStream α β] : ToStream (TreeMap ι α) (ι →ₛ β) where
   stream := map stream ∘ TreeMap.toStream

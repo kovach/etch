@@ -28,7 +28,7 @@ lean_exe fusion_mat {
 
 @[default_target]
 lean_exe eg {
-  root := `Etch.StreamFusion.Examples.Basic
+  root := `Etch.StreamFusion.Examples.Benchmarks
   moreLeancArgs := #["-fno-omit-frame-pointer", "-g"]
 }
 

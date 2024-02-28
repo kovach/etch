@@ -76,14 +76,13 @@ def next' (s : Stream ι α) (q : {q // s.valid q}) (ready : Bool) : s.σ :=
 /- (Important def) Converting a Stream into data
    This definition follows the same inline/specialize pattern as Array.forInUnsafe
 -/
--- todo: evaluate this vs other version
 @[inline] partial def fold (f : β → ι → α → β) (s : Stream ι α) (q : s.σ) (acc : β) : β :=
   let rec @[specialize] go f
-      (valid : s.σ → Bool) (ready : (x : s.σ) → valid x → Bool)
-      (index : (x : s.σ) → valid x → ι) (value : (x : s.σ) → (h : valid x) → ready x h → α)
-      (next : {x // valid x} → ι → Bool → s.σ)
+      {σ} (valid : σ → Bool) (ready : (x : σ) → valid x → Bool)
+      (index : (x : σ) → valid x → ι) (value : (x : σ) → (h : valid x) → ready x h → α)
+      (next : {x // valid x} → ι → Bool → σ)
       --(next : (x : s.σ) → valid x → Bool → s.σ)
-      (acc : β) (q : s.σ) :=
+      (acc : β) (q : σ) :=
     if hv : valid q then
       let i := index q hv
       let hr := ready q hv
@@ -94,26 +93,29 @@ def next' (s : Stream ι α) (q : {q // s.valid q}) (ready : Bool) : s.σ :=
   go f s.valid (fun q h => s.ready ⟨q,h⟩) (fun q h => s.index ⟨q,h⟩) (fun q v r => s.value ⟨⟨q,v⟩,r⟩) s.next
      acc q
 
--- this one is a little more uniform, and has better inlining behavior for products, but worse behavior for very simple examples
-@[inline] partial def fold' (f : β → ι → α → β) (s : Stream ι α) (q : s.σ) (acc : β) : β :=
-  let rec @[specialize] go f
-      (valid : s.σ → Bool)
+-- experiment
+-- the specialized version still takes a stream argument?
+@[specialize] partial def fold_go {σ} {α : Type*} (f : β → ι → α → β)
+      (valid : σ → Bool)
       (ready : {x // valid x} → Bool)
       (index : {x // valid x} → ι)
       (value : (x : {x // ready x}) → α)
       --(value : (x : {x // valid x}) → ready x → α)
-      (next : {x // valid x} → ι → Bool → s.σ)
+      (next : {x // valid x} → ι → Bool → σ)
       --(next : (x : s.σ) → valid x → Bool → s.σ)
-      (acc : β) (q : s.σ) :=
+      (acc : β) (q : σ) : β :=
     if hv : valid q then
       let q := ⟨q, hv⟩
       let i := index q
       let hr := ready q
       let acc' := if hr : hr then f acc i (value ⟨q, hr⟩) else acc
       let q' := next q i hr
-      go f valid ready index value next acc' q'
+      fold_go f valid ready index value next acc' q'
     else acc
-  go f s.valid s.ready s.index s.value s.next acc q
+
+-- this one is a little more uniform, and has better inlining behavior for products, but worse behavior for very simple examples
+@[inline] partial def fold' (f : β → ι → α → β) (s : Stream ι α) (q : s.σ) (acc : β) : β :=
+  fold_go f s.valid s.ready s.index s.value s.next acc q
 
 /-
 @[inline] partial def fold_old (f : β → ι → α → β) (s : Stream ι α) (q : s.σ) (acc : β) : β :=
@@ -203,8 +205,10 @@ def range (lo hi : ℕ) : ℕ →ₛ Bool where
     if r then if q ≤ j then q+1 else q
          else if q < j then q+1 else q
 
-@[inline]
-def ofBoolArray (is : ArraySet ι) : ι →ₛ Bool where
+@[inline] def DenseArray.toStream {n : ℕ} (arr : DenseArray n α) : Nat →ₛ α :=
+  (range 0 n).mapWithIndex fun q _ => arr[q]'sorry
+
+@[inline] def ArraySet.toStream (is : ArraySet ι) : ι →ₛ Bool where
   σ := ℕ
   q := 0
   valid q := q < is.size
@@ -218,7 +222,7 @@ def ofBoolArray (is : ArraySet ι) : ι →ₛ Bool where
 
 -- benefits from macro_inline (matrix sum)
 @[macro_inline]
-def SparseArray.linearToStream (arr : SparseArray ι α) : ι →ₛ α where
+def SparseArray.toStream.linear (arr : SparseArray ι α) : ι →ₛ α where
   σ := ℕ
   q := 0
   valid q := q < arr.n
@@ -230,6 +234,15 @@ def SparseArray.linearToStream (arr : SparseArray ι α) : ι →ₛ α where
     if r then if i ≤ j then q+1 else q
          else if i < j then q+1 else q
 
+-- todo test
+@[inline]
+partial def SparseArray.lookup [Zero α] (arr : SparseArray ι α) : ι → α := fun i =>
+  let rec @[specialize] go
+  | n => if h : n < arr.n then
+    let i' := arr.getI ⟨n, by simpa using h⟩
+    (if i' < i then go (n+1) else if i' = i then arr.getV ⟨n, by simpa using h⟩ else 0) else 0
+  (go 0)
+
 @[macro_inline]
 def SparseArray.toSeqStream (arr : SparseArray ι α) : ι →ₛ! α where
   σ := ℕ
@@ -239,6 +252,15 @@ def SparseArray.toSeqStream (arr : SparseArray ι α) : ι →ₛ! α where
   index q := arr.getI q
   value   := fun ⟨q, _⟩ => arr.getV q
   next q  := q + 1
+
+@[inline] def ArraySet.toSeqStream (is : ArraySet ι) : ι →ₛ! Bool where
+  σ := ℕ
+  q := 0
+  valid q := q < is.size
+  ready _ := true
+  index q := (is[q.1]'(by simpa using q.2))
+  value _ := true
+  next q := q + 1
 
 -- not tested yet
 --@[macro_inline]
@@ -257,11 +279,17 @@ def SparseArray.toSeqStream (arr : SparseArray ι α) : ι →ₛ! α where
 -- Used as a base case for ToStream/OfStream
 instance [Scalar α] : ToStream α α := ⟨id⟩
 
+instance {α β} [Zero α] [ToStream α β] : ToStream (SparseArrayLookup ι α) (ι → β) where
+  stream := (fun f => ToStream.stream ∘ f) ∘ SparseArray.lookup
+
+instance {α β} [ToStream α β] : ToStream (DenseArray n α) (Nat →ₛ β) where
+  stream := map ToStream.stream ∘ DenseArray.toStream
+
 instance {α β} [ToStream α β] : ToStream  (SparseArray ι α) (ι →ₛ β) where
-  stream := map ToStream.stream ∘ SparseArray.linearToStream
+  stream := map ToStream.stream ∘ SparseArray.toStream.linear
 
 instance : ToStream  (ArraySet ι) (ι →ₛ Bool) where
-  stream := ofBoolArray
+  stream := ArraySet.toStream
 
 /-- Convert a data structure to a "stream" function -/
 @[inline] def ToStream.asFun {α β ι m} [ToStream α β] [Readable ι α m] : ToStream m (ι → β) where
@@ -276,7 +304,7 @@ instance {α β ι} [Hashable ι] [BEq ι] [Zero α] [ToStream α β] : ToStream
 @[inline] def fold (f : β → ι → α → β) (s : ι →ₛ α) : β → β := s.toStream.fold f s.q
 
 @[inline] def toSparseArray (s : ι →ₛ α) : SparseArray ι α → SparseArray ι α :=
-  s.fold (fun ⟨_, a, b⟩ i v => ⟨_, a.push i, b.push v⟩)
+  s.fold (fun ⟨n, a, b⟩ i v => ⟨n+1, a.push i, b.push v⟩)
 
 @[inline] def toArrayPair (s : ι →ₛ α) : F ι α → F ι α :=
   s.fold (fun ⟨a, b⟩ i v => ⟨a.push i, b.push v⟩)
@@ -309,7 +337,7 @@ instance instStep [OfStream α β] [Modifiable ι β m] : OfStream (ι →ₛ α
 --   inserted at each step (so pass 0 to recursive eval)
 -- todo: pass accurate capacity estimate?
 instance [OfStream α β] [Zero β]: OfStream (ι →ₛ α) (SparseArray ι β) where
-  eval := toSparseArray ∘ map (eval . 0)
+  eval := fold (fun ⟨n, a, b⟩ i v => ⟨n+1, a.push i, b.push v⟩) ∘ map (eval . 0)
 
 instance [OfStream α β] [Zero β]: OfStream (ι →ₛ α) (F ι β) where
   eval := toArrayPair ∘ map (eval . 0)
@@ -401,15 +429,18 @@ end SStream
 
 namespace SequentialStream
 
+@[inline] def imap' (f : ι → ι') (s : ι →ₛ! α) : ι' →ₛ! α := {
+  s with
+  index := f ∘ s.index
+}
+
 open OfStream
 
 instance instContract [OfStream α β] : OfStream (Unit →ₛ! α) β where
   eval := fold (fun a _ b => b a) ∘ map eval
-  -- bad: fold (fun a _ b => eval b a)
 
 instance instStep [OfStream α β] [Modifiable ι β m] : OfStream (ι →ₛ! α) m where
   eval := fold Modifiable.update ∘ map eval
-  -- bad: fold fun m k => Modifiable.update m k ∘ eval
 
 end SequentialStream
 

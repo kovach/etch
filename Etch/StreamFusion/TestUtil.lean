@@ -50,7 +50,7 @@ def genCase [OfStream α β] [Zero β] (label : String) (setup : init → α) [T
         IO.println s!"{print x}"
 
 @[specialize]
-def genCase' [Zero β] (label : String) (setup : init → α) (op : α → β) [ToString β'] (print : β → β') (num : init) (reps := 10) : IO Unit := do
+def genCase' (label : String) (setup : init → α) (op : α → β) [ToString β'] (print : β → β') (num : init) (reps := 10) : IO Unit := do
   IO.println s!"reps: {reps}-----"
   let s := setup num
   time label fun _ => do

@@ -70,11 +70,13 @@ Contract.contract j
   Σ j => a(i,j) * b(j,k)
 
 open ToStream
-open OfStream
+--open OfStream
+open SStream
 
 variable [Hashable K]
+
 -- todo: investigate these definitions and other approaches
-@[inline] def ABC
+@[inline] def ABC_
     (a : I →ₛ J →ₛ α)
     (b : J →ₛ K →ₛ α)
     (c : K →ₛ L →ₛ α) :=
@@ -89,6 +91,20 @@ variable [Hashable K]
   let ijk := [(i,I),(j,J),(k,K)]
   let m1 := ijk ⇑ a(i,j)
   let m := m1.map fun row => memo HashMap K α from Σ j => row * b(j,k)
+  let m  := m(i,k) * c(k,l)
+  Σ k => m
+
+@[inline] def ABC (a : I →ₛ J →ₛ α) (b : J →ₛ K →ₛ α) (c : K →ₛ L →ₛ α) :=
+  Σ j k => a(i,j)*b(j,k)*c(k,l)
+
+--@[inline] def ABC_memo' (a : I →ₛ J →ₛ α) (b : J →ₛ K →ₛ α) (c : K →ₛ L →ₛ α) :=
+--  Σ k => memo(Σ j=> a(i,j)*b(j,k) with SparseArray I (HashMap K α)) * c(k,l)
+
+@[inline] def ABC_memo (a : I →ₛ J →ₛ α) (b : J →ₛ K →ₛ α) (c : K →ₛ L →ₛ α) :=
+  let ijk := [(i,I),(j,J),(k,K)]
+  let m1 := ijk ⇑ a(i,j)
+  let m := m1.map fun row =>
+             memo(Σ j => row * b(j,k) with HashMap K α)
   let m  := m(i,k) * c(k,l)
   Σ k => m
 
