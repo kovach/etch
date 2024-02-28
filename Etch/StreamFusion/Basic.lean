@@ -116,6 +116,23 @@ instance : Scalar ℕ := ⟨⟩
 instance : Scalar Float := ⟨⟩
 instance : Scalar Bool := ⟨⟩
 
+/--
+Boxing values is a mechanism to keep a stream from being considered to be a stream during elaboration.
+-/
+structure Boxed (α : Type u) where
+  box ::
+  unbox : α
+
+notation "□←" => Boxed.box
+notation "←□" => Boxed.unbox
+
+instance : Scalar (Boxed α) := ⟨⟩
+instance [Zero α] : Zero (Boxed α) := ⟨□← 0⟩
+instance [One α] : One (Boxed α) := ⟨□← 1⟩
+instance [Add α] : Add (Boxed α) := ⟨fun a b => □← (←□ a + ←□ b)⟩
+instance [Sub α] : Sub (Boxed α) := ⟨fun a b => □← (←□ a - ←□ b)⟩
+instance [Mul α] : Mul (Boxed α) := ⟨fun a b => □← (←□ a * ←□ b)⟩
+
 namespace Etch.Verification
 
 def LabeledIndex (_n : Nat) (ι : Type) := ι
