@@ -12,7 +12,7 @@ instance [Label σ α β] : ExpressionTree.Label σ α β := ⟨Label.label σ�
 -- todo: decide on a nicer notation
 notation n:30 "~" i:30 => LabeledIndex n i
 
-variable (i : ℕ) (ι : Type)
+variable (i : LabelIdx) (ι : Type)
 @[inline] instance [LinearOrder ι] : LinearOrder (i~ι) := by change LinearOrder ι; exact inferInstance
 @[inline] instance [Inhabited ι] : Inhabited (i~ι) := by change Inhabited ι; exact inferInstance
 
@@ -25,7 +25,7 @@ instance [Label is α β] : Label (i::is) (ι → α) (i~ι → β) := ⟨(Label
 instance [Label is α β] : Label (i::is) (i'~ι →ₛ α) (i~ι →ₛ β) := ⟨map (Label.label is)⟩
 instance [Label is α β] : Label (i::is) (i'~ι → α) (i~ι → β) := ⟨(Label.label is ∘ .)⟩
 
-def idx (x : α) (shape : List ℕ) [Label shape α β] := Label.label shape x
+def idx (x : α) (shape : List LabelIdx) [Label shape α β] := Label.label shape x
 
 -- this doesn't seem ideal
 instance (I : Type) : MapIndex i α β (i~I →ₛ α) (i~I →ₛ β) where
@@ -34,10 +34,10 @@ instance (I : Type) : MapIndex i α β (i~I →ₛ α) (i~I →ₛ β) where
 instance (I J : Type) : MapAtIndex i I J (i~I →ₛ α) (i~J →ₛ! α) where
   map f s := s.imap' f
 
-instance (I J : Type) [NatLt j i] [MapAtIndex i a b a' b'] : MapAtIndex i a b (j~J →ₛ a') (j~J →ₛ b') where
+instance (I J : Type) [IdxLt j i] [MapAtIndex i a b a' b'] : MapAtIndex i a b (j~J →ₛ a') (j~J →ₛ b') where
   map f s := s.map (MapAtIndex.map i f)
 
-instance (J : Type) [NatLt j i] [MapIndex i a b a' b'] : MapIndex i a b (j~J →ₛ a') (j~J →ₛ b') where
+instance (J : Type) [IdxLt j i] [MapIndex i a b a' b'] : MapIndex i a b (j~J →ₛ a') (j~J →ₛ b') where
   map f s := s.map (MapIndex.map i f)
 
 notation f " $$[" i "] " t => MapIndex.map i f t -- todo :grimace:
@@ -49,7 +49,7 @@ instance [Scalar α] : Contract i (i~ι →ₛ α) (i~Unit →ₛ α) := ⟨fun 
 open SStream in
 instance : Contract i (i~ι →ₛ j~ι' →ₛ α) (i~Unit →ₛ j~ι' →ₛ! α) := ⟨map downgrade ∘ contract⟩
 instance : Contract i (i~ι →ₛ! α) (i~Unit →ₛ! α) := ⟨fun s => s.contract⟩
-instance [Contract j α β] [NatLt i j] : Contract j (i~ι →ₛ α) (i~ι →ₛ β) := ⟨map (Contract.contract j)⟩
+instance [Contract j α β] [IdxLt i j] : Contract j (i~ι →ₛ α) (i~ι →ₛ β) := ⟨map (Contract.contract j)⟩
 instance [Contract j α β] : Contract j (Unit →ₛ α) (Unit →ₛ β) := ⟨map (Contract.contract j)⟩
 
 /--
@@ -74,7 +74,7 @@ macro_rules
 
 open Lean Elab Term Meta in
 elab "select " idxs:term,* " => " e:term : term => do
-  let idxs ← withSynthesize <| idxs.getElems.mapM <| (elabTermEnsuringType · (Expr.const ``Nat []))
+  let idxs ← withSynthesize <| idxs.getElems.mapM <| (elabTermEnsuringType · (Expr.const ``LabelIdx []))
   let idxVals ← idxs.mapM (ExpressionTree.reduceIndexNat ·)
   let e ← withSynthesize (mayPostpone := true) <| elabTerm e none
   let (indices, _) ← ExpressionTree.extractTypeIndices (← inferType e)
@@ -88,14 +88,14 @@ elab "select " idxs:term,* " => " e:term : term => do
 section
 variable {α β : Type*}
 instance expBase                                                              : Expand [] α α                               := ⟨id⟩
-instance expScalar {ι : Type}   {i : ℕ} [Scalar α]  [Expand σ α β]            : Expand ((i,ι) :: σ) α           (i~ι → β)   := ⟨fun v _ => Expand.expand σ v⟩
-instance expLt     {ι : Type} {i j : ℕ} [NatLt i j] [Expand σ (j~ι' →ₛ α) β]  : Expand ((i,ι) :: σ) (j~ι' →ₛ α) (i~ι → β)   := ⟨fun v _ => Expand.expand σ v⟩
-instance expGt     {ι : Type} {i j : ℕ} [NatLt j i] [Expand ((i,ι) :: σ) α β] : Expand ((i,ι) :: σ) (j~ι' →ₛ α) (j~ι' →ₛ β) := ⟨fun v => map (Expand.expand ((i,ι)::σ)) v⟩
-instance expEq     {ι : Type}   {i : ℕ}             [Expand σ α β]            : Expand ((i,ι) :: σ) (i~ι  →ₛ α) (i~ι →ₛ β)  := ⟨fun v => map (Expand.expand σ) v⟩
+instance expScalar {ι : Type}   {i : LabelIdx} [Scalar α]  [Expand σ α β]            : Expand ((i,ι) :: σ) α           (i~ι → β)   := ⟨fun v _ => Expand.expand σ v⟩
+instance expLt     {ι : Type} {i j : LabelIdx} [IdxLt i j] [Expand σ (j~ι' →ₛ α) β]  : Expand ((i,ι) :: σ) (j~ι' →ₛ α) (i~ι → β)   := ⟨fun v _ => Expand.expand σ v⟩
+instance expGt     {ι : Type} {i j : LabelIdx} [IdxLt j i] [Expand ((i,ι) :: σ) α β] : Expand ((i,ι) :: σ) (j~ι' →ₛ α) (j~ι' →ₛ β) := ⟨fun v => map (Expand.expand ((i,ι)::σ)) v⟩
+instance expEq     {ι : Type}   {i : LabelIdx}             [Expand σ α β]            : Expand ((i,ι) :: σ) (i~ι  →ₛ α) (i~ι →ₛ β)  := ⟨fun v => map (Expand.expand σ) v⟩
 
-instance expLtFun  {ι : Type} {i j : ℕ} [NatLt i j] [Expand σ (j~ι' → α) β]   : Expand ((i,ι) :: σ) (j~ι' → α) (i~ι → β)    := ⟨fun v _ => Expand.expand σ v⟩
-instance expGtFun  {ι : Type} {i j : ℕ} [NatLt j i] [Expand ((i,ι) :: σ) α β] : Expand ((i,ι) :: σ) (j~ι' → α) (j~ι' → β)   := ⟨fun v => Expand.expand ((i,ι)::σ) ∘ v⟩
-instance expEqFun  {ι : Type}   {i : ℕ}             [Expand σ α β]            : Expand ((i,ι) :: σ) (i~ι  → α)  (i~ι → β)   := ⟨fun v => (Expand.expand σ) ∘ v⟩
+instance expLtFun  {ι : Type} {i j : LabelIdx} [IdxLt i j] [Expand σ (j~ι' → α) β]   : Expand ((i,ι) :: σ) (j~ι' → α) (i~ι → β)    := ⟨fun v _ => Expand.expand σ v⟩
+instance expGtFun  {ι : Type} {i j : LabelIdx} [IdxLt j i] [Expand ((i,ι) :: σ) α β] : Expand ((i,ι) :: σ) (j~ι' → α) (j~ι' → β)   := ⟨fun v => Expand.expand ((i,ι)::σ) ∘ v⟩
+instance expEqFun  {ι : Type}   {i : LabelIdx}             [Expand σ α β]            : Expand ((i,ι) :: σ) (i~ι  → α)  (i~ι → β)   := ⟨fun v => (Expand.expand σ) ∘ v⟩
 end
 
 -- Ignoring `base` for now. It should be used for a coercion.
@@ -154,8 +154,8 @@ instance [OfStream (ι →ₛ! α) β] : OfStream (i~ι →ₛ! α) β := ⟨fun
 -- instance (priority := low) : CoeTail β (i/I → β) := ⟨fun v _ => v⟩
 -- instance [CoeTail β β'] : CoeTail (i//I →ₛ β) (i//I →ₛ β') := ⟨map CoeTail.coe⟩
 -- instance [CoeTail β β'] : CoeTail (i//I → β) (i//I → β') := ⟨(CoeTail.coe ∘ ·)⟩
--- instance [NatLt j i] [CoeTail (i//I →ₛ β) β'] : CoeTail (i//I →ₛ β) (j//J → β') := ⟨fun v _ => CoeTail.coe v⟩
--- instance [NatLt j i] [CoeTail (i//I → β) β'] : CoeTail (i//I → β) (j//J → β') := ⟨fun v _ => CoeTail.coe v⟩
+-- instance [IdxLt j i] [CoeTail (i//I →ₛ β) β'] : CoeTail (i//I →ₛ β) (j//J → β') := ⟨fun v _ => CoeTail.coe v⟩
+-- instance [IdxLt j i] [CoeTail (i//I → β) β'] : CoeTail (i//I → β) (j//J → β') := ⟨fun v _ => CoeTail.coe v⟩
 
 
 
@@ -199,16 +199,16 @@ macro_rules | `(I($idx > $val)) => ``((gt $val)($idx))
 macro_rules | `(I($idx ≤ $val)) => ``((le $val)($idx))
 macro_rules | `(I($idx < $val)) => ``((lt $val)($idx))
 
-open Lean Elab PrettyPrinter Delaborator SubExpr in
-def delabLabeledIndexFor (i : Nat) (name : Name) : Delab := whenPPOption getPPNotation do
-  let e ← getExpr
-  guard <| e.getAppNumArgs = 2
-  guard <| (← Meta.whnf e.appFn!.appArg!).natLit? = i
-  let i ← withAppFn <| withAppArg do
-    withTheReader SubExpr (fun s => {s with expr := .const name []}) do
-      delab
-  let ty ← withAppArg <| delab
-  `($i~$ty)
+-- open Lean Elab PrettyPrinter Delaborator SubExpr in
+-- def delabLabeledIndexFor (i : Nat) (name : Name) : Delab := whenPPOption getPPNotation do
+--   let e ← getExpr
+--   guard <| e.getAppNumArgs = 2
+--   guard <| (← Meta.whnf e.appFn!.appArg!).natLit? = i
+--   let i ← withAppFn <| withAppArg do
+--     withTheReader SubExpr (fun s => {s with expr := .const name []}) do
+--       delab
+--   let ty ← withAppArg <| delab
+--   `($i~$ty)
 
 /--
 Defines a list of abbreviations for the given indices in order.
@@ -222,9 +222,9 @@ macro_rules
       let delabName := Lean.mkIdent <| idx.getId ++ `delab
       let delabApp := Lean.mkIdent <| `app ++ ``LabeledIndex
       let i := Lean.quote (i : Nat)
-      `(abbrev $name : Nat := $i
-        @[delab $delabApp]
-        def $delabName := delabLabeledIndexFor $i ``$name)
+      `(abbrev $name : LabelIdx := LabelIdx.nth $i
+        --@[delab $delabApp] def $delabName := delabLabeledIndexFor $i ``$name
+        )
     return Lean.mkNullNode cmds
 
 
@@ -242,7 +242,7 @@ macro_rules
         let idxName := Lean.mkIdent idx.getId
         let delabName := Lean.mkIdent <| idx.getId ++ `delab
         let i := Lean.quote (i : Nat)
-        `(abbrev $idx : Nat := $i
+        `(abbrev $idx : LabelIdx := LabelIdx.nth $i
           --@[delab $delabName] def $delabName := delabLabeledIndexFor $i ``$idxName
           abbrev $id := $ty)
       | _ => Macro.throwUnsupported

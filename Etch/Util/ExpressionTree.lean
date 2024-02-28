@@ -1,6 +1,7 @@
 import Lean
 import Std.Lean.Expr
 import Std.Data.Option.Basic
+import Etch.Util.Labels
 
 open Lean Elab Term Meta
 
@@ -14,13 +15,13 @@ but it has support for reasoning about indices and merging them.
 /--
 Labeling class for expression tree elaborator.
 -/
-class Label (σ : List ℕ) (α : Type _) (β : outParam <| Type _) where
+class Label (σ : List LabelIdx) (α : Type _) (β : outParam <| Type _) where
   label : α → β
 
-class TypeHasIndex (α : Type _) (i : outParam <| Nat) (I : outParam <| Type _) (β : outParam <| Type _)
+class TypeHasIndex (α : Type _) (i : outParam <| LabelIdx) (I : outParam <| Type _) (β : outParam <| Type _)
 
 -- `base` is the expected base type.
-class EnsureBroadcast (σ : List (ℕ × Type _)) (base : Type _) (α : Type _) (β : outParam <| Type _) where
+class EnsureBroadcast (σ : List (LabelIdx × Type _)) (base : Type _) (α : Type _) (β : outParam <| Type _) where
   broadcast : α → β
 
 def _root_.Lean.MVarId.safeAssign (m : MVarId) (v : Expr) : MetaM Unit := do
@@ -33,14 +34,15 @@ def _root_.Lean.MVarId.safeAssign (m : MVarId) (v : Expr) : MetaM Unit := do
   m.assign v
 
 structure IndexData where
-  iVal : Nat
+  iVal : LabelIdx
   i : Expr
   type : Expr
   deriving Inhabited
 
-def reduceIndexNat (i : Expr) : MetaM Nat := do
-  let some iVal := (← whnf i).natLit? | throwError "could not reduce i{indentD i}"
-  return iVal
+def reduceIndexNat (i : Expr) : MetaM LabelIdx := do
+  let e := Expr.app (.const ``LabelIdx.data []) i
+  let some iVal := (← whnf e).natLit? | throwError "could not reduce i{indentD i}"
+  return {data := iVal}
 
 /--
 Takes a type and uses a `TypeHasIndex` instance to extract `i`, `I`, and `β` in `i//I → β` or analogues.
@@ -101,12 +103,12 @@ partial def mergeTypeIndices (indices1 indices2 : List IndexData) (preferLeft :=
 
 def mkIndexDataList (indices : List IndexData) : TermElabM Expr := do
   let sort ← inferType indices.head!.type
-  let listTy ← mkAppM ``Prod #[.const ``Nat [], sort]
-  let list ← mkListLit listTy <| ← indices.mapM fun data => mkAppOptM ``Prod.mk #[Expr.const ``Nat [], sort, data.i, data.type]
+  let listTy ← mkAppM ``Prod #[.const ``LabelIdx [], sort]
+  let list ← mkListLit listTy <| ← indices.mapM fun data => mkAppOptM ``Prod.mk #[Expr.const ``LabelIdx [], sort, data.i, data.type]
   return list
 
 def mkIndexDataNatList (indices : List IndexData) : TermElabM Expr := do
-  let list ← mkListLit (.const ``Nat []) <| indices.map fun data => data.i
+  let list ← mkListLit (.const ``LabelIdx []) <| indices.map fun data => data.i
   return list
 
 def mkEnsureBroadcast (indices : List IndexData) (base? : Option Expr) (e : Expr) : TermElabM Expr := do
@@ -299,7 +301,7 @@ where
     return .unop ref f (← go arg)
 
   processUpdateIndex (ref : Syntax) (i ty f x : Syntax) := do
-    let ie ← withSynthesize <| elabTermEnsuringType i (Expr.const ``Nat [])
+    let ie ← withSynthesize <| elabTermEnsuringType i (Expr.const ``LabelIdx [])
     let iVal ← reduceIndexNat ie
     let tye ← elabType ty
     let fe ← elabTerm f none

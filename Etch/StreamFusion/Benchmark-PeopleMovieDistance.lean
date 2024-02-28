@@ -11,9 +11,9 @@ abbrev MID := ℕ -- Movie ID
 variable {I : Type}
 [LinearOrder I]
 
-abbrev pid : ℕ := 0
-abbrev mid : ℕ := 1
-abbrev i   : ℕ := 2
+abbrev pid : LabelIdx := LabelIdx.nth 0
+abbrev mid : LabelIdx := LabelIdx.nth 1
+abbrev i   : LabelIdx := LabelIdx.nth 2
 
 @[inline]
 def peopleMovieDistance

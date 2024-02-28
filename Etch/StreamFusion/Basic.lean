@@ -3,6 +3,7 @@ import Mathlib.Data.String.Basic
 import Init.Data.Array.Basic
 import Std.Data.RBMap
 import Std.Data.HashMap
+import Etch.Util.Labels
 
 open Std (RBMap RBSet HashMap)
 
@@ -135,22 +136,22 @@ instance [Mul α] : Mul (Boxed α) := ⟨fun a b => □← (←□ a * ←□ b)
 
 namespace Etch.Verification
 
-def LabeledIndex (_n : Nat) (ι : Type) := ι
-def LabeledIndex.mk (_n : Nat) (i : ι) : LabeledIndex n ι := i
+def LabeledIndex (_n : LabelIdx) (ι : Type) := ι
+def LabeledIndex.mk (_n : LabelIdx) (i : ι) : LabeledIndex n ι := i
 
-class Label (σ : List ℕ) (α : Type*) (β : outParam Type*) where
+class Label (σ : List LabelIdx) (α : Type*) (β : outParam Type*) where
   label : α → β
 
-class Contract (σ : ℕ) (α : Type*) (β : outParam Type*) where
+class Contract (σ : LabelIdx) (α : Type*) (β : outParam Type*) where
   contract : α → β
 
-class Expand (σ : List (ℕ × Type)) (α : Type*) (β : outParam Type*) where
+class Expand (σ : List (LabelIdx × Type)) (α : Type*) (β : outParam Type*) where
   expand : α → β
 
-class MapIndex (i : ℕ) (α β α' : Type*) (β' : outParam Type*) where
+class MapIndex (i : LabelIdx) (α β α' : Type*) (β' : outParam Type*) where
   map : (α → β) → α' → β'
 
-class MapAtIndex (i : ℕ) (α β α' : Type*) (β' : outParam Type*) where
+class MapAtIndex (i : LabelIdx) (α β α' : Type*) (β' : outParam Type*) where
   map : (α → β) → α' → β'
 
 instance : Zero Bool := ⟨false⟩
@@ -169,5 +170,6 @@ class When (p : Prop) [Decidable p] : Prop where
 instance : @When p (.isTrue h) := @When.mk p (.isTrue h) h
 
 abbrev NatLt (m n : ℕ) := When (m < n)
+abbrev IdxLt (m n : LabelIdx) := When (m < n)
 
 end Etch.Verification
