@@ -163,16 +163,16 @@ instance : Functor (ι →ₛ .) where
   seek  := fun q (i, r) => s.seek q (f.symm i, r)
 }
 
-variable [Inhabited ι]
-
 /- Converting data into a SStream -/
 @[inline]
-def zero : ι →ₛ α where
-  σ := Unit; q := (); valid _ := false; ready _ := false;
-  index _ := default; value := fun ⟨_, h⟩ => nomatch h;
+def zero : Stream ι α where
+  σ := Unit; valid _ := false; ready _ := false;
+  index := fun ⟨_, h⟩ => nomatch h; value := fun ⟨_, h⟩ => nomatch h;
   seek _ _ := ();
 
-instance : Zero (ι →ₛ α) := ⟨zero⟩
+instance : Zero (Stream ι α) := ⟨zero⟩
+
+instance : Zero (ι →ₛ α) := ⟨⟨zero, ()⟩⟩
 
 @[inline]
 def ofBoolArray (is : ArraySet ι) : ι →ₛ Bool where
