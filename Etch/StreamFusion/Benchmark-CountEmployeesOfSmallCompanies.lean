@@ -28,9 +28,8 @@ def employeesOfSmallCompanies
   -- convert `Bool` entries to 0/1
   let company := Bool.toNat $$[state] company
   -- count employees per company in CA
-  let counts := memo(
-    select cid => employee * I(state = "CA") * company with
-    HashMap Id ℕ)
+  let counts := memo HashMap Id ℕ from
+    select cid => employee * I(state = "CA") * company
   let counts := (fun id => singleton (counts id))(cid, companySize)
   --let counts := (counts.map singleton)(cid, companySize)
   let small := I(companySize ≤ 50)
