@@ -425,8 +425,6 @@ private def mkEraseUnits (indices : List IndexData) (f : Expr) (arg : Expr) : Te
     (← mkConstWithFreshMVarLevels ``Label.label)
     #[]
     #[.expr list, .expr val]
-  synthesizeSyntheticMVars
-  logInfo m!"got {← instantiateMVars e}"
   return e
 
 private def toExprCore (t : Tree) : TermElabM Expr := do
