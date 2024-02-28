@@ -44,7 +44,7 @@ noncomputable instance LawfulModifiable.instEvalToFinsupp [Zero α] [Zero β] [Z
     EvalToFinsupp m (ι →₀ β) where
   evalFinsupp := ZeroHom.comp (Finsupp.mapRange.zeroHom (α := ι) (evalFinsupp : ZeroHom α β)) (getAsFinsupp (ι := ι) (β := α) (m := m))
 
-class LawfulOfStream (α β γ : Type*) [Zero α] [Zero β] [AddZeroClass γ] [EvalToFinsupp α γ] [EvalToFinsupp β γ] extends OfStream α β where
+class LawfulOfStream (α β : Type*) (γ : outParam Type*) [Zero α] [Zero β] [AddZeroClass γ] [EvalToFinsupp α γ] [EvalToFinsupp β γ] extends OfStream α β where
   eval_of_stream : ∀ (s : α) (b : β), (evalFinsupp (eval s b) : γ) = evalFinsupp b + evalFinsupp s
 
 class LawfulToStream (α : Type*) (β γ : outParam Type*) [Zero α] [Zero β] [Zero γ] [EvalToFinsupp α γ] [EvalToFinsupp β γ] extends ToStream α β where
@@ -97,6 +97,7 @@ instance [Zero α] [Zero β] [Zero m] [AddCommMonoid γ]
     ext i
     exact LawfulOfStream.get_fold s q i b
 
+
 section lawful_mod
 open Std
 
@@ -112,6 +113,10 @@ instance [Zero β] : LawfulModifiable ι β (Std.RBMap ι β Ord.compare) where
   get_update_ne := sorry
   get_zero := sorry
   supp_finite := sorry
+
+
+#synth LawfulModifiable ℕ ℕ (RBMap ℕ ℕ Ord.compare)
+#synth LawfulOfStream (ℕ →ₛb ℕ) (RBMap ℕ ℕ Ord.compare) _
 
 
 end lawful_mod

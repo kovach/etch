@@ -181,7 +181,7 @@ section well_founded
 variable [Preorder ι]
 /-- The stream is bounded if there is a well-founded relation `≺` on states such that
     a) whenever we are asked to skip past an index `i` past the current index (i.e. `i ≥ s.to_order q`),
-        we strictly make progress (`s.skip q hq i ≺ q`)
+        we strictly make progress (`s.seek q hq i ≺ q`)
     b) We always either make progress or remain at the same state
   These properties ensure that evaluation terminates. -/
 @[mk_iff]
@@ -348,12 +348,12 @@ open Streams
 
 variable [LinearOrder ι]
 
-/-- A stream is monotonic if the index does not decrease after `skip` is called. -/
+/-- A stream is monotonic if the index does not decrease after `seek` is called. -/
 def Stream.IsMonotonic (s : Stream ι α) : Prop :=
   ∀ (q : {q // s.valid q}) i, s.index' q ≤ s.index' (s.seek q i)
 
 /-- A stream is strictly monotonic if it is monotonic and strictly advances its
-  index when (non-trivially) skipped from a ready state. -/
+  index when (non-trivially) seeked from a ready state. -/
 def Stream.IsStrictMono (s : Stream ι α) : Prop :=
   s.IsMonotonic ∧ ∀ q i, s.toOrder q ≤ i → s.ready q → s.index' q ≠ s.index' (s.seek q i)
 
@@ -436,7 +436,7 @@ theorem fst_lt_of_lt_of_lt {α : Type _} [Preorder α] :
     lt_of_lt_of_le (show x.1 < y from Prod.Lex.fst_lt_of_lt_of_le h₁ (by simp))
       (Prod.Lex.fst_le_of_le h₂.le)
 
-theorem Stream.IsStrictMono.eval_skip_eq_zero [AddZeroClass α] {s : Stream ι α} [IsBounded s]
+theorem Stream.IsStrictMono.eval_seek_eq_zero [AddZeroClass α] {s : Stream ι α} [IsBounded s]
     (hs : s.IsStrictMono) (q : {q // s.valid q}) {i : StreamOrder ι} {j : ι}
     (h₁ : (j, false) <ₗ i) (h₂ : i ≤ₗ s.toOrder q) : s.eval (s.seek q i) j = 0 := by
   rcases eq_or_lt_of_le h₂ with h₂ | h₂
@@ -462,12 +462,12 @@ theorem Stream.IsStrictMono.eval₀_eq_eval_filter [AddCommMonoid α] {s : Strea
 
 section Lawful
 
-/-- A stream is lawful if it is monotonic and satisfies the following property about `skip`:
-    Whenever we ask the stream to skip past `i : stream_order ι`, we do not affect the evaluation
+/-- A stream is lawful if it is monotonic and satisfies the following property about `seek`:
+    Whenever we ask the stream to seek past `i : stream_order ι`, we do not affect the evaluation
     of the stream at any `j ≥ i`, where `j : ι` is interpreted in `stream_order ι` as `(j, ff)`.
     In other words, when we ask to skip past `i`, we do not skip past any `j ≥ i`.
 
-    This also demonstrates the interpretation of the strictness indicator: when `i = (i, ff)`, `skip q _ i` means
+    This also demonstrates the interpretation of the strictness indicator: when `i = (i, ff)`, `seek q _ i` means
     "skip up to (but not past) any ready states with index `i`" (since `(j, ff) ≥ (i, ff) ↔ j ≥ i`). On the other hand, when `i = (i, tt)`,
     this means "skip up to and including states with index `i`, but not anything strictly past `i`".
  -/
@@ -475,7 +475,7 @@ section Lawful
 class IsLawful {ι : Type} {α : Type _} [LinearOrder ι] [AddZeroClass α] (s : Stream ι α) extends
   IsBounded s where
   mono : s.IsMonotonic
-  skip_spec : ∀ q i j, (i ≤ₗ (j, false)) → s.eval (s.seek q i) j = s.eval q j
+  seek_spec : ∀ q i j, (i ≤ₗ (j, false)) → s.eval (s.seek q i) j = s.eval q j
 
 
 /-- A stream is strictly lawful if in addition to being lawful, it is strictly monotonic -/
@@ -493,28 +493,28 @@ theorem Stream.mono (s : Stream ι α) [IsLawful s] : s.IsMonotonic :=
 theorem Stream.strictMono (s : Stream ι α) [IsStrictLawful s] : s.IsStrictMono :=
   ‹IsStrictLawful s›.strictMono
 
-theorem Stream.skip_spec (s : Stream ι α) [IsLawful s] (q : {q // s.valid q})
+theorem Stream.seek_spec (s : Stream ι α) [IsLawful s] (q : {q // s.valid q})
     (i : StreamOrder ι) :
     ((s.eval (s.seek q i)).filter fun j => i ≤ₗ (j, false)) =
       (s.eval q).filter fun j => i ≤ₗ (j, false) := by
   rw [Finsupp.filter_ext_iff]
-  exact IsLawful.skip_spec q i
+  exact IsLawful.seek_spec q i
 
-theorem Stream.skip_lt_toOrder {s : Stream ι α} [IsLawful s] {q : {q // s.valid q}}
+theorem Stream.seek_lt_toOrder {s : Stream ι α} [IsLawful s] {q : {q // s.valid q}}
     {i : StreamOrder ι} (hi : i < s.toOrder q) : s.eval (s.seek q i) = s.eval q := by
   ext j
   by_cases H : s.toOrder q ≤ (j, true)
-  · rw [IsLawful.skip_spec q]
+  · rw [IsLawful.seek_spec q]
     simpa [Prod.Lex.lt_iff'', Prod.Lex.le_iff''] using lt_of_lt_of_le hi H
   have : ↑j < s.index' q := by
     simpa using fst_lt_of_lt_of_lt (show (j, false) <ₗ (j, true) by simp) (not_le.mp H)
   rw [s.mono.eq_zero_of_lt_index j this,
     s.mono.eq_zero_of_lt_index _ (this.trans_le (s.mono q i))]
 
-theorem Stream.eval_skip_eq_of_false (s : Stream ι α) [IsLawful s] (q : {q // s.valid q}) :
+theorem Stream.eval_seek_eq_of_false (s : Stream ι α) [IsLawful s] (q : {q // s.valid q}) :
     s.eval (s.seek q (s.index q, false)) = s.eval q := by
   by_cases hr : s.ready q
-  · apply Stream.skip_lt_toOrder
+  · apply Stream.seek_lt_toOrder
     simp [Stream.toOrder, hr]
   . simp [s.eval_valid, Stream.eval₀, hr, Stream.advance_val, Stream.toOrder]
 
