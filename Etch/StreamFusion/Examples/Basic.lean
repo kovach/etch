@@ -13,12 +13,9 @@ namespace Etch.Verification
 open Std (RBMap RBSet HashMap)
 open Lean (HashSet)
 open Etch.Verification RB
-open SStream OfStream ToStream
+open SStream ToStream
 
 def_index_enum_group i,j,k,l
-
---@[inline] def keys [Ord α] (t : TreeMap α β) : RBMap.Keys α β Ord.compare := t
-
 
 section Eg1
 def filter [Ord ι] (p : ι → Bool) (t : TreeSet ι) := t.filter (fun k _ => p k)
@@ -78,13 +75,12 @@ def t3 := genCase' "test d3"
 
 end testEg1
 
-/- Triangle iterator `locationOf(i,j) * contains(j,k) * canUse(i,k)` -/
+/- Game-flavored triangle query `locationOf(i,j) * contains(j,k) * canUse(i,k)` -/
 section Eg2
 
 def_index_enum_group entity, location, item
 
 variable
-  (Entity Location Item : Type)
   [LinearOrder Entity]
   [LinearOrder Location]
   [LinearOrder Item]
@@ -98,8 +94,37 @@ def tr3 : SparseArray Entity (SparseArray Location (ArraySet Item)) := eval $
 
 end Eg2
 
+-- matrix slices: lower triangle * upper
 section Eg3
 
+@[inline] def matMul {α J} [LinearOrder J] [Mul α] [Scalar α] (a : I →ₛ J →ₛ α) (b : J →ₛ K →ₛ α) :=
+  Σ j => a(i,j) * b(j,k)
+
+infixl:35 " @. " => matMul
+
+variable
+  [Semiring α]
+  [Scalar α]
+  (dim : ℕ)
+  (mat : ℕ → ℕ → α)
+
+def upper := (range 0 dim).mapWithIndex (fun row _ => range 0 (dim - row))
+def lower := (range 0 dim).mapWithIndex (fun row _ => range 0 (row+1))
+
+#eval ((eval $ SStream.range 0 10) : ArraySet Nat)
+#eval ((eval $ upper 3) : SparseArray Nat (ArraySet Nat))
+#eval ((eval $ lower 3) : SparseArray Nat (ArraySet Nat))
+
+def mul3 : DenseArray dim (HashMap Nat α) := eval $
+  -- lower triangle of 1's
+  let lowerMask := (range 0 dim).mapWithIndex (fun row _ => range 0 (row + 1))
+  -- upper triangle of 1's
+  let upperMask := (range 0 dim).mapWithIndex (fun row _ => range 0 (dim - row))
+  let m1 := upperMask(i,j) * mat(i,j)
+  let m2 := lowerMask(j,k) * mat(j,k)
+  m1 @. m2
+
+end Eg3
 
 def randStrings (num : Nat) : IO (Array String) := do
   let mut result := #[]

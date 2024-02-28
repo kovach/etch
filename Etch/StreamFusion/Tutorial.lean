@@ -9,7 +9,7 @@ import Std.Data.HashMap
 
 open Std (RBMap RBSet HashMap)
 
-namespace Etch.Verification.SStream
+namespace Etch.Verification
 
 open ToStream
 
@@ -62,8 +62,11 @@ Contract.contract j
 @[inline] def matSum (m : I →ₛ J →ₛ α) (v : J →ₛ α) := Σ i j => m(i, j) * v(j)
 
 
-@[inline] def matMul_ijjk (a : I →ₛ J →ₛ α) (b : J →ₛ K →ₛ α) :=
+@[inline] def matMul_ijjk {α J} [LinearOrder J] [Mul α] [Scalar α] (a : I →ₛ J →ₛ α) (b : J →ₛ K →ₛ α) :=
   Σ j => a(i,j) * b(j,k)
+
+open ToStream
+open OfStream
 
 variable [Hashable K]
 -- todo: investigate these definitions and other approaches
