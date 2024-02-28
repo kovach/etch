@@ -176,7 +176,11 @@ def zero : Stream ι α where
   seek _ _ := ();
 
 instance : Zero (Stream ι α) := ⟨zero⟩
+@[simp] lemma zero_σ : (0 : Stream ι α).σ = Unit := rfl
+@[simp] lemma zero_valid (q) : (0 : Stream ι α).valid q = false := rfl
+@[simp] lemma zero_ready (q) : (0 : Stream ι α).ready q = false := rfl
 
+@[simps!]
 instance : Zero (ι →ₛ α) := ⟨⟨zero, ()⟩⟩
 
 

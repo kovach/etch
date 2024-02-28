@@ -38,6 +38,12 @@ def Stream.toOrder (q : {q // s.valid q}) : StreamOrder ι :=
 @[simp] lemma map_toOrder (f : α → β) (s : Stream ι α) (q) :
   (s.map f).toOrder q = s.toOrder q := rfl
 
+@[simp] lemma Stream.map_zero (f : α → β) : Stream.map f (SStream.zero : Stream ι α) = SStream.zero := by
+  ext <;> try rfl
+  rw [heq_iff_eq]
+  funext ⟨q, h⟩
+  cases h
+
 /-- The index with a default value of `⊤` if the state `x` is not valid -/
 def Stream.index' (x : s.σ) : WithTop ι :=
   if h : s.valid x then s.index ⟨x, h⟩ else ⊤
@@ -246,6 +252,8 @@ theorem Stream.no_backward [IsBounded s] (q i) :
     (s.seek q i ≺ q) ∨ s.seek q i = q :=
   (s.wf_valid q i).imp_right And.right
 
+instance : IsBounded (0 : Stream ι α) := ⟨emptyWf, fun q => Bool.noConfusion q.prop⟩
+
 /-- Evaluates `∑_{q →* r} eval₀ r`, which is well-defined for bounded streams. -/
 noncomputable def Stream.eval [AddZeroClass α] (s : Stream ι α) [IsBounded s] : s.σ → ι →₀ α
 | q =>
@@ -254,6 +262,10 @@ noncomputable def Stream.eval [AddZeroClass α] (s : Stream ι α) [IsBounded s]
       s.eval₀ ⟨q, h⟩ + s.eval (s.advance q)
     else 0
 termination_by _ x => s.wf.wrap x
+
+@[simp] lemma Stream.eval_zero [AddZeroClass α] : (0 : Stream ι α).eval = 0 := by
+  ext; rw [Stream.eval]; simp
+
 end well_founded
 
 @[inline] def Stream.fold_wf [Preorder ι] (f : β → ι → α → β) (s : Stream ι α) [IsBounded s]
