@@ -145,12 +145,12 @@ theorem next_eval_mul_eq (a b : Stream ι α) [IsStrictLawful a] [IsStrictLawful
   simp only [Finsupp.mul_apply, Finsupp.filter_apply, Stream.advance_val]
   split_ifs with hj
   · simp only [Stream.toOrder, Stream.index'_val, Stream.mul_seek] at hj ⊢
-    rw [IsLawful.skip_spec (mul.valid.fst q) _ _ hj, IsLawful.skip_spec (mul.valid.snd q) _ _ hj]
+    rw [IsLawful.seek_spec (mul.valid.fst q) _ _ hj, IsLawful.seek_spec (mul.valid.snd q) _ _ hj]
   · dsimp only [mul_seek]
     rw [not_le] at hj
     rcases le_max_iff.mp <| toOrder_le_max a b q with hj' | hj'
-    · rw [a.strictMono.eval_skip_eq_zero, MulZeroClass.zero_mul] <;> assumption
-    · rw [b.strictMono.eval_skip_eq_zero, MulZeroClass.mul_zero] <;> assumption
+    · rw [a.strictMono.eval_seek_eq_zero, MulZeroClass.zero_mul] <;> assumption
+    · rw [b.strictMono.eval_seek_eq_zero, MulZeroClass.mul_zero] <;> assumption
 
 
 theorem mul_spec (a b : Stream ι α) [IsStrictLawful a] [IsStrictLawful b] (q : (a.mul b).σ) :
@@ -166,15 +166,15 @@ theorem mul_spec (a b : Stream ι α) [IsStrictLawful a] [IsStrictLawful b] (q :
     convert Finsupp.filter_pos_add_filter_neg (α := ι) (M := α) ..
     simp
 
-theorem mul_skip_spec (a b : Stream ι α) [IsStrictLawful a] [IsStrictLawful b] (q : {q // (a.mul b).valid q})
+theorem mul_seek_spec (a b : Stream ι α) [IsStrictLawful a] [IsStrictLawful b] (q : {q // (a.mul b).valid q})
     (i : ι ×ₗ Bool) (j : ι) (h : i ≤ₗ (j, false)) :
     (a.mul b).eval ((a.mul b).seek q i) j = (a.mul b).eval q j := by
   simp only [Finsupp.mul_apply, mul_spec]
-  congr 1 <;> dsimp <;> rw [IsLawful.skip_spec] <;> aesop
+  congr 1 <;> dsimp <;> rw [IsLawful.seek_spec] <;> aesop
 
 instance (a b : Stream ι α) [IsStrictLawful a] [IsStrictLawful b] :
     IsStrictLawful (a.mul b) where
-  skip_spec := mul_skip_spec a b
+  seek_spec := mul_seek_spec a b
   strictMono := mul_strict_mono a.strictMono b.strictMono
 
 
