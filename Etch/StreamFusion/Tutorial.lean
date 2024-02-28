@@ -47,7 +47,7 @@ Contract.contract j
       [(i, Unit), (j, J), (k, K)] ⇑ Label.label [j, k] B)
 -/
 
-@[inline] def testSelect (m : I →ₛ J →ₛ α) (v : J →ₛ α) := memo(select i => m(i, j) * v(j) with SparseArray I α)
+@[inline] def testSelect (m : I →ₛ J →ₛ α) (v : J →ₛ α) := memo SparseArray I α from select i => m(i, j) * v(j)
 -- I →ₛ α
 
 /- Some examples of notation
@@ -84,8 +84,7 @@ variable [Hashable K]
 @[inline] def ABC' (a : I →ₛ J →ₛ α) (b : J →ₛ K →ₛ α) (c : K →ₛ L →ₛ α) :=
   let ijk := [(i,I),(j,J),(k,K)]
   let m1 := ijk ⇑ a(i,j)
-  let m := m1.map fun row =>
-             memo(Σ j => row * b(j,k) with HashMap K α)
+  let m := m1.map fun row => memo HashMap K α from Σ j => row * b(j,k)
   let m  := m(i,k) * c(k,l)
   Σ k => m
 

@@ -62,11 +62,13 @@ macro_rules
 
 /--
 Memoize the expression.
-`memo(e with ty)`
+`memo ty from e`
+
+Meant to be reminiscent of `show ... from ...`
 -/
-syntax "memo(" term " with " term ")" : term
+syntax "memo " term " from " term : term
 macro_rules
-  | `(memo($e with $ty)) => `(eraseUnits%(Etch.Verification.SStream.memo $ty) $e)
+  | `(memo $ty from $e) => `(eraseUnits%(Etch.Verification.SStream.memo $ty) $e)
 
 open Lean Elab Term Meta in
 elab "select " idxs:term,* " => " e:term : term => do
