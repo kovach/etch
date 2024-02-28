@@ -46,6 +46,9 @@ structure Data (α : Type*) (d : Type) where
   label : d
 deriving Repr
 
+instance [Zero α] : Zero (Data α From) where
+  zero := ⟨0, .no⟩
+
 --abbrev DirectedTree ι [Ord ι] (d : Type) (α : Type u) := RBMap ι (Data α d) Ord.compare
 abbrev TreeMap     ι [Ord ι] (α : Type*) := RBMap ι (Data α From) Ord.compare
 abbrev TreeMap'    ι [Ord ι] (α : Type*) := RBNode (ι × Data α From)

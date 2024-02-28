@@ -32,12 +32,19 @@ def HashMap.modifyD' [BEq α] [Hashable α] [Zero β] (self : HashMap α β) (a 
 def RBMap.modifyD [Zero β] (self : RBMap α β h) (a : α) (f : β → β) : RBMap α β h :=
   self.insert a (f $ self.findD a 0)
   --self.alter a (fun | none => some 0 | some a => some (f a))
+
+instance [Repr a] [Repr b] [Hashable a] [BEq a] : Repr (HashMap a b) where
+  reprPrec x n := "h#" ++ reprPrec (x.toList) n
+
 end Std
 
 -- Canonical data structure names
 --abbrev Map a [Ord a] b := RBMap a b Ord.compare
 --abbrev HMap a [BEq a] [Hashable a] b := HashMap a b
 abbrev ArraySet ι := Array ι
+abbrev DenseArray (_n : Nat) α := Array α
+
+instance [Zero α] : Zero (DenseArray n α) := ⟨(Array.range n).map fun _ => 0⟩
 
 instance [EmptyCollection α] : Zero α := ⟨{}⟩
 
@@ -78,6 +85,7 @@ structure SparseArray (ι : Type) (α : Type*) where
     n : Nat
     is : Vec ι n
     vs : Vec α n
+deriving Repr
 
 abbrev SparseArrayMat a b c := SparseArray a (SparseArray b c)
 

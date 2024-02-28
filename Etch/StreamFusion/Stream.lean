@@ -147,6 +147,11 @@ def map (f : α → β) (s : ι →ₛ α) : ι →ₛ β := {
   s with value := f ∘ s.value
 }
 
+@[macro_inline]
+def mapWithIndex (f : ι → α → β) (s : ι →ₛ α) : ι →ₛ β := {
+  s with value := fun q => f (s.index q.1) (s.value q)
+}
+
 @[simp] lemma map_eq_map (f : α → β) (s : ι →ₛ α) :
   (map f s).toStream = s.toStream.map f := rfl
 
@@ -173,6 +178,19 @@ def zero : Stream ι α where
 instance : Zero (Stream ι α) := ⟨zero⟩
 
 instance : Zero (ι →ₛ α) := ⟨⟨zero, ()⟩⟩
+
+
+@[inline]
+def range (lo hi : ℕ) : ℕ →ₛ Bool where
+  σ := ℕ
+  q := lo
+  valid q := q < hi
+  ready _ := true
+  index q := q
+  value _ := true
+  seek q := fun ⟨j, r⟩ =>
+    if r then if q ≤ j then q+1 else q
+         else if q < j then q+1 else q
 
 @[inline]
 def ofBoolArray (is : ArraySet ι) : ι →ₛ Bool where
@@ -254,6 +272,9 @@ instance {α β ι} [Hashable ι] [BEq ι] [Zero α] [ToStream α β] : ToStream
 
 @[inline] def toArraySet (s : ι →ₛ Bool) : ArraySet ι → ArraySet ι :=
   s.fold (fun s i v => if v then s.push i else s)
+
+instance : Modifiable Nat α (DenseArray n α) where
+  update arr i v := arr.modify i v
 
 section eval
 open OfStream
@@ -378,16 +399,6 @@ instance instContract [OfStream α β] : OfStream (Unit →ₛ! α) β where
 instance instStep [OfStream α β] [Modifiable ι β m] : OfStream (ι →ₛ! α) m where
   eval := fold Modifiable.update ∘ map eval
   -- bad: fold fun m k => Modifiable.update m k ∘ eval
-
--- no instance for SparseArray or F!
---@[inline] def toSparseArray (s : ι →ₛ! α) : SparseArray ι α → SparseArray ι α :=
---  s.fold (fun ⟨_, a, b⟩ i v => ⟨_, a.push i, b.push v⟩)
---instance [OfStream α β] [Zero β]: OfStream (ι →ₛ! α) (SparseArray ι β) where
---  eval := toSparseArray ∘ map (eval . 0)
---@[inline] def toArrayPair (s : ι →ₛ! α) : F ι α → F ι α :=
---  s.fold (fun ⟨a, b⟩ i v => ⟨a.push i, b.push v⟩)
---instance [OfStream α β] [Zero β]: OfStream (ι →ₛ! α) (F ι β) where
---  eval := toArrayPair ∘ map (eval . 0)
 
 end SequentialStream
 
