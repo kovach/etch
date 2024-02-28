@@ -63,9 +63,9 @@ namespace Eg1
 
 variable
   (locations : TreeSet String)
-     (counts : HashMap String Nat)
+  (counts    : HashMap String Nat)
   (predicate : String → Bool)
-          (f : String → String)
+  (f         : String → String)
 
 -- Manually fused
 def d1 : ℕ := Id.run $ do
