@@ -1,12 +1,22 @@
 import Etch.StreamFusion.Stream
 import Etch.StreamFusion.Traversals
 
+def csvHeader := "time,test\n"
+
+def resetFile (f : String) := IO.FS.writeFile f csvHeader
+
 def time (s : String) (m : Unit → IO α) : IO α := do
   let t0 ← IO.monoMsNow
   let v ← m ()
   let t1 ← IO.monoMsNow
   IO.println s!"[{s}] time: {t1-t0}"
   pure v
+
+def time' (s : String) (m : Unit → IO α) : IO (α × ℕ) := do
+  let t0 ← IO.monoMsNow
+  let v ← m ()
+  let t1 ← IO.monoMsNow
+  pure (v, t1-t0)
 
 open Etch.Verification
 open SStream
@@ -50,7 +60,7 @@ def genCase [OfStream α β] [Zero β] (label : String) (setup : init → α) [T
         IO.println s!"{print x}"
 
 @[specialize]
-def genCase' (label : String) (setup : init → α) (op : α → β) [ToString β'] (print : β → β') (num : init) (reps := 10) : IO Unit := do
+def genCase'' (label : String) (setup : init → α) (op : α → β) [ToString β'] (print : β → β') (num : init) (reps := 10) : IO Unit := do
   IO.println s!"reps: {reps}-----"
   let s := setup num
   time label fun _ => do
@@ -58,3 +68,23 @@ def genCase' (label : String) (setup : init → α) (op : α → β) [ToString �
       let x := op s
       if i % 1000000 = 0 then
         IO.println s!"{print x}"
+
+
+def appendFile (fname : System.FilePath) (content : String) : IO Unit := do
+  let h ← IO.FS.Handle.mk fname IO.FS.Mode.append
+  h.putStr content
+
+@[specialize]
+def genCase' (file : System.FilePath) (label : String) (setup : init → α) (op : α → β) [ToString β'] (print : β → β') (num : init) (reps := 10) : IO Unit := do
+  IO.println s!"reps: {reps}-----"
+  let s := setup num
+  let mut result := ""
+  for i in [0:reps] do
+    let (x, t) ← time' label fun _ => do
+      let x := op s
+      if i % 1000000 = 0 then
+        IO.println s!"{print x}"
+      pure x
+    result := result ++ s!"{t},{label}\n"
+    IO.println s!"{print x}"
+  appendFile file result

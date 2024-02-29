@@ -70,7 +70,9 @@ instance [Zero β] : Readable α β (RBMap α β h) where
 def Vec α n := { x : Array α // x.size = n }
 instance [Repr α] : Repr (Vec α n) := ⟨fun x n => Repr.reprPrec x.val n⟩
 
+@[inline]
 def Vec.range (num : ℕ) : Vec ℕ num:= ⟨Array.range num, Array.size_range⟩
+@[inline]
 def Vec.mkEmpty {a} (num : ℕ) : Vec a 0 := ⟨Array.mkEmpty num, by simp⟩
 
 @[inline] def Vec.map (v : Vec α n) (f : α → β) : Vec β n := ⟨v.1.map f, by have := Array.size_map f v.1; simp [*, v.2]⟩
@@ -79,6 +81,10 @@ def Vec.mkEmpty {a} (num : ℕ) : Vec a 0 := ⟨Array.mkEmpty num, by simp⟩
 
 @[inline] def Vec.get (v : Vec α n) (i : ℕ) (h : i < n) : α :=
   v.val[i]'(by simpa [v.prop])
+
+@[inline] def Vec.get' (v : Vec α n) (i : {i // (decide $ i < n) = true}) : α :=
+  have ⟨i, p⟩ := i
+  v.val[i]'(by simpa [*, v.prop] using p; )
 
 @[reducible]
 structure SparseArray (ι : Type) (α : Type*) where

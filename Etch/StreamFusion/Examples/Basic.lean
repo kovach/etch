@@ -99,19 +99,20 @@ section testEg1
 def p1 : String → Bool := fun str : String => str.length > 3
 def f1 := String.toUpper
 
+def filterFile := "plot1.csv"
 open Eg1'
 
-def t1 := genCase' "test d1"
+def t1 := genCase' filterFile "loop"
     (fun (l,c) => (l,c,p1,f1))
     (op := fun (l,c,p1,f1) => d1 l c p1 f1)
     (fun x : ℕ => x)
 
-def t2 := genCase' "test d2"
+def t2 := genCase' filterFile "fold"
     (fun (l,c) => (l,c,p1,f1))
     (op := fun (l,c,p1,f1) => d2 l c p1 f1)
     (fun x : ℕ => x)
 
-def t3 := genCase' "test d3"
+def t3 := genCase' filterFile "us"
     (fun (l,c) => (l,c,p1,f1))
     (op := fun (l,c,p1,f1) => d3 l c p1 f1)
     (fun x : ℕ => x)
@@ -180,6 +181,10 @@ def tr2
     := eval $
   locatedAt(entity, location) * contains(location, item) * canUse(entity, item)
 
+def tr3' : F Entity (F Location (ArraySet Item)) := eval $
+  (memo SparseArray Entity (SparseArray Location (ArraySet Item)) from
+   locatedAt(entity, location) * contains(location, item)) * canUse(entity, item)
+
 def tr3 : F Entity (F Location (ArraySet Item)) := eval $
   locatedAt(entity, location) * contains(location, item) * canUse(entity, item)
 
@@ -239,25 +244,31 @@ structure foo' where
   b : HashMap String (ArraySet String)
   c : HashMap String (ArraySet String)
 
-def eg2.t1 := genCase' "test eg2.t1"
-    (fun s : foo => s)
-    (op := fun ⟨a,b,c⟩ => tr1 a b c)
-    (fun x :  F String (F String (ArraySet String))=> (x.1.size))
+--def eg2.t1 := genCase' "test eg2.t1"
+--    (fun s : foo => s)
+--    (op := fun ⟨a,b,c⟩ => tr1 a b c)
+--    (fun x :  F String (F String (ArraySet String))=> (x.1.size))
 
-def eg2.t2 := genCase' "test eg2.t2"
+def triFile := "plot2.csv"
+def eg2.t2 := genCase' triFile "tri.hash"
     (fun s : foo' => s)
     (op := fun ⟨a,b,c⟩ => tr2 a b c)
     (fun x :  F String (F String (ArraySet String))=> (x.1.size))
 
-def eg2.t3 := genCase' "test eg2.t3"
+def eg2.t3' := genCase' triFile "tri.unfused"
+    (fun s : foo => s)
+    (op := fun ⟨a,b,c⟩ => tr3' a b c)
+    (fun x :  F String (F String (ArraySet String))=> (x.1.size))
+
+def eg2.t3 := genCase' triFile "tri.fused"
     (fun s : foo => s)
     (op := fun ⟨a,b,c⟩ => tr3 a b c)
     (fun x :  F String (F String (ArraySet String))=> (x.1.size))
 
-def t4 := genCase' "test t4: mat mul"
-    (fun num => num)
-    (op := fun num => ⟨num, mul3 num mat1⟩)
-    (fun x : (dim : Nat) × DenseMat dim dim Nat => (x.2.size))
+--def t4 := genCase' "test t4: mat mul"
+--    (fun num => num)
+--    (op := fun num => ⟨num, mul3 num mat1⟩)
+--    (fun x : (dim : Nat) × DenseMat dim dim Nat => (x.2.size))
 
 end Eg3
 

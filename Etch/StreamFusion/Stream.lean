@@ -193,8 +193,7 @@ instance : Zero (Stream ι α) := ⟨zero⟩
 instance : Zero (ι →ₛ α) := ⟨⟨zero, ()⟩⟩
 
 
-@[inline]
-def range (lo hi : ℕ) : ℕ →ₛ Bool where
+@[inline] def range (lo hi : ℕ) : ℕ →ₛ Bool where
   σ := ℕ
   q := lo
   valid q := q < hi
@@ -222,17 +221,18 @@ def range (lo hi : ℕ) : ℕ →ₛ Bool where
 
 -- benefits from macro_inline (matrix sum)
 @[macro_inline]
-def SparseArray.toStream.linear (arr : SparseArray ι α) : ι →ₛ α where
+def SparseArray.toStream.linear.aux (n : Nat) (is : Vec ι n) (vs : Vec α n) : ι →ₛ α where
   σ := ℕ
   q := 0
-  valid q := q < arr.n
+  valid q := q < n
   ready _ := true
-  index q := arr.getI q
-  value   := fun ⟨q, _⟩ => arr.getV q
+  index q := is.get q.1 (by simpa using q.2)
+  value   := fun ⟨q, _⟩ => vs.get q.1 (by simpa using q.2)
   seek q  := fun (j, r) =>
-    let i := arr.getI q
+    let i := is.get q.1 (by simpa using q.2)
     if r then if i ≤ j then q+1 else q
          else if i < j then q+1 else q
+@[macro_inline] def SparseArray.toStream.linear (arr : SparseArray ι α) : ι →ₛ α := SparseArray.toStream.linear.aux arr.n arr.is arr.vs
 
 -- todo test
 @[inline]
@@ -427,7 +427,38 @@ def singleton (t : ι) : ι →ₛ Bool where
 
 end SStream
 
+-- todo: Stream extend SequentialStream, default `next`
 namespace SequentialStream
+
+@[inline] def range (lo hi : ℕ) : ℕ →ₛ! Bool where
+  σ := ℕ
+  q := lo
+  valid q := q < hi
+  ready _ := true
+  index q := q
+  value _ := true
+  next q := q+1
+
+-- not working
+@[inline] def range' (lo hi : USize) : USize →ₛ! Bool where
+  σ := USize
+  q := lo
+  valid q := q < hi
+  ready _ := true
+  index q := q
+  value _ := true
+  next q := q+1
+
+@[macro_inline]
+def mapWithIndex (f : ι → α → β) (s : ι →ₛ! α) : ι →ₛ! β := {
+  s with value := fun q => f (s.index q.1) (s.value q)
+}
+
+@[inline] def DenseArray.toSeqStream {n : ℕ} (arr : DenseArray n α) : Nat →ₛ! α :=
+  (range 0 n).mapWithIndex fun q _ => arr[q]'sorry
+
+@[inline] def DenseArray.toSeqStream' {n : ℕ} (arr : DenseArray n α) : USize →ₛ! α :=
+  (range' 0 (USize.ofNat n)).mapWithIndex fun q _ => arr.uget q sorry -- arr[q]'sorry
 
 @[inline] def imap' (f : ι → ι') (s : ι →ₛ! α) : ι' →ₛ! α := {
   s with
