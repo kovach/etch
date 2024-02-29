@@ -35,9 +35,6 @@ section
 #synth ExpressionTree.EnsureBroadcast [(0, I), (1, J), (2, K)] α (j~J → k~K →ₛ α) _
 end
 
-@[inline] def ABC_memo (a : I →ₛ J →ₛ α) (b : J →ₛ K →ₛ α) (c : K →ₛ L →ₛ α) :=
-  Σ k => (memo SparseArray I (SparseArray K α) from Σ j=> a(i,j)*b(j,k)) * c(k,l)
-
 
 -- Notice, no Broadcast helper class, it was unfolded
 #print mul_fns'
@@ -104,7 +101,7 @@ variable [Hashable K]
   let ijk := [(i,I),(j,J),(k,K)]
   let m1 := ijk ⇑ a(i,j)
   let m := m1.map fun row =>
-             memo(Σ j => row * b(j,k) with HashMap K α)
+             memo HashMap K α from Σ j => row * b(j,k)
   let m  := m(i,k) * c(k,l)
   Σ k => m
 

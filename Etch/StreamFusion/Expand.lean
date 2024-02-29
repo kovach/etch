@@ -72,6 +72,9 @@ macro_rules
 | `(Σ $is* => $t) => show Lean.MacroM Lean.Term from do
   is.foldrM (init := t) fun i acc => `(updateIndex%($i, Unit, Contract.contract) $acc)
 
+-- Simple form
+-- macro "Σ " idx:term " => " t:term : term => `(updateIndex%($idx, Unit, Contract.contract) $t)
+
 /--
 Memoize the expression.
 `memo ty from e`
