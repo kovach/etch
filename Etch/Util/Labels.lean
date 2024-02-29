@@ -6,6 +6,20 @@ Defines a type that provides endless labels between any two labels.
 
 namespace Etch
 
+/-
+-- Implementation with standard Nat ordering, for testing
+
+structure LabelIdx where
+  data : Nat
+  deriving BEq, Inhabited
+
+instance : Ord LabelIdx := ⟨fun x y => compare x.data y.data⟩
+instance : LT LabelIdx := ⟨fun x y => x.data < y.data⟩
+instance (x y : LabelIdx) : Decidable (x < y) := inferInstanceAs <| Decidable (x.data < y.data)
+
+def LabelIdx.nth (n : Nat) : LabelIdx := {data := n}
+-/
+
 /--
 A label is a natural number with the "binary-revlex ordering".
 
