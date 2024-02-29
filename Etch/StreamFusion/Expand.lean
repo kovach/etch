@@ -70,7 +70,7 @@ Participates in the index elaboration system.
 syntax "Σ "  term:max* " => " term : term
 macro_rules
 | `(Σ $is* => $t) => show Lean.MacroM Lean.Term from do
-  is.foldrM (init := t) fun acc i => `(updateIndex%($i, Unit, Contract.contract) $acc)
+  is.foldrM (init := t) fun i acc => `(updateIndex%($i, Unit, Contract.contract) $acc)
 
 /--
 Memoize the expression.
