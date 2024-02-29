@@ -96,25 +96,30 @@ def d3 : ℕ := eval $
 end Eg1
 
 section testEg1
+
 def p1 : String → Bool := fun str : String => str.length > 3
 def f1 := String.toUpper
 
+def filterFile := "plot1.csv"
 open Eg1'
 
-def t1 := genCase' "test d1"
+def t1 := fun d file => recordTestCase file "loop"
     (fun (l,c) => (l,c,p1,f1))
     (op := fun (l,c,p1,f1) => d1 l c p1 f1)
     (fun x : ℕ => x)
+    d
 
-def t2 := genCase' "test d2"
+def t2 := fun d file => recordTestCase file "fold"
     (fun (l,c) => (l,c,p1,f1))
     (op := fun (l,c,p1,f1) => d2 l c p1 f1)
     (fun x : ℕ => x)
+    d
 
-def t3 := genCase' "test d3"
+def t3 := fun d file => recordTestCase file "us"
     (fun (l,c) => (l,c,p1,f1))
     (op := fun (l,c,p1,f1) => d3 l c p1 f1)
     (fun x : ℕ => x)
+    d
 
 end testEg1
 
@@ -137,28 +142,6 @@ variable
 example : SparseArray Entity (SparseArray Location (ArraySet Item)) := eval $
   locatedAt(entity, location) * contains(location, item) * canUse(entity, item)
 
-/-
-def tr1
-    [Hashable Location] [Hashable Entity] [BEq Location] [BEq Entity]
-    (locatedAt : SparseArray       Entity   (ArraySet Location))
-    (contains  : HashMap Location (ArraySet Item))
-    (canUse    : HashMap Entity   (ArraySet Item))
-    : F Entity (F Location (ArraySet Item))
-    := Id.run $ do
-  let mut es := #[]
-  let mut ls := #[]
-  for e in locatedAt.is.val do
-    match canUse.find? e with
-    | none => pure ()
-    | some items =>
-      for l in
-  (es, ls)
-
-todo
-
--/
-
-
 -- not working/not idiomatic
 def tr1
     (locatedAt : SparseArray       Entity   (ArraySet Location))
@@ -180,6 +163,10 @@ def tr2
     := eval $
   locatedAt(entity, location) * contains(location, item) * canUse(entity, item)
 
+def tr3' : F Entity (F Location (ArraySet Item)) := eval $
+  (memo SparseArray Entity (SparseArray Location (ArraySet Item)) from
+   locatedAt(entity, location) * contains(location, item)) * canUse(entity, item)
+
 def tr3 : F Entity (F Location (ArraySet Item)) := eval $
   locatedAt(entity, location) * contains(location, item) * canUse(entity, item)
 
@@ -187,12 +174,6 @@ end Eg2
 
 -- matrix slices: lower triangle * upper
 section Eg3
-
---def upper := (range 0 dim).mapWithIndex (fun row _ => range 0 (dim - row))
---def lower := (range 0 dim).mapWithIndex (fun row _ => range 0 (row+1))
---#eval ((eval $ SStream.range 0 10) : ArraySet Nat)
---#eval ((eval $ upper 3) : SparseArray Nat (ArraySet Nat))
---#eval ((eval $ lower 3) : SparseArray Nat (ArraySet Nat))
 
 variable
 {α J} [LinearOrder J]
@@ -239,30 +220,24 @@ structure foo' where
   b : HashMap String (ArraySet String)
   c : HashMap String (ArraySet String)
 
-def eg2.t1 := genCase' "test eg2.t1"
-    (fun s : foo => s)
-    (op := fun ⟨a,b,c⟩ => tr1 a b c)
-    (fun x :  F String (F String (ArraySet String))=> (x.1.size))
-
-def eg2.t2 := genCase' "test eg2.t2"
+def eg2.t2 := fun d file => recordTestCase file "tri.hash"
     (fun s : foo' => s)
     (op := fun ⟨a,b,c⟩ => tr2 a b c)
     (fun x :  F String (F String (ArraySet String))=> (x.1.size))
+    d
 
-def eg2.t3 := genCase' "test eg2.t3"
+def eg2.t3_unfused := fun d file => recordTestCase file "tri.unfused"
+    (fun s : foo => s)
+    (op := fun ⟨a,b,c⟩ => tr3' a b c)
+    (fun x :  F String (F String (ArraySet String))=> (x.1.size))
+    d
+
+def eg2.t3_fused := fun d file => recordTestCase file "tri.fused"
     (fun s : foo => s)
     (op := fun ⟨a,b,c⟩ => tr3 a b c)
     (fun x :  F String (F String (ArraySet String))=> (x.1.size))
-
-def t4 := genCase' "test t4: mat mul"
-    (fun num => num)
-    (op := fun num => ⟨num, mul3 num mat1⟩)
-    (fun x : (dim : Nat) × DenseMat dim dim Nat => (x.2.size))
+    d
 
 end Eg3
 
 end Etch.Verification
-
---#synth ToStream (SparseArray Entity (ArraySet Item)) (Entity →ₛ Item →ₛ Bool)
---#synth ToStream (SparseArrayLookup Entity (ArraySet Item)) (Entity → Item →ₛ Bool)
---#synth ToStream (SparseArrayLookup Nat Nat) (Nat → Nat)

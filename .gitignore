@@ -6,7 +6,6 @@ junk/
 out*.cpp
 *.asm
 TAGS
-*temp*
 
 .lake/
 /lake-packages
@@ -31,5 +30,8 @@ duckdb_cli-*
 duckdb/
 tmp-*.duckdb
 data/
+gen*.c
 
 *.svg
+*.csv
+*.pdf

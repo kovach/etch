@@ -31,6 +31,12 @@ def idx (x : α) (shape : List LabelIdx) [Label shape α β] := Label.label shap
 instance (I : Type) : MapIndex i α β (i~I →ₛ α) (i~I →ₛ β) where
   map f s := s.map f
 
+instance (J : Type) [IdxLt j i] [MapIndex i a b a' b'] : MapIndex i a b (j~J →ₛ a') (j~J →ₛ b') where
+  map f s := s.map (MapIndex.map i f)
+
+instance (J : Type) [IdxLt j i] [MapIndex i a b a' b'] : MapIndex i a b (j~J →ₛ! a') (j~J →ₛ! b') where
+  map f s := s.map (MapIndex.map i f)
+
 instance (I J : Type) : MapAtIndex i I J (i~I →ₛ! α) (i~J →ₛ! α) where
   map f s := s.imap' f
 
