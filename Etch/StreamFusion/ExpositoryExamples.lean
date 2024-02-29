@@ -21,16 +21,29 @@ namespace Stream
 
 open Step
 
-def old_map (f : α → β) (s : Stream α) : Stream β where
+-- Old syntax of map
+/-
+def map (f : α → β) (s : Stream α) : Stream β where
   q := s.q
   next state :=
     match s.next state with
     | done             => done
     | skip state       => skip state
     | emit state value => emit state (f value)
+-/
 
--- use this style instead
+-- Another old map that mixes names and functions
+/-
 def map (f : α → β) : Stream α → Stream β := fun s => {
+  s with
+  next := fun state =>
+    match s.next state with
+    | done             => done
+    | skip state       => skip state
+    | emit state value => emit state (f value)
+}
+-/
+def map : (α → β) → Stream α → Stream β := fun f s => {
   s with
   next := fun state =>
     match s.next state with
@@ -69,14 +82,21 @@ variable {ι : Type} [DecidableEq ι]
 
 def zero : ι → Option α := fun _ => none
 
-def singleton (i : ι) (v : α) : ι → Option α :=
-  fun x => if x = i then some v else none
+-- Old syntax
+--def singleton (i : ι) (v : α) : ι → Option α :=
+--  fun x => if x = i then some v else none
+
+def singleton : ι → α → ι → Option α := fun i v x =>
+  if x = i then some v else none
+
 
 namespace two
+
 inductive Step (σ ι α : Type) where
   | done
   | skip (state : σ)
   | emit (state : σ) (index : ι) (value : α)
+
 open Step
 
 structure Stream (ι : Type) (α : Type) where
@@ -96,6 +116,8 @@ instance [Add α] : Add (Option α) where
 
 variable [Ord ι] [Mul α]
 
+-- Old syntax
+/-
 def mul [Mul α] (a b : Stream ι α) : Stream ι α where
   q := (a.q, b.q)
   next q := match a.next q.fst, b.next q.snd with
@@ -109,12 +131,28 @@ def mul [Mul α] (a b : Stream ι α) : Stream ι α where
       | .lt                       => skip (q₁, q.snd)
       | .gt                       => skip (q.fst, q₂)
       | .eq                       => emit (q₁, q₂) i₁ (v₁ * v₂)
+-/
+
+def mul [Mul α] : Stream ι α → Stream ι α → Stream ι α := fun a b => {
+  q := (a.q, b.q),
+  next := fun q =>
+    match a.next q.fst, b.next q.snd with
+    | done, _                     => done
+    | _, done                     => done
+    | skip q₁, _                  => skip (q₁, q.snd)
+    | _, skip q₂                  => skip (q.fst, q₂)
+    | emit q₁ i₁ v₁,
+      emit q₂ i₂ v₂ =>
+      match compare i₁ i₂ with
+      | .lt                       => skip (q₁, q.snd)
+      | .gt                       => skip (q.fst, q₂)
+      | .eq                       => emit (q₁, q₂) i₁ (v₁ * v₂)
+}
 
 instance : Mul (Stream ι α) := ⟨mul⟩
 variable  [Zero α] [Add α]
 
-def eval [Add α] : Stream ι α → (ι → Option α) :=
-  fun {q, next} =>
+partial def eval [Add α] : Stream ι α → (ι → Option α) := fun {q, next} =>
     match next q with
     | done => zero
     | skip q => eval {q, next}
