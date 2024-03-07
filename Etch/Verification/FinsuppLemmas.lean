@@ -1,5 +1,6 @@
 import Mathlib.Data.Finsupp.Basic
 import Mathlib.Data.Finsupp.Indicator
+import Mathlib.Data.Finsupp.Notation
 
 variable {α β γ : Type _} [AddCommMonoid β]
 

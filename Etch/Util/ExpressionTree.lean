@@ -1,6 +1,5 @@
 import Lean
 import Std.Lean.Expr
-import Std.Data.Option.Basic
 import Etch.Util.Labels
 
 open Lean Elab Term Meta

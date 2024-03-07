@@ -52,7 +52,7 @@ def LabelIdx.compareAux (x y : Nat) : Ordering :=
     | .eq => compareAux (x / 2) (y / 2)
     | .lt => .lt
     | .gt => .gt
-termination_by _ x y => x + y
+termination_by x + y
 
 instance : Ord LabelIdx := ⟨fun x y => LabelIdx.compareAux x.data y.data⟩
 instance : LT LabelIdx := ⟨fun x y => compare x y == .lt⟩
@@ -81,7 +81,7 @@ def LabelIdx.freshBeforeAux (x y : Nat) : Nat :=
       2 * freshAfterAux (xb / 2)
     else
       panic! "x < y not true in freshBeforeAux"
-termination_by _ x y => y
+termination_by y
 
 /-- Gives a label that is between `x` and `y`, assuming that `x < y`. -/
 def LabelIdx.freshBefore (x y : LabelIdx) : LabelIdx :=

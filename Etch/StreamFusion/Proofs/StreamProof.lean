@@ -1,4 +1,5 @@
 import Mathlib.Tactic.Linarith
+import Mathlib.Order.Basic
 
 import Etch.StreamFusion.Stream
 import Etch.Verification.FinsuppLemmas
@@ -261,7 +262,7 @@ noncomputable def Stream.eval [AddZeroClass α] (s : Stream ι α) [IsBounded s]
       have : (s.advance q) ≺ q := s.next_wf ⟨q, h⟩
       s.eval₀ ⟨q, h⟩ + s.eval (s.advance q)
     else 0
-termination_by _ x => s.wf.wrap x
+termination_by x => s.wf.wrap x
 
 @[simp] lemma Stream.eval_zero [AddZeroClass α] : (0 : Stream ι α).eval = 0 := by
   ext; rw [Stream.eval]; simp
@@ -283,10 +284,10 @@ end well_founded
           let acc' := if hr : hr then f acc i (value q hv hr) else acc
           go f valid ready index value next h acc' q'
         else acc
+    termination_by s.wf.wrap q
+    decreasing_by exact h q hv
   go f s.valid (fun q h => s.ready ⟨q,h⟩) (fun q h => s.index ⟨q,h⟩) (fun q v r => s.value ⟨⟨q,v⟩,r⟩) s.next
     (fun q hv => s.progress rfl.le) acc q
-termination_by _ => s.wf.wrap q
-decreasing_by exact h q hv
 
 theorem Stream.fold_wf_spec [Preorder ι] (f : β → ι → α → β) (s : Stream ι α) [IsBounded s]
     (q : {q // s.valid q}) (acc : β) :
@@ -445,6 +446,10 @@ theorem Stream.IsStrictMono.eval_seek_eq_zero [AddZeroClass α] {s : Stream ι �
   · apply hs.1.eq_zero_of_lt_index
     refine lt_of_lt_of_le ?_ (hs.1 _ _)
     simpa using fst_lt_of_lt_of_lt h₁ h₂
+
+-- not sure why these are needed now
+instance instDecidableLT (x y : ι × Bool) [Decidable (x.1 < y.1)] [Decidable (x.2 < y.2)] : Decidable (x < y) := And.decidable
+instance (x y : ι × Bool) [Decidable (x.1 < y.1)] [Decidable (x.2 < y.2)] : Decidable (x <ₗ y) := inferInstance
 
 theorem Stream.IsStrictMono.eval₀_eq_eval_filter [AddCommMonoid α] {s : Stream ι α} [IsBounded s]
     (hs : s.IsStrictMono) (q : {q // s.valid q}) :
