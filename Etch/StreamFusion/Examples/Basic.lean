@@ -43,13 +43,9 @@ def d2 : ℕ :=
 
 -- With stream combinators
 example : ℕ := eval $ Σ i => (f $[i] predicate(i) * locations(i)) * counts(i)
+
 --example : ℕ := eval $ Σ i => predicate(i) * (f $[i] locations(i)) * counts(i)
 def d3 : ℕ := eval $ Σ i => (f $[i] predicate(i) * (ArraySet.toSeqStream locations)(i)) * counts(i)
-
---def d2 : ℕ :=
---  (locations.filter predicate).foldl
---    (init := 0) (fun result key =>
---    result + counts.findD (f key) 0)
 
 #eval d1
   (locations := #["Hi", "There"])

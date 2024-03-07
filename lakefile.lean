@@ -51,4 +51,4 @@ lean_exe seq {
 lean_lib Etch.Verification.Semantics.Example
 
 require mathlib from git
-  "https://github.com/leanprover-community/mathlib4/"@"702f3fe16c773ae1e34fbf179342d0877f8cb4f1"
+  "https://github.com/leanprover-community/mathlib4/"@"35909eaa5b71d0bd5a6e259b5cc9732132d977c7"

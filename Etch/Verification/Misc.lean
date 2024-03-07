@@ -7,7 +7,6 @@ import Mathlib.Data.List.FinRange
 import Mathlib.Data.Option.Basic
 import Mathlib.Data.PFun
 import Mathlib.Data.Prod.Lex
-import Mathlib.Init.IteSimp
 
 /-!
 This is a collection of miscellaneous lemmas. Not all of these are used;
@@ -328,19 +327,21 @@ theorem Finsupp.mul_single_eq_zero {ι β : Type _} [MulZeroClass β] (i₁ i₂
   exact hi
 #align finsupp.mul_single_eq_zero Finsupp.mul_single_eq_zero
 
-theorem Finsupp.mul_filter {ι β : Type _} [MulZeroClass β] (P Q : ι → Prop) (f g : ι →₀ β) :
+variable {ι : Type _} (P Q : ι → Prop) [DecidablePred P] [DecidablePred Q]
+
+theorem Finsupp.mul_filter {β : Type _} [MulZeroClass β] (f g : ι →₀ β) :
     f.filter P * g.filter Q = (f * g).filter fun i => P i ∧ Q i := by
   ext i
   by_cases h₁ : P i <;> by_cases h₂ : Q i <;> simp [h₁, h₂]
 #align finsupp.mul_filter Finsupp.mul_filter
 
-theorem Finsupp.mul_filter' {ι β : Type _} [MulZeroClass β] (P : ι → Prop) (f g : ι →₀ β) :
+theorem Finsupp.mul_filter' {β : Type _} [MulZeroClass β] (f g : ι →₀ β) :
     (f * g).filter P = f.filter P * g.filter P := by simp [Finsupp.mul_filter]
 #align finsupp.mul_filter' Finsupp.mul_filter'
 
-theorem Finsupp.filter_ext_iff {ι β : Type _} [AddZeroClass β] (P : ι → Prop) (f g : ι →₀ β) :
+theorem Finsupp.filter_ext_iff {β : Type _} [AddZeroClass β] (f g : ι →₀ β) :
     f.filter P = g.filter P ↔ ∀ a, P a → f a = g a := by classical
-  simp [FunLike.ext_iff, Finsupp.filter_apply, apply_ite₂ (· = ·), ← imp_iff_not_or]
+  simp [DFunLike.ext_iff, Finsupp.filter_apply, apply_ite₂ (· = ·), ← imp_iff_not_or]
 #align finsupp.filter_ext_iff Finsupp.filter_ext_iff
 
 theorem mul_eq_zero_of {α : Type _} [MulZeroClass α] {x y : α} : x = 0 ∨ y = 0 → x * y = 0

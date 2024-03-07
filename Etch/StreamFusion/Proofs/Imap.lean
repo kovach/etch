@@ -54,8 +54,7 @@ theorem IsLawful.imap {s : Stream ι α} [AddZeroClass α] [IsLawful s] {f : ι 
   rintro q ⟨j₁, b⟩ j₂ hj
   dsimp only [imap_general_seek, imap_general_σ, imap_general_valid]
   dsimp at q
-  suffices : ∀ i, f i = j₂ → s.eval (s.seek q (g (s.index q) j₁, b)) i = s.eval q i
-  · sorry
+  suffices ∀ i, f i = j₂ → s.eval (s.seek q (g (s.index q) j₁, b)) i = s.eval q i by sorry
   rintro i rfl
   by_cases le : s.index q ≤ i
   · apply ‹IsLawful s›.seek_spec
@@ -67,7 +66,5 @@ theorem IsLawful.imap {s : Stream ι α} [AddZeroClass α] [IsLawful s] {f : ι 
     · simpa using le
     · refine lt_of_lt_of_le ?_ (s.mono q _)
       simpa using le
-
-
 
 end Etch.Verification.Stream
