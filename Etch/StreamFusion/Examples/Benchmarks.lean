@@ -1,3 +1,5 @@
+-- Tests should be in separate defs for better profile legibility
+
 import Etch.StreamFusion.Examples.Basic
 
 namespace Etch.Verification
@@ -7,10 +9,11 @@ open Lean (HashSet)
 open Etch.Verification RB
 open SStream ToStream
 
--- tests should be in separate defs for profile legibility
+-- todo, cli flag
+def namePrefix := ""
+--def namePrefix := "alt_"
 
 namespace memoTest
-
 
 variable {I J K L α β : Type}
 [LinearOrder I] [LinearOrder J] [LinearOrder K] [LinearOrder L]
@@ -66,7 +69,7 @@ def simpleTest (num : Nat) : IO Unit := do
   let strs := s1
   let counts := HashMap.ofList (s2.map fun str => (str, 1)).toList
 
-  recordTestCases "plot1.csv"
+  recordTestCases (namePrefix ++ "plot1.csv")
     [ t1 (strs, counts)
     , t2 (strs, counts)
     , t3 (strs, counts) ]
@@ -82,7 +85,7 @@ def triQueryTest (num : Nat) : IO Unit := do
   let b' : HashMap String (ArraySet String) := HashMap.ofList $ s2.toList.zip (s2.map fun _ => s3).toList
   let c' : HashMap String (ArraySet String) := HashMap.ofList $ s1.toList.zip (s1.map fun _ => s3).toList
 
-  recordTestCases "plot2.csv"
+  recordTestCases (namePrefix ++ "plot2.csv")
     [ eg2.t2 ⟨a,b',c'⟩
     , eg2.t3_unfused ⟨a,b,c⟩
     , eg2.t3_fused ⟨a,b,c⟩ ]
@@ -103,7 +106,7 @@ def memoTest (num1 num2 : Nat) : IO Unit := do
   let a2 ← genR num2
   let b2 ← genL num2
   let c2 ← genR num2
-  recordTestCases "plot3.csv"
+  recordTestCases (namePrefix ++ "plot3.csv")
     -- 1 = fused is faster; 2 = memo is faster
     [ memoTest.t1 "1" ⟨num1,a1,b1,c1⟩
     , memoTest.t2 "1" ⟨num1,a1,b1,c1⟩
@@ -117,6 +120,7 @@ def vecSum := fun d file => recordTestCase file "vec"
   (fun x : ℕ => x)
   d
 
+--set_option trace.compiler.inline true
 def matSum := fun d file => recordTestCase file "matrix"
   id
   (fun (mat : SparseArrayMat ℕ ℕ ℕ) => eval $ select => mat(i,j))
@@ -137,17 +141,62 @@ end baseline
 def baselineTest (num : Nat) : IO Unit := do
   let v := sparseVec num
   let m := sparseMat $ num.sqrt + 1
-  recordTestCases "plot4.csv"
+  recordTestCases (namePrefix ++ "plot4.csv")
     [ baseline.baseline (Array.range num) -- 91
     , baseline.vecSum ⟨v.n, v.vs.val⟩ -- 138
     , baseline.matSum m -- 129
     ]
 
+section mul
+abbrev S := SparseArray ℕ ℕ × SparseArray ℕ ℕ
+abbrev S' := SparseArrayMat ℕ ℕ ℕ × SparseArrayMat ℕ ℕ ℕ
+abbrev S3 := SparseArray ℕ ℕ × SparseArray ℕ ℕ × SparseArray ℕ ℕ
+
+def vecMulSum := fun d file => recordTestCase file "vecMulSum"
+  id
+  (fun (x : S) => eval $ select => x.1(i) * x.2(i))
+  (fun x : ℕ => x)
+  (reps := 2)
+  d
+
+def vecMul := fun d file => recordTestCase file "vecMul"
+  id
+  (fun (x : S) => eval $ x.1(i) * x.2(i))
+  (fun x : SparseArray ℕ ℕ => x.n)
+  d
+
+def vecMul3 := fun d file => recordTestCase file "vecMul3"
+  id
+  (fun ((a,b,c) : S3) => eval $ a(i) * b(i) * c(i))
+  (fun x : SparseArray ℕ ℕ => x.n)
+  d
+
+
+def matElemMulSum := fun d file => recordTestCase file "matrixElemMulSum"
+  id
+  (fun (x : S') => eval $ select => x.1(i,j) * x.2(i,j))
+  (fun x : ℕ => x)
+  d
+
+def mulTests (num : Nat) : IO Unit := do
+  let s1 := (sparseVec num, sparseVec num |>.mapVals fun _ => 1)
+  let s2 := (sparseMat num.sqrt, sparseMatFn num.sqrt (f := fun _ _ => 1))
+  let s3 := (sparseVec num, sparseVec num |>.mapVals fun _ => 1, sparseVec num |>.mapVals fun _ => 1)
+  recordTestCases (namePrefix ++ "plot5.csv")
+    [ baseline.baseline (Array.range num)
+    , vecMul s1
+    , vecMul3 s3
+    , vecMulSum s1
+    , matElemMulSum s2
+    ]
+end mul
+
 def tests (_num : Nat) := do
-  baselineTest 10000000
+  mulTests _num
+  baselineTest 5000000
   simpleTest 100000
   triQueryTest 100
-  memoTest 600 60
+  memoTest 400 40
 
 def _root_.main (args : List String) : IO Unit := do
   let num := (args[0]!).toNat?.getD 1000

@@ -48,7 +48,7 @@ class ToStream (α : Type u) (β : outParam $ Type v) where
 
 @[macro_inline]
 def map (f : α → β) (s : ι →ₛ! α) : ι →ₛ! β := {
-  s with value := f ∘ s.value
+  s with value := fun x => f (s.value x)
 }
 
 @[simps, macro_inline]

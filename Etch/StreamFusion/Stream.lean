@@ -49,7 +49,7 @@ variable {ι : Type} {α : Type _} [Mul α]
 @[simps]
 def imap_general (f : ι → ι') (g : ι → ι' → ι) (s : Stream ι α) : Stream ι' α := {
   s with
-  index := f ∘ s.index
+  index := fun x => f (s.index x)
   seek  := fun q (j, r) => s.seek q (g (s.index q) j, r)
 }
 
@@ -77,45 +77,22 @@ def next' (s : Stream ι α) (q : {q // s.valid q}) (ready : Bool) : s.σ :=
    This definition follows the same inline/specialize pattern as Array.forInUnsafe
 -/
 @[inline] partial def fold (f : β → ι → α → β) (s : Stream ι α) (q : s.σ) (acc : β) : β :=
-  let rec @[specialize] go f
-      {σ} (valid : σ → Bool) (ready : (x : σ) → valid x → Bool)
-      (index : (x : σ) → valid x → ι) (value : (x : σ) → (h : valid x) → ready x h → α)
-      (next : {x // valid x} → ι → Bool → σ)
-      --(next : (x : s.σ) → valid x → Bool → s.σ)
-      (acc : β) (q : σ) :=
-    if hv : valid q then
-      let i := index q hv
-      let hr := ready q hv
-      let acc' := if hr : hr then f acc i (value q hv hr) else acc
-      let q' := next ⟨q, hv⟩ i hr
-      go f valid ready index value next acc' q'
+  let rec @[specialize] go {σ} (f : β → ι → α → β)
+        (valid : σ → Bool)
+        (ready : {x // valid x} → Bool)
+        (index : {x // valid x} → ι)
+        (value : {x // ready x} → α)
+        (next  : {x // valid x} → ι → Bool → σ)
+        (acc : β) (q : σ) : β :=
+      if hv : valid q then
+        let q := ⟨q, hv⟩
+        let i := index q
+        let hr := ready q
+        let acc' := if hr : hr then f acc i (value ⟨q, hr⟩) else acc
+        let q' := next q i hr
+        go f valid ready index value next acc' q'
     else acc
-  go f s.valid (fun q h => s.ready ⟨q,h⟩) (fun q h => s.index ⟨q,h⟩) (fun q v r => s.value ⟨⟨q,v⟩,r⟩) s.next
-     acc q
-
--- experiment
--- the specialized version still takes a stream argument?
-@[specialize] partial def fold_go {σ} {α : Type*} (f : β → ι → α → β)
-      (valid : σ → Bool)
-      (ready : {x // valid x} → Bool)
-      (index : {x // valid x} → ι)
-      (value : (x : {x // ready x}) → α)
-      --(value : (x : {x // valid x}) → ready x → α)
-      (next : {x // valid x} → ι → Bool → σ)
-      --(next : (x : s.σ) → valid x → Bool → s.σ)
-      (acc : β) (q : σ) : β :=
-    if hv : valid q then
-      let q := ⟨q, hv⟩
-      let i := index q
-      let hr := ready q
-      let acc' := if hr : hr then f acc i (value ⟨q, hr⟩) else acc
-      let q' := next q i hr
-      fold_go f valid ready index value next acc' q'
-    else acc
-
--- this one is a little more uniform, and has better inlining behavior for products, but worse behavior for very simple examples
-@[inline] partial def fold' (f : β → ι → α → β) (s : Stream ι α) (q : s.σ) (acc : β) : β :=
-  fold_go f s.valid s.ready s.index s.value s.next acc q
+  go f s.valid s.ready s.index s.value s.next acc q
 
 /-
 @[inline] partial def fold_old (f : β → ι → α → β) (s : Stream ι α) (q : s.σ) (acc : β) : β :=
@@ -151,9 +128,9 @@ namespace SStream
 
 variable {ι : Type} [LinearOrder ι] {α : Type u}
 
-@[macro_inline]
+@[inline]
 def map (f : α → β) (s : ι →ₛ α) : ι →ₛ β := {
-  s with value := f ∘ s.value
+  s with value := fun x => f (s.value x)
 }
 
 @[macro_inline]
@@ -173,7 +150,7 @@ instance : Functor (ι →ₛ .) where
 -- todo check this gen code
 @[inline] def imap [LinearOrder ι'] (f : ι ≃o ι') (s : ι →ₛ α) : ι' →ₛ α := {
   s with
-  index := f ∘ s.index
+  index := fun x => f (s.index x)
   seek  := fun q (i, r) => s.seek q (f.symm i, r)
 }
 
@@ -262,6 +239,7 @@ def SparseArray.toSeqStream (arr : SparseArray ι α) : ι →ₛ! α where
   value _ := true
   next q := q + 1
 
+-- todo
 -- not tested yet
 --@[macro_inline]
 --def ofFloatArray (is : Array ι) (vs : FloatArray) (eq : is.size = vs.size) : SStream ι Float where
@@ -282,6 +260,7 @@ instance [Scalar α] : ToStream α α := ⟨id⟩
 instance {α β} [Zero α] [ToStream α β] : ToStream (SparseArrayLookup ι α) (ι → β) where
   stream := (fun f => ToStream.stream ∘ f) ∘ SparseArray.lookup
 
+-- todo
 instance {α β} [ToStream α β] : ToStream (DenseArray n α) (Nat →ₛ β) where
   stream := map ToStream.stream ∘ DenseArray.toStream
 
@@ -417,7 +396,7 @@ def singleton (t : ι) : ι →ₛ Bool where
 @[inline] def imap' (f : ι → ι') (s : ι →ₛ α) : ι' →ₛ! α := {
   q := s.q
   valid := s.valid
-  index := f ∘ s.index
+  index := fun q => f (s.index q)
   next := fun q => s.seek q (s.index q, s.ready q)
   ready := s.ready
   value := s.value
@@ -454,6 +433,11 @@ def mapWithIndex (f : ι → α → β) (s : ι →ₛ! α) : ι →ₛ! β := {
   s with value := fun q => f (s.index q.1) (s.value q)
 }
 
+@[macro_inline]
+def mapWithIndex' (s : ι →ₛ! α) (f : { q // s.valid q } → ι → α → β): ι →ₛ! β := {
+  s with value := fun q => f q (s.index q.1) (s.value q)
+}
+
 @[inline] def DenseArray.toSeqStream {n : ℕ} (arr : DenseArray n α) : Nat →ₛ! α :=
   (range 0 n).mapWithIndex fun q _ => arr[q]'sorry
 
@@ -462,7 +446,7 @@ def mapWithIndex (f : ι → α → β) (s : ι →ₛ! α) : ι →ₛ! β := {
 
 @[inline] def imap' (f : ι → ι') (s : ι →ₛ! α) : ι' →ₛ! α := {
   s with
-  index := f ∘ s.index
+  index := fun q => f (s.index q)
 }
 
 open OfStream

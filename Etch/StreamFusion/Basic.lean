@@ -43,6 +43,7 @@ end Std
 --abbrev Map a [Ord a] b := RBMap a b Ord.compare
 --abbrev HMap a [BEq a] [Hashable a] b := HashMap a b
 abbrev ArraySet ι := Array ι
+-- todo: Vec
 abbrev DenseArray (_n : Nat) α := Array α
 
 instance [Zero α] : Zero (DenseArray n α) := ⟨(Array.range n).map fun _ => 0⟩

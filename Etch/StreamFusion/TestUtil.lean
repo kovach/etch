@@ -43,6 +43,10 @@ def SparseArray.range (num : Nat) : SparseArray ℕ ℕ :=
   let v := SparseArray.range num
   v.mapVals fun _ => SparseArray.range num
 
+@[inline, specialize] def sparseMatFn (f : ℕ → ℕ → α) (num : Nat) :=
+  let v := SparseArray.range num
+  v.mapVals fun i => (SparseArray.range num |>.mapVals fun j => f i j)
+
 @[inline] def boolStream (num : Nat) : ℕ →ₛ Bool:=
   stream $ Array.range num
 
