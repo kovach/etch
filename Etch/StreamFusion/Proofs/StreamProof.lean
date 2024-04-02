@@ -25,7 +25,7 @@ def StreamOrder (ι : Type) : Type :=
   ι ×ₗ Bool
 
 /-- The current emmited value; if ready, this is `index ↦ value`, otherwise it is 0.
-  This is denoted `index(r) ↦ −→ ready(r) · ⟦value(r)⟧` in the paper. -/
+  This is denoted `index(r) ↦ ready(r) · ⟦value(r)⟧` in the paper. -/
 noncomputable def Stream.eval₀ [Zero α]  (q : {q // s.valid q}) : ι →₀ α :=
   if h₂ : s.ready q then
     fun₀ | s.index q => (s.value ⟨q, h₂⟩)
@@ -60,7 +60,7 @@ instance : DecidablePred s.ready' :=
   by simp [Stream.ready', x.prop]
 
 /-- The current `(index', valid ∧ ready)` value of the stream -/
-def Stream.toOrder' (q : s.σ) : WithTop ι ×ₗ Bool :=
+def Stream.toOrder' (q : s.σ) : StreamOrder (WithTop ι) :=
   (s.index' q, decide (s.ready' q))
 
 /-- The value, with a default value of `0` if the stream is not ready -/
@@ -77,8 +77,8 @@ def Stream.seek' (q : s.σ) (i : StreamOrder ι) : s.σ :=
 
 section order
 /--
-Order injection from `stream_order ι` to `(with_top ι) ×ₗ bool` by coercing the first argument -/
-abbrev coeLex (x : StreamOrder ι) : WithTop ι ×ₗ Bool :=
+Order injection from `StreamOrder ι` to `StreamOrder (WithTop ι)` by coercing the first argument -/
+abbrev coeLex (x : StreamOrder ι) : StreamOrder (WithTop ι) :=
   (↑x.1, x.2)
 
 
@@ -135,12 +135,12 @@ theorem Stream.toOrder'_fst (q : s.σ) : (s.toOrder' q).1 = s.index' q :=
 
 variable {s}
 @[simp]
-theorem Stream.seek'_val {q : s.σ} (hq : s.valid q) (i : ι ×ₗ Bool) :
+theorem Stream.seek'_val {q : s.σ} (hq : s.valid q) (i : StreamOrder ι) :
     s.seek' q i = s.seek ⟨q, hq⟩ i :=
   dif_pos hq
 
 @[simp]
-theorem Stream.seek'_invalid {q : s.σ} (hq : ¬s.valid q) (i : ι ×ₗ Bool) :
+theorem Stream.seek'_invalid {q : s.σ} (hq : ¬s.valid q) (i : StreamOrder ι) :
     s.seek' q i = q :=
   dif_neg hq
 
