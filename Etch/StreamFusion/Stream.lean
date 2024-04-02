@@ -113,6 +113,17 @@ def next' (s : Stream ι α) (q : {q // s.valid q}) (ready : Bool) : s.σ :=
 def map (f : α → β) (s : Stream ι α) : Stream ι β :=
   { s with value := fun h => f (s.value h) }
 
+@[inline]
+def zero : Stream ι α where
+  σ := Unit; valid _ := false; ready _ := false;
+  index := fun ⟨_, h⟩ => nomatch h; value := fun ⟨_, h⟩ => nomatch h;
+  seek _ _ := ();
+
+instance : Zero (Stream ι α) := ⟨zero⟩
+@[simp] lemma zero_σ : (0 : Stream ι α).σ = Unit := rfl
+@[simp] lemma zero_valid (q) : (0 : Stream ι α).valid q = false := rfl
+@[simp] lemma zero_ready (q) : (0 : Stream ι α).ready q = false := rfl
+
 end Stream
 
 def FloatVec n := { x : FloatArray // x.size = n }
@@ -155,19 +166,9 @@ instance : Functor (ι →ₛ .) where
 }
 
 /- Converting data into a SStream -/
-@[inline]
-def zero : Stream ι α where
-  σ := Unit; valid _ := false; ready _ := false;
-  index := fun ⟨_, h⟩ => nomatch h; value := fun ⟨_, h⟩ => nomatch h;
-  seek _ _ := ();
-
-instance : Zero (Stream ι α) := ⟨zero⟩
-@[simp] lemma zero_σ : (0 : Stream ι α).σ = Unit := rfl
-@[simp] lemma zero_valid (q) : (0 : Stream ι α).valid q = false := rfl
-@[simp] lemma zero_ready (q) : (0 : Stream ι α).ready q = false := rfl
 
 @[simps!]
-instance : Zero (ι →ₛ α) := ⟨⟨zero, ()⟩⟩
+instance : Zero (ι →ₛ α) := ⟨⟨0, ()⟩⟩
 
 
 @[inline] def range (lo hi : ℕ) : ℕ →ₛ Bool where

@@ -300,7 +300,7 @@ theorem Stream.eval_valid [AddZeroClass α]
   | inl hr => simp [Stream.eval₀, hr]
   | inr hr =>
     simp only [Stream.eval₀]
-    split_ifs <;> try rfl
+    split_ifs; swap; · rfl
     simp [hr]
 
 theorem Stream.eval₀_support [Zero α]
@@ -322,8 +322,6 @@ theorem Stream.eval₀_support' [Zero α]
   split_ifs at h₂ with hr
   · simp [Stream.toOrder, hr]
   · simp at h₂
-
-
 
 @[inline] def Stream.fold_wf (f : β → ι → α → β) (s : Stream ι α) [IsBounded s]
     (q : s.σ) (acc : β) : β :=
