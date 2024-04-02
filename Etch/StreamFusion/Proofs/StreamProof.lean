@@ -291,7 +291,7 @@ theorem Stream.eval_valid [AddZeroClass α]
     s.evalMultiset q (s.index q) = insert (s.value ⟨q, hr⟩) (s.evalMultiset (s.advance q) (s.index q)) := by
   simp [Stream.evalMultiset, Stream.eval₀, hr]
 
-@[simp] lemma Stream.evalMultiset_not_ready (s : Stream ι α) [IsBounded s] (q : {q // s.valid q}) (i : ι)
+lemma Stream.evalMultiset_not_ready (s : Stream ι α) [IsBounded s] (q : {q // s.valid q}) (i : ι)
     (hr : ¬s.ready q ∨ s.index q ≠ i) :
     s.evalMultiset q i = s.evalMultiset (s.advance q) i := by
   suffices (s.map fun x => ({x} : Multiset α)).eval₀ q i = 0 by
@@ -374,10 +374,16 @@ variable [LinearOrder ι]
 def Stream.IsMonotonic (s : Stream ι α) : Prop :=
   ∀ (q : {q // s.valid q}) i, s.index' q ≤ s.index' (s.seek q i)
 
+@[simp] theorem Stream.map_isMonotonic {s : Stream ι α} {f : α → β} :
+    (s.map f).IsMonotonic ↔ s.IsMonotonic := by rfl
+
 /-- A stream is strictly monotonic if it is monotonic and strictly advances its
   index when (non-trivially) seeked from a ready state. -/
 def Stream.IsStrictMono (s : Stream ι α) : Prop :=
   s.IsMonotonic ∧ ∀ q i, s.toOrder q ≤ i → s.ready q → s.index' q ≠ s.index' (s.seek q i)
+
+@[simp] theorem Stream.map_isStrictMono {s : Stream ι α} {f : α → β} :
+    (s.map f).IsStrictMono ↔ s.IsStrictMono := by rfl
 
 theorem Stream.isMonotonic_iff {s : Stream ι α} :
     s.IsMonotonic ↔ ∀ q i hq, s.index q ≤ s.index ⟨s.seek q i, hq⟩ := by
@@ -412,10 +418,19 @@ theorem Stream.IsMonotonic.index_le_of_mem_support [AddZeroClass α] {s : Stream
       exact le_of_eq (Stream.index'_val' _ _)
     · exact (hs.index_le_index_advance q).trans (ih (s.advance q) (s.next_wf ⟨q, H⟩) i hi)
 
+theorem Stream.IsMonotonic.index_le_of_nonempty_multiset {s : Stream ι α} [IsBounded s]
+    (hs : s.IsMonotonic) {q : s.σ} (i : ι) : s.evalMultiset q i ≠ ∅ → s.index' q ≤ i :=
+  (Stream.map_isMonotonic.mpr hs).index_le_of_mem_support i
+
 theorem Stream.IsMonotonic.eq_zero_of_lt_index [AddZeroClass α] {s : Stream ι α} [IsBounded s]
     (hs : s.IsMonotonic) {q : s.σ} (i : ι) : ↑i < s.index' q → s.eval q i = 0 := by
   contrapose!
   exact hs.index_le_of_mem_support i
+
+theorem Stream.IsMonotonic.eq_empty_of_lt_index {s : Stream ι α} [IsBounded s]
+    (hs : s.IsMonotonic) {q : s.σ} (i : ι) : ↑i < s.index' q → s.evalMultiset q i = ∅ := by
+  contrapose!
+  exact hs.index_le_of_nonempty_multiset i
 
 theorem Stream.IsStrictMono.lt {s : Stream ι α} (hs : s.IsStrictMono) (q i)
     (H : s.toOrder q ≤ i) (hr : s.ready q) : s.index' q < s.index' (s.seek q i) :=
@@ -498,14 +513,14 @@ section Lawful
     this means "skip up to and including states with index `i`, but not anything strictly past `i`".
  -/
 
-class IsLawful {ι : Type} {α : Type _} [LinearOrder ι] [AddZeroClass α] (s : Stream ι α) extends
+class IsLawful {ι : Type} {α : Type _} [LinearOrder ι] (s : Stream ι α) extends
   IsBounded s where
   mono : s.IsMonotonic
-  seek_spec : ∀ q i j, (i ≤ₗ (j, false)) → s.eval (s.seek q i) j = s.eval q j
+  seek_spec : ∀ q i j, (i ≤ₗ (j, false)) → s.evalMultiset (s.seek q i) j = s.evalMultiset q j
 
 
 /-- A stream is strictly lawful if in addition to being lawful, it is strictly monotonic -/
-class IsStrictLawful {ι : Type} {α : Type _} [LinearOrder ι] [AddZeroClass α]
+class IsStrictLawful {ι : Type} {α : Type _} [LinearOrder ι]
   (s : Stream ι α) extends IsLawful s where
   strictMono : s.IsStrictMono
   mono := strictMono.1
@@ -521,28 +536,29 @@ theorem Stream.strictMono (s : Stream ι α) [IsStrictLawful s] : s.IsStrictMono
 
 theorem Stream.seek_spec (s : Stream ι α) [IsLawful s] (q : {q // s.valid q})
     (i : StreamOrder ι) :
-    ((s.eval (s.seek q i)).filter fun j => i ≤ₗ (j, false)) =
-      (s.eval q).filter fun j => i ≤ₗ (j, false) := by
+    ((s.evalMultiset (s.seek q i)).filter fun j => i ≤ₗ (j, false)) =
+      (s.evalMultiset q).filter fun j => i ≤ₗ (j, false) := by
   rw [Finsupp.filter_ext_iff]
   exact IsLawful.seek_spec q i
 
 theorem Stream.seek_lt_toOrder {s : Stream ι α} [IsLawful s] {q : {q // s.valid q}}
-    {i : StreamOrder ι} (hi : i < s.toOrder q) : s.eval (s.seek q i) = s.eval q := by
+    {i : StreamOrder ι} (hi : i < s.toOrder q) : s.evalMultiset (s.seek q i) = s.evalMultiset q := by
   ext j
   by_cases H : s.toOrder q ≤ (j, true)
   · rw [IsLawful.seek_spec q]
     simpa [Prod.Lex.lt_iff'', Prod.Lex.le_iff''] using lt_of_lt_of_le hi H
   have : ↑j < s.index' q := by
     simpa using fst_lt_of_lt_of_lt (show (j, false) <ₗ (j, true) by simp) (not_le.mp H)
-  rw [s.mono.eq_zero_of_lt_index j this,
-    s.mono.eq_zero_of_lt_index _ (this.trans_le (s.mono q i))]
+  rw [s.mono.eq_empty_of_lt_index j this,
+    s.mono.eq_empty_of_lt_index _ (this.trans_le (s.mono q i))]
 
 theorem Stream.eval_seek_eq_of_false (s : Stream ι α) [IsLawful s] (q : {q // s.valid q}) :
-    s.eval (s.seek q (s.index q, false)) = s.eval q := by
+    s.evalMultiset (s.seek q (s.index q, false)) = s.evalMultiset q := by
   by_cases hr : s.ready q
   · apply Stream.seek_lt_toOrder
     simp [Stream.toOrder, hr]
-  . simp [s.eval_valid, Stream.eval₀, hr, Stream.advance_val, Stream.toOrder]
+  . ext i
+    simp [s.evalMultiset_not_ready q i (.inl hr), Stream.toOrder, hr]
 
 
 end Lawful
