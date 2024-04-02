@@ -238,7 +238,7 @@ theorem Stream.wf_valid' [IsBounded s] (q i) :
     constructor
     · rw [Prod.Lex.lt_iff']
       left
-      simpa [hq] using WithTop.coe_lt_top _
+      simp [hq]
     · simp [hq]
 
 theorem Stream.progress [IsBounded s] {q i} (h : s.toOrder q ≤ i) :
@@ -264,51 +264,11 @@ noncomputable def Stream.eval [AddZeroClass α] (s : Stream ι α) [IsBounded s]
     else 0
 termination_by x => s.wf.wrap x
 
+noncomputable def Stream.evalMultiset (s : Stream ι α) [IsBounded s] (q : s.σ) : ι →₀ Multiset α :=
+  (s.map fun x => {x}).eval q
+
 @[simp] lemma Stream.eval_zero [AddZeroClass α] : (0 : Stream ι α).eval = 0 := by
   ext; rw [Stream.eval]; simp
-
-end well_founded
-
-@[inline] def Stream.fold_wf [Preorder ι] (f : β → ι → α → β) (s : Stream ι α) [IsBounded s]
-    (q : s.σ) (acc : β) : β :=
-  let rec @[specialize] go [Preorder ι] [IsBounded s] f
-      (valid : s.σ → Bool) (ready : (x : s.σ) → valid x → Bool)
-      (index : (x : s.σ) → valid x → ι) (value : (x : s.σ) → (h : valid x) → ready x h → α)
-      (next : (x : {q // valid q}) → ι → Bool → s.σ)
-      (h : ∀ (q : s.σ) (hv : valid q), next ⟨q, hv⟩ (index q hv) (ready q hv) ≺ q)
-      (acc : β) (q : s.σ) : β :=
-        if hv : valid q then
-          let i := index q hv
-          let hr := ready q hv
-          let q' := next ⟨q, hv⟩ i hr
-          let acc' := if hr : hr then f acc i (value q hv hr) else acc
-          go f valid ready index value next h acc' q'
-        else acc
-    termination_by s.wf.wrap q
-    decreasing_by exact h q hv
-  go f s.valid (fun q h => s.ready ⟨q,h⟩) (fun q h => s.index ⟨q,h⟩) (fun q v r => s.value ⟨⟨q,v⟩,r⟩) s.next
-    (fun q hv => s.progress rfl.le) acc q
-
-theorem Stream.fold_wf_spec [Preorder ι] (f : β → ι → α → β) (s : Stream ι α) [IsBounded s]
-    (q : {q // s.valid q}) (acc : β) :
-  s.fold_wf f q acc =
-    s.fold_wf f (s.advance q) (if hr : s.ready q then f acc (s.index q) (s.value ⟨q, hr⟩) else acc) := by
-  rw [Stream.fold_wf, fold_wf.go]
-  simp only [q.prop, Subtype.coe_eta, dite_true, advance_val]
-  rfl
-
-theorem Stream.fold_wf_spec' [Preorder ι] (f : β → ι → α → β) (s : Stream ι α) [IsBounded s]
-    (q) (hv : s.valid q) (acc : β) :
-  s.fold_wf f q acc =
-    s.fold_wf f (s.advance q) (if hr : s.ready ⟨q, hv⟩ then f acc (s.index ⟨q, hv⟩) (s.value ⟨⟨q, hv⟩, hr⟩) else acc) :=
-  Stream.fold_wf_spec f s ⟨q, hv⟩ acc
-
-theorem Stream.fold_wf_invalid [Preorder ι] (f : β → ι → α → β) (s : Stream ι α) [IsBounded s]
-    (q : s.σ) (acc : β) (h : ¬s.valid q) : s.fold_wf f q acc = acc := by
-  rw [Stream.fold_wf, fold_wf.go]
-  simp [h]
-
-variable [PartialOrder ι]
 
 @[simp]
 theorem Stream.eval_invalid [AddZeroClass α]
@@ -320,6 +280,28 @@ theorem Stream.eval_valid [AddZeroClass α]
     (s : Stream ι α) [IsBounded s] (q : {q // s.valid q}) :
   s.eval q = s.eval₀ q + s.eval (s.advance q) := by rw [Stream.eval, dif_pos]
 
+@[simp] lemma Stream.evalMultiset_zero [IsBounded s] (q i) : (0 : Stream ι α).evalMultiset q i = ∅ := by
+  simp [Stream.evalMultiset]
+
+@[simp] lemma Stream.evalMultiset_invalid (s : Stream ι α) [IsBounded s] (q : s.σ) (h : ¬s.valid q) (i) :
+    s.evalMultiset q i = ∅ := by
+  simp [Stream.evalMultiset, h]
+
+@[simp] lemma Stream.evalMultiset_ready (s : Stream ι α) [IsBounded s] {q : {q // s.valid q}} (hr : s.ready q) :
+    s.evalMultiset q (s.index q) = insert (s.value ⟨q, hr⟩) (s.evalMultiset (s.advance q) (s.index q)) := by
+  simp [Stream.evalMultiset, Stream.eval₀, hr]
+
+@[simp] lemma Stream.evalMultiset_not_ready (s : Stream ι α) [IsBounded s] (q : {q // s.valid q}) (i : ι)
+    (hr : ¬s.ready q ∨ s.index q ≠ i) :
+    s.evalMultiset q i = s.evalMultiset (s.advance q) i := by
+  suffices (s.map fun x => ({x} : Multiset α)).eval₀ q i = 0 by
+    simpa [Stream.evalMultiset]
+  cases hr with
+  | inl hr => simp [Stream.eval₀, hr]
+  | inr hr =>
+    simp only [Stream.eval₀]
+    split_ifs <;> try rfl
+    simp [hr]
 
 theorem Stream.eval₀_support [Zero α]
     (s : Stream ι α) [IsBounded s]
@@ -342,6 +324,47 @@ theorem Stream.eval₀_support' [Zero α]
   · simp at h₂
 
 
+
+@[inline] def Stream.fold_wf (f : β → ι → α → β) (s : Stream ι α) [IsBounded s]
+    (q : s.σ) (acc : β) : β :=
+  let rec @[specialize] go [IsBounded s] f
+      (valid : s.σ → Bool) (ready : (x : s.σ) → valid x → Bool)
+      (index : (x : s.σ) → valid x → ι) (value : (x : s.σ) → (h : valid x) → ready x h → α)
+      (next : (x : {q // valid q}) → ι → Bool → s.σ)
+      (h : ∀ (q : s.σ) (hv : valid q), next ⟨q, hv⟩ (index q hv) (ready q hv) ≺ q)
+      (acc : β) (q : s.σ) : β :=
+        if hv : valid q then
+          let i := index q hv
+          let hr := ready q hv
+          let q' := next ⟨q, hv⟩ i hr
+          let acc' := if hr : hr then f acc i (value q hv hr) else acc
+          go f valid ready index value next h acc' q'
+        else acc
+    termination_by s.wf.wrap q
+    decreasing_by exact h q hv
+  go f s.valid (fun q h => s.ready ⟨q,h⟩) (fun q h => s.index ⟨q,h⟩) (fun q v r => s.value ⟨⟨q,v⟩,r⟩) s.next
+    (fun q hv => s.progress rfl.le) acc q
+
+theorem Stream.fold_wf_spec (f : β → ι → α → β) (s : Stream ι α) [IsBounded s]
+    (q : {q // s.valid q}) (acc : β) :
+  s.fold_wf f q acc =
+    s.fold_wf f (s.advance q) (if hr : s.ready q then f acc (s.index q) (s.value ⟨q, hr⟩) else acc) := by
+  rw [Stream.fold_wf, fold_wf.go]
+  simp only [q.prop, Subtype.coe_eta, dite_true, advance_val]
+  rfl
+
+theorem Stream.fold_wf_spec' (f : β → ι → α → β) (s : Stream ι α) [IsBounded s]
+    (q) (hv : s.valid q) (acc : β) :
+  s.fold_wf f q acc =
+    s.fold_wf f (s.advance q) (if hr : s.ready ⟨q, hv⟩ then f acc (s.index ⟨q, hv⟩) (s.value ⟨⟨q, hv⟩, hr⟩) else acc) :=
+  Stream.fold_wf_spec f s ⟨q, hv⟩ acc
+
+theorem Stream.fold_wf_invalid (f : β → ι → α → β) (s : Stream ι α) [IsBounded s]
+    (q : s.σ) (acc : β) (h : ¬s.valid q) : s.fold_wf f q acc = acc := by
+  rw [Stream.fold_wf, fold_wf.go]
+  simp [h]
+
+end well_founded
 end StreamDefs
 
 section Mono
