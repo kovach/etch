@@ -39,7 +39,7 @@ def Stream.toOrder (q : {q // s.valid q}) : StreamOrder ι :=
 @[simp] lemma map_toOrder (f : α → β) (s : Stream ι α) (q) :
   (s.map f).toOrder q = s.toOrder q := rfl
 
-@[simp] lemma Stream.map_zero (f : α → β) : Stream.map f (SStream.zero : Stream ι α) = SStream.zero := by
+@[simp] lemma Stream.map_zero (f : α → β) : Stream.map f (0 : Stream ι α) = 0 := by
   ext <;> try rfl
   rw [heq_iff_eq]
   funext ⟨q, h⟩
@@ -280,7 +280,7 @@ theorem Stream.eval_valid [AddZeroClass α]
     (s : Stream ι α) [IsBounded s] (q : {q // s.valid q}) :
   s.eval q = s.eval₀ q + s.eval (s.advance q) := by rw [Stream.eval, dif_pos]
 
-@[simp] lemma Stream.evalMultiset_zero [IsBounded s] (q i) : (0 : Stream ι α).evalMultiset q i = ∅ := by
+@[simp] lemma Stream.evalMultiset_zero (q i) : (0 : Stream ι α).evalMultiset q i = ∅ := by
   simp [Stream.evalMultiset]
 
 @[simp] lemma Stream.evalMultiset_invalid (s : Stream ι α) [IsBounded s] (q : s.σ) (h : ¬s.valid q) (i) :
@@ -432,9 +432,13 @@ theorem Stream.IsMonotonic.eq_empty_of_lt_index {s : Stream ι α} [IsBounded s]
   contrapose!
   exact hs.index_le_of_nonempty_multiset i
 
-theorem Stream.IsStrictMono.lt {s : Stream ι α} (hs : s.IsStrictMono) (q i)
+theorem Stream.IsStrictMono.lt {s : Stream ι α} (hs : s.IsStrictMono) {q i}
     (H : s.toOrder q ≤ i) (hr : s.ready q) : s.index' q < s.index' (s.seek q i) :=
   lt_of_le_of_ne (hs.1 _ _) (hs.2 _ _ H hr)
+
+theorem Stream.IsStrictMono.lt' {s : Stream ι α} (hs : s.IsStrictMono) {q i}
+    (H : s.toOrder q ≤ i) (hr : s.ready q) : s.index q < s.index' (s.seek q i) :=
+  by simpa using hs.lt H hr
 
 theorem Stream.IsStrictMono.advance_ne {s : Stream ι α} (hs : s.IsStrictMono) (q : {q // s.valid q})
     (hr : s.ready q) : s.index' q ≠ s.index' (s.advance q) := by
@@ -501,6 +505,42 @@ theorem Stream.IsStrictMono.eval₀_eq_eval_filter [AddCommMonoid α] {s : Strea
     rw [Stream.advance_val]
     exact hs.eq_zero_of_lt_index q rfl.le i hi
 
+noncomputable def Stream.evalOption (s : Stream ι α) [IsBounded s] (q : s.σ) (i : ι) : Option α :=
+  if h : 0 < Multiset.card (s.evalMultiset q i) then
+    some (Multiset.card_pos_iff_exists_mem.mp h).choose
+  else none
+
+@[simp] lemma Stream.evalOption_zero (q i) : (0 : Stream ι α).evalOption q i = none := by
+  simp [Stream.evalOption]
+
+@[simp] lemma Stream.evalOption_invalid (s : Stream ι α) [IsBounded s] (q : s.σ) (i) (h : ¬s.valid q) :
+    s.evalOption q i = none := by
+  simp [Stream.evalOption, h]
+
+lemma Stream.IsStrictMono.evalMultiset_ready {s : Stream ι α} [IsBounded s] (h : s.IsStrictMono)
+    {q : {q // s.valid q}} (hr : s.ready q) :
+    s.evalMultiset q (s.index q) = {s.value ⟨q, hr⟩} := by
+  suffices s.evalMultiset (s.advance q) (s.index q) = ∅ by
+    simp [hr, -advance_val, this]
+  apply h.1.eq_empty_of_lt_index
+  rw [advance_val]
+  exact h.lt' rfl.le hr
+
+@[simp] lemma Stream.IsStrictMono.evalOption_ready {s : Stream ι α} [IsBounded s] (h : s.IsStrictMono)
+    {q : {q // s.valid q}} (hr : s.ready q) :
+    s.evalOption q (s.index q) = some (s.value ⟨q, hr⟩) := by
+  simp only [evalOption, h.evalMultiset_ready hr, Multiset.card_singleton, zero_lt_one, ↓reduceDite,
+    Multiset.mem_singleton, Option.some.injEq]
+  generalize_proofs he
+  exact he.choose_spec
+
+lemma Stream.IsStrictMono.evalOption_not_ready {s : Stream ι α} [IsBounded s]
+    (q : {q // s.valid q}) (i : ι) (hr : ¬s.ready q ∨ s.index q ≠ i) :
+    s.evalOption q i = s.evalOption (s.advance q) i := by
+  simp only [Stream.evalOption]
+  have := s.evalMultiset_not_ready q i hr
+  simp only [this]
+
 section Lawful
 
 /-- A stream is lawful if it is monotonic and satisfies the following property about `seek`:
@@ -524,9 +564,6 @@ class IsStrictLawful {ι : Type} {α : Type _} [LinearOrder ι]
   (s : Stream ι α) extends IsLawful s where
   strictMono : s.IsStrictMono
   mono := strictMono.1
-
-
-variable [AddZeroClass α]
 
 theorem Stream.mono (s : Stream ι α) [IsLawful s] : s.IsMonotonic :=
   ‹IsLawful s›.mono
@@ -559,7 +596,6 @@ theorem Stream.eval_seek_eq_of_false (s : Stream ι α) [IsLawful s] (q : {q // 
     simp [Stream.toOrder, hr]
   . ext i
     simp [s.evalMultiset_not_ready q i (.inl hr), Stream.toOrder, hr]
-
 
 end Lawful
 
