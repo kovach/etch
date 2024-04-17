@@ -506,9 +506,7 @@ theorem Stream.IsStrictMono.eval₀_eq_eval_filter [AddCommMonoid α] {s : Strea
     exact hs.eq_zero_of_lt_index q rfl.le i hi
 
 noncomputable def Stream.evalOption (s : Stream ι α) [IsBounded s] (q : s.σ) (i : ι) : Option α :=
-  if h : 0 < Multiset.card (s.evalMultiset q i) then
-    some (Multiset.card_pos_iff_exists_mem.mp h).choose
-  else none
+  (s.evalMultiset q i).get
 
 @[simp] lemma Stream.evalOption_zero (q i) : (0 : Stream ι α).evalOption q i = none := by
   simp [Stream.evalOption]
@@ -529,17 +527,13 @@ lemma Stream.IsStrictMono.evalMultiset_ready {s : Stream ι α} [IsBounded s] (h
 @[simp] lemma Stream.IsStrictMono.evalOption_ready {s : Stream ι α} [IsBounded s] (h : s.IsStrictMono)
     {q : {q // s.valid q}} (hr : s.ready q) :
     s.evalOption q (s.index q) = some (s.value ⟨q, hr⟩) := by
-  simp only [evalOption, h.evalMultiset_ready hr, Multiset.card_singleton, zero_lt_one, ↓reduceDite,
-    Multiset.mem_singleton, Option.some.injEq]
-  generalize_proofs he
-  exact he.choose_spec
+  simp [evalOption, h.evalMultiset_ready hr]
 
 lemma Stream.IsStrictMono.evalOption_not_ready {s : Stream ι α} [IsBounded s]
     (q : {q // s.valid q}) (i : ι) (hr : ¬s.ready q ∨ s.index q ≠ i) :
     s.evalOption q i = s.evalOption (s.advance q) i := by
   simp only [Stream.evalOption]
-  have := s.evalMultiset_not_ready q i hr
-  simp only [this]
+  rw [s.evalMultiset_not_ready q i hr]
 
 section Lawful
 

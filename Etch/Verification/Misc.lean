@@ -133,6 +133,13 @@ theorem Multiset.map_get {α} {l : List α} :
   simp [Finset.univ, Fintype.elems]
 #align multiset.map_nth_le Multiset.map_get
 
+noncomputable def Multiset.get (s : Multiset α) : Option α :=
+  s.toList.get? 0
+
+@[simp] lemma Multiset.get_zero : (0 : Multiset α).get = none := by simp [Multiset.get]
+
+@[simp] lemma Multiset.get_singleton (a : α) : ({a} : Multiset α).get = some a := by simp [Multiset.get]
+
 @[simp]
 theorem le_false_iff : ∀ {b : Bool}, b ≤ false ↔ b = false := by decide
 #align le_ff_iff le_false_iff
