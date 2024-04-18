@@ -113,6 +113,12 @@ def next' (s : Stream ι α) (q : {q // s.valid q}) (ready : Bool) : s.σ :=
 def map (f : α → β) (s : Stream ι α) : Stream ι β :=
   { s with value := fun h => f (s.value h) }
 
+@[simp] lemma map_id (s : Stream ι α) : s.map id = s := rfl
+
+@[simp] lemma map_id' (s : Stream ι α) : s.map (fun x => x) = s := s.map_id
+
+@[simp] lemma map_map (f : α → β) (g : β → γ) (s : Stream ι α) : (s.map f).map g = s.map (g ∘ f) := rfl
+
 @[inline]
 def zero : Stream ι α where
   σ := Unit; valid _ := false; ready _ := false;

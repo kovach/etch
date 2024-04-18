@@ -127,6 +127,9 @@ theorem List.zipWith_snd {α β} {l₁ : List α} {l₂ : List β} (hl : l₂.le
   exact hl
 #align list.zip_with_snd List.zipWith_snd
 
+@[simp] lemma Multiset.zero_ne_singleton (a : α) :
+    ¬((0 : Multiset α) = {a}) := Multiset.zero_ne_cons
+
 @[simp]
 theorem Multiset.map_get {α} {l : List α} :
     (Finset.univ.val : Multiset (Fin l.length)).map l.get = l := by
