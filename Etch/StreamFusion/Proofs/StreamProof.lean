@@ -318,11 +318,11 @@ theorem Stream.evalMultiset_sum [AddCommMonoid α] (s : Stream ι α) [IsBounded
   rw [Multiset.coe_sumAddMonoidHom] at h₂
   rw [h₂, h₁]
 
-@[simp] lemma Stream.evalMultiset_zero (q i) : (0 : Stream ι α).evalMultiset q i = ∅ := by
+@[simp] lemma Stream.evalMultiset_zero (q i) : (0 : Stream ι α).evalMultiset q i = 0 := by
   simp [Stream.evalMultiset]
 
 @[simp] lemma Stream.evalMultiset_invalid (s : Stream ι α) [IsBounded s] (q : s.σ) (h : ¬s.valid q) (i) :
-    s.evalMultiset q i = ∅ := by
+    s.evalMultiset q i = 0 := by
   simp [Stream.evalMultiset, h]
 
 @[simp] lemma Stream.evalMultiset_ready (s : Stream ι α) [IsBounded s] {q : {q // s.valid q}} (hr : s.ready q) :
@@ -340,6 +340,13 @@ lemma Stream.evalMultiset_not_ready (s : Stream ι α) [IsBounded s] (q : {q // 
     simp only [Stream.eval₀]
     split_ifs; swap; · rfl
     simp [hr]
+
+
+lemma Stream.not_ready_of_toOrder_lt {ι : Type} [PartialOrder ι] {s : Stream ι α} {i : ι} {q}
+    (h : s.toOrder q <ₗ (i, true)) : ¬s.ready q ∨ s.index q ≠ i := by
+  simp only [toOrder, Prod.Lex.lt_iff', lt_true_iff] at h
+  exact h.symm.imp (by simp) ne_of_lt
+
 
 theorem Stream.eval₀_support [Zero α]
     (s : Stream ι α) [IsBounded s]
@@ -457,7 +464,7 @@ theorem Stream.IsMonotonic.index_le_of_mem_support [AddZeroClass α] {s : Stream
     · exact (hs.index_le_index_advance q).trans (ih (s.advance q) (s.next_wf ⟨q, H⟩) i hi)
 
 theorem Stream.IsMonotonic.index_le_of_nonempty_multiset {s : Stream ι α} [IsBounded s]
-    (hs : s.IsMonotonic) {q : s.σ} (i : ι) : s.evalMultiset q i ≠ ∅ → s.index' q ≤ i :=
+    (hs : s.IsMonotonic) {q : s.σ} (i : ι) : s.evalMultiset q i ≠ 0 → s.index' q ≤ i :=
   (Stream.map_isMonotonic.mpr hs).index_le_of_mem_support i
 
 theorem Stream.IsMonotonic.eq_zero_of_lt_index [AddZeroClass α] {s : Stream ι α} [IsBounded s]
@@ -466,7 +473,7 @@ theorem Stream.IsMonotonic.eq_zero_of_lt_index [AddZeroClass α] {s : Stream ι 
   exact hs.index_le_of_mem_support i
 
 theorem Stream.IsMonotonic.eq_empty_of_lt_index {s : Stream ι α} [IsBounded s]
-    (hs : s.IsMonotonic) {q : s.σ} (i : ι) : ↑i < s.index' q → s.evalMultiset q i = ∅ := by
+    (hs : s.IsMonotonic) {q : s.σ} (i : ι) : ↑i < s.index' q → s.evalMultiset q i = 0 := by
   contrapose!
   exact hs.index_le_of_nonempty_multiset i
 
@@ -555,7 +562,7 @@ noncomputable def Stream.evalOption (s : Stream ι α) [IsBounded s] (q : s.σ) 
 
 lemma Stream.IsStrictMono.evalMultiset_advance_of_ready {s : Stream ι α} [IsBounded s] (h : s.IsStrictMono)
     {q : {q // s.valid q}} (hr : s.ready q) :
-    s.evalMultiset (s.advance q) (s.index q) = ∅ := by
+    s.evalMultiset (s.advance q) (s.index q) = 0 := by
   apply h.1.eq_empty_of_lt_index
   rw [advance_val]
   exact h.lt' rfl.le hr
@@ -583,7 +590,7 @@ lemma Stream.IsStrictMono.evalMultiset_length_le {s : Stream ι α} [IsBounded s
     s.evalOption q (s.index q) = some (s.value ⟨q, hr⟩) := by
   simp [evalOption, h.evalMultiset_ready hr]
 
-lemma Stream.IsStrictMono.evalOption_not_ready {s : Stream ι α} [IsBounded s]
+lemma Stream.evalOption_not_ready {s : Stream ι α} [IsBounded s]
     (q : {q // s.valid q}) (i : ι) (hr : ¬s.ready q ∨ s.index q ≠ i) :
     s.evalOption q i = s.evalOption (s.advance q) i := by
   simp only [Stream.evalOption]
@@ -591,7 +598,7 @@ lemma Stream.IsStrictMono.evalOption_not_ready {s : Stream ι α} [IsBounded s]
 
 lemma Stream.IsStrictMono.evalOption_eq_iff {s : Stream ι α} [IsBounded s] (hs : s.IsStrictMono) {q : s.σ} {i : ι} {a : α} :
     (s.evalOption q i = some a ↔ s.evalMultiset q i = {a})
-    ∧ (s.evalOption q i = none ↔ s.evalMultiset q i = ∅) :=
+    ∧ (s.evalOption q i = none ↔ s.evalMultiset q i = 0) :=
   match H : Multiset.card (s.evalMultiset q i), hs.evalMultiset_length_le q i with
   | 0, _ => by
     rw [Multiset.card_eq_zero] at H

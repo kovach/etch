@@ -9,7 +9,7 @@ namespace Etch.Verification.Stream
   x.toNat.land y.toNat = 1
 @[simp] theorem bothand_spec : ∀ x y, bothand x y = and x y := by decide
 
-infixl:35 " &' " => and
+-- infixl:35 " &' " => and
 
 section
 variable {ι : Type} [LinearOrder ι] {α : Type _} [Mul α]
@@ -17,7 +17,7 @@ variable {ι : Type} [LinearOrder ι] {α : Type _} [Mul α]
 variable (s : Stream ι α)
 
 @[inline]
-def mul.valid (a : Stream ι α) (b : Stream ι β) (q : a.σ × b.σ) : Bool := a.valid q.1 &' b.valid q.2
+def mul.valid (a : Stream ι α) (b : Stream ι β) (q : a.σ × b.σ) : Bool := a.valid q.1 && b.valid q.2
 
 attribute [simp] mul.valid -- simp helps aesop proof below
 
@@ -45,9 +45,9 @@ def mul.valid.cases {a : Stream ι α} {b : Stream ι β} (q : {p // mul.valid a
 @[inline]
 def mul.ready (a : Stream ι α) (b : Stream ι β) (q : {p // mul.valid a b p}) : Bool :=
 match mul.valid.cases q with
-| (q₁, q₂) => a.ready q₁ &' b.ready q₂ &' a.index q₁ = b.index q₂
+| (q₁, q₂) => a.ready q₁ && b.ready q₂ && a.index q₁ = b.index q₂
     --let q₁ := mul.valid.fst q; let q₂ := mul.valid.snd q
-    --a.ready q₁ &' b.ready q₂ &' a.index q₁ = b.index q₂
+    --a.ready q₁ && b.ready q₂ && a.index q₁ = b.index q₂
 
 --todo
 attribute [simp] mul.ready -- simp helps aesop proof below
