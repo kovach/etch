@@ -596,8 +596,8 @@ lemma Stream.evalOption_not_ready {s : Stream ι α} [IsBounded s]
   simp only [Stream.evalOption]
   rw [s.evalMultiset_not_ready q i hr]
 
-lemma Stream.IsStrictMono.evalOption_eq_iff {s : Stream ι α} [IsBounded s] (hs : s.IsStrictMono) {q : s.σ} {i : ι} {a : α} :
-    (s.evalOption q i = some a ↔ s.evalMultiset q i = {a})
+lemma Stream.IsStrictMono.evalOption_eq_iff {s : Stream ι α} [IsBounded s] (hs : s.IsStrictMono) {q : s.σ} {i : ι} :
+    (∀ a, s.evalOption q i = some a ↔ s.evalMultiset q i = {a})
     ∧ (s.evalOption q i = none ↔ s.evalMultiset q i = 0) :=
   match H : Multiset.card (s.evalMultiset q i), hs.evalMultiset_length_le q i with
   | 0, _ => by
@@ -607,6 +607,11 @@ lemma Stream.IsStrictMono.evalOption_eq_iff {s : Stream ι α} [IsBounded s] (hs
     rw [Multiset.card_eq_one] at H
     rcases H with ⟨a', ha'⟩
     simp [evalOption, ha']
+
+lemma Stream.IsStrictMono.evalMultiset_eq_evalOption {s : Stream ι α} [IsBounded s] (hs : s.IsStrictMono) {q : s.σ} {i : ι} :
+    s.evalMultiset q i = ((s.evalOption q i).map fun x => {x}).getD 0 := by
+  cases h : s.evalOption q i <;>
+  simpa [(hs.evalOption_eq_iff (q := q)).1, (hs.evalOption_eq_iff (q := q)).2] using h
 
 section Lawful
 
