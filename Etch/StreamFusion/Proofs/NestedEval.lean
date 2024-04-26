@@ -6,24 +6,24 @@ section bdd_stream
 
 variable (ι : Type) [Preorder ι]
 
-structure BddSStream (α : Type) extends SStream ι α :=
+structure BddSStream (α : Type*) extends SStream ι α :=
   (bdd : IsBounded toStream)
 
 attribute [instance] BddSStream.bdd
 
 infixr:25 " →ₛb " => BddSStream
 
-variable {ι}
+variable {ι} {α : Type*}
 
-@[macro_inline] def BddSStream.map {α β : Type} (f : α → β) (s : ι →ₛb α) : ι →ₛb β :=
+@[macro_inline] def BddSStream.map {α β : Type*} (f : α → β) (s : ι →ₛb α) : ι →ₛb β :=
   { s with
     value := f ∘ s.value
     bdd := ⟨s.bdd.out⟩ }
 
-@[simp] lemma BddSStream.map_eq_map {α β : Type} (f : α → β) (s : ι →ₛb α) :
+@[simp] lemma BddSStream.map_eq_map {α β : Type*} (f : α → β) (s : ι →ₛb α) :
     (BddSStream.map f s).toSStream = s.toSStream.map f := rfl
 
-@[inline, simp] def BddSStream.fold {α : Type} (f : β → ι → α → β) (s : ι →ₛb α) (b : β) : β :=
+@[inline, simp] def BddSStream.fold {α : Type*} (f : β → ι → α → β) (s : ι →ₛb α) (b : β) : β :=
   s.toStream.fold_wf f s.q b
 
 noncomputable def BddSStream.eval [AddZeroClass α] (s : ι →ₛb α) : ι →₀ α :=
@@ -47,7 +47,7 @@ instance [Scalar α] [AddZeroClass α] : EvalToFinsupp α α where
   evalFinsupp := ⟨id, rfl⟩
 
 @[simps]
-noncomputable instance [LinearOrder ι] [Zero α] [AddZeroClass β] [EvalToFinsupp α β] : EvalToFinsupp (ι →ₛb α) (ι →₀ β) where
+noncomputable instance BddSStream.instEvalToFinsupp [LinearOrder ι] [Zero α] [AddZeroClass β] [EvalToFinsupp α β] : EvalToFinsupp (ι →ₛb α) (ι →₀ β) where
   evalFinsupp := ⟨fun f => (f.map evalFinsupp).eval, by
     change (0 : ι →ₛb β).eval = 0
     dsimp [BddSStream.eval]

@@ -1,6 +1,7 @@
 import Etch.StreamFusion.Stream
 import Etch.StreamFusion.Proofs.StreamProof
 import Etch.StreamFusion.Proofs.NestedEval
+import Etch.Verification.RBMap
 
 namespace Etch.Verification.Stream
 
@@ -89,7 +90,7 @@ theorem LawfulOfStream.get_fold [Zero α] [Zero β] [Zero m] [AddCommMonoid γ]
   · rw [Stream.fold_wf_invalid, Stream.eval_invalid]; all_goals (try exact hv)
     simp
 
-instance [Zero α] [Zero β] [Zero m] [AddCommMonoid γ]
+instance Modifiable.instLawfulOfStream [Zero α] [Zero β] [Zero m] [AddCommMonoid γ]
     [EvalToFinsupp α γ] [EvalToFinsupp β γ]
     [LawfulOfStream α β γ] [LawfulModifiable ι β m] : LawfulOfStream (ι →ₛb α) m (ι →₀ γ) where
   eval_of_stream := by
@@ -106,17 +107,37 @@ open Std
 --     (t.insert v x).find? v' = some x := by
 --   dsimp [RBMap.find?, RBMap.findEntry?]
   -- apply RBSet.find?_insert_of_eq
-
 instance [Zero β] : LawfulModifiable ι β (Std.RBMap ι β Ord.compare) where
   get := fun m i => m.findD i 0
-  get_update := sorry
-  get_update_ne := sorry
-  get_zero := sorry
-  supp_finite := sorry
+  get_update := by simp [Modifiable.update, RBMap.modifyD]
+  get_update_ne := by
+    intro m x y v hne
+    dsimp [Modifiable.update, RBMap.modifyD]
+    rw [RBMap.findD_insert_of_ne]
+    · rw [ne_eq, compare_eq_iff_eq]
+      exact hne.symm
+  get_zero := fun x => RBMap.findD_empty x 0
+  supp_finite := fun m => by
+    dsimp [Function.support]
+    have h₁ : { x | m.findD x 0 ≠ 0 } ⊆ { x | m.find? x ≠ none } := fun x => by
+      cases H : m.find? x <;> simp [H, RBMap.findD]
+    have h₂ : { x | m.find? x ≠ none } ⊆ Prod.fst '' { y | y ∈ m.toList } := fun x => by
+      simp only [ne_eq, Option.ne_none_iff_exists, Set.mem_setOf_eq, Set.mem_image, Prod.exists,
+        exists_and_right, exists_eq_right, forall_exists_index]
+      rintro v hv
+      refine ⟨v, ?_⟩
+      obtain ⟨x', hx₁, hx₂⟩ := RBMap.find?_some_mem_toList hv.symm
+      rw [compare_eq_iff_eq] at hx₂
+      rwa [hx₂]
+    exact ((List.finite_toSet _).image _).subset (h₁.trans h₂)
 
 
 #synth LawfulModifiable ℕ ℕ (RBMap ℕ ℕ Ord.compare)
-#synth LawfulOfStream (ℕ →ₛb ℕ) (RBMap ℕ ℕ Ord.compare) _
+#synth LawfulOfStream (ℕ →ₛb ℕ) (RBMap ℕ ℕ Ord.compare) (ℕ →₀ ℕ)
+noncomputable instance : LawfulOfStream (ℕ →ₛb ℕ →ₛb ℕ) (RBMap ℕ (RBMap ℕ ℕ Ord.compare) Ord.compare) (ℕ →₀ ℕ →₀ ℕ) :=
+  Modifiable.instLawfulOfStream
+
+#synth LawfulOfStream (ℕ →ₛb ℕ →ₛb ℕ) (RBMap ℕ (RBMap ℕ ℕ Ord.compare) Ord.compare) (ℕ →₀ ℕ →₀ ℕ)
 
 
 end lawful_mod
